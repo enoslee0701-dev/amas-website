@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 220">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0f3d2e"/><stop offset="1" stop-color="#0a2018"/></linearGradient></defs>
+<rect width="600" height="220" fill="url(#g)"/>
+<circle cx="510" cy="30" r="150" fill="rgba(255,255,255,0.045)"/>
+<circle cx="40" cy="230" r="100" fill="rgba(255,255,255,0.03)"/>
+<text x="475" y="160" font-family="'Noto Serif SC','Songti SC','SimSun',serif" font-size="110" fill="#e9c46a" fill-opacity="0.16" text-anchor="middle">林前</text>
+<text x="38" y="72" font-family="Georgia,serif" font-size="15" letter-spacing="4" fill="#e9c46a" fill-opacity="0.92">BIB 302</text>
+<text x="38" y="128" font-family="'Noto Serif SC','Songti SC','SimSun',serif" font-size="38" font-weight="700" fill="#f7f1e2">哥林多前书</text>
+<rect x="38" y="148" width="42" height="3" fill="#e9c46a" fill-opacity="0.8"/>
+</svg>

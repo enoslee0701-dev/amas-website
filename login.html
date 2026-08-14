@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AMAS 亚洲宣教神学院｜学术门户</title>
+<meta name="description" content="AMAS 亚洲宣教神学院安全学术门户">
+<style>
+:root{
+  --bg:#f7f1e6;
+  --paper:rgba(255,252,245,.88);
+  --paper-solid:#fffaf1;
+  --green:#163b2d;
+  --green-2:#0f2f24;
+  --gold:#b78a35;
+  --gold-soft:#d5b46b;
+  --ink:#243329;
+  --muted:#81796b;
+  --line:rgba(88,68,40,.18);
+  --shadow:0 30px 90px rgba(82,61,27,.18);
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+button,input{font:inherit}
+button{cursor:pointer}
+a{color:inherit;text-decoration:none}
+
+body{
+  min-height:100vh;
+  background:
+    linear-gradient(90deg,rgba(255,251,242,.96) 0%,rgba(255,251,242,.91) 42%,rgba(255,251,242,.70) 65%,rgba(255,251,242,.92) 100%),
+    url('assets/img/login-bg.jpg');
+  background-size:cover;
+  background-position:center;
+  background-attachment:fixed;
+}
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 73% 18%,rgba(255,255,255,.95),transparent 27%),
+    linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,247,231,.35));
+  z-index:0;
+}
+.page{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column}
+.top-note{
+  padding:28px 34px 0;
+  font-family:Georgia,"Noto Serif SC",serif;
+  color:#314538;
+}
+.top-note .zh{font-size:14px;letter-spacing:.08em}
+.top-note .en{font-size:10px;color:#8b7c66;letter-spacing:.08em;margin-top:4px}
+.top-note .back-home{display:inline-block;margin-top:10px;font-size:13px;color:#a5742f;border-bottom:1px solid rgba(183,138,53,.35);padding-bottom:1px}
+.top-note .back-home:hover{color:#7d5518}
+
+.hero{
+  width:min(980px,calc(100% - 32px));
+  margin:14px auto 0;
+  text-align:center;
+}
+.logo-wrap{
+  width:132px;height:132px;margin:0 auto 4px;
+  display:grid;place-items:center;
+}
+.logo-wrap img{max-width:100%;max-height:100%;object-fit:contain;filter:drop-shadow(0 5px 14px rgba(64,45,15,.08))}
+.amas-word{
+  display:flex;align-items:center;justify-content:center;gap:18px;
+  color:var(--gold);font-family:Georgia,serif;font-size:30px;letter-spacing:.38em;margin-top:2px;
+}
+.amas-word::before,.amas-word::after{content:"";height:1px;width:34px;background:rgba(183,138,53,.45)}
+.hero h1{
+  margin:9px 0 3px;
+  font-family:"Noto Serif SC","Songti SC","SimSun",serif;
+  font-weight:700;
+  letter-spacing:.08em;
+  font-size:clamp(34px,5vw,54px);
+  color:var(--green);
+}
+.subtitle{
+  font-family:Georgia,serif;
+  color:#a5742f;
+  font-weight:600;
+  letter-spacing:.08em;
+  font-size:16px;
+}
+.crossline{display:flex;align-items:center;justify-content:center;gap:10px;margin:12px 0 3px;color:var(--gold)}
+.crossline::before,.crossline::after{content:"";width:56px;height:1px;background:rgba(183,138,53,.45)}
+.verse{font-family:"Noto Serif SC","Songti SC",serif;font-size:15px;line-height:1.6;color:#3f4d43}
+.verse small{display:block;font-size:11px;color:#887b69}
+
+.login-card{
+  width:min(640px,calc(100% - 32px));
+  margin:22px auto 24px;
+  padding:28px 34px 28px;
+  background:var(--paper);
+  border:1px solid rgba(112,88,52,.14);
+  border-radius:24px;
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(18px);
+}
+.tabs{
+  display:grid;grid-template-columns:1fr 1fr;
+  padding:3px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.45);
+}
+.tab{
+  height:54px;border:0;border-radius:13px;background:transparent;color:var(--green);font-weight:650;
+}
+.tab.active{background:linear-gradient(135deg,var(--green),var(--green-2));color:#fff;box-shadow:0 10px 28px rgba(15,47,36,.16)}
+.form{margin-top:28px}
+.field{margin-bottom:20px}
+.field label{display:block;font-size:13px;font-weight:600;margin-bottom:8px;color:#3e4a42}
+.input-wrap{position:relative}
+.input-wrap input{
+  width:100%;height:55px;border-radius:12px;border:1px solid var(--line);
+  background:rgba(255,255,255,.72);padding:0 46px 0 16px;outline:none;color:#243329;
+  transition:.2s;
+}
+.input-wrap input:focus{border-color:#b6934c;box-shadow:0 0 0 3px rgba(183,138,53,.10)}
+.icon{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#9a8e7a;font-size:18px}
+.eye{border:0;background:transparent}
+.row{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:2px 0 18px;font-size:13px}
+.remember{display:flex;gap:8px;align-items:center}
+.remember input{width:16px;height:16px}
+.forgot{color:#ad7a2f;border:0;background:transparent}
+.submit{
+  width:100%;height:58px;border:0;border-radius:12px;color:white;font-weight:700;font-size:17px;
+  background:linear-gradient(135deg,#193e30,#0f2e24);
+  box-shadow:0 13px 30px rgba(22,59,45,.18);
+  transition:.2s;
+}
+.submit:hover{transform:translateY(-1px)}
+.or{display:flex;align-items:center;gap:14px;color:#958978;font-size:12px;margin:24px 0 18px}
+.or::before,.or::after{content:"";height:1px;flex:1;background:var(--line)}
+.quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.quick{
+  min-height:76px;border:1px solid rgba(112,88,52,.10);border-radius:13px;background:rgba(255,255,255,.42);
+  padding:12px 10px;text-align:left;color:#334238;
+}
+.quick b{display:block;font-size:13px;margin-bottom:4px}
+.quick span{display:block;color:#918572;font-size:11px}
+.security{text-align:center;margin-top:22px;color:#4c5c52;font-size:13px}
+.security small{display:block;color:#9a8d79;margin-top:4px}
+
+.register-note{margin:12px 0 0;font-size:12px;color:#8a8172;text-align:center}
+.register-panel{display:none}
+.register-panel.active{display:block}
+.login-panel.hidden{display:none}
+
+.trust-strip{
+  margin-top:auto;
+  background:linear-gradient(135deg,#14382a,#0d2b21);
+  color:#f8f0db;
+  padding:22px 28px 18px;
+  border-top:1px solid rgba(213,180,107,.28);
+}
+.trust-inner{
+  width:min(1000px,calc(100% - 16px));margin:auto;
+  display:grid;grid-template-columns:210px 1.3fr 1fr 1fr 1fr;gap:22px;align-items:center;
+}
+.trust-logo img{width:92px;height:92px;object-fit:contain;background:#fff;border-radius:50%;padding:4px}
+.trust-title b{display:block;font-size:14px}
+.trust-title span{font-family:Georgia,serif;font-size:11px;color:#d9cda9;line-height:1.5}
+.trust-item{border-left:1px solid rgba(255,255,255,.14);padding-left:18px}
+.trust-item b{display:block;color:#f1d38a;font-size:13px;margin-bottom:3px}
+.trust-item span{font-size:10px;color:#c7c0ae}
+.copyright{text-align:center;margin-top:18px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08);font:11px Georgia,serif;color:#bfb7a6}
+
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:#132f25;color:white;padding:11px 16px;border-radius:999px;opacity:0;pointer-events:none;transition:.2s;z-index:20;font-size:13px}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media(max-width:820px){
+  .top-note{padding-left:18px}
+  .hero{margin-top:10px}
+  .login-card{padding:24px 20px}
+  .trust-inner{grid-template-columns:1fr 1fr}
+  .trust-logo,.trust-title{grid-column:span 1}
+}
+@media(max-width:560px){
+  .top-note{padding-top:16px}
+  .top-note .zh,.top-note .en{display:none}
+  .top-note .back-home{margin-top:0}
+  .hero h1{font-size:34px}
+  .subtitle{font-size:11px}
+  .logo-wrap{width:104px;height:104px}
+  .login-card{border-radius:18px}
+  .quick-grid{grid-template-columns:1fr}
+  .trust-inner{grid-template-columns:1fr}
+  .trust-item{border-left:0;border-top:1px solid rgba(255,255,255,.12);padding:12px 0 0}
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="top-note">
+    <div class="zh">真理 · 使命 · 装备 · 差遣</div>
+    <div class="en">TRUTH · MISSION · EQUIP · SEND</div>
+    <a class="back-home" href="index.html">← 返回官网首页</a>
+  </div>
+
+  <section class="hero">
+    <div class="logo-wrap"><img src="assets/img/school-seal.webp" alt="AMAS Thailand"></div>
+    <div class="amas-word">AMAS</div>
+    <h1>亚洲宣教神学院</h1>
+    <div class="subtitle">ASIA MISSIONARY ASSOCIATION SEMINARY</div>
+    <div class="crossline">✝</div>
+    <div class="verse">你们要去，使万民作我的门徒。<small>— 马太福音 28:19</small></div>
+  </section>
+
+  <section class="login-card">
+    <div class="tabs">
+      <button class="tab active" data-tab="login">登录</button>
+      <button class="tab" data-tab="register">注册</button>
+    </div>
+
+    <div class="login-panel">
+      <form class="form" id="loginForm">
+        <div class="field">
+          <label>电子邮箱 / 学号</label>
+          <div class="input-wrap">
+            <input name="account" placeholder="请输入您的邮箱地址或学号" required>
+            <span class="icon">◯</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>密码</label>
+          <div class="input-wrap">
+            <input id="loginPassword" name="password" type="password" placeholder="请输入密码" required>
+            <button class="icon eye" type="button" data-toggle-password="#loginPassword">◉</button>
+          </div>
+        </div>
+        <div class="row">
+          <label class="remember"><input type="checkbox" name="remember">记住我</label>
+          <button type="button" class="forgot" id="forgotBtn">忘记密码？</button>
+        </div>
+        <button class="submit" type="submit">进入 AMAS</button>
+      </form>
+    </div>
+
+    <div class="register-panel">
+      <form class="form" id="registerForm">
+        <div class="field">
+          <label>姓名</label>
+          <div class="input-wrap"><input name="name" placeholder="请输入您的姓名" required></div>
+        </div>
+        <div class="field">
+          <label>电子邮箱</label>
+          <div class="input-wrap"><input type="email" name="email" placeholder="请输入电子邮箱" required></div>
+        </div>
+        <div class="field">
+          <label>联系方式（微信 / 电话，选填）</label>
+          <div class="input-wrap"><input name="contact" placeholder="便于招生同工与你联系"></div>
+        </div>
+        <button class="submit" type="submit">提交注册申请</button>
+        <p class="register-note">提交后由招生同工审核开通账号，结果将通过邮件通知你。</p>
+      </form>
+    </div>
+
+    <div class="or">或</div>
+    <div class="quick-grid">
+      <button class="quick" id="applyBtn"><b>申请入学</b><span>提交入学申请</span></button>
+      <button class="quick" id="facultyBtn"><b>教师验证</b><span>教职工专用通道</span></button>
+      <button class="quick" id="helpBtn"><b>帮助中心</b><span>常见问题解答</span></button>
+    </div>
+
+    <div class="security">🔒 安全的学术访问<small>AMAS 采用标准安全机制保护您的信息与隐私</small></div>
+  </section>
+
+  <footer class="trust-strip">
+    <div class="trust-inner">
+      <div class="trust-logo"><img src="assets/img/school-seal.webp" alt=""></div>
+      <div class="trust-title"><b>装备今日的门徒 · 差遣明日的使者</b><span>EQUIPPING DISCIPLES TODAY<br>SENDING MISSIONARIES TOMORROW</span></div>
+      <div class="trust-item"><b>安全可靠</b><span>多重安全防护</span></div>
+      <div class="trust-item"><b>学术严谨</b><span>优质神学教育</span></div>
+      <div class="trust-item"><b>全球视野</b><span>普世宣教使命</span></div>
+    </div>
+    <div class="copyright">© 2026 Asia Missionary Association Seminary. All rights reserved.</div>
+  </footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (s)=>document.querySelector(s);
+const $$ = (s)=>[...document.querySelectorAll(s)];
+
+$$(".tab").forEach(btn=>btn.addEventListener("click",()=>{
+  $$(".tab").forEach(x=>x.classList.remove("active"));
+  btn.classList.add("active");
+  const isLogin=btn.dataset.tab==="login";
+  $(".login-panel").classList.toggle("hidden",!isLogin);
+  $(".register-panel").classList.toggle("active",!isLogin);
+}));
+
+$$("[data-toggle-password]").forEach(btn=>btn.addEventListener("click",()=>{
+  const input=$(btn.dataset.togglePassword);
+  input.type=input.type==="password"?"text":"password";
+}));
+
+let toastTimer;
+function toast(msg){
+  const t=$("#toast");t.textContent=msg;t.classList.add("show");
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2200);
+}
+
+$("#loginForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  if(!e.currentTarget.checkValidity()) return e.currentTarget.reportValidity();
+  toast("学员系统即将开放。已提交注册申请的学员，开通后会收到邮件通知。");
+});
+$("#registerForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const form=e.currentTarget;
+  if(!form.checkValidity()) return form.reportValidity();
+  const fd=new FormData(form);
+  const btn=form.querySelector(".submit");
+  btn.disabled=true;btn.textContent="提交中…";
+  try{
+    const res=await fetch("https://formsubmit.co/ajax/amasthai2026@gmail.com",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Accept":"application/json"},
+      body:JSON.stringify({
+        _subject:"AMAS 官网 — 学员账号注册申请",
+        _template:"table",
+        姓名:fd.get("name"),
+        邮箱:fd.get("email"),
+        联系方式:fd.get("contact")||"未填写"
+      })
+    });
+    if(!res.ok) throw new Error();
+    toast("注册申请已提交！招生同工审核开通后，将通过邮件通知你。");
+    form.reset();
+  }catch(err){
+    toast("提交失败，请稍后再试，或直接发邮件至 amasthai2026@gmail.com。");
+  }finally{
+    btn.disabled=false;btn.textContent="提交注册申请";
+  }
+});
+$("#forgotBtn").addEventListener("click",()=>toast("请联系招生同工重置：amasthai2026@gmail.com / 微信 L52586222"));
+$("#applyBtn").addEventListener("click",()=>{ window.location.href="index.html#admissions"; });
+$("#facultyBtn").addEventListener("click",()=>toast("这里可接入教师身份验证流程。"));
+$("#helpBtn").addEventListener("click",()=>toast("这里可打开帮助中心或 FAQ。"));
+</script>
+</body>
+</html>

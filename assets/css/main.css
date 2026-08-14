@@ -1,0 +1,749 @@
+/* AMAS 清迈神学院 — 由 tools/build-web.ps1 从 src/work.html 生成，勿直接编辑 */
+
+:root{
+  --paper:#fffdf8; --paper2:#f8f4ea; --paper3:#f1ecdf;
+  --ink:#222018; --muted:#655f53;
+  --olive:#8e8647; --olive2:#a59c5a; --olive-dark:#6b6531;   /* 原 #716a34，压深 3% 让小字达到 4.5:1 */
+  --line:rgba(69,62,42,.16); --shadow:0 22px 70px rgba(66,52,22,.12);
+  --radius:14px; --header-bg:rgba(255,253,248,.94);
+  --surface:#fff; --surface-soft:#fffdf9;
+  --theme-ease:900ms cubic-bezier(.22,.61,.36,1);
+}
+html[data-theme="night"]{
+  --paper:#090b0a; --paper2:#0d100e; --paper3:#131713;
+  --ink:#f1f0e9; --muted:#b8b7ae;
+  --olive:#9ea64d; --olive2:#b7be63; --olive-dark:#9aa345;
+  --line:rgba(208,214,178,.13); --shadow:0 22px 70px rgba(0,0,0,.30);
+  --header-bg:rgba(7,9,8,.82); --surface:#111411; --surface-soft:#0f120f;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:78px}
+body{margin:0;background:var(--paper);color:var(--ink);transition:background-color var(--theme-ease),color var(--theme-ease);font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body.modal-open{overflow:hidden}
+button,input,textarea,select{font:inherit}
+button{cursor:pointer}
+a{color:inherit;text-decoration:none}
+img{display:block;max-width:100%}
+.shell{width:min(1510px,calc(100% - 88px));margin-inline:auto}
+.skip-link{position:fixed;left:10px;top:-50px;z-index:100;background:#111;color:#fff;padding:10px 14px;border-radius:8px}.skip-link:focus{top:10px}
+
+/* Header */
+/* 顶部招生公告条 */
+.announce-bar{background:linear-gradient(135deg,#14382a,#0d2b21);color:#f4ecd8;font-size:11.5px;letter-spacing:.03em;border-bottom:1px solid rgba(213,180,107,.28)}
+.announce-inner{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px;padding:5px 0}
+.announce-hot{color:#e9c46a;font-weight:700}
+.announce-sep{color:rgba(244,236,216,.5)}
+.announce-bar a{color:#fff;font-weight:600;border-bottom:1px solid rgba(255,255,255,.35);padding-bottom:1px;margin-left:8px;transition:color .15s,border-color .15s}
+.announce-bar a:hover{color:#e9c46a;border-color:rgba(233,196,106,.6)}
+
+.site-header{height:78px;position:sticky;top:0;z-index:50;background:var(--header-bg);backdrop-filter:blur(16px);transition:background-color var(--theme-ease),border-color var(--theme-ease);border-bottom:1px solid rgba(40,35,26,.06)}
+/* 两侧按内容自适应、中间导航吃掉剩余空间。
+   原本第三列写死 270px，正好等于三个按钮的总宽，没有任何余量，
+   换个字体就会把按钮压窄导致文字折行。 */
+.header-inner{height:100%;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:20px;align-items:center}
+.brand{flex-shrink:0;display:flex;align-items:center;gap:13px}
+.brand-seal-btn{border:0;background:none;padding:0;cursor:zoom-in;border-radius:50%;line-height:0;transition:transform .2s}
+.brand-seal-btn:hover{transform:scale(1.07)}
+.brand-seal{width:56px;height:56px;display:block;border-radius:50%}
+.brand-name{font-family:Georgia,"Noto Serif SC",serif;font-size:25px;letter-spacing:.06em;color:var(--ink);line-height:1;transition:color var(--theme-ease)}
+.brand-name small{display:block;font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;font-size:10.5px;letter-spacing:.18em;color:var(--olive-dark);margin-top:5px;font-weight:600}
+.desktop-nav{display:flex;justify-content:center;gap:clamp(14px,2.1vw,40px);font-size:15px;white-space:nowrap;min-width:0}
+.desktop-nav a{position:relative;padding:29px 0 24px}
+.desktop-nav a::after{content:"";height:2px;position:absolute;left:50%;right:50%;bottom:17px;background:var(--olive-dark);transition:.2s}
+.desktop-nav a:hover::after,.desktop-nav a.active::after{left:0;right:0}
+.desktop-nav a.active{font-weight:600;color:var(--olive-dark)}
+.header-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-shrink:0}
+/* nowrap + 不参与压缩：无论字体多宽，按钮里的字都不折行 */
+.lang-btn,.apply-btn,.login-btn{height:36px;border-radius:9px;border:1px solid var(--line);padding:0 14px;background:#fffdf9;color:var(--ink);white-space:nowrap;flex-shrink:0;line-height:1;font-size:13px}
+.login-btn{display:inline-flex;align-items:center;justify-content:center;border-color:var(--olive-dark);color:var(--olive-dark);font-weight:650;text-decoration:none}
+.login-btn:hover{background:var(--olive-dark);color:#fff}
+/* 语言切换：只显示当前语言的国旗，点击切换 */
+.lang-btn{width:42px;padding:0;display:grid;place-items:center;cursor:pointer}
+.lang-btn .flag{width:24px;height:16px;border-radius:3px;box-shadow:0 0 0 1px rgba(40,35,20,.18);display:none}
+html[lang="zh-CN"] .flag-cn{display:block}
+html[lang="en"] .flag-en{display:block}
+.lang-btn:hover .flag{transform:scale(1.08)}
+.lang-btn .flag{transition:transform .15s}
+.apply-btn{display:inline-flex;align-items:center;justify-content:center;background:var(--olive-dark);border-color:var(--olive-dark);color:#fff;font-weight:650}
+.menu-btn{display:none;width:44px;height:44px;border:0;background:transparent;padding:11px}.menu-btn span{display:block;height:2px;background:var(--ink);margin:5px 0}
+
+/* Hero */
+.hero{position:relative;min-height:730px;overflow:hidden;isolation:isolate;background:#eae3d2}
+.hero-overlay{position:absolute;inset:0;z-index:-2;background:
+linear-gradient(180deg,rgba(255,253,247,.93) 0%,rgba(255,253,247,.86) 45%,rgba(255,253,247,.72) 78%,rgba(255,253,247,.55) 100%)}
+.hero-inner{min-height:730px;display:flex;align-items:center;justify-content:center}
+.hero-copy{width:min(760px,100%);text-align:center;display:flex;flex-direction:column;align-items:center}
+.hero-seal-btn{border:0;background:none;padding:0;cursor:zoom-in;border-radius:50%;line-height:0;transition:transform .25s}
+.hero-seal-btn:hover{transform:scale(1.05)}
+.hero-seal{width:132px;height:132px;border-radius:50%;box-shadow:0 10px 40px rgba(60,48,20,.16)}
+.hero-amas{margin-top:26px;font-family:Georgia,serif;font-size:26px;letter-spacing:.55em;text-indent:.55em;color:#9c7a24;font-weight:700;display:flex;align-items:center;gap:18px}
+.hero-amas::before,.hero-amas::after{content:"";width:44px;height:1.5px;background:#b8983f}
+.hero-cnname{margin:18px 0 0;font-family:Georgia,"Noto Serif SC","Songti SC",serif;font-size:58px;line-height:1.2;font-weight:600;letter-spacing:.12em;text-indent:.12em;color:#27492f}
+.hero-enname{margin-top:14px;font-family:Georgia,serif;font-size:20px;font-weight:700;letter-spacing:.22em;text-indent:.22em;color:#9c7a24}
+.hero-accred{margin-top:12px;font-family:Georgia,serif;font-size:11.5px;font-weight:700;letter-spacing:.3em;text-indent:.3em;color:#8a6a1f}
+/* Hero 下方深绿信息条幅 */
+.hero-band{background:linear-gradient(135deg,#14382a,#0d2b21);border-top:1px solid rgba(213,180,107,.25)}
+.hero-band-inner{display:grid;grid-template-columns:repeat(4,1fr)}
+.hero-band-item{padding:24px 28px;border-right:1px solid rgba(255,255,255,.12)}
+.hero-band-item:first-child{padding-left:0}
+.hero-band-item:last-child{border-right:0}
+.hero-band-item span{display:block;font-size:10px;letter-spacing:.22em;color:#d5b46b;font-weight:700;margin-bottom:8px}
+.hero-band-item b{font-size:15.5px;color:#fff;font-weight:650;letter-spacing:.02em}
+.hero-cross{margin-top:26px;font-size:19px;color:#5f5a45}
+.hero-verse{margin:14px 0 0;color:#3f3b31;font-size:19px;line-height:1.8;letter-spacing:.06em}
+.hero-verse-ref{margin-top:4px;font-size:14px;color:#5d5748;letter-spacing:.08em}
+.hero-actions{display:flex;gap:16px;margin-top:34px;justify-content:center}
+/* Hero 关键信息条（项目 / 开学 / 学习方式） */
+.hero-meta{display:flex;margin-top:30px;border:1px solid rgba(88,68,40,.22);border-radius:10px;background:rgba(255,253,247,.82);backdrop-filter:blur(6px);overflow:hidden}
+.hero-meta-item{padding:14px 26px;border-right:1px solid rgba(88,68,40,.16);text-align:left}
+.hero-meta-item:last-child{border-right:0}
+.hero-meta-item span{display:block;font-size:11px;letter-spacing:.12em;color:#8a8172;margin-bottom:5px}
+.hero-meta-item b{font-size:16px;color:#2e3a30;font-weight:700;letter-spacing:.02em}
+html[data-theme="night"] .hero-meta{background:rgba(14,17,14,.72);border-color:rgba(255,255,255,.14)}
+html[data-theme="night"] .hero-meta-item{border-color:rgba(255,255,255,.10)}
+html[data-theme="night"] .hero-meta-item span{color:#a7a293}
+html[data-theme="night"] .hero-meta-item b{color:#eeece1}
+.btn{min-height:50px;border-radius:9px;border:1px solid transparent;padding:0 22px;display:inline-flex;align-items:center;justify-content:center;gap:14px;font-weight:520;transition:.2s}
+.btn:hover{transform:translateY(-1px)}
+.btn.primary{background:var(--olive-dark);color:#fff}
+.hero-actions .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);border-color:#14382a}
+html[data-theme="night"] .hero-actions .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);color:#f4ecd8;border-color:rgba(213,180,107,.45)}
+.btn.secondary{background:rgba(255,254,250,.9);border-color:rgba(93,84,51,.42);color:var(--ink)}
+.play{width:22px;height:22px;border:1.5px solid currentColor;border-radius:50%;display:grid;place-items:center;font-size:10px}
+
+/* common */
+.section{padding:92px 0}
+.section-head{max-width:760px;margin-bottom:42px}.section-head.split{max-width:none;display:grid;grid-template-columns:1fr 1fr;gap:70px;align-items:end}
+.eyebrow{color:var(--olive-dark);font-size:12px;letter-spacing:.34em;margin-bottom:14px;font-weight:700}
+.section h2{font-family:Georgia,"Noto Serif SC","Songti SC",serif;font-size:48px;line-height:1.16;font-weight:400;margin:0}
+.section-head p{font-size:17px;color:var(--muted);line-height:1.8;margin:0}
+/* 只有确认 JS + IntersectionObserver 可用时才先把元素藏起来，
+   否则（禁用脚本、老浏览器、脚本报错）内容必须原样可见 */
+html.js-reveal .reveal{opacity:0;transform:translateY(18px);transition:opacity .65s ease,transform .65s ease}
+html.js-reveal .reveal.visible{opacity:1;transform:none}
+
+/* about */
+.about{padding-top:44px;background:var(--paper)}
+.about-grid{display:grid;grid-template-columns:470px 1fr;gap:55px}
+.about-copy{position:relative;min-height:285px;padding-top:8px}
+.about-copy h2{font-family:inherit;font-size:31px;line-height:1.34;font-weight:500;margin-bottom:19px}
+.about-copy p{width:365px;margin:0;color:var(--muted);font-size:14px;line-height:1.82}
+.text-link{display:inline-block;margin-top:28px;color:var(--olive-dark);font-size:14px;font-weight:600}
+.seal{position:absolute;right:4px;bottom:10px;width:125px;height:125px;border-radius:50%;border:2px solid rgba(142,134,71,.17);display:grid;place-items:center;color:rgba(142,134,71,.28);font-family:Georgia,serif}.seal:before{content:"";position:absolute;inset:17px;border:1px solid rgba(142,134,71,.18);border-radius:50%}.seal span{position:relative}
+.pillar-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.pillar-card{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:6px;background:#fff;min-height:260px;transition:.25s}
+.pillar-card:hover{transform:translateY(-3px);box-shadow:0 16px 45px rgba(70,56,28,.08)}
+/* 图片按比例自适应宽度；圆图标锚定在图片与正文交界处，任何窗口宽度都不移位 */
+.image-wrap{aspect-ratio:16/7;overflow:hidden}.image-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+.pillar-body{position:relative;padding:31px 17px 17px}
+.round-icon{position:absolute;top:0;left:18px;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;background:var(--olive-dark);color:#fff;border:3px solid var(--surface);display:grid;place-items:center;transition:border-color var(--theme-ease),background-color var(--theme-ease)}
+.pillar-body h3{font-size:17px;margin:0 0 8px;font-weight:600}.pillar-body p{margin:0;font-size:12px;line-height:1.62;color:var(--muted)}
+html[data-theme="night"] .round-icon{color:#0b0d0a}
+.stats-bar{margin-top:24px;border:1px solid var(--line);border-radius:8px;display:grid;grid-template-columns:repeat(5,1fr);background:#fffdf9}
+.stat{padding:20px 24px;border-right:1px solid var(--line)}.stat:last-child{border-right:0}.stat b{display:block;font-size:19px;color:var(--olive-dark);font-weight:600}.stat span{display:block;font-size:11px;color:var(--muted);margin-top:5px}
+
+/* 学术认证与资质：官方证书图 */
+.accreditation-section{background:var(--paper2,#f4efe3)}
+.accred-cert{margin:38px 0 0;border-radius:10px;overflow:hidden;box-shadow:0 26px 70px rgba(40,32,12,.28);line-height:0}
+.accred-cert img{width:100%;height:auto;display:block}
+.accred-card{position:relative;display:grid;grid-template-columns:330px 1fr;margin-top:38px;border:1px solid rgba(160,125,51,.55);border-radius:6px;background:#f6eed9;box-shadow:0 24px 60px rgba(60,48,20,.18)}
+.accred-card-side{position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:8px;padding:54px 34px;background:linear-gradient(155deg,#122c44,#0a1a2c);border-radius:6px 0 0 6px}
+.accred-card-side::before{content:"";position:absolute;inset:10px;border:1px solid rgba(217,169,68,.6);pointer-events:none}
+.accred-card-side::after{content:"";position:absolute;inset:15px;border:1px solid rgba(217,169,68,.25);pointer-events:none}
+.side-orn{color:#d9a944;font-size:24px;line-height:1}
+.side-orn-sm{color:rgba(217,169,68,.85);font-size:12px}
+.accred-mark{font-family:Georgia,serif;font-size:56px;font-weight:700;letter-spacing:.1em;color:#e3b654;line-height:1.15}
+.accred-card-side b{font-size:12.5px;letter-spacing:.24em;color:#f4ecd8;font-weight:700}
+.accred-org{font-family:Georgia,serif;font-size:13px;color:#c8d2da;letter-spacing:.03em}
+.accred-card-side p{margin:18px 0 0;font-size:12.5px;line-height:1.9;color:#9fb0bc;text-align:left}
+.side-cross{margin-top:16px;color:rgba(217,169,68,.75);font-size:18px}
+.accred-seal{position:absolute;left:330px;top:50%;transform:translate(-50%,-50%) rotate(-8deg);width:150px;height:150px;z-index:5;filter:drop-shadow(0 8px 16px rgba(0,0,0,.35))}
+.accred-card-main{position:relative;padding:26px 44px 18px 100px}
+.accred-card-main::before{content:"";position:absolute;inset:12px;border:1.5px solid rgba(185,153,82,.55);pointer-events:none}
+.accred-card-main::after{content:"";position:absolute;inset:17px;border:1px solid rgba(185,153,82,.28);pointer-events:none}
+.accred-item{position:relative;display:flex;align-items:center;gap:20px;padding:24px 14px}
+.accred-item+.accred-item{border-top:1px solid rgba(160,130,60,.4)}
+.accred-item+.accred-item::before{content:"✦";position:absolute;top:-10px;left:50%;transform:translateX(-50%);color:#b78a35;font-size:12px;background:#f6eed9;padding:0 12px;line-height:1.5}
+.accred-crest{width:38px;height:46px;flex-shrink:0}
+.accred-crest .cr{fill:none;stroke:#a07d33;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.accred-item-info{flex:1}
+.accred-item-info b{display:block;font-family:Georgia,"Noto Serif SC","Songti SC",serif;font-size:19px;color:#241c0e}
+.accred-item-info span{display:block;font-size:13px;color:#6b5d40;margin-top:6px}
+.accred-tag{flex-shrink:0;font-family:Georgia,serif;font-size:12.5px;font-weight:700;letter-spacing:.1em;color:#8a6a1f;border:1.5px solid #b78a35;border-radius:6px;padding:9px 20px;background:transparent;box-shadow:0 0 0 3px #f6eed9,0 0 0 4px rgba(183,138,53,.5)}
+.accred-foot{margin:12px 6px 14px;font-size:11.5px;color:#7a6a48;text-align:center}
+.accred-foot::before{content:"— ✦ ";color:#b78a35}
+.accred-foot::after{content:" ✦ —";color:#b78a35}
+
+/* mission */
+.mission-section{position:relative;isolation:isolate;background:#171713;color:#f5f1e8}
+.mission-section::before{content:"";position:absolute;inset:0;z-index:-2;background:url("../img/mission-bg.webp") center/cover no-repeat}
+.mission-section::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(23,23,19,.93) 0%,rgba(23,23,19,.86) 55%,rgba(23,23,19,.93) 100%)}
+.mission-section .eyebrow{color:#bbb16a}.mission-section .section-head p{color:#bfb9aa}
+.mission-grid{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid rgba(255,255,255,.14);border-bottom:1px solid rgba(255,255,255,.14)}
+.mission-item{padding:34px 28px 40px;border-right:1px solid rgba(255,255,255,.14)}.mission-item:last-child{border-right:0}
+.mission-item>span{color:#aaa15f;font-family:Georgia,serif}.mission-item h3{font-size:24px;font-weight:500;margin:0 0 11px}.mission-item p{color:#bdb7a9;line-height:1.8;font-size:14px;margin:0}
+
+/* 官方异象（来自学校异象宣言） */
+.vision-list{margin:26px 0 0;padding:0;list-style:none;display:grid;gap:0;max-width:820px}
+.vision-list li{display:flex;gap:18px;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.12);color:#ddd8c9;line-height:1.75;font-size:15px}
+.vision-list li:last-child{border-bottom:0}
+.vision-list b{font-family:Georgia,serif;color:#bbb16a;font-weight:400;flex-shrink:0}
+
+/* 培养项目（学制梯度，来自入学申请表） */
+.programs-section{background:var(--paper)}
+.program-groups{display:grid;grid-template-columns:1.4fr 1fr;gap:22px}
+.program-group{border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+.program-group>header{padding:20px 26px;border-bottom:1px solid var(--line);background:var(--surface-soft)}
+.program-group>header h3{margin:0;font-size:18px;font-weight:600}
+.program-group>header p{margin:4px 0 0;font-size:12px;color:var(--muted)}
+.program-list{margin:0;padding:0;list-style:none}
+.program-list li{display:flex;align-items:center;gap:16px;padding:15px 26px;border-bottom:1px solid var(--line)}
+.program-list li:last-child{border-bottom:0}
+.program-badge{flex-shrink:0;min-width:74px;text-align:center;font-size:11px;letter-spacing:.06em;font-weight:700;color:var(--olive-dark);border:1px solid var(--line);border-radius:999px;padding:6px 10px;background:var(--paper2)}
+.program-list b{font-size:15px;font-weight:600;display:block}
+.program-list span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.program-list li.program-featured{background:linear-gradient(90deg,rgba(142,134,71,.10),transparent 70%)}
+.program-featured .program-badge{background:var(--olive-dark);color:#fff;border-color:var(--olive-dark)}
+.programs-note{margin-top:16px;font-size:13px;color:var(--muted)}
+html[data-theme="night"] .program-featured .program-badge{color:#0b0d0a}
+
+/* 课程卡学制标签 */
+.course-degree{font-size:10px;letter-spacing:.08em;font-weight:700;color:var(--olive-dark);border:1px solid var(--line);border-radius:999px;padding:3px 9px;background:var(--paper2)}
+
+/* 数字校园（学习 App 预告） */
+.digital-section{position:relative;isolation:isolate;background:var(--paper2)}
+.digital-section::before{content:"";position:absolute;inset:0;z-index:-2;background:url("../img/digital-bg.webp") center/cover no-repeat}
+.digital-section::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(105deg,rgba(248,244,234,.97) 0%,rgba(248,244,234,.93) 45%,rgba(248,244,234,.82) 100%);transition:background var(--theme-ease)}
+html[data-theme="night"] .digital-section::after{background:linear-gradient(105deg,rgba(9,11,10,.96) 0%,rgba(9,11,10,.92) 45%,rgba(9,11,10,.84) 100%)}
+.digital-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.digital-card{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:26px 24px;box-shadow:0 10px 34px rgba(45,36,14,.08)}
+.digital-card>span{font-size:10px;letter-spacing:.2em;font-weight:700;color:var(--olive-dark)}
+.digital-card h3{margin:12px 0 8px;font-size:19px;font-weight:600}
+.digital-card p{margin:0;font-size:13.5px;line-height:1.75;color:var(--muted)}
+.digital-note{margin-top:16px;font-size:13px;color:var(--muted)}
+.digital-note b{color:var(--olive-dark)}
+
+@media(max-width:1150px){
+  .program-groups{grid-template-columns:1fr}
+}
+@media(max-width:860px){
+  .digital-grid{grid-template-columns:1fr}
+}
+@media(max-width:580px){
+  .program-list li{align-items:flex-start;flex-direction:column;gap:8px;padding:14px 18px}
+  .program-group>header{padding:16px 18px}
+}
+
+/* courses */
+.courses-section{background:var(--paper2)}
+.filter-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:28px}
+.filter{border:1px solid var(--line);background:#fff;border-radius:999px;padding:10px 17px;color:#514d43}.filter.active{background:var(--olive-dark);color:#fff;border-color:var(--olive-dark)}
+/* 课程列表：一行一课，默认折叠显示前几门 */
+.course-grid{display:flex;flex-direction:column;gap:10px}
+.course-card{display:flex;align-items:center;gap:22px;overflow:hidden;border:1px solid var(--line);border-radius:12px;background:#fff;transition:.25s;padding:10px 22px 10px 10px}
+.course-card.hidden-card{display:none}.course-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.course-more-wrap{margin-top:24px;text-align:center}
+.course-more{min-width:240px}
+/* 课程缩略图：每门课一张矢量版画（tools/gen-thumbs.mjs 生成），任何 DPR 都锐利 */
+.course-thumb{width:150px;height:88px;flex-shrink:0;border-radius:8px;background-size:cover;background-position:center;background-repeat:no-repeat;background-color:var(--paper3)}
+/* 每门课的专属封面：写实照片，一课一图不重复 */
+.thumb-c-bib101{background-image:url("../img/course-bib101.webp")}      /* 手中翻开的圣经 */
+.thumb-c-bib201{background-image:url("../img/courses/bib201.jpg")}      /* 捧读圣经 */
+.thumb-c-bib202{background-image:url("../img/courses/bib202.jpg")}      /* 发光的书—生命之光 */
+.thumb-c-bib203{background-image:url("../img/course-mis201.webp")}      /* 世界地图—直到地极 */
+.thumb-c-bib301{background-image:url("../img/course-bib203.webp")}      /* 摊开的书与笔 */
+.thumb-c-bib302{background-image:url("../img/courses/bib302.jpg")}      /* 教堂殿堂—教会秩序 */
+.thumb-c-bib303{background-image:url("../img/courses/bib303.jpg")}      /* 雾中晨光—患难中的安慰 */
+.thumb-c-bib304{background-image:url("../img/course-bib305.webp")}      /* 钢笔书写—书信 */
+.thumb-c-bib305{background-image:url("../img/courses/bib305.jpg")}      /* 云海群山—更美的家乡 */
+.thumb-c-bib401{background-image:url("../img/courses/bib401.jpg")}      /* 星空雪山—终末荣耀 */
+.thumb-c-the201{background-image:url("../img/course-the201.webp")}      /* 书墙—教义体系 */
+.thumb-c-the301{background-image:url("../img/courses/the301.jpg")}      /* 环形图书馆 */
+.thumb-c-mis201{background-image:url("../img/course-min301.webp")}      /* 麦克风—传讲 */
+.thumb-c-min201{background-image:url("../img/courses/min201.jpg")}      /* 桌边恳谈 */
+.thumb-c-min202{background-image:url("../img/courses/min202.jpg")}      /* 众手相叠—同心 */
+.thumb-c-min203{background-image:url("../img/course-pas210.webp")}      /* 羊群—牧养小羊 */
+.thumb-c-min301{background-image:url("../img/courses/min301.jpg")}      /* 笔记与规划 */
+.thumb-c-min302{background-image:url("../img/courses/min302.jpg")}      /* 敬拜聚会 */
+.thumb-c-min310{background-image:url("../img/courses/min310.jpg")}      /* 湖畔静处 */
+.thumb-c-min311{background-image:url("../img/courses/min311.jpg")}      /* 晨光中张开双臂 */
+.thumb-c-min312{background-image:url("../img/courses/min312.jpg")}      /* 铺满的经页—神的话 */
+.thumb-c-min313{background-image:url("../img/courses/min313.jpg")}      /* 幽暗山岭—争战 */
+.thumb-c-for101{background-image:url("../img/courses/for101.jpg")}      /* 溪水旁的大树 */
+.thumb-c-for102{background-image:url("../img/courses/for102.jpg")}      /* 前行的道路 */
+.thumb-c-for103{background-image:url("../img/courses/for103.jpg")}      /* 海边晨光—平安 */
+.thumb-bib101{background-image:url("../img/course-bib101.webp")}
+.thumb-bib203{background-image:url("../img/course-bib203.webp")}
+.thumb-the201{background-image:url("../img/course-the201.webp")}
+.thumb-min301{background-image:url("../img/course-min301.webp")}
+.thumb-min315{background-image:url("../img/course-min315.webp")}
+.thumb-for110{background-image:url("../img/course-for110.webp")}
+.thumb-mis201{background-image:url("../img/course-mis201.webp")}
+.thumb-bib305{background-image:url("../img/course-bib305.webp")}
+.thumb-pas210{background-image:url("../img/course-pas210.webp")}
+.thumb-led401{background-image:url("../img/course-led401.webp")}
+.course-content{flex:1;min-width:0;display:grid;grid-template-areas:"code desc meta" "title desc meta";grid-template-columns:220px 1fr auto;align-items:center;column-gap:28px;padding:0}
+.course-code{grid-area:code;align-self:end;font-size:10px;letter-spacing:.16em;color:var(--olive-dark);font-weight:700}
+.course-card h3{grid-area:title;align-self:start;font-size:17px;margin:3px 0 0}
+.course-card p{grid-area:desc;font-size:13px;line-height:1.7;color:var(--muted);margin:0;min-height:0}
+.course-meta{grid-area:meta;display:block;font-size:11px;color:#777065}
+.course-meta span{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:5px 12px;background:var(--paper2);letter-spacing:.06em}
+
+/* admissions */
+.admissions-section{position:relative;isolation:isolate;background:#e9e2cf}
+.admissions-section::before{content:"";position:absolute;inset:0;z-index:-2;background:url("../img/admissions-bg.webp") center/cover no-repeat}
+.admissions-section::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(100deg,rgba(233,226,207,.97) 0%,rgba(233,226,207,.92) 50%,rgba(233,226,207,.80) 100%);transition:background var(--theme-ease)}
+html[data-theme="night"] .admissions-section::after{background:linear-gradient(100deg,rgba(11,14,11,.96) 0%,rgba(11,14,11,.92) 50%,rgba(11,14,11,.85) 100%)}
+.admissions-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:80px;align-items:center}
+.admissions-copy h2{margin-bottom:22px;font-family:"Noto Serif SC","Songti SC","SimSun",serif}.admissions-copy>p{max-width:660px;line-height:1.8;color:#5d574d}
+.admission-points{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:30px 0}
+/* 招生关键信息表 + 双按钮 */
+.admission-facts{display:grid;grid-template-columns:1fr 1fr;column-gap:44px;margin:28px 0 32px}
+.admission-facts .fact{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 0;border-top:1px solid var(--line)}
+.admission-facts .fact span{font-size:13.5px;color:var(--muted)}
+.admission-facts .fact b{font-size:15.5px;color:var(--ink);font-weight:700;text-align:right}
+.admission-actions{display:flex;gap:14px;flex-wrap:wrap}
+.admission-actions .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);border-color:#14382a}
+html[data-theme="night"] .admission-actions .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);color:#f4ecd8;border-color:rgba(213,180,107,.45)}
+
+/* 资源搜索：暂时隐藏（移除 hidden 属性即可恢复） */
+.resource-search-wrap[hidden]{display:none!important}
+
+/* 上传申请表 */
+.upload-box{margin-top:18px;padding:24px 26px;border:1px solid rgba(183,138,53,.4);border-radius:12px;background:var(--surface,#fffdf9);display:grid;grid-template-columns:1fr 1fr;gap:16px 22px}
+.upload-box[hidden]{display:none}
+.upload-box label{display:flex;flex-direction:column;gap:7px;font-size:13px;font-weight:600;color:var(--ink)}
+.upload-box input{height:46px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.75);padding:0 12px;font:inherit;color:var(--ink)}
+.upload-box input[type="file"]{padding:9px 12px;height:auto}
+.upload-full{grid-column:1/-1}
+.upload-actions{grid-column:1/-1;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.upload-actions .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);border-color:#14382a}
+.upload-note{font-size:12px;color:var(--muted)}
+html[data-theme="night"] .upload-box{background:var(--surface)}
+html[data-theme="night"] .upload-box input{background:rgba(255,255,255,.06)}
+@media(max-width:580px){.upload-box{grid-template-columns:1fr;padding:18px 16px}}
+
+/* FAQ：背景与提问入口 */
+.faq-section{position:relative;isolation:isolate;overflow:hidden}
+.faq-section::before{content:"";position:absolute;inset:0;z-index:-2;background:url("../img/course-the201.webp") center/cover no-repeat}
+.faq-section::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(100deg,rgba(250,246,236,.97) 0%,rgba(250,246,236,.94) 55%,rgba(250,246,236,.88) 100%)}
+html[data-theme="night"] .faq-section::after{background:linear-gradient(100deg,rgba(10,13,11,.97) 0%,rgba(10,13,11,.94) 55%,rgba(10,13,11,.89) 100%)}
+.faq-ask{margin-top:46px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;padding:26px 30px;border:1px solid rgba(183,138,53,.35);border-radius:14px;background:rgba(255,252,245,.82);backdrop-filter:blur(8px);box-shadow:0 16px 44px rgba(60,48,20,.10)}
+html[data-theme="night"] .faq-ask{background:rgba(14,17,14,.72);border-color:rgba(233,196,106,.3)}
+.faq-ask-text b{display:block;font-family:"Noto Serif SC","Songti SC",serif;font-size:20px;color:var(--ink)}
+.faq-ask-text span{display:block;margin-top:6px;font-size:13.5px;color:var(--muted);max-width:520px;line-height:1.7}
+.faq-ask-actions{display:flex;gap:12px;flex-wrap:wrap}
+.faq-ask-actions .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);border-color:#14382a}
+html[data-theme="night"] .faq-ask-actions .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);color:#f4ecd8;border-color:rgba(213,180,107,.45)}
+
+/* 学费与学习支持 */
+.tuition-section{position:relative;isolation:isolate;overflow:hidden}
+.tuition-section::before{content:"";position:absolute;inset:0;z-index:-2;background:url("../img/pillar-life.webp") center/cover no-repeat}
+.tuition-section::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(100deg,rgba(250,246,236,.97) 0%,rgba(250,246,236,.93) 48%,rgba(250,246,236,.82) 100%)}
+html[data-theme="night"] .tuition-section::after{background:linear-gradient(100deg,rgba(10,13,11,.96) 0%,rgba(10,13,11,.93) 50%,rgba(10,13,11,.86) 100%)}
+.tuition-motto{margin-top:14px;font-family:"Noto Serif SC","Songti SC",serif;font-size:21px;color:#8a6a1f;letter-spacing:.04em}
+html[data-theme="night"] .tuition-motto{color:#c9a54e}
+.tuition-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:70px;margin-top:44px;align-items:start}
+.tuition-copy h3{font-size:21px;margin:0 0 18px;color:var(--ink)}
+.tuition-copy p{font-size:15px;line-height:1.95;color:var(--muted);margin:0 0 16px}
+.tuition-verse{margin:22px 0;padding:16px 24px;border-left:3px solid #b78a35;background:rgba(255,255,255,.55);border-radius:0 10px 10px 0}
+html[data-theme="night"] .tuition-verse{background:rgba(255,255,255,.05)}
+.tuition-verse p{margin:0;font-family:"Noto Serif SC","Songti SC",serif;font-size:15px;line-height:1.8;color:var(--ink)}
+.tuition-verse cite{display:block;margin-top:8px;font-style:normal;font-size:12px;color:#a5742f}
+html[data-theme="night"] .tuition-verse cite{color:#c9a54e}
+.tuition-copy .admission-actions{margin-top:28px}
+.tuition-principles{background:linear-gradient(160deg,#14382a,#0d2b21);border-radius:16px;padding:36px 32px;color:#f4ecd8;box-shadow:0 24px 60px rgba(20,40,30,.22);position:sticky;top:100px}
+.tp-eyebrow{font-size:10.5px;letter-spacing:.24em;font-weight:700;color:#d5b46b;margin-bottom:12px}
+.tuition-principles h3{font-family:"Noto Serif SC","Songti SC",serif;font-size:22px;color:#fff;margin:0 0 8px}
+.tuition-principles ul{list-style:none;margin:10px 0 0;padding:0}
+.tuition-principles li{padding:14px 0;border-top:1px solid rgba(255,255,255,.14);font-size:13.5px;line-height:1.7;color:#e6dfc9}
+.tuition-principles li:first-child{color:#f1d38a;font-weight:650}
+
+/* 推荐路径卡片 */
+.path-card{background:linear-gradient(160deg,#14382a,#0d2b21);border-radius:18px;padding:42px 40px;color:#f4ecd8;box-shadow:0 24px 60px rgba(20,40,30,.22)}
+.path-eyebrow{font-size:10.5px;letter-spacing:.24em;font-weight:700;color:#d5b46b;margin-bottom:18px}
+.path-card h3{font-family:"Noto Serif SC","Songti SC",serif;font-size:26px;line-height:1.55;color:#fff;margin:0 0 10px;font-weight:700}
+.path-steps{list-style:none;margin:20px 0 0;padding:0}
+.path-steps li{display:flex;gap:20px;padding:20px 0;border-top:1px solid rgba(255,255,255,.14)}
+.path-steps li:last-child{padding-bottom:0}
+.path-steps i{font-style:normal;font-family:Georgia,serif;color:#d5b46b;font-weight:700;font-size:17px;line-height:1.4}
+.path-steps b{display:block;font-size:15px;color:#fff}
+.path-steps span{display:block;margin-top:5px;font-size:12.5px;color:#c3bda9;line-height:1.6}
+.admission-points div{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid rgba(80,70,45,.16)}.admission-points b{color:var(--olive-dark)}
+.admission-card{background:#171713;color:#fff;border-radius:14px;overflow:hidden;box-shadow:0 25px 80px rgba(55,44,20,.18)}
+.admission-card-head{padding:35px 36px 30px;border-bottom:1px solid rgba(255,255,255,.12)}.admission-card-head .tiny{font-size:10px;letter-spacing:.26em;color:#c1b870;display:block;margin-bottom:12px}.admission-card-head strong{font-family:Georgia,serif;font-size:72px;font-weight:400}
+.admission-card-body{padding:5px 36px 26px}.admission-card-body div{display:flex;justify-content:space-between;gap:30px;padding:18px 0;border-bottom:1px solid rgba(255,255,255,.1)}.admission-card-body div:last-child{border-bottom:0}.admission-card-body span{color:#aaa595;font-size:13px}.admission-card-body b{font-size:14px;font-weight:500;text-align:right}
+
+/* life */
+.life-section{background:var(--paper)}
+.life-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+.life-points{list-style:none;margin:18px 0 0;padding:0}
+.life-points li{position:relative;padding:9px 0 9px 20px;font-size:13px;line-height:1.7;color:var(--muted);border-top:1px dashed var(--line)}
+.life-points li::before{content:"";position:absolute;left:4px;top:16px;width:6px;height:6px;border-radius:50%;background:#b78a35}
+.life-rhythm{margin-top:22px;border:1px solid var(--line);border-radius:12px;background:var(--surface,#fffdf9);padding:24px 30px}
+.life-rhythm-title{font-size:10.5px;letter-spacing:.22em;font-weight:700;color:var(--olive-dark);margin-bottom:16px}
+.life-rhythm-title span{font-size:12px;letter-spacing:.14em}
+.life-rhythm-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+.life-step{display:flex;align-items:flex-start;gap:12px;padding:4px 22px 4px 0;margin-right:22px;border-right:1px solid var(--line)}
+.life-step:last-child{border-right:0;margin-right:0;padding-right:0}
+.life-step i{font-style:normal;font-family:Georgia,serif;font-size:17px;font-weight:700;color:#b78a35;line-height:1.5}
+.life-step span{font-size:13.5px;line-height:1.6;color:var(--ink)}
+html[data-theme="night"] .life-rhythm{background:var(--surface);border-color:var(--line)}
+.life-block{border:1px solid var(--line);padding:30px 32px 34px;border-radius:10px;background:linear-gradient(145deg,#fffdf8,#f6f1e5)}
+.life-num{display:inline-block;font-family:Georgia,serif;font-size:19px;color:var(--olive-dark);border-bottom:1.5px solid var(--olive);padding-bottom:6px}
+.life-head{display:flex;align-items:center;gap:18px;margin:34px 0 0}
+.life-block h3{font-size:27px;margin:0;font-weight:550;padding-bottom:14px;position:relative}
+.life-block h3::after{content:"";position:absolute;left:1px;bottom:0;width:34px;height:1.5px;background:var(--olive)}
+.life-block p{margin:20px 0 0;color:var(--muted);line-height:1.78}
+
+/* 线性图标圆片（学院生活 / 异象使命 / 数字校园 通用） */
+.icon-chip{flex-shrink:0;width:58px;height:58px;border-radius:50%;background:var(--paper3);display:grid;place-items:center;color:var(--olive-dark);transition:background-color var(--theme-ease),color var(--theme-ease)}
+.icon-chip svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+html[data-theme="night"] .icon-chip{background:rgba(255,255,255,.06)}
+.mission-item .icon-chip{background:rgba(255,255,255,.07);color:#bbb16a;margin:30px 0 16px}
+.digital-card .icon-chip{width:52px;height:52px;margin-bottom:14px}
+
+/* resources */
+.resources-section{background:var(--paper2)}
+.resource-search-wrap{display:flex;justify-content:flex-end}.resource-search-wrap input{width:min(420px,100%);height:48px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:0 16px;outline:none}.resource-search-wrap input:focus{border-color:var(--olive)}
+.resource-list{border-top:1px solid var(--line)}
+.resource-row{display:flex;align-items:center;justify-content:space-between;padding:22px 2px;border-bottom:1px solid var(--line)}.resource-row>div{display:flex;align-items:center;gap:22px}.resource-row>div>span{font-size:10px;letter-spacing:.14em;color:var(--olive-dark);width:45px}.resource-row h3{font-size:19px;margin:0;font-weight:500}.resource-row button,.resource-dl{border:0;background:transparent;color:var(--olive-dark);font-weight:600;font-size:inherit;text-decoration:none;cursor:pointer}.resource-row.resource-hidden{display:none}
+
+/* faq */
+.faq-section{background:#fff}.faq-grid{display:grid;grid-template-columns:.45fr 1fr;gap:80px}
+.accordion{border-top:1px solid var(--line)}.faq-item{border-bottom:1px solid var(--line)}.faq-item summary{cursor:pointer;list-style:none;padding:23px 4px;font-size:18px;font-weight:550;display:flex;justify-content:space-between}.faq-item summary::-webkit-details-marker{display:none}.faq-item summary:after{content:"＋";color:var(--olive-dark)}.faq-item[open] summary:after{content:"−"}.faq-item p{margin:-5px 0 24px;max-width:760px;color:var(--muted);line-height:1.8}
+
+/* contact */
+.contact-section{position:relative;isolation:isolate;background:#171713;color:#fff}
+.contact-section::before{content:"";position:absolute;inset:0;z-index:-2;background:url("../img/contact-bg.webp") center/cover no-repeat}
+.contact-section::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(100deg,rgba(16,16,13,.96) 0%,rgba(16,16,13,.90) 55%,rgba(16,16,13,.84) 100%)}
+.contact-grid{display:grid;grid-template-columns:.7fr 1.3fr;gap:90px}.contact-section .eyebrow{color:#bdb36b}.contact-copy p{color:#bdb7a9;line-height:1.8}
+.contact-meta{margin-top:38px}.contact-meta div{display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.13);padding:14px 0}.contact-meta span{color:#989284}.contact-form{display:grid;grid-template-columns:1fr 1fr;gap:18px}.contact-form label,.form-grid label{display:flex;flex-direction:column;gap:8px;font-size:12px;color:#aaa596}.contact-form input,.contact-form textarea,.form-grid input,.form-grid textarea,.form-grid select{width:100%;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.05);color:#fff;border-radius:8px;padding:13px;outline:none}.contact-form input:focus,.contact-form textarea:focus{border-color:#a79d59}.full{grid-column:1/-1}.form-actions{display:flex;align-items:center;gap:16px}.form-status{font-size:13px;color:#c8bd70}
+
+/* footer */
+.footer{background:#0e0e0c;color:#c6c0b1;padding:45px 0 20px}.footer-top{display:flex;justify-content:space-between;gap:40px;align-items:flex-end}.footer-brand{font-family:Georgia,serif;color:#fff;font-size:42px;letter-spacing:.08em}.footer-top p{font-size:10px;letter-spacing:.18em}.footer-links{display:flex;gap:28px;font-size:13px}.footer-bottom{margin-top:35px;padding-top:18px;border-top:1px solid rgba(255,255,255,.1);display:flex;justify-content:space-between;font-size:11px}.footer-bottom button{border:0;background:transparent;color:#c8bd70}
+
+/* Drawer */
+.mobile-drawer{position:fixed;inset:0;z-index:80;pointer-events:none;opacity:0;transition:.2s}.mobile-drawer.open{pointer-events:auto;opacity:1}.drawer-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.42)}.drawer-panel{position:absolute;top:0;right:0;height:100%;width:min(390px,88vw);background:var(--paper);padding:24px;transform:translateX(100%);transition:.25s;overflow-y:auto;-webkit-overflow-scrolling:touch}.mobile-drawer.open .drawer-panel{transform:none}.drawer-head{display:flex;justify-content:space-between;align-items:center;font-family:Georgia,serif;font-size:30px}.icon-btn,.modal-close{border:0;background:transparent;font-size:28px}.drawer-panel nav{display:flex;flex-direction:column;margin:35px 0}.drawer-panel nav a{padding:15px 2px;border-bottom:1px solid var(--line);font-size:20px}.drawer-apply{width:100%}
+
+/* Modal */
+.modal{position:fixed;inset:0;z-index:100;display:none}.modal.open{display:block}.modal-backdrop{position:absolute;inset:0;background:rgba(15,15,12,.72);backdrop-filter:blur(6px)}.modal-card{position:relative;margin:5vh auto;max-height:90vh;overflow:auto;width:min(900px,calc(100% - 32px));background:var(--paper);border-radius:16px;box-shadow:0 30px 100px rgba(0,0,0,.35);padding:34px}.modal-close{position:absolute;right:20px;top:16px;z-index:2}.video-card{width:min(960px,calc(100% - 32px));padding:0;overflow:hidden}.video-placeholder{min-height:520px;background:#111;color:#eee;display:grid;place-items:center;text-align:center;padding:50px}.video-placeholder h3{font-size:30px;margin:12px 0}.video-placeholder p{max-width:580px;color:#aaa;line-height:1.7}.video-play{width:72px;height:72px;border:1px solid #817a47;border-radius:50%;display:grid;place-items:center;color:#c9bd70;font-size:24px}
+/* ===== AI 客服 / 留言 ===== */
+.chat-fab{position:fixed;right:22px;bottom:22px;z-index:94;width:58px;height:58px;border-radius:50%;border:0;background:var(--olive-dark);color:#fff;font-size:24px;cursor:pointer;box-shadow:0 10px 30px rgba(50,42,18,.28);display:grid;place-items:center;transition:transform .2s,background-color var(--theme-ease)}
+.chat-fab:hover{transform:translateY(-2px) scale(1.05)}
+.chat-fab .chat-fab-close{display:none}
+.chat-open .chat-fab .chat-fab-open{display:none}
+.chat-open .chat-fab .chat-fab-close{display:block}
+.chat-panel{position:fixed;right:22px;bottom:92px;z-index:95;width:min(372px,calc(100vw - 32px));height:min(540px,calc(100vh - 130px));background:var(--paper);border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 80px rgba(20,16,6,.30);display:flex;flex-direction:column;overflow:hidden;opacity:0;pointer-events:none;transform:translateY(14px) scale(.98);transition:opacity .22s ease,transform .22s ease}
+.chat-open .chat-panel{opacity:1;pointer-events:auto;transform:none}
+.chat-head{display:flex;align-items:center;gap:12px;padding:15px 18px;background:var(--olive-dark);color:#fff}
+.chat-head img{width:38px;height:38px;border-radius:50%;background:#fff}
+.chat-head b{display:block;font-size:15px;font-weight:650}
+.chat-head span{display:block;font-size:11px;opacity:.82;margin-top:2px}
+.chat-head button{margin-left:auto;border:0;background:transparent;color:#fff;font-size:22px;cursor:pointer;line-height:1;padding:4px}
+.chat-body{flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:10px;background:var(--paper2)}
+.chat-msg{max-width:82%;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.65;white-space:pre-line;overflow-wrap:break-word}
+.chat-msg.bot{align-self:flex-start;background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:4px}
+.chat-msg.user{align-self:flex-end;background:var(--olive-dark);color:#fff;border-bottom-right-radius:4px}
+.chat-msg.typing{color:var(--muted);letter-spacing:.2em}
+.chat-chips{display:flex;flex-wrap:wrap;gap:7px;align-self:flex-start;max-width:95%}
+.chat-chips button{border:1px solid var(--line);background:var(--surface);color:var(--olive-dark);border-radius:999px;padding:7px 13px;font-size:12.5px;cursor:pointer;transition:.15s}
+.chat-chips button:hover{background:var(--olive-dark);color:#fff;border-color:var(--olive-dark)}
+.chat-input{display:flex;gap:9px;padding:12px;border-top:1px solid var(--line);background:var(--paper)}
+.chat-input input{flex:1;height:42px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);padding:0 13px;outline:none;font-size:13.5px}
+.chat-input input:focus{border-color:var(--olive)}
+.chat-input button{height:42px;padding:0 17px;border:0;border-radius:10px;background:var(--olive-dark);color:#fff;font-weight:600;cursor:pointer}
+.chat-note{font-size:10.5px;color:var(--muted);text-align:center;padding:0 12px 9px;background:var(--paper)}
+html[data-theme="night"] .chat-fab{color:#0b0d0a}
+html[data-theme="night"] .chat-head{color:#0b0d0a}
+html[data-theme="night"] .chat-head button{color:#0b0d0a}
+html[data-theme="night"] .chat-msg.user{color:#0b0d0a}
+html[data-theme="night"] .chat-input button{color:#0b0d0a}
+html[data-theme="night"] .chat-chips button:hover{color:#0b0d0a}
+@media(max-width:580px){
+  .chat-fab{right:14px;bottom:14px;width:52px;height:52px}
+  .chat-panel{right:8px;left:8px;width:auto;bottom:76px;height:min(560px,calc(100vh - 96px))}
+}
+@media print{ .chat-fab,.chat-panel{display:none!important} }
+
+.seal-card{width:min(520px,calc(100% - 32px));padding:48px 40px 36px;display:grid;justify-items:center;text-align:center}
+.seal-large{width:min(380px,72vw);height:auto}
+.seal-caption{margin:26px 0 0;font-family:Georgia,"Noto Serif SC",serif;font-size:20px;font-weight:500;letter-spacing:.04em}
+.seal-caption-sub{margin:6px 0 0;font-size:12.5px;letter-spacing:.18em;color:var(--muted)}
+.application-card{width:min(820px,calc(100% - 32px));padding:34px 40px}.app-head h2{font-family:Georgia,"Noto Serif SC",serif;font-size:38px;font-weight:400;margin:0}.app-hint{margin:10px 0 0;font-size:12.5px;line-height:1.7;color:var(--muted);max-width:640px}.steps{display:flex;align-items:center;margin:25px 0 30px}.steps span{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);color:#6f695c}.steps span.active{background:var(--olive-dark);color:white;border-color:var(--olive-dark)}.steps i{width:70px;height:1px;background:var(--line)}.app-step{display:none}.app-step.active{display:block}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.form-grid label{color:#5f5a4f}.form-grid input,.form-grid textarea,.form-grid select{background:#fff;color:#1f1e19;border-color:var(--line)}.app-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:28px}.hidden{display:none!important}.review-box{background:var(--paper2);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:18px}.review-box dl{display:grid;grid-template-columns:150px 1fr;gap:10px;margin:0}.review-box dt{color:#777064}.review-box dd{margin:0}.consent{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:#5d584e}.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);background:#171713;color:white;padding:12px 18px;border-radius:999px;z-index:120;opacity:0;pointer-events:none;transition:.25s;font-size:13px}.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* responsive */
+@media(max-width:1150px){
+ .shell{width:min(100% - 40px,1040px)}
+ .hero{min-height:640px}.hero-inner{min-height:640px}.hero-cnname{font-size:48px}
+ .about-grid{grid-template-columns:1fr}.about-copy p{width:min(670px,100%)}.seal{right:18%;bottom:0}
+ .section-head.split{grid-template-columns:1fr;gap:18px}
+}
+/* 导航有 8 项 + logo + 3 个按钮，1250px 以下横向已经排不开，提前切汉堡菜单 */
+@media(max-width:1400px){
+ .brand-seal{width:48px;height:48px}.brand-name{font-size:21px}
+ .desktop-nav{font-size:14px;gap:clamp(12px,1.4vw,24px)}
+}
+@media(max-width:1250px){
+ .header-inner{grid-template-columns:1fr auto}
+ .desktop-nav{display:none}
+ .menu-btn{display:block}
+}
+@media(max-width:860px){
+ html{scroll-padding-top:72px}.site-header{height:72px}.header-actions .login-btn{display:none}
+ .hero{min-height:640px}.hero-inner{min-height:640px}.hero-bg{object-position:68% 48%}
+ .hero-copy{padding:70px 0 46px}.hero-seal{width:104px;height:104px}.hero-amas{font-size:20px;margin-top:20px}.hero-cnname{font-size:38px}.hero-enname{font-size:15px}.hero-verse{font-size:16px}
+ .hero-band-inner{grid-template-columns:1fr 1fr}.hero-band-item{padding:16px 20px}.hero-band-item:nth-child(2n){border-right:0}.hero-band-item:nth-child(-n+2){border-bottom:1px solid rgba(255,255,255,.10)}.hero-band-item:nth-child(3){padding-left:0}
+ .accred-card{grid-template-columns:1fr}.accred-card-side{border-radius:6px 6px 0 0}
+ .accred-seal{left:auto;right:0;top:-34px;transform:rotate(-8deg);width:104px;height:104px}
+ .accred-card-main{padding:30px 24px 16px}
+ .course-content{grid-template-areas:"code meta" "title meta" "desc desc";grid-template-columns:1fr auto;row-gap:4px}
+ .pillar-cards{grid-template-columns:repeat(2,1fr)}.stats-bar{grid-template-columns:repeat(2,1fr)}.stat{border-bottom:1px solid var(--line)}
+ .mission-grid{grid-template-columns:1fr 1fr}.mission-item:nth-child(2){border-right:0}.mission-item:nth-child(-n+2){border-bottom:1px solid rgba(255,255,255,.14)}
+ .admissions-grid,.contact-grid,.faq-grid,.tuition-grid{grid-template-columns:1fr;gap:45px}
+ .life-rhythm-steps{grid-template-columns:1fr 1fr;row-gap:14px}.life-step:nth-child(2n){border-right:0}
+ .life-grid{grid-template-columns:1fr}
+ .section{padding:70px 0}.section h2{font-size:40px}.contact-form{grid-template-columns:1fr}.form-actions.full{grid-column:1}.footer-top{align-items:flex-start;flex-direction:column}.footer-links{flex-wrap:wrap}
+}
+@media(max-width:580px){
+ .announce-bar{font-size:11.5px}.announce-inner{gap:8px;padding:8px 0}.announce-brand,.announce-sep{display:none}
+ .shell{width:calc(100% - 28px)}.brand-seal{width:44px;height:44px}.brand-name{font-size:19px}.brand-name small{letter-spacing:.1em;font-size:9.5px}.lang-btn{width:38px;height:34px}
+ .hero{min-height:600px}.hero-inner{min-height:600px}.hero-bg{object-position:73% 45%}.hero-seal{width:88px;height:88px}.hero-cnname{font-size:30px;letter-spacing:.08em}.hero-enname{font-size:12.5px;letter-spacing:.16em}.hero-actions{flex-direction:column;width:220px;align-self:center}.hero-actions .btn{width:220px}
+ .hero-meta{width:100%}.hero-meta-item{padding:10px 12px;flex:1}.hero-meta-item b{font-size:14px}
+ .accred-card-side{padding:34px 22px}.accred-card-main{padding:26px 18px 12px}
+ .accred-item{flex-wrap:wrap;gap:12px;padding:18px 6px}.accred-item-info{flex:1 1 60%}.accred-tag{margin-left:58px}
+ .about{padding-top:32px}.about-copy h2{font-size:26px}.seal{display:none}.pillar-cards{grid-template-columns:1fr}.stats-bar{grid-template-columns:1fr}.stat{border-right:0}
+ .mission-grid{grid-template-columns:1fr}.mission-item{border-right:0!important;border-bottom:1px solid rgba(255,255,255,.14)!important}.mission-item:last-child{border-bottom:0!important}
+ .course-card{padding:8px;gap:12px}.course-thumb{width:96px;height:96px}.course-card h3{font-size:15px}.course-card p{font-size:12px}.course-meta span{padding:4px 10px;font-size:10px}
+ .admission-points{grid-template-columns:1fr}.admission-card-head strong{font-size:58px}
+ .admission-facts{grid-template-columns:1fr;column-gap:0}.path-card{padding:30px 24px}.path-card h3{font-size:21px}
+ .tuition-motto{font-size:17px}.tuition-principles{position:static;padding:28px 22px}
+ .life-rhythm-steps{grid-template-columns:1fr}.life-step{border-right:0;margin:0;padding:10px 0;border-top:1px dashed var(--line)}.life-step:first-child{border-top:0}
+ .resource-row{align-items:flex-start;gap:16px}.resource-row>div{gap:10px}.resource-row h3{font-size:16px}
+ .form-grid{grid-template-columns:1fr}.form-grid .full{grid-column:1}.application-card{padding:28px 18px}.steps i{width:40px}.review-box dl{grid-template-columns:1fr;gap:4px}.review-box dd{margin-bottom:8px}
+}
+
+
+/* ===== 白日 / 夜晚主题 ===== */
+.site-header,.section,.about,.courses-section,.life-section,.resources-section,.faq-section,
+.stats-bar,.pillar-card,.course-card,.life-block,.resource-row,.modal-card,.drawer-panel,
+.lang-btn,.apply-btn,.btn{
+  transition:background-color var(--theme-ease),color var(--theme-ease),border-color var(--theme-ease),box-shadow var(--theme-ease);
+}
+html[data-theme="night"] .desktop-nav a,
+html[data-theme="night"] .site-header{color:#f3f2eb}
+html[data-theme="night"] .lang-btn{background:rgba(255,255,255,.05);color:#f3f2eb;border-color:rgba(255,255,255,.16)}
+html[data-theme="night"] .login-btn{background:rgba(255,255,255,.05)}
+html[data-theme="night"] .login-btn:hover{background:var(--olive-dark);color:#0b0d0a}
+html[data-theme="night"] .menu-btn span{background:#f3f2eb}
+html[data-theme="night"] .about,
+html[data-theme="night"] .life-section,
+html[data-theme="night"] .faq-section{background:var(--paper)}
+html[data-theme="night"] .courses-section,
+html[data-theme="night"] .resources-section{background:var(--paper2)}
+html[data-theme="night"] .pillar-card,
+html[data-theme="night"] .course-card,
+html[data-theme="night"] .stats-bar,
+html[data-theme="night"] .life-block{background:var(--surface);border-color:var(--line)}
+html[data-theme="night"] .pillar-body p,
+html[data-theme="night"] .course-card p,
+html[data-theme="night"] .life-block p,
+html[data-theme="night"] .about-copy p,
+html[data-theme="night"] .section-head p,
+html[data-theme="night"] .faq-item p{color:var(--muted)}
+html[data-theme="night"] .filter{background:var(--surface);color:var(--ink);border-color:var(--line)}
+html[data-theme="night"] .filter.active{background:var(--olive-dark);color:#0a0c09}
+html[data-theme="night"] .admissions-section{background:#0d110d}
+html[data-theme="night"] .admissions-copy>p{color:#c7c5bb}
+html[data-theme="night"] .contact-section{background:#090b0a}
+html[data-theme="night"] .footer{background:#050605}
+
+/* ===== 夜晚模式补漏 =====
+   下面这些原本写死了浅色，切到夜晚会突兀地留一块白 */
+
+/* 让滚动条、下拉列表、复选框等浏览器原生控件跟着主题走 */
+:root{color-scheme:light}
+html[data-theme="night"]{color-scheme:dark}
+
+/* Hero 图加载出来之前的兜底底色 */
+html[data-theme="night"] .hero{background:#0b0d0b}
+
+/* 资源中心的搜索框 */
+html[data-theme="night"] .resource-search-wrap input{background:var(--surface);color:var(--ink);border-color:var(--line)}
+html[data-theme="night"] .resource-search-wrap input::placeholder{color:#8b897f}
+
+/* 申请弹窗里的输入控件（原本是为浅色弹窗写的白底黑字） */
+html[data-theme="night"] .form-grid input,
+html[data-theme="night"] .form-grid textarea,
+html[data-theme="night"] .form-grid select{background:var(--surface);color:var(--ink);border-color:var(--line)}
+html[data-theme="night"] .form-grid input:focus,
+html[data-theme="night"] .form-grid textarea:focus,
+html[data-theme="night"] .form-grid select:focus{border-color:var(--olive)}
+html[data-theme="night"] .form-grid label{color:#a9a79c}
+html[data-theme="night"] .consent{color:#a9a79c}
+html[data-theme="night"] .review-box dt{color:#918e83}
+html[data-theme="night"] .steps span:not(.active){color:#8d8a7e}
+
+/* 夜晚的橄榄绿是提亮版，上面压白字只有 2.7:1，一律换成深色字 */
+html[data-theme="night"] .apply-btn,
+html[data-theme="night"] .round-icon,
+html[data-theme="night"] .steps span.active{color:#0b0d0a}
+
+/* 课程卡的学分/周数在深色卡片上偏暗 */
+html[data-theme="night"] .course-meta{color:#9a968b}
+
+/* 支柱卡片上那个圆图标的描边原本是纯白，夜晚要跟卡片同色 */
+html[data-theme="night"] .round-icon{border-color:var(--surface)}
+
+/* 校标是白底圆形印章，夜间无需处理 */
+
+/* 主题切换：单图标按钮，只显示当前模式 */
+.theme-toggle{
+  position:relative;flex-shrink:0;width:36px;height:36px;padding:0;border-radius:50%;
+  border:1px solid var(--line);background:rgba(255,255,255,.62);
+  display:inline-flex;align-items:center;justify-content:center;
+  color:var(--ink);cursor:pointer;
+  transition:background-color var(--theme-ease),border-color var(--theme-ease);
+}
+.theme-toggle:hover{border-color:var(--olive-dark)}
+.theme-icon{display:grid;place-items:center;font-size:16px;line-height:1}
+.theme-icon.moon{display:none}
+.theme-knob{display:none}
+html[data-theme="night"] .theme-toggle{background:rgba(20,24,20,.80);border-color:rgba(255,255,255,.18)}
+html[data-theme="night"] .theme-icon.sun{display:none}
+html[data-theme="night"] .theme-icon.moon{display:grid;color:#f3f2eb}
+
+/* Hero 双背景自然交叉淡化 */
+.hero-media{position:absolute;inset:0;z-index:-3;overflow:hidden}
+.hero-media .hero-bg{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:62% 52%;
+  transition:opacity 1200ms cubic-bezier(.22,.61,.36,1),transform 8s ease,filter 1200ms ease;
+  will-change:opacity,transform;
+}
+.hero-bg-day{opacity:1;transform:scale(1.001)}
+.hero-bg-night{opacity:0;transform:scale(1.025)}
+html[data-theme="night"] .hero-bg-day{opacity:0;transform:scale(1.018)}
+html[data-theme="night"] .hero-bg-night{opacity:1;transform:scale(1.005)}
+
+.sunset-glow{
+  position:absolute;inset:-10%;opacity:0;pointer-events:none;
+  background:radial-gradient(circle at 70% 20%,rgba(255,121,43,.36),transparent 26%),
+             linear-gradient(180deg,rgba(255,82,24,.12),transparent 48%);
+  mix-blend-mode:screen;transition:opacity 1200ms ease;
+  animation:sunsetBreath 7s ease-in-out infinite alternate;
+}
+html[data-theme="night"] .sunset-glow{opacity:.76}
+@keyframes sunsetBreath{from{transform:translate3d(-1%,0,0) scale(1)}to{transform:translate3d(1.2%,.5%,0) scale(1.025)}}
+
+.hero-mist{
+  position:absolute;width:55%;height:22%;border-radius:50%;filter:blur(36px);opacity:0;
+  background:linear-gradient(90deg,transparent,rgba(235,219,176,.18),transparent);
+  transition:opacity 1100ms ease;pointer-events:none;
+}
+.mist-1{left:16%;bottom:27%;animation:mistMove1 18s linear infinite}
+.mist-2{left:38%;bottom:18%;animation:mistMove2 24s linear infinite reverse}
+html[data-theme="night"] .hero-mist{opacity:.55}
+@keyframes mistMove1{0%{transform:translateX(-8%)}50%{transform:translateX(8%)}100%{transform:translateX(-8%)}}
+@keyframes mistMove2{0%{transform:translateX(-6%) scale(.9)}50%{transform:translateX(10%) scale(1.08)}100%{transform:translateX(-6%) scale(.9)}}
+
+.hero-overlay{transition:background var(--theme-ease)}
+html[data-theme="night"] .hero-overlay{
+  background:linear-gradient(180deg,rgba(4,6,5,.82) 0%,rgba(4,6,5,.72) 45%,rgba(4,6,5,.58) 78%,rgba(4,6,5,.46) 100%);
+}
+.hero-copy,.hero-cnname,.hero-enname,.hero-verse,.hero-verse-ref,.hero-amas,.hero-cross{transition:color var(--theme-ease),text-shadow var(--theme-ease)}
+html[data-theme="night"] .hero-cnname{color:#eef0e4;text-shadow:0 3px 24px rgba(0,0,0,.4)}
+html[data-theme="night"] .hero-enname,
+html[data-theme="night"] .hero-amas{color:#d8b95a}
+html[data-theme="night"] .hero-amas::before,
+html[data-theme="night"] .hero-amas::after{background:#d8b95a}
+html[data-theme="night"] .hero-verse{color:#d6d3c6}
+html[data-theme="night"] .hero-verse-ref{color:#a39c88}
+html[data-theme="night"] .hero-cross{color:#b1a780}
+html[data-theme="night"] .hero-accred{color:#c9a54e}
+html[data-theme="night"] .btn.secondary{color:#f3f2eb;background:rgba(10,12,10,.28);border-color:rgba(255,255,255,.55);backdrop-filter:blur(9px)}
+html[data-theme="night"] .btn.primary{background:#9ca44e;color:#0b0d0a}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}
+  .hero-bg,.sunset-glow,.hero-mist{transition-duration:.01ms!important}
+}
+@media(max-width:580px){
+  .theme-toggle{width:34px;height:34px}
+}
+
+/* ===== 无障碍基础 ===== */
+.visually-hidden{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
+:focus-visible{outline:2px solid var(--olive-dark);outline-offset:3px;border-radius:4px}
+html[data-theme="night"] :focus-visible{outline-color:#b7be63}
+.contact-section :focus-visible,.mission-section :focus-visible,.footer :focus-visible{outline-color:#c9bd70}
+.honeypot{position:absolute!important;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
+.btn[aria-busy="true"]{opacity:.62;pointer-events:none}
+.form-status[data-state="error"]{color:#e08a6a}
+.form-status[data-state="ok"]{color:#9fb15c}
+
+/* ===== 学费明细 ===== */
+.tuition-section{background:var(--paper2)}
+/* 窄屏放不下时让表格自己横向滚动，而不是把页面撑宽或把金额列裁掉 */
+.tuition-wrap{border:1px solid var(--line);border-radius:12px;overflow-x:auto;overflow-y:hidden;background:var(--surface)}
+.tuition-table{min-width:min(100%,420px)}
+.tuition-table{width:100%;border-collapse:collapse;font-size:15px}
+.tuition-table caption{text-align:left;padding:22px 26px 0;color:var(--muted);font-size:13px}
+.tuition-table th,.tuition-table td{padding:17px 26px;text-align:left;border-bottom:1px solid var(--line)}
+.tuition-table thead th{font-size:11px;letter-spacing:.16em;color:var(--olive-dark);font-weight:700;text-transform:uppercase;background:var(--surface-soft)}
+.tuition-table td:last-child,.tuition-table th:last-child{text-align:right;white-space:nowrap}
+.tuition-table tbody tr:last-child td{border-bottom:0}
+.tuition-table tfoot td{border-top:1px solid var(--line);border-bottom:0;font-weight:650;background:var(--surface-soft)}
+.tuition-note{margin-top:18px;font-size:13px;color:var(--muted);line-height:1.8}
+.tuition-note b{color:var(--olive-dark)}
+
+@media(max-width:1150px){
+}
+@media(max-width:860px){
+  .tuition-table th,.tuition-table td{padding:14px 16px}
+  .tuition-table{font-size:14px}
+}
+
+/* ===== 打印 =====
+   招生同工经常要把课程与学费打印出来发给人，这里保证打印稿干净可读 */
+@page{ margin:14mm }
+@media print{
+  /* 夜晚模式下打印同样要出白底黑字，橄榄绿也换回浅色主题那一档 */
+  html,html[data-theme="night"]{
+    --paper:#fff; --paper2:#fff; --paper3:#fff; --ink:#000; --muted:#333;
+    --surface:#fff; --surface-soft:#fff; --line:#bbb;
+    --olive:#8e8647; --olive2:#a59c5a; --olive-dark:#6b6531;
+  }
+  body{background:#fff;color:#000}
+  /* Hero 文案在夜晚模式下是写死的浅色，必须显式压回深色，否则打出来几乎空白 */
+  .hero-copy,.hero-cnname{color:#000!important;text-shadow:none!important}
+  .hero p,.verse{color:#333!important}
+  .hero-amas,.hero-enname{color:#6b6531!important}
+  /* 纸上点不动的东西一律去掉 */
+  .site-header,.mobile-drawer,.modal,.toast,.hero-actions,.filter-row,.resource-search-wrap,
+  .theme-toggle,.lang-btn,.apply-btn,.menu-btn,#backToTop,.skip-link,.seal,.hero-media,.hero-overlay,
+  .contact-form,.resource-row button,.footer-links,.text-link,.btn{display:none!important}
+  .reveal{opacity:1!important;transform:none!important}
+  .section{padding:16px 0;break-inside:avoid}
+  .shell{width:auto}                                   /* 页边距交给 @page，别再自己减 88px */
+  .hero{min-height:auto;background:#fff}.hero-inner{min-height:auto;padding:12px 0}
+  .hero-copy{width:auto;transform:none}
+  /* 所有深色底的区块翻成白底黑字 */
+  .mission-section,.contact-section,.footer,.admissions-section,
+  .courses-section,.resources-section,.faq-section,.life-section,.tuition-section{
+    background:#fff!important;color:#000!important
+  }
+  .mission-item p,.contact-copy p,.section-head p,
+  .admissions-copy>p,.admission-card-body span,.admission-card-head .tiny,.tuition-table caption{color:#333!important}
+  .mission-item,.pillar-card,.course-card,.life-block,.tuition-wrap,
+  .admission-card,.stats-bar,.mission-grid,.admission-points div{
+    border-color:#bbb!important;background:#fff!important;box-shadow:none!important
+  }
+  .admission-card{color:#000!important;border:1px solid #bbb}
+  .tuition-table thead th,.tuition-table tfoot td{background:#f2f2f2!important}
+  .footer-brand{color:#000!important}                  /* 原本写死 #fff，会印成白纸白字 */
+  .footer-bottom,.footer-top p{color:#444!important}
+  .course-card,.tuition-wrap,.life-block,.pillar-card{break-inside:avoid}
+  .section h2{break-after:avoid}
+  a[href^="#"]{text-decoration:none}            /* 问答的展开由 beforeprint 事件处理 */
+}
+
