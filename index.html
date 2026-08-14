@@ -113,33 +113,15 @@
     </nav>
 
     <div class="header-actions">
-      <button class="lang-btn" id="langBtn" aria-label="切换语言" title="中文 / English">
-        <svg class="flag flag-cn" viewBox="0 0 30 20" aria-hidden="true">
-          <rect width="30" height="20" fill="#de2910"/>
-          <g fill="#ffde00">
-            <path d="M0,-1L.588,.809L-.951,-.309H.951L-.588,.809Z" transform="translate(5,5) scale(3.2)"/>
-            <path d="M0,-1L.588,.809L-.951,-.309H.951L-.588,.809Z" transform="translate(10,2) scale(1.1) rotate(23)"/>
-            <path d="M0,-1L.588,.809L-.951,-.309H.951L-.588,.809Z" transform="translate(12,4.6) scale(1.1) rotate(46)"/>
-            <path d="M0,-1L.588,.809L-.951,-.309H.951L-.588,.809Z" transform="translate(12,7.4) scale(1.1) rotate(70)"/>
-            <path d="M0,-1L.588,.809L-.951,-.309H.951L-.588,.809Z" transform="translate(10,9.8) scale(1.1) rotate(21)"/>
-          </g>
-        </svg>
-        <svg class="flag flag-en" viewBox="0 0 30 20" aria-hidden="true">
-          <rect width="30" height="20" fill="#b22234"/>
-          <g fill="#fff">
-            <rect y="1.54" width="30" height="1.54"/><rect y="4.62" width="30" height="1.54"/>
-            <rect y="7.69" width="30" height="1.54"/><rect y="10.77" width="30" height="1.54"/>
-            <rect y="13.85" width="30" height="1.54"/><rect y="16.92" width="30" height="1.54"/>
-          </g>
-          <rect width="12" height="10.77" fill="#3c3b6e"/>
-          <g fill="#fff">
-            <circle cx="2" cy="1.8" r=".55"/><circle cx="6" cy="1.8" r=".55"/><circle cx="10" cy="1.8" r=".55"/>
-            <circle cx="4" cy="3.9" r=".55"/><circle cx="8" cy="3.9" r=".55"/>
-            <circle cx="2" cy="6" r=".55"/><circle cx="6" cy="6" r=".55"/><circle cx="10" cy="6" r=".55"/>
-            <circle cx="4" cy="8.1" r=".55"/><circle cx="8" cy="8.1" r=".55"/>
-          </g>
-        </svg>
-      </button>
+      <div class="lang-menu">
+        <button class="lang-btn" id="langBtn" aria-label="切换语言" data-i18n-aria="a11y.langSwitch" aria-haspopup="true" aria-expanded="false"><span id="langCurrent">中文</span><span class="lang-caret">▾</span></button>
+        <div class="lang-list" id="langList" hidden>
+          <button type="button" data-lang="zh">中文</button>
+          <button type="button" data-lang="en">English</button>
+          <button type="button" data-lang="ko">한국어</button>
+          <button type="button" data-lang="th">ไทย</button>
+        </div>
+      </div>
       <a class="login-btn" href="login.html" data-i18n="actions.login">登录</a>
       <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换白日/夜晚模式" aria-pressed="false" title="夜晚模式">
         <span class="theme-icon sun">☀</span>
@@ -669,7 +651,7 @@
         <article class="resource-row" data-search="课程目录 curriculum courses bth"><div><span>PDF</span><h3 data-i18n="resources.items.1">B.Th 课程目录</h3></div><button type="button" data-download="curriculum" data-i18n="actions.download">下载 ↓</button></article>
         <article class="resource-row" data-search="学费 费用 tuition fees 缴费"><div><span>INFO</span><h3 data-i18n="resources.items.2">学费与缴费说明</h3></div><button type="button" data-scroll="#tuition" data-i18n="actions.view">查看 →</button></article>
         <article class="resource-row" data-search="申请 表格 application form 在线"><div><span>FORM</span><h3 data-i18n="resources.items.3">在线申请（快速通道）</h3></div><button type="button" data-open-application data-i18n="actions.fill">填写 →</button></article>
-        <article class="resource-row" data-search="申请表 下载 word docx application form download"><div><span>DOCX</span><h3 data-i18n="resources.items.4">入学申请表（完整版 Word）</h3></div><a class="resource-dl" href="assets/files/AMAS-application-form.docx" download="AMAS入学申请表.docx" data-i18n="actions.download">下载 ↓</a></article>
+        <article class="resource-row" data-search="申请表 下载 word docx application form download"><div><span>DOCX</span><h3 data-i18n="resources.items.4">入学申请表（完整版 Word）</h3></div><a class="resource-dl" id="formDl" href="assets/files/AMAS-application-form.docx" download data-i18n="actions.download">下载 ↓</a></article>
         <article class="resource-row" data-search="上传 申请表 提交 upload submit"><div><span>UPLOAD</span><h3 data-i18n="resources.items.5">上传已填写的申请表</h3></div><button type="button" id="uploadToggle" aria-expanded="false" aria-controls="uploadForm" data-i18n="actions.upload">上传 ↑</button></article>
       </div>
 

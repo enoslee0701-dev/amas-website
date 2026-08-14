@@ -23,9 +23,12 @@ const CONFIG = {
   /* 真实的下载文件地址。留空则沿用演示用的占位 .txt。
      单文件部署时也可以直接塞 data:application/pdf;base64,... （会显著增大文件体积）。 */
   resources: {
-    "student-handbook": "assets/files/AMAS-student-handbook.pdf",   // 新生入学手册 PDF
-    "curriculum": "assets/files/AMAS-BTh-curriculum.pdf"            // B.Th 课程目录 PDF
+    "student-handbook": { zh:"assets/files/AMAS-student-handbook.pdf", en:"assets/files/AMAS-student-handbook-en.pdf", ko:"assets/files/AMAS-student-handbook-ko.pdf", th:"assets/files/AMAS-student-handbook-th.pdf" },
+    "curriculum": { zh:"assets/files/AMAS-BTh-curriculum.pdf", en:"assets/files/AMAS-BTh-curriculum-en.pdf", ko:"assets/files/AMAS-BTh-curriculum-ko.pdf", th:"assets/files/AMAS-BTh-curriculum-th.pdf" }
   },
+
+  /* Word 版入学申请表（按语言分发） */
+  applicationForm: { zh:"assets/files/AMAS-application-form.docx", en:"assets/files/AMAS-application-form-en.docx", ko:"assets/files/AMAS-application-form-ko.docx", th:"assets/files/AMAS-application-form-th.docx" },
 
   /* 联系方式：填了才会显示在「联系我们」里，留空的不会出现空行。 */
   contact: {
@@ -273,11 +276,198 @@ const i18n = {
   "application.okDemo":"Application saved locally for demo. Connect a backend/database for production.","application.ok":"Application sent. Our admissions team will contact you soon.","application.error":"Submission failed: network or server error. Please retry, or reach us with the contact details below.",
   "application.stepOf":"Step {n} of 4",
   "review.fullName":"Name (Chinese)","review.englishName":"Name (English)","review.gender":"Gender","review.birth":"Date of Birth","review.nationality":"Nationality","review.language":"Language","review.phone":"Mobile","review.email":"Email / QQ / WeChat","review.location":"City / Country","review.church":"Church","review.churchType":"Church Type","review.conversionDate":"Conversion","review.baptismDate":"Baptism","review.role":"Ministry / Role","review.referrer":"Referrer","review.program":"Program","review.eduLevel":"Highest Education","review.eduSchool":"School","review.mode":"Study Mode","review.gifts":"Gifts","review.motivation":"Vision & Testimony"
+ },
+ ko: {
+  "chat.open":"온라인 상담 열기","chat.title":"입학 상담 도우미","chat.subtitle":"즉시 답변 · 입학처에 메시지 남기기 가능","chat.placeholder":"질문을 입력하세요…","chat.send":"보내기","chat.note":"자동 응답은 본 사이트 정보를 기반으로 하며, 메시지는 입학 담당자에게 전달됩니다.",
+  "chat.greeting":"평안하세요! 아시아선교신학교(AMAS) 입학 상담 도우미입니다. 지원 방법, 등록금, 과정 등에 대해 답해 드리며, 입학 담당자에게 직접 메시지를 남기실 수도 있습니다. 무엇이 궁금하신가요?","chat.fallback":"이 질문에는 정확한 답을 드리기 어렵습니다. 입학 담당자에게 메시지를 남겨 주시면 빠르게 회신해 드리겠습니다.",
+  "chat.chips.apply":"어떻게 지원하나요?","chat.chips.tuition":"등록금은 얼마인가요?","chat.chips.courses":"어떤 과목이 있나요?","chat.chips.mode":"수업은 어떻게 진행되나요?","chat.chips.leave":"입학처에 메시지 남기기",
+  "chat.kb.apply":"「입학 지원」을 눌러 온라인 지원서를 작성하세요(약 3분). 제출 후 입학 담당자가 연락드려 다음 단계를 안내합니다. 자료실에서 Word 지원서 전체 양식을 내려받을 수도 있습니다.",
+  "chat.kb.tuition":"등록금은 과목별 수강·과목별 납부 방식입니다. 구체적인 금액은 입학 담당자에게 직접 문의해 주세요. 경제적으로 어려운 학생은 감면·분납 등 학업 지원을 신청할 수 있습니다.","chat.kb.tuitionBtn":"등록금과 지원 안내",
+  "chat.kb.courses":"과정은 성경·신학·사역 실천·영성 훈련을 중심으로 구성되어 있으며, 사도행전·고린도전서 등 25개 과목이 개설되어 있습니다.","chat.kb.coursesBtn":"과목 살펴보기",
+  "chat.kb.programs":"학위 과정(B.Th·G.Dip·M.Div·D.Min/D.Miss)과 훈련 과정(목회자 연수·설교학교·선교사 훈련)을 운영합니다. 2026학년도 B.Th(신학사) 신입생을 모집 중입니다.","chat.kb.programsBtn":"과정 안내 보기",
+  "chat.kb.mode":"온라인 + 오프라인 유연 학습: 온라인 수업을 중심으로 치앙마이 현장 제자훈련과 실습 참여를 권장합니다. 2026학년도 B.Th는 2026년 9월 1일 개강합니다.",
+  "chat.kb.contact":"다음 연락처로 문의하실 수 있습니다:","chat.kb.contactEmpty":"연락처는 곧 공개됩니다. 지금은 이곳에 메시지를 남기시거나 페이지 하단의 문의 양식을 이용해 주세요.",
+  "chat.kb.location":"본교 교육센터는 태국 치앙마이(Chiang Mai)에 있으며, 온라인 학습도 함께 제공합니다.",
+  "chat.kb.video":"학교 소개 영상을 준비했습니다. 클릭하여 시청하세요.",
+  "chat.leave.askName":"네, 전달해 드리겠습니다. 성함이 어떻게 되시나요?","chat.leave.askContact":"연락처를 남겨 주세요(위챗 / 이메일 / 전화 모두 가능):","chat.leave.askContent":"입학 담당자에게 전할 내용을 입력해 주세요:",
+  "chat.leave.done":"메시지가 전송되었습니다. 입학 담당자가 곧 회신드리겠습니다. 다른 질문이 있으신가요?","chat.leave.doneDemo":"메시지가 저장되었습니다(현재 데모 모드). 다른 질문이 있으신가요?","chat.leave.fail":"죄송합니다. 전송에 실패했습니다. 잠시 후 다시 시도하시거나 페이지 하단의 문의 양식을 이용해 주세요.",
+  "brand.sub":"아시아선교신학교 · 치앙마이 교육센터","brand.center":"치앙마이 교육센터","brand.zoom":"학교 문장 크게 보기","brand.sealSub":"AMAS 아시아선교신학교 · 태국",
+  "announce.brand":"AMAS 아시아선교신학교 · 치앙마이 교육센터","announce.hot":"2026학년도 신학사 B.Th 신입생 모집","announce.link":"모집 안내 보기 →",
+  "nav.home":"홈","nav.about":"학교 소개","nav.courses":"교육 과정","nav.admissions":"입학 안내","nav.tuition":"등록금·지원","nav.life":"학교 생활","nav.resources":"자료실","nav.contact":"문의하기",
+  "actions.apply":"입학 지원","actions.login":"로그인","actions.learn":"더 알아보기","actions.video":"소개 영상 보기","actions.applyNow":"바로 지원하기","actions.download":"다운로드 ↓","actions.view":"보기 →","actions.fill":"작성 →","actions.skip":"본문 바로가기","actions.backToTop":"↑ 맨 위로","actions.close":"닫기","actions.sending":"제출 중…",
+  "a11y.themeToNight":"야간 모드로 전환","a11y.themeToDay":"주간 모드로 전환","a11y.themeNight":"야간 모드","a11y.themeDay":"주간 모드","a11y.langSwitch":"언어 전환(현재 한국어)","a11y.openMenu":"메뉴 열기","a11y.closeMenu":"메뉴 닫기",
+  "toast.themeNight":"야간 모드로 전환되었습니다","toast.themeDay":"주간 모드로 전환되었습니다","toast.applied":"지원서가 전송되었습니다","toast.appliedDemo":"지원서가 제출되었습니다(데모)","toast.inquiry":"문의가 전송되었습니다","toast.inquiryDemo":"문의가 제출되었습니다(데모)","toast.failed":"제출 실패. 잠시 후 다시 시도해 주세요","toast.downloaded":"샘플 파일이 다운로드되었습니다",
+  "meta.credits":"{n}학점","meta.weeks":"{n}주",
+  "hero.title":"아시아선교신학교","hero.sub":"ASIA MISSIONARY ASSOCIATION SEMINARY","hero.verse":"그러므로 너희는 가서 모든 민족을 제자로 삼으라.","hero.verseRef":"— 마태복음 28:19",
+  "herometa.program":"과정","herometa.programVal":"신학사 B.Th","herometa.start":"2026학년도 개강","herometa.mode":"학습","herometa.modeVal":"온라인 + 오프라인",
+  "accred.more":"인증 상세 보기 →","accred.title":"학술 인증","accred.intro":"AMAS의 다음 학위 과정은 Asia Theological Association(ATA)의 인증 평가를 통과했습니다.","accred.bthName":"신학사 Bachelor of Theology (B.Th.)","accred.mdivName":"목회학석사 Master of Divinity (M.Div.)","accred.dminName":"목회학박사 Doctor of Ministry (D.Min.)","accred.bthNote":"Asia Theological Association (ATA) 인증","accred.note":"ATA 인증은 위에 명시된 학위 과정에 적용되며, 인증 범위와 유효 기간은 ATA가 발급한 인증 문서를 기준으로 합니다.",
+  "actions.consult":"입학 상담","actions.applyBth":"신학사 B.Th 지원",
+  "band.status":"본교 심사를 거쳐 정식 학적 등록","band.mode":"온라인 수업 + 치앙마이 현장 훈련","band.adm":"2026학년도 신학사 B.Th 모집",
+  "admissions.facts.startLabel":"개강","admissions.facts.startValue":"2026년 9월 1일","admissions.facts.feeLabel":"등록금","admissions.facts.feeValue":"입학처에 문의해 주세요","admissions.facts.modeLabel":"방식","admissions.facts.modeValue":"온라인 + 오프라인","admissions.facts.statusLabel":"학적","admissions.facts.statusValue":"본교 심사 후 등록",
+  "admissions.consultBtn":"먼저 상담하기 (30초)","admissions.applyBtn":"정식 지원",
+  "admissions.path.title1":"AMAS가 처음이신가요?","admissions.path.title2":"가벼운 상담부터 시작하세요.","admissions.path.s1":"빠른 상담","admissions.path.s1d":"이름 + 연락처 + 도시 + 궁금한 점","admissions.path.s2":"입학 담당자 상담","admissions.path.s2d":"과정·학적·일정·적합성 확인","admissions.path.s3":"정식 지원","admissions.path.s3d":"신앙 및 사역 정보를 포함한 지원서 작성",
+  "about.title":"AMAS 아시아선교신학교<br>성경에 뿌리내리고 · 세계를 향하여","about.body":"우리는 성경 진리를 기초로 타문화 비전과 실천 훈련을 결합하여, 학생들을 신실한 전도자·목회자·선교사로 세우고, 교회와 세상 속에서 복음을 살아내며 하나님 나라를 증거하도록 돕습니다.","about.link":"우리의 비전과 사명 보기",
+  "pillars.bible.title":"성경 중심","pillars.bible.body":"성경의 권위를 붙들고 진리의 기초를 깊게 하여 견고한 신학적 사고와 영적 통찰을 기릅니다.",
+  "pillars.practice.title":"실천 지향","pillars.practice.body":"이론과 실천을 함께 강조하며, 강의실과 사역 현장을 연결하여 실제로 쓰이는 섬김의 능력을 갖춥니다.",
+  "pillars.mission.title":"선교 비전","pillars.mission.body":"온 세계를 바라보며 타문화 사역을 준비하고 대위임령의 부르심에 응답합니다.",
+  "pillars.life.title":"영성 훈련","pillars.life.body":"영적 생명과 인격의 성숙을 중시하여 하나님의 마음에 합한 일꾼으로 자랍니다.",
+  "stats.courses":"개설 과목","stats.flex.title":"유연한 학습","stats.flex.body":"온·오프라인 병행 학습","stats.global.title":"글로벌 시야","stats.global.body":"타문화 학습과 선교 네트워크","stats.team.title":"목회자 교수진","stats.team.body":"경륜 있는 목회자·교사의 동행","stats.year":"2026학년도 신학사 B.Th 모집 시작",
+  "mission.aria":"비전과 사명","mission.title":"과정을 마치는 것이 아니라<br>섬김을 위해 준비됩니다.","mission.desc":"신학 교육을 실제 교회·가정·일터·선교 현장으로 되돌려 지식과 삶과 행동이 서로 연결되게 합니다.",
+  "mission.vision.0":"하나님의 말씀과 성령의 능력으로 준비된 목회자와 선교사를 세운다.","mission.vision.1":"아시아 각국에 말씀과 성령의 능력으로 준비된 선교 센터를 세운다.","mission.vision.2":"아시아 각국에 성경과 실천을 중시하는 신학교를 세워 현지 목회자와 일꾼을 양성한다.",
+  "mission.items.0.title":"진리에 뿌리내림","mission.items.0.body":"신뢰할 수 있는 성경 해석과 신학의 기초를 세웁니다.","mission.items.1.title":"생명의 빚어짐","mission.items.1.body":"영성 훈련·공동체 관계·인격 성장이 중심입니다.","mission.items.2.title":"실천 훈련","mission.items.2.body":"배운 것을 설교·목양·제자훈련·섬김의 능력으로 전환합니다.","mission.items.3.title":"사명에 응답","mission.items.3.body":"담대히 복음을 전하며 타문화 선교의 시야와 능력을 갖춥니다.",
+  "courses.title":"교육 과정","courses.desc":"성경·신학·사역 실천·영성 훈련을 중심축으로 온라인 학습과 현장 훈련을 병행합니다.","courses.filterGroup":"과목 필터","courses.filters.all":"전체","courses.filters.bible":"성경","courses.filters.theology":"신학","courses.filters.ministry":"사역 실천","courses.filters.mission":"선교","courses.filters.formation":"영성 훈련","courses.count":"{n}개 과목 표시 중","courses.more":"전체 과목 펼치기 (외 {n}과목)","courses.less":"과목 목록 접기",
+  "courseCards.0.title":"성경개관","courseCards.0.body":"성경 전체의 구조와 흐름, 구속사의 큰 줄기를 조망합니다.","courseCards.1.title":"마태복음","courseCards.1.body":"천국 복음을 연구하며 왕이신 그리스도와 제자의 길을 배웁니다.","courseCards.2.title":"요한복음","courseCards.2.body":"예수님의 인격과 사역을 알고 그 이름을 믿어 생명을 얻습니다.","courseCards.3.title":"사도행전","courseCards.3.body":"초대교회의 발자취를 따라 예루살렘에서 땅끝까지 이르는 복음을 봅니다.","courseCards.4.title":"로마서","courseCards.4.body":"이신칭의의 복음 대강령과 새 생명의 길을 체계적으로 연구합니다.","courseCards.5.title":"고린도전서","courseCards.5.body":"교회 질서·십자가 신학·공동체 세움을 중심으로 서신을 연구합니다.","courseCards.6.title":"고린도후서","courseCards.6.body":"연약함 속에서 하나님의 위로와 능력, 사역자의 직분을 배웁니다.","courseCards.7.title":"에베소서","courseCards.7.body":"그리스도의 몸 된 교회의 비밀과 그 안의 새 생활을 배웁니다.","courseCards.8.title":"히브리서","courseCards.8.body":"더 좋은 대제사장이신 그리스도를 바라보며 소망을 굳게 붙듭니다.","courseCards.9.title":"요한계시록","courseCards.9.body":"묵시문학을 통해 종말의 소망과 교회의 승리를 배웁니다.",
+  "courseCards.10.title":"조직신학","courseCards.10.body":"평신도와 초급 과정 학생을 위한 교리 개관으로 신앙의 틀을 세웁니다.","courseCards.11.title":"상황화 신학","courseCards.11.body":"아시아의 상황 속에서 성경에 충실하게 사고하고 표현하며 실천합니다.","courseCards.12.title":"전도법","courseCards.12.body":"복음의 메시지·방법·후속 양육의 길을 익힙니다.","courseCards.13.title":"상담학","courseCards.13.body":"경청·상담·영적 동행의 기본기를 배웁니다.","courseCards.14.title":"소그룹 운영","courseCards.14.body":"건강한 소그룹을 세우고 인도하며 배가시킵니다.","courseCards.15.title":"새신자 사역","courseCards.15.body":"체계적인 교재로 새신자가 신앙에 뿌리내리고 교회에 정착하도록 돕습니다.","courseCards.16.title":"교회 운영","courseCards.16.body":"치리·동역·사역 계획까지 교회 운영의 실제를 배웁니다.","courseCards.17.title":"예배 순서","courseCards.17.body":"예배의 성경적 의미와 예배 순서의 구성을 배웁니다.","courseCards.18.title":"내적 치유","courseCards.18.body":"진리와 성령 안에서 마음의 상처가 치유되고 자유를 얻습니다.","courseCards.19.title":"질병 치유","courseCards.19.body":"성경의 기초 위에서 치유 기도의 원리와 실천을 배웁니다.","courseCards.20.title":"말씀 선포 치유","courseCards.20.body":"하나님의 말씀을 선포하고 중보하며 병중에 있는 이를 돌봅니다.","courseCards.21.title":"영적 전쟁","courseCards.21.body":"영적 전쟁의 성경적 원리를 알고 하나님의 전신갑주를 입습니다.","courseCards.22.title":"그리스도인의 생활","courseCards.22.body":"일상에서 믿음과 경건과 증인의 삶을 훈련합니다.","courseCards.23.title":"제자의 삶","courseCards.23.body":"제자로서 그리스도를 따르며 견고한 삶의 리듬을 세웁니다.","courseCards.24.title":"확신의 삶","courseCards.24.body":"구원의 확신을 세우고 견고하며 소망 있는 신앙의 기초 위에 삽니다.",
+  "programs.title":"교육 프로그램","programs.desc":"훈련 과정부터 박사 과정까지 완전한 단계별 교육 경로. 2026학년도 B.Th 모집이 열려 있으며, 다른 과정은 순차 개설됩니다.",
+  "programs.degree.title":"학위 과정","programs.degree.sub":"학문적 단계를 따라 수학하며, 학적은 AMAS 본교 심사로 등록됩니다","programs.equip.title":"훈련 과정","programs.equip.sub":"현직 목회자와 평신도를 위한 단기 훈련",
+  "programs.items.dip.name":"대학 디플로마 과정","programs.items.dip.desc":"신학 기초 훈련, 학위 과정 진입을 위한 예비 단계",
+  "programs.items.bth.name":"신학사","programs.items.bth.desc":"2026학년도 모집 · 2026년 9월 개강 · 온·오프라인 유연 학습",
+  "programs.items.gdip.name":"대학원 디플로마","programs.items.gdip.desc":"학사 학위 소지자를 위한 신학 연구 입문",
+  "programs.items.mdiv.name":"목회학석사","programs.items.mdiv.desc":"전임 사역을 위한 종합적 신학·목회 훈련",
+  "programs.items.dmin.name":"목회학박사 / 선교학박사","programs.items.dmin.desc":"D.Min / D.Miss, 목회와 선교의 연구·실천 심화",
+  "programs.items.pastor.badge":"연수","programs.items.pastor.name":"목회자 연수","programs.items.pastor.desc":"현직 목회자의 지속적 재충전과 갱신",
+  "programs.items.preaching.badge":"설교","programs.items.preaching.name":"설교학교","programs.items.preaching.desc":"본문 해석부터 선포까지 집중 훈련",
+  "programs.items.missionary.badge":"선교","programs.items.missionary.name":"선교사 훈련","programs.items.missionary.desc":"타문화 사역의 소명 분별과 파송 준비",
+  "programs.note":"각 과정의 개설 시기·수학 연한·지원 자격은 「입학 지원」 또는 연락처를 통해 입학 담당자에게 문의해 주세요.",
+  "nav.programs":"교육 프로그램",
+  "digital.title":"디지털 캠퍼스","digital.desc":"본교는 과정·자료·공동체를 하나의 입구로 연결하는 학습 플랫폼을 구축하고 있습니다.",
+  "digital.items.0.title":"원격 강의실","digital.items.0.body":"수강 중인 과목·실시간 강의·다시보기를 한곳에 모아 모바일에서도 이어서 학습합니다.",
+  "digital.items.1.title":"도서관 자료","digital.items.1.body":"강의안·오디오·연구 자료가 도서관과 과목 자료 페이지에 함께 제공됩니다.",
+  "digital.items.2.title":"동문 커뮤니티","digital.items.2.body":"토론·중보기도·멘토 피드백·음성방으로 학습과 공동체가 연결됩니다.",
+  "digital.note.label":"개발 중: ","digital.note.body":"학습 앱은 내부 테스트 중이며 정식 출시 후 이곳에서 다운로드할 수 있습니다.",
+  "meta.lessons":"{n}강",
+  "admissions.title":"2026학년도 신학사 B.Th 모집","admissions.desc":"성실히 훈련받고 꾸준히 성장하며 섬김에 참여하려는 이들을 위한 유연하고 실천 중심적인 신학 교육의 길을 제공합니다.","admissions.points.0":"온·오프라인 유연 학습","admissions.points.1":"등록금은 문의해 주세요","admissions.points.2":"2026년 9월 개강","admissions.points.3":"본교 심사 후 정식 학적 등록","admissions.card.mode":"학습 방식","admissions.card.modeValue":"온라인 / 오프라인","admissions.card.start":"개강일","admissions.card.location":"교육센터","admissions.card.locationValue":"치앙마이","admissions.card.language":"주 사용 언어","admissions.card.languageValue":"중국어",
+  "tuition.title":"등록금과 학업 지원","tuition.motto":"훈련받기를 원하는 모든 이에게 계속 배울 길이 열려 있기를.","tuition.mode":"과목별 수강 · 과목별 납부",
+  "tuition.p1":"AMAS는 과목별 수강·과목별 납부 방식을 채택합니다. 학생은 자신의 진도에 따라 과목을 선택하며 학기·학년 전체 비용을 한 번에 부담할 필요가 없어 학습 계획이 유연해지고 일시적 경제 부담이 줄어듭니다. 구체적인 과목 비용은 입학 담당자에게 직접 문의해 주세요.",
+  "tuition.p2":"신학 훈련에는 학생의 성실한 헌신과 함께 학교·교수·사역팀이 감당하는 교육 비용이 필요합니다. 따라서 등록금을 성실히 납부하는 것은 배움에 대한 헌신이자 교육 사역을 향한 후원입니다.",
+  "tuition.v1":"“할 마음만 있으면 있는 대로 받으실 터이요 없는 것은 받지 아니하시리라.”","tuition.v1ref":"—— 고린도후서 8:12",
+  "tuition.p3":"그러므로 경제적 어려움이 신학 훈련의 장벽이 되어서는 안 됩니다. 실제로 어려움이 있으나 성실히 배우기를 원하는 학생은 입학처나 교무처에 사정을 알려 주시면, 학교가 개별 상황에 따라 등록금 감면·분납·기타 학업 지원을 제공합니다.",
+  "tuition.p4":"우리의 원칙은 단순히 “등록금을 낮추는 것”이 아니라, 진심으로 배우기를 원하는 모든 이가 계속 훈련받을 수 있는 길을 찾도록 돕는 것입니다.",
+  "tuition.v2":"“말씀을 가르침을 받는 자는 가르치는 자와 모든 좋은 것을 함께 하라.”","tuition.v2ref":"—— 갈라디아서 6:6",
+  "tuition.p5":"AMAS는 건강한 배움의 문화를 소망합니다. 여력이 있는 학생은 등록금을 성실히 부담하고, 어려운 학생은 도움을 받으며, 여유가 있는 이는 헌금으로 다른 학생의 훈련을 후원할 수 있습니다.",
+  "tuition.ctaFee":"과목 비용 문의","tuition.ctaAid":"학업 지원 신청",
+  "tuition.pr.title":"등록금 원칙","tuition.pr.0":"등록금은 과목 단위로 산정되며, 금액은 입학 담당자에게 문의","tuition.pr.1":"과목별 납부, 연간 일시납 요구 없음","tuition.pr.2":"경제적 어려움이 있는 경우 개별 심사와 학업 지원 신청 가능","tuition.pr.3":"경제적 이유만으로 진지하게 훈련을 구하는 학생을 거절하지 않음","tuition.pr.4":"감면·분납·지원 방식은 학교와 개별 상담으로 결정",
+  "life.title":"배움은 홀로 이루어지지 않습니다.","life.desc":"강의·제자훈련·소그룹·교회 섬김과 실제 삶이 함께 신학 교육을 이룹니다.","life.items.0.title":"멘토 동행","life.items.0.body":"수업 밖에서도 삶의 동행과 방향 분별을 중시합니다.","life.items.0.p0":"정기적인 일대일 동행과 중보기도","life.items.0.p1":"학업 방향과 사역 소명의 분별","life.items.0.p2":"경륜 있는 목회자와 동행하는 영적 네트워크","life.items.1.title":"소그룹 학습","life.items.1.body":"토론·사례·상호 피드백으로 배움을 깊게 합니다.","life.items.1.p0":"고정 학습 소그룹에서 서로 돌봄","life.items.1.p1":"과목 토론·사례 나눔·상호 피드백","life.items.1.p2":"지역을 넘는 온라인 교제 생활","life.items.2.title":"실천 섬김","life.items.2.body":"배운 것을 교회·가정·일터·선교 현장으로 가져갑니다.","life.items.2.p0":"지역 교회와 동역하는 섬김의 자리","life.items.2.p1":"전도·제자훈련·심방 등 실천 배치","life.items.2.p2":"치앙마이 현장 집중 훈련과 실습 주간","life.items.3.title":"예배와 경건","life.items.3.body":"예배와 기도에 뿌리내려, 사역보다 생명이 먼저입니다.","life.items.3.p0":"규칙적인 경건과 기도 훈련","life.items.3.p1":"예배 모임과 예배 섬김 참여","life.items.3.p2":"공동체 안에서 경건과 인격을 세움",
+  "life.rhythm.title":"주간 학습 리듬","life.rhythm.0":"온라인 수업과 읽기 과제","life.rhythm.1":"소그룹 토론과 상호 피드백","life.rhythm.2":"제자훈련과 멘토 시간","life.rhythm.3":"교회 섬김과 삶의 실천",
+  "resources.title":"자료실","resources.searchLabel":"자료 검색","resources.searchPlaceholder":"자료 검색…","resources.count":"{n}개 자료 검색됨","resources.items.0":"신입생 안내서","resources.items.1":"B.Th 과목 목록","resources.items.2":"등록금과 학업 지원","resources.items.3":"온라인 지원(빠른 통로)","resources.items.4":"입학지원서(전체 Word판)","resources.items.5":"작성한 지원서 업로드","actions.upload":"업로드 ↑","upload.name":"이름","upload.contact":"연락처(이메일 / 위챗 / 전화)","upload.file":"작성한 지원서 선택(Word 또는 PDF)","upload.submit":"업로드 및 제출","upload.note":"자료는 입학 담당자 이메일로 바로 전송되며, 제출 후 새 페이지에 확인이 표시됩니다.",
+  "faq.title":"자주 묻는 질문","faq.items.0.q":"신학 배경이 없어도 지원할 수 있나요?","faq.items.0.a":"네. 우리는 꾸준한 학습, 학습 규율 준수, 진지하게 훈련받으려는 의지를 더 중요하게 봅니다.","faq.items.1.q":"수업은 전부 온라인인가요?","faq.items.1.a":"유연 학습을 원칙으로 온라인 수업을 제공하며, 동시에 치앙마이 현장 제자훈련·실습·공동체 학습 참여를 권장합니다.","faq.items.2.q":"수료 후 학적 등록과 학위 수여는 누가 하나요?","faq.items.2.a":"학적은 AMAS 본교의 심사를 거쳐 등록되며, 학교의 정식 제도에 따라 졸업과 학위 절차가 진행됩니다.","faq.items.3.q":"지원은 어떻게 시작하나요?","faq.items.3.a":"「입학 지원」을 눌러 기본 정보와 학업 동기를 작성하시면, 이후 입학 담당자가 연락드려 다음 단계를 안내합니다.",
+  "faq.ask.title":"더 궁금한 점이 있으신가요?","faq.ask.desc":"AI 상담 도우미가 언제든 답해 드립니다. 입학 담당자에게 직접 메시지를 남기셔도 빠르게 회신드립니다.","faq.ask.ai":"AI 상담 도우미에게 묻기","faq.ask.leave":"입학처에 메시지 남기기",
+  "contact.title":"더 알고 싶으신가요?","contact.desc":"질문을 남겨 주시면 남겨 주신 연락처로 회신드립니다.","contact.locationLabel":"지역","contact.studyLabel":"학습","contact.studyValue":"온라인 + 오프라인","contact.emailLabel":"이메일","contact.phoneLabel":"전화(태국)","contact.phoneCNLabel":"전화(중국)","contact.lineLabel":"Line","contact.wechatLabel":"위챗",
+  "form.name":"이름","form.contact":"이메일 / Line / 위챗","form.message":"문의 내용","form.send":"문의 보내기",
+  "form.okDemo":"접수되었습니다. 데모 버전은 문의를 브라우저에만 저장합니다.","form.ok":"접수되었습니다. 남겨 주신 연락처로 곧 연락드리겠습니다.","form.error":"제출 실패: 네트워크 또는 서버 오류입니다. 잠시 후 다시 시도하시거나 직접 연락해 주세요.",
+  "video.title":"학교 소개 영상","video.placeholder":"영상 플레이어 자리가 준비되어 있습니다. YouTube / Vimeo / MP4 링크를 연결하면 됩니다.",
+  "application.title":"입학 지원","application.hint":"온라인 지원은 빠른 통로입니다. 학력·가족 사항 등을 포함한 전체 지원서는 자료실에서 Word 문서로 내려받아 작성할 수 있습니다.","application.pleaseSelect":"선택해 주세요",
+  "application.fields.nameZh":"이름(한자/중문)","application.fields.nameEn":"이름(영문)","application.fields.gender":"성별","application.fields.birth":"생년월","application.fields.nationality":"국적","application.fields.language":"주 사용 언어","application.fields.phone":"휴대전화","application.fields.email":"Email / QQ / 위챗","application.fields.city":"현재 거주 도시 / 국가",
+  "application.fields.church":"현재 출석 교회","application.fields.churchType":"교회 유형","application.fields.conversion":"신앙 시작 시기(대략)","application.fields.baptism":"세례 시기(대략)","application.fields.role":"현재 섬김 / 역할","application.fields.referrer":"추천인과 연락처",
+  "application.fields.program":"지원 과정","application.fields.eduLevel":"최종 학력","application.fields.eduSchool":"출신 학교(선택)","application.edu.secondary":"고졸 이하","application.edu.college":"전문학사","application.edu.bachelor":"학사","application.edu.master":"석사 이상","application.fields.mode":"선호하는 학습 방식","application.fields.gifts":"은사(선택)","application.fields.motivation":"비전과 소명 / 신앙 간증",
+  "application.genders.male":"남","application.genders.female":"여",
+  "application.languages.mandarin":"표준중국어","application.languages.cantonese":"광둥어","application.languages.other":"기타",
+  "application.churchTypes.tspm":"삼자교회","application.churchTypes.house":"가정교회","application.churchTypes.other":"기타",
+  "application.programs.bth":"신학사 B.Th(2026학년도 모집)","application.programs.dip":"대학 디플로마 DIP","application.programs.gdip":"대학원 디플로마 G.DIP","application.programs.mdiv":"목회학석사 M.DIV","application.programs.dmin":"목회학 / 선교학박사 D.MIN / D.MISS","application.programs.pastor":"목회자 연수","application.programs.preaching":"설교학교","application.programs.missionary":"선교사 훈련",
+  "application.modes.online":"온라인 중심","application.modes.onsite":"오프라인 중심","application.modes.hybrid":"온라인 + 오프라인",
+  "application.consent":"위 정보가 사실임을 확인하며, 학교의 후속 연락과 입학 안내를 받는 데 동의합니다.","application.back":"이전","application.next":"다음","application.submit":"지원서 제출",
+  "application.okDemo":"지원서가 데모 데이터로 저장되었습니다. 정식 오픈 시 백엔드 연동이 필요합니다.","application.ok":"지원서가 전송되었습니다. 입학 담당자가 곧 연락드리겠습니다.","application.error":"제출 실패: 네트워크 또는 서버 오류입니다. 잠시 후 다시 시도하시거나 아래 연락처로 문의해 주세요.",
+  "application.stepOf":"4단계 중 {n}단계",
+  "review.fullName":"이름(중문)","review.englishName":"이름(영문)","review.gender":"성별","review.birth":"생년월","review.nationality":"국적","review.language":"사용 언어","review.phone":"휴대전화","review.email":"Email / QQ / 위챗","review.location":"도시 / 국가","review.church":"교회","review.churchType":"교회 유형","review.conversionDate":"신앙 시작","review.baptismDate":"세례","review.role":"섬김 / 역할","review.referrer":"추천인","review.program":"지원 과정","review.eduLevel":"최종 학력","review.eduSchool":"출신 학교","review.mode":"학습 방식","review.gifts":"은사","review.motivation":"비전과 간증"
+ },
+ th: {
+  "chat.open":"เปิดแชทสอบถาม","chat.title":"ผู้ช่วยรับสมัคร","chat.subtitle":"ตอบทันที · ฝากข้อความถึงฝ่ายรับสมัครได้","chat.placeholder":"พิมพ์คำถาม…","chat.send":"ส่ง","chat.note":"คำตอบอัตโนมัติอ้างอิงข้อมูลในเว็บไซต์นี้ ข้อความจะถูกส่งต่อให้ฝ่ายรับสมัคร",
+  "chat.greeting":"สันติสุขครับ/ค่ะ! ฉันคือผู้ช่วยรับสมัครของวิทยาลัยพระคริสตธรรม AMAS ตอบคำถามเรื่องการสมัคร ค่าเล่าเรียน และรายวิชาได้ หรือจะฝากข้อความถึงฝ่ายรับสมัครโดยตรงก็ได้ อยากทราบเรื่องอะไรครับ/คะ?","chat.fallback":"คำถามนี้ยังไม่มีคำตอบที่แน่ชัด แนะนำให้ฝากข้อความถึงฝ่ายรับสมัคร แล้วจะติดต่อกลับโดยเร็ว",
+  "chat.chips.apply":"สมัครอย่างไร?","chat.chips.tuition":"ค่าเล่าเรียนเท่าไร?","chat.chips.courses":"มีวิชาอะไรบ้าง?","chat.chips.mode":"เรียนอย่างไร?","chat.chips.leave":"ฝากข้อความถึงฝ่ายรับสมัคร",
+  "chat.kb.apply":"กด「สมัครเข้าเรียน」เพื่อกรอกใบสมัครออนไลน์ (ประมาณ 3 นาที) หลังส่งแล้วฝ่ายรับสมัครจะติดต่อกลับเพื่อแนะนำขั้นตอนต่อไป หรือดาวน์โหลดใบสมัครฉบับเต็ม (Word) ได้ที่ศูนย์ทรัพยากร",
+  "chat.kb.tuition":"ค่าเล่าเรียนคิดเป็นรายวิชา จ่ายทีละวิชา จำนวนเงินโปรดสอบถามฝ่ายรับสมัครโดยตรง ผู้เรียนที่มีข้อจำกัดทางการเงินสามารถขอส่วนลด ผ่อนชำระ หรือความช่วยเหลืออื่นได้","chat.kb.tuitionBtn":"ดูค่าเล่าเรียนและการช่วยเหลือ",
+  "chat.kb.courses":"หลักสูตรมีแกนหลักคือพระคัมภีร์ ศาสนศาสตร์ การรับใช้ภาคปฏิบัติ และการหล่อหลอมชีวิต เปิดสอน 25 รายวิชา เช่น กิจการของอัครทูต 1 โครินธ์ ฯลฯ","chat.kb.coursesBtn":"ดูรายวิชา",
+  "chat.kb.programs":"มีหลักสูตรปริญญา (B.Th·G.Dip·M.Div·D.Min/D.Miss) และหลักสูตรอบรม (ศิษยาภิบาล·โรงเรียนเทศนา·อบรมมิชชันนารี) ขณะนี้เปิดรับ B.Th รุ่นปี 2026","chat.kb.programsBtn":"ดูหลักสูตร",
+  "chat.kb.mode":"เรียนแบบยืดหยุ่นออนไลน์ + ออนไซต์: เน้นเรียนออนไลน์ พร้อมสนับสนุนให้เข้าร่วมการฝึกสาวกและภาคปฏิบัติที่เชียงใหม่ B.Th รุ่นปี 2026 เปิดเรียน 1 กันยายน 2026",
+  "chat.kb.contact":"ติดต่อเราได้ทางช่องทางต่อไปนี้:","chat.kb.contactEmpty":"ช่องทางติดต่อจะประกาศเร็ว ๆ นี้ ตอนนี้ฝากข้อความที่นี่ หรือใช้แบบฟอร์มสอบถามท้ายหน้าได้เลย",
+  "chat.kb.location":"ศูนย์การศึกษาตั้งอยู่ที่เชียงใหม่ ประเทศไทย พร้อมการเรียนออนไลน์",
+  "chat.kb.video":"เรามีวิดีโอแนะนำวิทยาลัย กดเพื่อรับชมได้",
+  "chat.leave.askName":"ยินดีส่งต่อให้ครับ/ค่ะ ขอทราบชื่อของคุณ?","chat.leave.askContact":"ฝากช่องทางติดต่อ (WeChat / อีเมล / โทรศัพท์ ได้ทั้งหมด):","chat.leave.askContent":"ต้องการบอกอะไรกับฝ่ายรับสมัคร? พิมพ์ข้อความได้เลย:",
+  "chat.leave.done":"ส่งข้อความแล้ว ฝ่ายรับสมัครจะติดต่อกลับโดยเร็ว มีคำถามอื่นอีกไหมครับ/คะ?","chat.leave.doneDemo":"บันทึกข้อความแล้ว (โหมดสาธิต) มีคำถามอื่นอีกไหม?","chat.leave.fail":"ขออภัย ส่งไม่สำเร็จ โปรดลองใหม่ภายหลัง หรือใช้แบบฟอร์มสอบถามท้ายหน้า",
+  "brand.sub":"วิทยาลัยพระคริสตธรรม · ศูนย์เชียงใหม่","brand.center":"ศูนย์การศึกษาเชียงใหม่","brand.zoom":"ดูตราวิทยาลัยขนาดใหญ่","brand.sealSub":"AMAS วิทยาลัยพระคริสตธรรม · ประเทศไทย",
+  "announce.brand":"AMAS วิทยาลัยพระคริสตธรรม · ศูนย์เชียงใหม่","announce.hot":"รับสมัคร B.Th รุ่นปี 2026","announce.link":"ดูข้อมูลการรับสมัคร →",
+  "nav.home":"หน้าแรก","nav.about":"เกี่ยวกับเรา","nav.courses":"รายวิชา","nav.admissions":"การรับสมัคร","nav.tuition":"ค่าเล่าเรียน","nav.life":"ชีวิตในวิทยาลัย","nav.resources":"ศูนย์ทรัพยากร","nav.contact":"ติดต่อเรา",
+  "actions.apply":"สมัครเข้าเรียน","actions.login":"เข้าสู่ระบบ","actions.learn":"เรียนรู้เพิ่มเติม","actions.video":"ชมวิดีโอแนะนำ","actions.applyNow":"สมัครเลย","actions.download":"ดาวน์โหลด ↓","actions.view":"ดู →","actions.fill":"กรอก →","actions.skip":"ข้ามไปเนื้อหาหลัก","actions.backToTop":"↑ ขึ้นบน","actions.close":"ปิด","actions.sending":"กำลังส่ง…",
+  "a11y.themeToNight":"สลับเป็นโหมดกลางคืน","a11y.themeToDay":"สลับเป็นโหมดกลางวัน","a11y.themeNight":"โหมดกลางคืน","a11y.themeDay":"โหมดกลางวัน","a11y.langSwitch":"เปลี่ยนภาษา (ปัจจุบันภาษาไทย)","a11y.openMenu":"เปิดเมนู","a11y.closeMenu":"ปิดเมนู",
+  "toast.themeNight":"สลับเป็นโหมดกลางคืนแล้ว","toast.themeDay":"สลับเป็นโหมดกลางวันแล้ว","toast.applied":"ส่งใบสมัครแล้ว","toast.appliedDemo":"ส่งใบสมัครแล้ว (สาธิต)","toast.inquiry":"ส่งคำถามแล้ว","toast.inquiryDemo":"ส่งคำถามแล้ว (สาธิต)","toast.failed":"ส่งไม่สำเร็จ โปรดลองใหม่ภายหลัง","toast.downloaded":"ดาวน์โหลดไฟล์ตัวอย่างแล้ว",
+  "meta.credits":"{n} หน่วยกิต","meta.weeks":"{n} สัปดาห์",
+  "hero.title":"วิทยาลัยพระคริสตธรรมเอเชียมิชชัน","hero.sub":"ASIA MISSIONARY ASSOCIATION SEMINARY","hero.verse":"เหตุฉะนั้น ท่านทั้งหลายจงออกไปและนำชนทุกชาติมาเป็นสาวก","hero.verseRef":"— มัทธิว 28:19",
+  "herometa.program":"หลักสูตร","herometa.programVal":"ศาสนศาสตรบัณฑิต B.Th","herometa.start":"รุ่นปี 2026 เปิดเรียน","herometa.mode":"การเรียน","herometa.modeVal":"ออนไลน์ + ออนไซต์",
+  "accred.more":"ดูรายละเอียดการรับรอง →","accred.title":"การรับรองทางวิชาการ","accred.intro":"หลักสูตรปริญญาต่อไปนี้ของ AMAS ผ่านการประเมินรับรองจาก Asia Theological Association (ATA)","accred.bthName":"ศาสนศาสตรบัณฑิต Bachelor of Theology (B.Th.)","accred.mdivName":"ศาสนศาสตรมหาบัณฑิต Master of Divinity (M.Div.)","accred.dminName":"ศาสนศาสตรดุษฎีบัณฑิต Doctor of Ministry (D.Min.)","accred.bthNote":"รับรองโดย Asia Theological Association (ATA)","accred.note":"การรับรอง ATA ใช้กับหลักสูตรปริญญาที่ระบุข้างต้น ขอบเขตและอายุการรับรองเป็นไปตามเอกสารรับรองที่ ATA ออกให้",
+  "actions.consult":"สอบถามการสมัคร","actions.applyBth":"สมัคร B.Th",
+  "band.status":"ขึ้นทะเบียนนักศึกษาโดยการพิจารณาของวิทยาลัยหลัก","band.mode":"เรียนออนไลน์ + ฝึกภาคปฏิบัติที่เชียงใหม่","band.adm":"รับสมัคร B.Th รุ่นปี 2026",
+  "admissions.facts.startLabel":"เปิดเรียน","admissions.facts.startValue":"1 กันยายน 2026","admissions.facts.feeLabel":"ค่าเล่าเรียน","admissions.facts.feeValue":"โปรดสอบถามฝ่ายรับสมัคร","admissions.facts.modeLabel":"รูปแบบ","admissions.facts.modeValue":"ออนไลน์ + ออนไซต์","admissions.facts.statusLabel":"สถานภาพ","admissions.facts.statusValue":"พิจารณาโดยวิทยาลัยหลัก",
+  "admissions.consultBtn":"สอบถามก่อน 30 วินาที","admissions.applyBtn":"สมัครอย่างเป็นทางการ",
+  "admissions.path.title1":"เพิ่งรู้จัก AMAS?","admissions.path.title2":"เริ่มจากการพูดคุยง่าย ๆ ก่อน","admissions.path.s1":"สอบถามด่วน","admissions.path.s1d":"ชื่อ + ช่องทางติดต่อ + เมือง + สิ่งที่อยากทราบ","admissions.path.s2":"พูดคุยกับฝ่ายรับสมัคร","admissions.path.s2d":"ยืนยันหลักสูตร สถานภาพ เวลา และความเหมาะสม","admissions.path.s3":"สมัครอย่างเป็นทางการ","admissions.path.s3d":"กรอกข้อมูลความเชื่อและการรับใช้ให้ครบถ้วน",
+  "about.title":"AMAS วิทยาลัยพระคริสตธรรม<br>หยั่งรากในพระคัมภีร์ · มุ่งสู่โลกกว้าง","about.body":"เรามุ่งมั่นวางรากฐานบนความจริงแห่งพระคัมภีร์ ผสานวิสัยทัศน์ข้ามวัฒนธรรมกับการฝึกภาคปฏิบัติ เพื่อเตรียมผู้เรียนให้เป็นผู้ประกาศ ศิษยาภิบาล และมิชชันนารีที่สัตย์ซื่อ ดำเนินชีวิตตามข่าวประเสริฐและเป็นพยานถึงแผ่นดินของพระเจ้า","about.link":"ดูวิสัยทัศน์และพันธกิจของเรา",
+  "pillars.bible.title":"พระคัมภีร์เป็นหลัก","pillars.bible.body":"ยึดมั่นสิทธิอำนาจของพระคัมภีร์ วางรากฐานความจริง สร้างความคิดทางศาสนศาสตร์และความเข้าใจฝ่ายวิญญาณที่มั่นคง",
+  "pillars.practice.title":"เน้นภาคปฏิบัติ","pillars.practice.body":"ทฤษฎีคู่การปฏิบัติ ห้องเรียนคู่การรับใช้ เตรียมความสามารถที่ใช้ได้จริง",
+  "pillars.mission.title":"วิสัยทัศน์มิชชัน","pillars.mission.body":"มองไปทั่วโลก เตรียมพร้อมข้ามวัฒนธรรม ตอบสนองพระมหาบัญชา",
+  "pillars.life.title":"หล่อหลอมชีวิต","pillars.life.body":"ให้ความสำคัญกับชีวิตฝ่ายวิญญาณและอุปนิสัย เป็นคนงานที่ถูกพระทัยพระเจ้า",
+  "stats.courses":"รายวิชาที่เปิดสอน","stats.flex.title":"เรียนยืดหยุ่น","stats.flex.body":"เรียนออนไลน์และออนไซต์ควบคู่กัน","stats.global.title":"มุมมองระดับโลก","stats.global.body":"การเรียนรู้ข้ามวัฒนธรรมและเครือข่ายมิชชัน","stats.team.title":"คณาจารย์ศิษยาภิบาล","stats.team.body":"ศิษยาภิบาลและอาจารย์ผู้มากประสบการณ์ร่วมเดินไปด้วยกัน","stats.year":"เริ่มรับสมัคร B.Th รุ่นปี 2026",
+  "mission.aria":"วิสัยทัศน์และพันธกิจ","mission.title":"ไม่ใช่แค่เรียนจบหลักสูตร<br>แต่ถูกเตรียมเพื่อการรับใช้","mission.desc":"เรานำการศึกษาศาสนศาสตร์กลับสู่คริสตจักร ครอบครัว ที่ทำงาน และสนามมิชชันจริง ให้ความรู้ ชีวิต และการกระทำเชื่อมโยงกัน",
+  "mission.vision.0":"สร้างศิษยาภิบาลและมิชชันนารีที่ถูกเตรียมด้วยพระวจนะและฤทธิ์เดชของพระวิญญาณบริสุทธิ์","mission.vision.1":"ก่อตั้งศูนย์มิชชันที่ถูกเตรียมด้วยพระวจนะและพระวิญญาณในประเทศต่าง ๆ ของเอเชีย","mission.vision.2":"ก่อตั้งโรงเรียนศาสนศาสตร์ที่เน้นพระคัมภีร์และการปฏิบัติในเอเชีย เพื่อสร้างศิษยาภิบาลและคนงานท้องถิ่น",
+  "mission.items.0.title":"หยั่งรากในความจริง","mission.items.0.body":"วางรากฐานการตีความพระคัมภีร์และศาสนศาสตร์ที่เชื่อถือได้","mission.items.1.title":"หล่อหลอมชีวิต","mission.items.1.body":"เน้นวินัยฝ่ายวิญญาณ ความสัมพันธ์ในชุมชน และการเติบโตของอุปนิสัย","mission.items.2.title":"ฝึกภาคปฏิบัติ","mission.items.2.body":"เปลี่ยนสิ่งที่เรียนเป็นความสามารถในการเทศนา การเลี้ยงดู การสร้างสาวก และการรับใช้","mission.items.3.title":"ตอบสนองพันธกิจ","mission.items.3.body":"กล้าประกาศข่าวประเสริฐ พร้อมมุมมองและความสามารถในการมิชชันข้ามวัฒนธรรม",
+  "courses.title":"รายวิชา","courses.desc":"แกนหลักคือพระคัมภีร์ ศาสนศาสตร์ การรับใช้ภาคปฏิบัติ และการหล่อหลอมชีวิต ควบคู่การเรียนออนไลน์กับการฝึกออนไซต์","courses.filterGroup":"กรองรายวิชา","courses.filters.all":"ทั้งหมด","courses.filters.bible":"พระคัมภีร์","courses.filters.theology":"ศาสนศาสตร์","courses.filters.ministry":"การรับใช้","courses.filters.mission":"มิชชัน","courses.filters.formation":"ชีวิต","courses.count":"แสดง {n} รายวิชา","courses.more":"ดูรายวิชาทั้งหมด (อีก {n} วิชา)","courses.less":"ย่อรายการวิชา",
+  "courseCards.0.title":"ภาพรวมพระคัมภีร์","courseCards.0.body":"มองภาพรวมโครงสร้าง เส้นเรื่อง และแผนการไถ่ตลอดทั้งเล่ม","courseCards.1.title":"มัทธิว","courseCards.1.body":"ศึกษาข่าวสารแผ่นดินสวรรค์ รู้จักพระคริสต์กษัตริย์และวิถีสาวก","courseCards.2.title":"ยอห์น","courseCards.2.body":"รู้จักพระเยซูว่าทรงเป็นผู้ใด และรับชีวิตโดยความเชื่อในพระนาม","courseCards.3.title":"กิจการของอัครทูต","courseCards.3.body":"ตามรอยคริสตจักรยุคแรก เห็นข่าวประเสริฐจากเยรูซาเล็มถึงสุดปลายแผ่นดินโลก","courseCards.4.title":"โรม","courseCards.4.body":"ศึกษาโครงร่างข่าวประเสริฐแห่งการชำระให้ชอบธรรมโดยความเชื่ออย่างเป็นระบบ","courseCards.5.title":"1 โครินธ์","courseCards.5.body":"ศึกษาจดหมายโดยเน้นระเบียบคริสตจักร ศาสนศาสตร์กางเขน และการสร้างชุมชน","courseCards.6.title":"2 โครินธ์","courseCards.6.body":"รู้จักการปลอบประโลมและฤทธิ์เดชของพระเจ้าในความอ่อนแอ และหน้าที่ผู้รับใช้","courseCards.7.title":"เอเฟซัส","courseCards.7.body":"รู้จักความล้ำลึกของคริสตจักรกายของพระคริสต์และชีวิตใหม่ในพระองค์","courseCards.8.title":"ฮีบรู","courseCards.8.body":"มองดูพระคริสต์มหาปุโรหิตผู้ประเสริฐกว่า ยึดมั่นความหวังที่เรารับไว้","courseCards.9.title":"วิวรณ์","courseCards.9.body":"เรียนรู้ความหวังวาระสุดท้ายและชัยชนะของคริสตจักรผ่านวรรณกรรมวิวรณ์",
+  "courseCards.10.title":"ศาสนศาสตร์ระบบ","courseCards.10.body":"ภาพรวมหลักข้อเชื่อสำหรับฆราวาสและผู้เริ่มต้น วางกรอบความเชื่อ","courseCards.11.title":"ศาสนศาสตร์บริบท","courseCards.11.body":"คิด แสดงออก และปฏิบัติความเชื่ออย่างสัตย์ซื่อต่อพระคัมภีร์ในบริบทเอเชีย","courseCards.12.title":"วิธีประกาศ","courseCards.12.body":"เรียนรู้ข่าวสาร วิธีการ และการติดตามผลของการประกาศข่าวประเสริฐ","courseCards.13.title":"การให้คำปรึกษา","courseCards.13.body":"ฝึกพื้นฐานการฟัง การให้คำปรึกษา และการเดินเคียงข้างฝ่ายวิญญาณ","courseCards.14.title":"การบริหารกลุ่มย่อย","courseCards.14.body":"ก่อตั้ง นำ และขยายกลุ่มย่อยที่แข็งแรง","courseCards.15.title":"พันธกิจผู้เชื่อใหม่","courseCards.15.body":"ใช้สื่อการสอนอย่างเป็นระบบ ช่วยผู้เชื่อใหม่หยั่งรากและเข้าส่วนคริสตจักร","courseCards.16.title":"การบริหารคริสตจักร","courseCards.16.body":"ภาคปฏิบัติการบริหารคริสตจักร ตั้งแต่การปกครอง การร่วมงาน ถึงการวางแผนพันธกิจ","courseCards.17.title":"ระเบียบนมัสการ","courseCards.17.body":"เข้าใจความหมายตามพระคัมภีร์ของการนมัสการและการจัดระเบียบพิธี","courseCards.18.title":"การรักษาภายใน","courseCards.18.body":"รับการรักษาและการปลดปล่อยบาดแผลภายในด้วยความจริงและพระวิญญาณ","courseCards.19.title":"การรักษาโรค","courseCards.19.body":"เข้าใจหลักการและการปฏิบัติของการอธิษฐานเผื่อการรักษาบนรากฐานพระคัมภีร์","courseCards.20.title":"การรักษาด้วยพระวจนะ","courseCards.20.body":"เรียนรู้การประกาศพระวจนะ อธิษฐานวิงวอน และดูแลผู้เจ็บป่วย","courseCards.21.title":"สงครามฝ่ายวิญญาณ","courseCards.21.body":"เข้าใจหลักพระคัมภีร์เรื่องสงครามฝ่ายวิญญาณ สวมยุทธภัณฑ์ทั้งชุดของพระเจ้า","courseCards.22.title":"ชีวิตคริสเตียน","courseCards.22.body":"ฝึกฝนความเชื่อ ความยำเกรง และการเป็นพยานในชีวิตประจำวัน","courseCards.23.title":"ชีวิตสาวก","courseCards.23.body":"ติดตามพระคริสต์ในฐานะสาวก สร้างจังหวะชีวิตที่มั่นคง","courseCards.24.title":"ชีวิตแห่งความมั่นใจ","courseCards.24.body":"สร้างความมั่นใจในความรอด ดำเนินชีวิตบนรากฐานความเชื่อที่มั่นคงและมีความหวัง",
+  "programs.title":"หลักสูตร","programs.desc":"เส้นทางการศึกษาครบทุกขั้นตั้งแต่หลักสูตรอบรมถึงระดับดุษฎีบัณฑิต ขณะนี้เปิดรับ B.Th รุ่นปี 2026 หลักสูตรอื่นเปิดตามรอบ",
+  "programs.degree.title":"หลักสูตรปริญญา","programs.degree.sub":"เรียนตามลำดับขั้นทางวิชาการ สถานภาพนักศึกษาขึ้นทะเบียนโดยวิทยาลัยหลัก AMAS","programs.equip.title":"หลักสูตรอบรม","programs.equip.sub":"การอบรมระยะสั้นสำหรับศิษยาภิบาลและฆราวาส",
+  "programs.items.dip.name":"หลักสูตรประกาศนียบัตร","programs.items.dip.desc":"พื้นฐานศาสนศาสตร์ ขั้นเตรียมเข้าสู่หลักสูตรปริญญา",
+  "programs.items.bth.name":"ศาสนศาสตรบัณฑิต","programs.items.bth.desc":"รับสมัครรุ่นปี 2026 · เปิดเรียนกันยายน 2026 · เรียนยืดหยุ่นออนไลน์+ออนไซต์",
+  "programs.items.gdip.name":"ประกาศนียบัตรบัณฑิต","programs.items.gdip.desc":"จุดเริ่มต้นการศึกษาศาสนศาสตร์สำหรับผู้จบปริญญาตรี",
+  "programs.items.mdiv.name":"ศาสนศาสตรมหาบัณฑิต","programs.items.mdiv.desc":"การเตรียมศาสนศาสตร์และศิษยาภิบาลอย่างครบถ้วนเพื่อการรับใช้เต็มเวลา",
+  "programs.items.dmin.name":"ดุษฎีบัณฑิตศาสนศาสตร์ / มิชชันวิทยา","programs.items.dmin.desc":"D.Min / D.Miss เจาะลึกการวิจัยและปฏิบัติด้านศิษยาภิบาลและมิชชัน",
+  "programs.items.pastor.badge":"อบรม","programs.items.pastor.name":"อบรมศิษยาภิบาล","programs.items.pastor.desc":"การเตรียมและฟื้นฟูอย่างต่อเนื่องสำหรับศิษยาภิบาลปัจจุบัน",
+  "programs.items.preaching.badge":"เทศนา","programs.items.preaching.name":"โรงเรียนเทศนา","programs.items.preaching.desc":"ฝึกเข้มข้นตั้งแต่การตีความจนถึงการเทศนา",
+  "programs.items.missionary.badge":"มิชชัน","programs.items.missionary.name":"อบรมมิชชันนารี","programs.items.missionary.desc":"การแยกแยะการทรงเรียกและเตรียมการส่งออกเพื่อพันธกิจข้ามวัฒนธรรม",
+  "programs.note":"รอบเปิดเรียน ระยะเวลาเรียน และคุณสมบัติผู้สมัครของแต่ละหลักสูตร โปรดสอบถามผ่าน「สมัครเข้าเรียน」หรือช่องทางติดต่อฝ่ายรับสมัคร",
+  "nav.programs":"หลักสูตร",
+  "digital.title":"แคมปัสดิจิทัล","digital.desc":"วิทยาลัยกำลังสร้างแพลตฟอร์มการเรียนของตนเอง เชื่อมรายวิชา ทรัพยากร และชุมชนไว้ที่เดียว",
+  "digital.items.0.title":"ห้องเรียนทางไกล","digital.items.0.body":"รวมวิชาที่กำลังเรียน ไลฟ์บรรยาย และวิดีโอย้อนหลังไว้ที่เดียว เหมาะกับการเรียนต่อเนื่องบนมือถือ",
+  "digital.items.1.title":"ทรัพยากรห้องสมุด","digital.items.1.body":"เอกสาร เสียง และงานวิจัยปรากฏพร้อมกันในห้องสมุดและหน้ารายวิชา ลดการค้นหาไปมา",
+  "digital.items.2.title":"ชุมชนศิษย์เก่า","digital.items.2.body":"การสนทนา อธิษฐานเผื่อ ฟีดแบ็กจากพี่เลี้ยง และห้องเสียง เชื่อมการเรียนกับชีวิตชุมชน",
+  "digital.note.label":"กำลังพัฒนา: ","digital.note.body":"แอปการเรียนอยู่ระหว่างทดสอบภายใน เปิดตัวเมื่อใดจะมีลิงก์ดาวน์โหลดที่นี่",
+  "meta.lessons":"{n} บท",
+  "admissions.title":"รับสมัคร B.Th รุ่นปี 2026","admissions.desc":"เส้นทางการศึกษาศาสนศาสตร์ที่ยืดหยุ่นและเน้นปฏิบัติ สำหรับผู้ที่ตั้งใจรับการเตรียม เติบโตต่อเนื่อง และร่วมรับใช้","admissions.points.0":"เรียนยืดหยุ่นออนไลน์ + ออนไซต์","admissions.points.1":"ค่าเล่าเรียนโปรดสอบถาม","admissions.points.2":"เปิดเรียนกันยายน 2026","admissions.points.3":"ขึ้นทะเบียนนักศึกษาโดยวิทยาลัยหลัก","admissions.card.mode":"รูปแบบเรียน","admissions.card.modeValue":"ออนไลน์ / ออนไซต์","admissions.card.start":"วันเปิดเรียน","admissions.card.location":"ศูนย์การศึกษา","admissions.card.locationValue":"เชียงใหม่","admissions.card.language":"ภาษาหลัก","admissions.card.languageValue":"ภาษาจีน",
+  "tuition.title":"ค่าเล่าเรียนและการช่วยเหลือ","tuition.motto":"ให้ทุกคนที่ปรารถนารับการเตรียม มีหนทางเรียนต่อไปได้","tuition.mode":"เรียนรายวิชา · จ่ายรายวิชา",
+  "tuition.p1":"AMAS ใช้ระบบเรียนรายวิชา จ่ายรายวิชา ผู้เรียนเลือกวิชาตามความก้าวหน้าของตน ไม่ต้องจ่ายทั้งเทอมหรือทั้งปีในครั้งเดียว ทำให้วางแผนเรียนได้ยืดหยุ่นและลดภาระการเงิน จำนวนค่าเล่าเรียนโปรดสอบถามฝ่ายรับสมัครโดยตรง",
+  "tuition.p2":"เราเชื่อว่าการเตรียมด้านศาสนศาสตร์ต้องการความทุ่มเทของผู้เรียน และมีต้นทุนการสอนที่วิทยาลัย อาจารย์ และทีมรับใช้ร่วมกันแบกรับ การชำระค่าเล่าเรียนตามปกติจึงเป็นทั้งความมุ่งมั่นต่อการเรียนและการสนับสนุนพันธกิจการสอน",
+  "tuition.v1":"“เพราะว่าถ้ามีใจพร้อมอยู่แล้ว พระเจ้าก็พอพระทัยที่จะทรงรับตามที่เขามีอยู่ ไม่ใช่ตามที่เขาไม่มี”","tuition.v1ref":"—— 2 โครินธ์ 8:12",
+  "tuition.p3":"ดังนั้น ความยากลำบากทางการเงินไม่ควรเป็นอุปสรรคต่อการรับการเตรียมด้านศาสนศาสตร์ ผู้เรียนที่มีข้อจำกัดจริงแต่ตั้งใจเรียน สามารถแจ้งสถานการณ์กับฝ่ายรับสมัครหรือฝ่ายวิชาการ วิทยาลัยจะพิจารณาเป็นรายบุคคลเพื่อให้ส่วนลด ผ่อนชำระ หรือการช่วยเหลืออื่นตามความเหมาะสม",
+  "tuition.p4":"หลักการของเราไม่ใช่แค่ “ลดค่าเล่าเรียน” แต่คือช่วยให้ทุกคนที่ตั้งใจเรียนจริง พบหนทางที่จะรับการเตรียมต่อไปได้",
+  "tuition.v2":"“ส่วนผู้ที่รับคำสอน จงแบ่งสิ่งดีทุกอย่างให้แก่ผู้ที่สอนตน”","tuition.v2ref":"—— กาลาเทีย 6:6",
+  "tuition.p5":"AMAS ปรารถนาสร้างวัฒนธรรมการเรียนที่ดี ผู้ที่มีกำลังชำระค่าเล่าเรียนตามปกติ ผู้ที่ลำบากได้รับความช่วยเหลือ และผู้ที่มีเหลือสามารถถวายเพื่อสนับสนุนผู้เรียนคนอื่น",
+  "tuition.ctaFee":"สอบถามค่าเล่าเรียน","tuition.ctaAid":"ขอรับการช่วยเหลือ",
+  "tuition.pr.title":"หลักการค่าเล่าเรียน","tuition.pr.0":"ค่าเล่าเรียนคิดเป็นรายวิชา จำนวนเงินโปรดสอบถามฝ่ายรับสมัคร","tuition.pr.1":"จ่ายรายวิชา ไม่ต้องจ่ายทั้งปีในครั้งเดียว","tuition.pr.2":"ผู้มีข้อจำกัดทางการเงินขอรับการพิจารณาและช่วยเหลือเป็นรายบุคคลได้","tuition.pr.3":"วิทยาลัยไม่ปฏิเสธผู้แสวงหาการเตรียมอย่างจริงจังเพียงเพราะเหตุผลทางการเงิน","tuition.pr.4":"ส่วนลด การผ่อนชำระ และการช่วยเหลือ กำหนดโดยการปรึกษาเป็นรายบุคคล",
+  "life.title":"การเรียนไม่ได้เกิดขึ้นอย่างโดดเดี่ยว","life.desc":"ห้องเรียน การฝึกสาวก กลุ่มย่อย การรับใช้ในคริสตจักร และชีวิตจริง ร่วมกันประกอบเป็นการศึกษาศาสนศาสตร์","life.items.0.title":"พี่เลี้ยงเดินเคียงข้าง","life.items.0.body":"นอกห้องเรียน เราให้ความสำคัญกับการเดินเคียงข้างชีวิตและการแยกแยะทิศทาง","life.items.0.p0":"การเดินเคียงข้างและอธิษฐานเผื่อแบบตัวต่อตัวสม่ำเสมอ","life.items.0.p1":"การแยกแยะทิศทางการเรียนและการทรงเรียก","life.items.0.p2":"เครือข่ายฝ่ายวิญญาณร่วมกับศิษยาภิบาลผู้มากประสบการณ์","life.items.1.title":"เรียนเป็นกลุ่มย่อย","life.items.1.body":"เรียนลึกขึ้นผ่านการสนทนา กรณีศึกษา และการตอบสนองซึ่งกันและกัน","life.items.1.p0":"กลุ่มเรียนประจำ ดูแลกันและกัน","life.items.1.p1":"สนทนารายวิชา แบ่งปันกรณีศึกษา ตอบสนองกัน","life.items.1.p2":"ชีวิตสามัคคีธรรมออนไลน์ข้ามภูมิภาค","life.items.2.title":"รับใช้ภาคปฏิบัติ","life.items.2.body":"นำสิ่งที่เรียนไปสู่คริสตจักร ครอบครัว ที่ทำงาน และสนามมิชชัน","life.items.2.p0":"ตำแหน่งรับใช้ร่วมกับคริสตจักรท้องถิ่น","life.items.2.p1":"การฝึกประกาศ สร้างสาวก เยี่ยมเยียน ฯลฯ","life.items.2.p2":"การฝึกเข้มข้นและสัปดาห์ปฏิบัติที่เชียงใหม่","life.items.3.title":"นมัสการและภาวนา","life.items.3.body":"หยั่งรากในการนมัสการและอธิษฐาน ชีวิตมาก่อนการรับใช้","life.items.3.p0":"วินัยภาวนาและอธิษฐานสม่ำเสมอ","life.items.3.p1":"ร่วมนมัสการและรับใช้ในพิธีนมัสการ","life.items.3.p2":"สร้างความยำเกรงและอุปนิสัยในชุมชน",
+  "life.rhythm.title":"จังหวะการเรียนรายสัปดาห์","life.rhythm.0":"เรียนออนไลน์และอ่านตามที่กำหนด","life.rhythm.1":"สนทนากลุ่มย่อยและตอบสนองกัน","life.rhythm.2":"ฝึกสาวกและเวลากับพี่เลี้ยง","life.rhythm.3":"รับใช้คริสตจักรและปฏิบัติในชีวิตจริง",
+  "resources.title":"ศูนย์ทรัพยากร","resources.searchLabel":"ค้นหาทรัพยากร","resources.searchPlaceholder":"ค้นหา…","resources.count":"พบ {n} รายการ","resources.items.0":"คู่มือนักศึกษาใหม่","resources.items.1":"รายวิชา B.Th","resources.items.2":"ค่าเล่าเรียนและการช่วยเหลือ","resources.items.3":"สมัครออนไลน์ (ช่องทางด่วน)","resources.items.4":"ใบสมัครฉบับเต็ม (Word)","resources.items.5":"อัปโหลดใบสมัครที่กรอกแล้ว","actions.upload":"อัปโหลด ↑","upload.name":"ชื่อ","upload.contact":"ช่องทางติดต่อ (อีเมล / WeChat / โทรศัพท์)","upload.file":"เลือกใบสมัครที่กรอกแล้ว (Word หรือ PDF)","upload.submit":"อัปโหลดและส่ง","upload.note":"เอกสารจะส่งตรงถึงอีเมลฝ่ายรับสมัคร หลังส่งจะแสดงหน้ายืนยันในแท็บใหม่",
+  "faq.title":"คำถามที่พบบ่อย","faq.items.0.q":"ไม่มีพื้นฐานศาสนศาสตร์ สมัครได้ไหม?","faq.items.0.a":"ได้ เราให้ความสำคัญกับการเรียนอย่างต่อเนื่อง การรักษาวินัยการเรียน และความตั้งใจรับการเตรียมมากกว่า","faq.items.1.q":"เรียนออนไลน์ทั้งหมดหรือไม่?","faq.items.1.a":"ยึดหลักเรียนยืดหยุ่น มีวิชาออนไลน์ พร้อมสนับสนุนให้ร่วมการฝึกสาวก ภาคปฏิบัติ และการเรียนแบบชุมชนที่เชียงใหม่","faq.items.2.q":"จบแล้วใครขึ้นทะเบียนสถานภาพและมอบปริญญา?","faq.items.2.a":"สถานภาพนักศึกษาขึ้นทะเบียนโดยการพิจารณาของวิทยาลัยหลัก AMAS และดำเนินการจบการศึกษาและปริญญาตามระบบทางการของวิทยาลัย","faq.items.3.q":"เริ่มสมัครอย่างไร?","faq.items.3.a":"กด「สมัครเข้าเรียน」กรอกข้อมูลพื้นฐานและแรงจูงใจ จากนั้นฝ่ายรับสมัครจะติดต่อและแนะนำขั้นตอนต่อไป",
+  "faq.ask.title":"ยังมีคำถามอื่นอีกไหม?","faq.ask.desc":"ผู้ช่วย AI ตอบได้ตลอดเวลา หรือฝากข้อความถึงฝ่ายรับสมัครโดยตรง เราจะติดต่อกลับโดยเร็ว","faq.ask.ai":"ถามผู้ช่วย AI","faq.ask.leave":"ฝากข้อความถึงฝ่ายรับสมัคร",
+  "contact.title":"อยากรู้จักเรามากขึ้น?","contact.desc":"ฝากคำถามไว้ แล้วเราจะติดต่อกลับตามช่องทางที่คุณให้ไว้","contact.locationLabel":"ที่ตั้ง","contact.studyLabel":"การเรียน","contact.studyValue":"ออนไลน์ + ออนไซต์","contact.emailLabel":"อีเมล","contact.phoneLabel":"โทร (ไทย)","contact.phoneCNLabel":"โทร (จีน)","contact.lineLabel":"Line","contact.wechatLabel":"WeChat",
+  "form.name":"ชื่อ","form.contact":"อีเมล / Line / WeChat","form.message":"เรื่องที่ต้องการสอบถาม","form.send":"ส่งคำถาม",
+  "form.okDemo":"ได้รับแล้ว เวอร์ชันสาธิตจะบันทึกคำถามไว้ในเบราว์เซอร์ของคุณ","form.ok":"ได้รับแล้ว เราจะติดต่อกลับตามช่องทางที่ให้ไว้โดยเร็ว","form.error":"ส่งไม่สำเร็จ: เครือข่ายหรือเซิร์ฟเวอร์ขัดข้อง โปรดลองใหม่ หรือติดต่อเราโดยตรง",
+  "video.title":"วิดีโอแนะนำวิทยาลัย","video.placeholder":"พื้นที่เครื่องเล่นวิดีโอเตรียมไว้แล้ว เชื่อมลิงก์ YouTube / Vimeo / MP4 ได้ภายหลัง",
+  "application.title":"สมัครเข้าเรียน","application.hint":"การสมัครออนไลน์คือช่องทางด่วน ใบสมัครฉบับเต็ม (รวมประวัติการศึกษา ครอบครัว ฯลฯ) ดาวน์โหลดเป็นไฟล์ Word ได้ที่ศูนย์ทรัพยากร","application.pleaseSelect":"โปรดเลือก",
+  "application.fields.nameZh":"ชื่อ (ภาษาจีน)","application.fields.nameEn":"ชื่อ (ภาษาอังกฤษ)","application.fields.gender":"เพศ","application.fields.birth":"เดือน/ปีเกิด","application.fields.nationality":"สัญชาติ","application.fields.language":"ภาษาหลักที่ใช้","application.fields.phone":"โทรศัพท์มือถือ","application.fields.email":"Email / QQ / WeChat","application.fields.city":"เมือง / ประเทศที่อยู่ปัจจุบัน",
+  "application.fields.church":"คริสตจักรที่ร่วมปัจจุบัน","application.fields.churchType":"ประเภทคริสตจักร","application.fields.conversion":"เริ่มเชื่อเมื่อ (โดยประมาณ)","application.fields.baptism":"รับบัพติศมาเมื่อ (โดยประมาณ)","application.fields.role":"งานรับใช้ / บทบาทปัจจุบัน","application.fields.referrer":"ผู้แนะนำและเบอร์ติดต่อ",
+  "application.fields.program":"หลักสูตรที่สมัคร","application.fields.eduLevel":"วุฒิการศึกษาสูงสุด","application.fields.eduSchool":"สถาบันที่จบ (ไม่บังคับ)","application.edu.secondary":"มัธยมปลายหรือต่ำกว่า","application.edu.college":"อนุปริญญา","application.edu.bachelor":"ปริญญาตรี","application.edu.master":"ปริญญาโทขึ้นไป","application.fields.mode":"รูปแบบเรียนที่ต้องการ","application.fields.gifts":"ของประทาน (ไม่บังคับ)","application.fields.motivation":"นิมิตกับการทรงเรียก / คำพยานความเชื่อ",
+  "application.genders.male":"ชาย","application.genders.female":"หญิง",
+  "application.languages.mandarin":"จีนกลาง","application.languages.cantonese":"กวางตุ้ง","application.languages.other":"อื่น ๆ",
+  "application.churchTypes.tspm":"คริสตจักรสามอิสระ","application.churchTypes.house":"คริสตจักรบ้าน","application.churchTypes.other":"อื่น ๆ",
+  "application.programs.bth":"ศาสนศาสตรบัณฑิต B.Th (รุ่นปี 2026)","application.programs.dip":"ประกาศนียบัตร DIP","application.programs.gdip":"ประกาศนียบัตรบัณฑิต G.DIP","application.programs.mdiv":"ศาสนศาสตรมหาบัณฑิต M.DIV","application.programs.dmin":"ดุษฎีบัณฑิต D.MIN / D.MISS","application.programs.pastor":"อบรมศิษยาภิบาล","application.programs.preaching":"โรงเรียนเทศนา","application.programs.missionary":"อบรมมิชชันนารี",
+  "application.modes.online":"ออนไลน์เป็นหลัก","application.modes.onsite":"ออนไซต์เป็นหลัก","application.modes.hybrid":"ออนไลน์ + ออนไซต์",
+  "application.consent":"ข้าพเจ้ายืนยันว่าข้อมูลข้างต้นเป็นความจริง และยินดีรับการติดต่อและคำแนะนำการเข้าเรียนจากวิทยาลัย","application.back":"ย้อนกลับ","application.next":"ถัดไป","application.submit":"ส่งใบสมัคร",
+  "application.okDemo":"ใบสมัครถูกบันทึกเป็นข้อมูลสาธิตในเครื่องนี้ เวอร์ชันจริงต้องเชื่อมระบบหลังบ้าน","application.ok":"ส่งใบสมัครแล้ว ฝ่ายรับสมัครจะติดต่อกลับโดยเร็ว","application.error":"ส่งไม่สำเร็จ: เครือข่ายหรือเซิร์ฟเวอร์ขัดข้อง โปรดลองใหม่ หรือติดต่อตามช่องทางด้านล่าง",
+  "application.stepOf":"ขั้นตอนที่ {n} จาก 4",
+  "review.fullName":"ชื่อ (จีน)","review.englishName":"ชื่อ (อังกฤษ)","review.gender":"เพศ","review.birth":"เดือน/ปีเกิด","review.nationality":"สัญชาติ","review.language":"ภาษาที่ใช้","review.phone":"มือถือ","review.email":"Email / QQ / WeChat","review.location":"เมือง / ประเทศ","review.church":"คริสตจักร","review.churchType":"ประเภทคริสตจักร","review.conversionDate":"เริ่มเชื่อ","review.baptismDate":"บัพติศมา","review.role":"งานรับใช้","review.referrer":"ผู้แนะนำ","review.program":"หลักสูตร","review.eduLevel":"วุฒิสูงสุด","review.eduSchool":"สถาบัน","review.mode":"รูปแบบเรียน","review.gifts":"ของประทาน","review.motivation":"นิมิตและคำพยาน"
  }
 };
 
 let currentLang = "zh";
 try{ currentLang = localStorage.getItem("amas-lang") || "zh"; }catch(e){}
+try{ const urlLang = new URLSearchParams(location.search).get("lang"); if(urlLang && i18n[urlLang]) currentLang = urlLang; }catch(e){}
 if(!i18n[currentLang]) currentLang = "zh";
 
 // 取词条；缺失时回退中文，再回退键名本身，方便发现漏翻
@@ -290,7 +480,7 @@ function t(key, vars){
 function applyLanguage(lang){
   currentLang = i18n[lang] ? lang : "zh";
   try{ localStorage.setItem("amas-lang", currentLang); }catch(e){}
-  document.documentElement.lang = currentLang === "zh" ? "zh-CN" : "en";
+  document.documentElement.lang = ({ zh:"zh-CN", en:"en", ko:"ko", th:"th" })[currentLang] || "zh-CN";
 
   $$("[data-i18n]").forEach(el => {
     const val = i18n[currentLang][el.dataset.i18n];
@@ -307,10 +497,34 @@ function applyLanguage(lang){
   refreshStepsLabel();
   renderContactMeta();
   if(appModal?.classList.contains("open") && appStep === 3) buildReview();
-  announceCourseCount();
+  if(typeof refreshLangMenu === "function") refreshLangMenu();
+  const fd = $("#formDl");
+  if(fd && CONFIG.applicationForm) fd.href = CONFIG.applicationForm[currentLang] || CONFIG.applicationForm.zh;
+  applyCourseVisibility();
   announceResourceCount();
 }
-$("#langBtn").addEventListener("click", () => applyLanguage(currentLang === "zh" ? "en" : "zh"));
+/* 四语言下拉切换 */
+const LANG_LABELS = { zh:"中文", en:"English", ko:"한국어", th:"ไทย" };
+function refreshLangMenu(){
+  const cur = $("#langCurrent");
+  if(cur) cur.textContent = LANG_LABELS[currentLang] || "中文";
+  $$("#langList button").forEach(b => b.classList.toggle("active", b.dataset.lang === currentLang));
+}
+function closeLangList(){
+  const l = $("#langList");
+  if(l && !l.hidden){ l.hidden = true; $("#langBtn").setAttribute("aria-expanded","false"); }
+}
+$("#langBtn").addEventListener("click", () => {
+  const l = $("#langList");
+  l.hidden = !l.hidden;
+  $("#langBtn").setAttribute("aria-expanded", String(!l.hidden));
+});
+$$("#langList button").forEach(b => b.addEventListener("click", () => {
+  applyLanguage(b.dataset.lang);
+  closeLangList();
+}));
+document.addEventListener("click", e => { if(!e.target.closest(".lang-menu")) closeLangList(); });
+refreshLangMenu();
 
 
 /* ===== 遮罩层通用逻辑：焦点陷阱 + 焦点归还 ===== */
@@ -441,7 +655,6 @@ $("#courseMoreBtn")?.addEventListener("click", () => {
   if(!coursesExpanded) $("#courses")?.scrollIntoView({ behavior: "smooth" });
 });
 applyCourseVisibility();
-$("#langBtn")?.addEventListener("click", () => setTimeout(applyCourseVisibility, 0));
 
 /* ===== 资源搜索 ===== */
 function announceResourceCount(){
@@ -474,7 +687,8 @@ const downloadable = {
 };
 $$("[data-download]").forEach(btn => btn.addEventListener("click", () => {
   const key = btn.dataset.download;
-  const real = CONFIG.resources?.[key];
+  let real = CONFIG.resources?.[key];
+  if(real && typeof real === "object") real = real[currentLang] || real.zh;
   if(real){                                        // 配了真实文件就直接下载它
     const a = document.createElement("a");
     a.href = real;
@@ -781,33 +995,33 @@ function chatGreet(){
 
 /* 站点知识库：test 对中英输入都生效 */
 const CHAT_KB = [
-  { test: /申请|报名|报读|apply|admission|enroll/i,
+  { test: /申请|报名|报读|apply|admission|enroll|지원|신청|입학|สมัคร|เข้าเรียน/i,
     reply: () => t("chat.kb.apply"),
     action: () => chatAction(t("actions.applyNow"), () => { closeChat(); openApplication(); }) },
-  { test: /学费|费用|多少钱|缴费|tuition|fee|cost|price/i,
+  { test: /学费|费用|多少钱|缴费|tuition|fee|cost|price|등록금|학비|납부|ค่าเล่าเรียน|ค่าเทอม|ค่าใช้จ่าย/i,
     reply: () => t("chat.kb.tuition"),
     action: () => chatAction(t("chat.kb.tuitionBtn"), () => { closeChat(); $("#tuition")?.scrollIntoView({behavior:"smooth"}); }) },
-  { test: /课程|课表|科目|course|curriculum|class(es)?\b/i,
+  { test: /课程|课表|科目|course|curriculum|class(es)?\b|과목|커리큘럼|วิชา|รายวิชา/i,
     reply: () => t("chat.kb.courses"),
     action: () => chatAction(t("chat.kb.coursesBtn"), () => { closeChat(); $("#courses")?.scrollIntoView({behavior:"smooth"}); }) },
-  { test: /学位|学制|项目|文凭|硕士|博士|b\.?th|m\.?div|dip|program|degree/i,
+  { test: /学位|学制|项目|文凭|硕士|博士|b\.?th|m\.?div|dip|program|degree|학위|석사|박사|디플로마|ปริญญา|หลักสูตร/i,
     reply: () => t("chat.kb.programs"),
     action: () => chatAction(t("chat.kb.programsBtn"), () => { closeChat(); $("#programs")?.scrollIntoView({behavior:"smooth"}); }) },
-  { test: /线上|线下|上课|开学|时间|授课|online|schedule|start|september|mode/i,
+  { test: /线上|线下|上课|开学|时间|授课|online|schedule|start|september|mode|온라인|수업|개강|ออนไลน์|เปิดเรียน|เรียนอย่างไร/i,
     reply: () => t("chat.kb.mode") },
-  { test: /联系|微信|电话|邮箱|contact|email|phone|wechat|line\b/i,
+  { test: /联系|微信|电话|邮箱|contact|email|phone|wechat|line\b|연락|문의|전화|이메일|ติดต่อ|โทร|อีเมล/i,
     reply: () => {
       const c = CONFIG.contact || {};
       const rows = [c.email, c.phone, c.line && "Line: " + c.line, c.wechat && ("WeChat: " + c.wechat)].filter(Boolean);
       return rows.length ? t("chat.kb.contact") + "\n" + rows.join("\n") : t("chat.kb.contactEmpty");
     } },
-  { test: /学籍|毕业|颁发|文凭|学历|认证|graduat|status|accredit/i,
+  { test: /学籍|毕业|颁发|文凭|学历|认证|graduat|status|accredit|학적|졸업|인증|สถานภาพ|จบการศึกษา|รับรอง/i,
     reply: () => t("faq.items.2.a") },
-  { test: /背景|基础|没学过|零基础|background|beginner/i,
+  { test: /背景|基础|没学过|零基础|background|beginner|배경|기초|พื้นฐาน|ไม่เคยเรียน/i,
     reply: () => t("faq.items.0.a") },
-  { test: /地址|在哪|位置|清迈|泰国|where|location|address|chiang\s*mai/i,
+  { test: /地址|在哪|位置|清迈|泰国|where|location|address|chiang\s*mai|어디|위치|치앙마이|ที่ไหน|ที่ตั้ง|เชียงใหม่/i,
     reply: () => t("chat.kb.location") },
-  { test: /视频|介绍|了解|video|introduc/i,
+  { test: /视频|介绍|了解|video|introduc|영상|소개|วิดีโอ|แนะนำ/i,
     reply: () => t("chat.kb.video"),
     action: () => chatAction(t("actions.video"), () => { closeChat(); mountVideo(); openLayer(videoModal, $(".video-card", videoModal)); }) }
 ];
