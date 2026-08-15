@@ -270,30 +270,30 @@ html[data-theme="night"] .digital-section::after{background:linear-gradient(105d
 .course-thumb{width:150px;height:88px;flex-shrink:0;border-radius:8px;background-size:cover;background-position:center;background-repeat:no-repeat;background-color:var(--paper3)}
 /* 每门课的专属封面：写实照片，一课一图不重复 */
 .thumb-c-bib101{background-image:url("../img/course-bib101.webp")}      /* 手中翻开的圣经 */
-.thumb-c-bib201{background-image:url("../img/courses/bib201.jpg")}      /* 捧读圣经 */
-.thumb-c-bib202{background-image:url("../img/courses/bib202.jpg")}      /* 发光的书—生命之光 */
+.thumb-c-bib201{background-image:url("../img/courses/bib201.webp")}      /* 捧读圣经 */
+.thumb-c-bib202{background-image:url("../img/courses/bib202.webp")}      /* 发光的书—生命之光 */
 .thumb-c-bib203{background-image:url("../img/course-mis201.webp")}      /* 世界地图—直到地极 */
 .thumb-c-bib301{background-image:url("../img/course-bib203.webp")}      /* 摊开的书与笔 */
-.thumb-c-bib302{background-image:url("../img/courses/bib302.jpg")}      /* 教堂殿堂—教会秩序 */
-.thumb-c-bib303{background-image:url("../img/courses/bib303.jpg")}      /* 雾中晨光—患难中的安慰 */
+.thumb-c-bib302{background-image:url("../img/courses/bib302.webp")}      /* 教堂殿堂—教会秩序 */
+.thumb-c-bib303{background-image:url("../img/courses/bib303.webp")}      /* 雾中晨光—患难中的安慰 */
 .thumb-c-bib304{background-image:url("../img/course-bib305.webp")}      /* 钢笔书写—书信 */
-.thumb-c-bib305{background-image:url("../img/courses/bib305.jpg")}      /* 云海群山—更美的家乡 */
-.thumb-c-bib401{background-image:url("../img/courses/bib401.jpg")}      /* 星空雪山—终末荣耀 */
+.thumb-c-bib305{background-image:url("../img/courses/bib305.webp")}      /* 云海群山—更美的家乡 */
+.thumb-c-bib401{background-image:url("../img/courses/bib401.webp")}      /* 星空雪山—终末荣耀 */
 .thumb-c-the201{background-image:url("../img/course-the201.webp")}      /* 书墙—教义体系 */
-.thumb-c-the301{background-image:url("../img/courses/the301.jpg")}      /* 环形图书馆 */
+.thumb-c-the301{background-image:url("../img/courses/the301.webp")}      /* 环形图书馆 */
 .thumb-c-mis201{background-image:url("../img/course-min301.webp")}      /* 麦克风—传讲 */
-.thumb-c-min201{background-image:url("../img/courses/min201.jpg")}      /* 桌边恳谈 */
-.thumb-c-min202{background-image:url("../img/courses/min202.jpg")}      /* 众手相叠—同心 */
+.thumb-c-min201{background-image:url("../img/courses/min201.webp")}      /* 桌边恳谈 */
+.thumb-c-min202{background-image:url("../img/courses/min202.webp")}      /* 众手相叠—同心 */
 .thumb-c-min203{background-image:url("../img/course-pas210.webp")}      /* 羊群—牧养小羊 */
-.thumb-c-min301{background-image:url("../img/courses/min301.jpg")}      /* 笔记与规划 */
-.thumb-c-min302{background-image:url("../img/courses/min302.jpg")}      /* 敬拜聚会 */
-.thumb-c-min310{background-image:url("../img/courses/min310.jpg")}      /* 湖畔静处 */
-.thumb-c-min311{background-image:url("../img/courses/min311.jpg")}      /* 晨光中张开双臂 */
-.thumb-c-min312{background-image:url("../img/courses/min312.jpg")}      /* 铺满的经页—神的话 */
-.thumb-c-min313{background-image:url("../img/courses/min313.jpg")}      /* 幽暗山岭—争战 */
-.thumb-c-for101{background-image:url("../img/courses/for101.jpg")}      /* 溪水旁的大树 */
-.thumb-c-for102{background-image:url("../img/courses/for102.jpg")}      /* 前行的道路 */
-.thumb-c-for103{background-image:url("../img/courses/for103.jpg")}      /* 海边晨光—平安 */
+.thumb-c-min301{background-image:url("../img/courses/min301.webp")}      /* 笔记与规划 */
+.thumb-c-min302{background-image:url("../img/courses/min302.webp")}      /* 敬拜聚会 */
+.thumb-c-min310{background-image:url("../img/courses/min310.webp")}      /* 湖畔静处 */
+.thumb-c-min311{background-image:url("../img/courses/min311.webp")}      /* 晨光中张开双臂 */
+.thumb-c-min312{background-image:url("../img/courses/min312.webp")}      /* 铺满的经页—神的话 */
+.thumb-c-min313{background-image:url("../img/courses/min313.webp")}      /* 幽暗山岭—争战 */
+.thumb-c-for101{background-image:url("../img/courses/for101.webp")}      /* 溪水旁的大树 */
+.thumb-c-for102{background-image:url("../img/courses/for102.webp")}      /* 前行的道路 */
+.thumb-c-for103{background-image:url("../img/courses/for103.webp")}      /* 海边晨光—平安 */
 .thumb-bib101{background-image:url("../img/course-bib101.webp")}
 .thumb-bib203{background-image:url("../img/course-bib203.webp")}
 .thumb-the201{background-image:url("../img/course-the201.webp")}
