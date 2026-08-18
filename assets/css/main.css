@@ -769,3 +769,30 @@ html[data-theme="night"] :focus-visible{outline-color:#b7be63}
   a[href^="#"]{text-decoration:none}            /* 问答的展开由 beforeprint 事件处理 */
 }
 
+
+/* ===== 招生浮标 ===== */
+.promo-tab{position:fixed;right:0;top:46%;z-index:93;writing-mode:vertical-rl;text-orientation:mixed;display:flex;align-items:center;gap:10px;padding:16px 11px 16px 10px;border:0;border-radius:12px 0 0 12px;background:linear-gradient(160deg,#c9963d,#e9c46a 55%,#c9963d);color:#14382a;font-size:13px;font-weight:800;letter-spacing:.14em;cursor:pointer;box-shadow:-6px 8px 26px rgba(120,90,20,.35);animation:promoGlow 2.6s ease-in-out infinite;transition:transform .2s}
+.promo-tab:hover{transform:translateX(-4px)}
+.promo-tab-dot{width:8px;height:8px;border-radius:50%;background:#b32020;box-shadow:0 0 0 0 rgba(179,32,32,.6);animation:promoPulse 1.6s ease-out infinite}
+@keyframes promoGlow{0%,100%{box-shadow:-6px 8px 26px rgba(120,90,20,.35)}50%{box-shadow:-6px 8px 34px rgba(233,196,106,.7)}}
+@keyframes promoPulse{0%{box-shadow:0 0 0 0 rgba(179,32,32,.6)}100%{box-shadow:0 0 0 9px rgba(179,32,32,0)}}
+.promo-card{position:fixed;left:22px;bottom:22px;z-index:93;width:min(340px,calc(100vw - 44px));padding:22px 22px 20px;border-radius:16px;background:linear-gradient(160deg,#14382a,#0d2b21);color:#f4ecd8;border:1px solid rgba(213,180,107,.45);box-shadow:0 22px 60px rgba(10,30,20,.45);animation:promoIn .45s cubic-bezier(.2,.9,.3,1.2)}
+.promo-card[hidden]{display:none}
+@keyframes promoIn{from{opacity:0;transform:translateY(24px) scale(.96)}to{opacity:1;transform:none}}
+.promo-close{position:absolute;right:10px;top:8px;border:0;background:transparent;color:#c9c2ae;font-size:22px;line-height:1;cursor:pointer;padding:4px 8px}
+.promo-close:hover{color:#fff}
+.promo-eyebrow{font-size:10px;letter-spacing:.24em;font-weight:700;color:#d5b46b;margin-bottom:8px}
+.promo-title{display:block;font-family:"Noto Serif SC","Songti SC",serif;font-size:18px;color:#fff;line-height:1.45;padding-right:18px}
+.promo-desc{margin:10px 0 16px;font-size:13px;line-height:1.7;color:#d8d2bf}
+.promo-actions{display:flex;gap:10px}
+.promo-actions .btn{min-height:42px;padding:0 16px;font-size:13.5px}
+.promo-actions .btn.primary{background:linear-gradient(135deg,#e9c46a,#c9963d);color:#14382a;border-color:transparent;font-weight:750}
+.promo-actions .btn.secondary{background:transparent;color:#f4ecd8;border-color:rgba(255,255,255,.35)}
+.promo-actions .btn.secondary:hover{background:rgba(255,255,255,.08)}
+html[data-theme="night"] .promo-actions .btn.primary{background:linear-gradient(135deg,#e9c46a,#c9963d);color:#14382a}
+@media(max-width:860px){
+  .promo-tab{top:auto;bottom:96px;font-size:12px;padding:13px 9px 13px 8px}
+  .promo-card{left:12px;right:12px;bottom:12px;width:auto;padding:18px 16px 16px}
+  .promo-title{font-size:16px}
+}
+@media print{.promo-tab,.promo-card{display:none!important}}

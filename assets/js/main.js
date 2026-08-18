@@ -165,7 +165,7 @@ const i18n = {
   "life.rhythm.title":"每周学习节奏","life.rhythm.0":"线上课程与阅读作业","life.rhythm.1":"小组讨论与彼此回应","life.rhythm.2":"门训与导师时间","life.rhythm.3":"教会服事与生活实践",
   "resources.title":"资源中心","resources.searchLabel":"搜索资源","resources.searchPlaceholder":"搜索资源…","resources.count":"找到 {n} 项资源","resources.items.0":"新生入学手册","resources.items.1":"B.Th 课程目录","resources.items.2":"学费与学习支持","resources.items.3":"在线申请（快速通道）","resources.items.4":"入学申请表（完整版 Word）","resources.items.5":"上传已填写的申请表","actions.upload":"上传 ↑","upload.name":"姓名","upload.contact":"联系方式（邮箱 / 微信 / 电话）","upload.file":"选择已填写的申请表（Word 或 PDF）","upload.submit":"上传并提交","upload.note":"资料将直接发送至招生同工邮箱；提交后会在新页面显示确认。",
   "faq.title":"常见问题","faq.items.0.q":"没有神学背景可以申请吗？","faq.items.0.a":"可以。我们更看重持续学习、遵守学习纪律与认真接受装备的意愿。","faq.items.1.q":"课程全部线上吗？","faq.items.1.a":"以灵活学习为原则，包含线上课程，同时鼓励参与清迈线下门训、实践与群体学习。","faq.items.2.q":"完成后由谁建立学籍和颁发学位？","faq.items.2.a":"学籍由 AMAS 总校审核建立，并按学校正式制度完成毕业与学位流程。","faq.items.3.q":"如何开始申请？","faq.items.3.a":"点击“申请入学”，填写基础资料与学习动机，之后由招生同工联络并说明下一步。",
-  "faq.ask.title":"还有其他问题？","faq.ask.desc":"AI 咨询助手可以随时解答；也可以直接留言给招生同工，我们会尽快回复你。","faq.ask.ai":"问 AI 咨询助手","faq.ask.leave":"给招生同工留言",
+  "promo.tab":"2026 届招生进行中","promo.title":"2026 届神学学士 B.Th 招生中","promo.desc":"线上 + 清迈线下 · 按科修读 · 9 月 1 日开学。想先了解一下？招生助手随时为你解答。","promo.ask":"立即咨询","promo.apply":"申请入学","faq.ask.title":"还有其他问题？","faq.ask.desc":"AI 咨询助手可以随时解答；也可以直接留言给招生同工，我们会尽快回复你。","faq.ask.ai":"问 AI 咨询助手","faq.ask.leave":"给招生同工留言",
   "contact.title":"想进一步了解？","contact.desc":"留下你的问题，我们会通过你提供的联系方式回复。","contact.locationLabel":"地区","contact.studyLabel":"学习","contact.studyValue":"线上 + 线下","contact.emailLabel":"邮箱","contact.phoneLabel":"电话（泰国）","contact.phoneCNLabel":"电话（中国）","contact.lineLabel":"Line","contact.wechatLabel":"微信",
   "form.name":"姓名","form.contact":"邮箱 / Line / 微信","form.message":"想咨询的内容","form.send":"发送咨询",
   "form.okDemo":"已收到。当前演示版将咨询保存在本机浏览器中。","form.ok":"已收到，我们会尽快通过你留下的方式联络你。","form.error":"提交失败：网络或服务器异常，请稍后再试，或直接与我们联系。",
@@ -258,7 +258,7 @@ const i18n = {
   "life.rhythm.title":"Weekly Rhythm","life.rhythm.0":"Online courses and reading","life.rhythm.1":"Group discussion and response","life.rhythm.2":"Discipleship and mentoring time","life.rhythm.3":"Church ministry and everyday practice",
   "resources.title":"Resources","resources.searchLabel":"Search resources","resources.searchPlaceholder":"Search resources…","resources.count":"{n} resources found","resources.items.0":"New Student Handbook","resources.items.1":"B.Th Curriculum Guide","resources.items.2":"Tuition & Learning Support","resources.items.3":"Online Application (Fast Track)","resources.items.4":"Application Form (Full Word Version)","resources.items.5":"Upload Your Completed Application","actions.upload":"Upload ↑","upload.name":"Name","upload.contact":"Contact (Email / WeChat / Phone)","upload.file":"Choose your completed form (Word or PDF)","upload.submit":"Upload & Submit","upload.note":"Your file goes directly to the admissions team's inbox; a confirmation page opens after submission.",
   "faq.title":"Frequently Asked Questions","faq.items.0.q":"Can I apply without prior theological study?","faq.items.0.a":"Yes. We value willingness to learn, consistency and commitment to serious formation.","faq.items.1.q":"Are all classes online?","faq.items.1.a":"Learning is flexible: online coursework is combined with encouraged in-person discipleship, practice and community in Chiang Mai.","faq.items.2.q":"Who manages student status and degree completion?","faq.items.2.a":"Official student status is reviewed and established through AMAS according to school policies.","faq.items.3.q":"How do I begin?","faq.items.3.a":"Click Apply, submit basic information and your motivation, then admissions will contact you with next steps.",
-  "faq.ask.title":"Still have questions?","faq.ask.desc":"Our AI assistant is available anytime — or leave a message for the admissions team and we will reply soon.","faq.ask.ai":"Ask the AI assistant","faq.ask.leave":"Leave a message",
+  "promo.tab":"Admissions 2026 Open","promo.title":"B.Th Class of 2026 — Now Enrolling","promo.desc":"Online + on-site in Chiang Mai · pay per course · starts Sept 1. Curious? Our admissions assistant is here to help.","promo.ask":"Ask Now","promo.apply":"Apply","faq.ask.title":"Still have questions?","faq.ask.desc":"Our AI assistant is available anytime — or leave a message for the admissions team and we will reply soon.","faq.ask.ai":"Ask the AI assistant","faq.ask.leave":"Leave a message",
   "contact.title":"Want to know more?","contact.desc":"Leave your question and preferred contact information, and our team will follow up.","contact.locationLabel":"Location","contact.studyLabel":"Study","contact.studyValue":"Online + In-person","contact.emailLabel":"Email","contact.phoneLabel":"Phone (Thailand)","contact.phoneCNLabel":"Phone (China)","contact.lineLabel":"Line","contact.wechatLabel":"WeChat",
   "form.name":"Name","form.contact":"Email / Line / WeChat","form.message":"Your question","form.send":"Send Inquiry",
   "form.okDemo":"Received. This demo stores the inquiry in your browser.","form.ok":"Received. We will follow up using the contact details you provided.","form.error":"Submission failed: network or server error. Please try again later or contact us directly.",
@@ -351,7 +351,7 @@ const i18n = {
   "life.rhythm.title":"주간 학습 리듬","life.rhythm.0":"온라인 수업과 읽기 과제","life.rhythm.1":"소그룹 토론과 상호 피드백","life.rhythm.2":"제자훈련과 멘토 시간","life.rhythm.3":"교회 섬김과 삶의 실천",
   "resources.title":"자료실","resources.searchLabel":"자료 검색","resources.searchPlaceholder":"자료 검색…","resources.count":"{n}개 자료 검색됨","resources.items.0":"신입생 안내서","resources.items.1":"B.Th 과목 목록","resources.items.2":"등록금과 학업 지원","resources.items.3":"온라인 지원(빠른 통로)","resources.items.4":"입학지원서(전체 Word판)","resources.items.5":"작성한 지원서 업로드","actions.upload":"업로드 ↑","upload.name":"이름","upload.contact":"연락처(이메일 / 위챗 / 전화)","upload.file":"작성한 지원서 선택(Word 또는 PDF)","upload.submit":"업로드 및 제출","upload.note":"자료는 입학 담당자 이메일로 바로 전송되며, 제출 후 새 페이지에 확인이 표시됩니다.",
   "faq.title":"자주 묻는 질문","faq.items.0.q":"신학 배경이 없어도 지원할 수 있나요?","faq.items.0.a":"네. 우리는 꾸준한 학습, 학습 규율 준수, 진지하게 훈련받으려는 의지를 더 중요하게 봅니다.","faq.items.1.q":"수업은 전부 온라인인가요?","faq.items.1.a":"유연 학습을 원칙으로 온라인 수업을 제공하며, 동시에 치앙마이 현장 제자훈련·실습·공동체 학습 참여를 권장합니다.","faq.items.2.q":"수료 후 학적 등록과 학위 수여는 누가 하나요?","faq.items.2.a":"학적은 AMAS 본교의 심사를 거쳐 등록되며, 학교의 정식 제도에 따라 졸업과 학위 절차가 진행됩니다.","faq.items.3.q":"지원은 어떻게 시작하나요?","faq.items.3.a":"「입학 지원」을 눌러 기본 정보와 학업 동기를 작성하시면, 이후 입학 담당자가 연락드려 다음 단계를 안내합니다.",
-  "faq.ask.title":"더 궁금한 점이 있으신가요?","faq.ask.desc":"AI 상담 도우미가 언제든 답해 드립니다. 입학 담당자에게 직접 메시지를 남기셔도 빠르게 회신드립니다.","faq.ask.ai":"AI 상담 도우미에게 묻기","faq.ask.leave":"입학처에 메시지 남기기",
+  "promo.tab":"2026학년도 모집 중","promo.title":"2026학년도 신학사 B.Th 모집 중","promo.desc":"온라인 + 치앙마이 오프라인 · 과목별 수강 · 9월 1일 개강. 먼저 알아보고 싶으신가요? 입학 도우미가 언제든 답해 드립니다.","promo.ask":"바로 상담","promo.apply":"입학 지원","faq.ask.title":"더 궁금한 점이 있으신가요?","faq.ask.desc":"AI 상담 도우미가 언제든 답해 드립니다. 입학 담당자에게 직접 메시지를 남기셔도 빠르게 회신드립니다.","faq.ask.ai":"AI 상담 도우미에게 묻기","faq.ask.leave":"입학처에 메시지 남기기",
   "contact.title":"더 알고 싶으신가요?","contact.desc":"질문을 남겨 주시면 남겨 주신 연락처로 회신드립니다.","contact.locationLabel":"지역","contact.studyLabel":"학습","contact.studyValue":"온라인 + 오프라인","contact.emailLabel":"이메일","contact.phoneLabel":"전화(태국)","contact.phoneCNLabel":"전화(중국)","contact.lineLabel":"Line","contact.wechatLabel":"위챗",
   "form.name":"이름","form.contact":"이메일 / Line / 위챗","form.message":"문의 내용","form.send":"문의 보내기",
   "form.okDemo":"접수되었습니다. 데모 버전은 문의를 브라우저에만 저장합니다.","form.ok":"접수되었습니다. 남겨 주신 연락처로 곧 연락드리겠습니다.","form.error":"제출 실패: 네트워크 또는 서버 오류입니다. 잠시 후 다시 시도하시거나 직접 연락해 주세요.",
@@ -444,7 +444,7 @@ const i18n = {
   "life.rhythm.title":"จังหวะการเรียนรายสัปดาห์","life.rhythm.0":"เรียนออนไลน์และอ่านตามที่กำหนด","life.rhythm.1":"สนทนากลุ่มย่อยและตอบสนองกัน","life.rhythm.2":"ฝึกสาวกและเวลากับพี่เลี้ยง","life.rhythm.3":"รับใช้คริสตจักรและปฏิบัติในชีวิตจริง",
   "resources.title":"ศูนย์ทรัพยากร","resources.searchLabel":"ค้นหาทรัพยากร","resources.searchPlaceholder":"ค้นหา…","resources.count":"พบ {n} รายการ","resources.items.0":"คู่มือนักศึกษาใหม่","resources.items.1":"รายวิชา B.Th","resources.items.2":"ค่าเล่าเรียนและการช่วยเหลือ","resources.items.3":"สมัครออนไลน์ (ช่องทางด่วน)","resources.items.4":"ใบสมัครฉบับเต็ม (Word)","resources.items.5":"อัปโหลดใบสมัครที่กรอกแล้ว","actions.upload":"อัปโหลด ↑","upload.name":"ชื่อ","upload.contact":"ช่องทางติดต่อ (อีเมล / WeChat / โทรศัพท์)","upload.file":"เลือกใบสมัครที่กรอกแล้ว (Word หรือ PDF)","upload.submit":"อัปโหลดและส่ง","upload.note":"เอกสารจะส่งตรงถึงอีเมลฝ่ายรับสมัคร หลังส่งจะแสดงหน้ายืนยันในแท็บใหม่",
   "faq.title":"คำถามที่พบบ่อย","faq.items.0.q":"ไม่มีพื้นฐานศาสนศาสตร์ สมัครได้ไหม?","faq.items.0.a":"ได้ เราให้ความสำคัญกับการเรียนอย่างต่อเนื่อง การรักษาวินัยการเรียน และความตั้งใจรับการเตรียมมากกว่า","faq.items.1.q":"เรียนออนไลน์ทั้งหมดหรือไม่?","faq.items.1.a":"ยึดหลักเรียนยืดหยุ่น มีวิชาออนไลน์ พร้อมสนับสนุนให้ร่วมการฝึกสาวก ภาคปฏิบัติ และการเรียนแบบชุมชนที่เชียงใหม่","faq.items.2.q":"จบแล้วใครขึ้นทะเบียนสถานภาพและมอบปริญญา?","faq.items.2.a":"สถานภาพนักศึกษาขึ้นทะเบียนโดยการพิจารณาของวิทยาลัยหลัก AMAS และดำเนินการจบการศึกษาและปริญญาตามระบบทางการของวิทยาลัย","faq.items.3.q":"เริ่มสมัครอย่างไร?","faq.items.3.a":"กด「สมัครเข้าเรียน」กรอกข้อมูลพื้นฐานและแรงจูงใจ จากนั้นฝ่ายรับสมัครจะติดต่อและแนะนำขั้นตอนต่อไป",
-  "faq.ask.title":"ยังมีคำถามอื่นอีกไหม?","faq.ask.desc":"ผู้ช่วย AI ตอบได้ตลอดเวลา หรือฝากข้อความถึงฝ่ายรับสมัครโดยตรง เราจะติดต่อกลับโดยเร็ว","faq.ask.ai":"ถามผู้ช่วย AI","faq.ask.leave":"ฝากข้อความถึงฝ่ายรับสมัคร",
+  "promo.tab":"เปิดรับสมัครรุ่น 2026","promo.title":"เปิดรับสมัคร B.Th รุ่นปี 2026","promo.desc":"ออนไลน์ + ออนไซต์เชียงใหม่ · เรียนรายวิชา · เปิดเรียน 1 ก.ย. อยากทราบเพิ่มเติม? ผู้ช่วยรับสมัครพร้อมตอบทุกเมื่อ","promo.ask":"สอบถามเลย","promo.apply":"สมัครเรียน","faq.ask.title":"ยังมีคำถามอื่นอีกไหม?","faq.ask.desc":"ผู้ช่วย AI ตอบได้ตลอดเวลา หรือฝากข้อความถึงฝ่ายรับสมัครโดยตรง เราจะติดต่อกลับโดยเร็ว","faq.ask.ai":"ถามผู้ช่วย AI","faq.ask.leave":"ฝากข้อความถึงฝ่ายรับสมัคร",
   "contact.title":"อยากรู้จักเรามากขึ้น?","contact.desc":"ฝากคำถามไว้ แล้วเราจะติดต่อกลับตามช่องทางที่คุณให้ไว้","contact.locationLabel":"ที่ตั้ง","contact.studyLabel":"การเรียน","contact.studyValue":"ออนไลน์ + ออนไซต์","contact.emailLabel":"อีเมล","contact.phoneLabel":"โทร (ไทย)","contact.phoneCNLabel":"โทร (จีน)","contact.lineLabel":"Line","contact.wechatLabel":"WeChat",
   "form.name":"ชื่อ","form.contact":"อีเมล / Line / WeChat","form.message":"เรื่องที่ต้องการสอบถาม","form.send":"ส่งคำถาม",
   "form.okDemo":"ได้รับแล้ว เวอร์ชันสาธิตจะบันทึกคำถามไว้ในเบราว์เซอร์ของคุณ","form.ok":"ได้รับแล้ว เราจะติดต่อกลับตามช่องทางที่ให้ไว้โดยเร็ว","form.error":"ส่งไม่สำเร็จ: เครือข่ายหรือเซิร์ฟเวอร์ขัดข้อง โปรดลองใหม่ หรือติดต่อเราโดยตรง",
@@ -970,6 +970,33 @@ chatFab.addEventListener("click", () =>
 $("#faqAskAi")?.addEventListener("click", () => openChat());
 $("#faqLeaveMsg")?.addEventListener("click", () => { openChat(); startLeaveFlow(); });
 $("#consultBtn")?.addEventListener("click", () => openChat());
+
+/* ===== 招生浮标：延时/滚动触发弹出，关闭后当天不再打扰 ===== */
+(function(){
+  const card = $("#promoCard"), tab = $("#promoTab");
+  if(!card || !tab) return;
+  const KEY = "amas-promo-dismissed";
+  const today = new Date().toISOString().slice(0,10);
+  let dismissed = false;
+  try{ dismissed = localStorage.getItem(KEY) === today; }catch(e){}
+  let shown = false;
+  function showCard(){ if(shown || dismissed) return; shown = true; card.hidden = false; }
+  function hideCard(remember){
+    card.hidden = true;
+    if(remember){ dismissed = true; try{ localStorage.setItem(KEY, today); }catch(e){} }
+  }
+  // 8 秒后自动弹出；或滚过首屏 60% 时弹出
+  setTimeout(showCard, 8000);
+  addEventListener("scroll", () => { if(scrollY > innerHeight * 0.6) showCard(); }, { passive:true });
+  $("#promoClose").addEventListener("click", () => hideCard(true));
+  tab.addEventListener("click", () => { dismissed = false; shown = false; showCard(); });
+  $("#promoAsk").addEventListener("click", () => { hideCard(false); openChat(); });
+  $("#promoApply").addEventListener("click", () => hideCard(false));
+  // 打开客服面板或申请弹窗时自动收起，避免遮挡
+  document.addEventListener("click", e => {
+    if(e.target.closest("#chatFab, [data-open-application]") && !e.target.closest(".promo-card")) card.hidden = true;
+  });
+})();
 $("#uploadToggle")?.addEventListener("click", () => {
   const f = $("#uploadForm");
   f.hidden = !f.hidden;
