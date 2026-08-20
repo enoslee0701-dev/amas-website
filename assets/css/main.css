@@ -41,7 +41,6 @@ img{display:block;max-width:100%}
 .announce-verse{font-family:"Noto Serif SC","Songti SC",serif;color:#e6ddc4}
 .announce-bar a{color:#fff;font-weight:600;border-bottom:1px solid rgba(255,255,255,.35);padding-bottom:1px;transition:color .15s,border-color .15s}
 .announce-bar a:hover{color:#e9c46a;border-color:rgba(233,196,106,.6)}
-@media (prefers-reduced-motion:reduce){.announce-track{animation:none}}
 
 .site-header{height:78px;position:sticky;top:0;z-index:50;background:var(--header-bg);backdrop-filter:blur(16px);transition:background-color var(--theme-ease),border-color var(--theme-ease);border-bottom:1px solid rgba(40,35,26,.06)}
 /* 两侧按内容自适应、中间导航吃掉剩余空间。
