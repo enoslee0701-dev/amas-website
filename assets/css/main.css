@@ -802,3 +802,17 @@ html[data-theme="night"] .promo-actions .btn.primary{background:linear-gradient(
   .promo-title{font-size:16px}
 }
 @media print{.promo-tab,.promo-card{display:none!important}}
+
+/* ATA 图上下说明 */
+.accred-lead{max-width:780px;margin:0 0 20px;font-size:14.5px;line-height:1.8;color:var(--muted)}
+.accred-under{margin-top:14px;font-size:12px;color:var(--muted);text-align:center}
+
+/* 开学倒计时 */
+.adm-countdown{display:inline-flex;align-items:center;gap:8px;margin:14px 0 4px;padding:9px 18px;border-radius:999px;background:linear-gradient(135deg,#e9c46a,#c9963d);color:#14382a;font-weight:750;font-size:14px;letter-spacing:.03em;box-shadow:0 8px 22px rgba(180,140,50,.3)}
+.adm-countdown::before{content:"⏳"}
+.adm-countdown:empty{display:none}
+
+/* 复制按钮 */
+.copy-btn{margin-left:8px;border:1px solid var(--line);background:var(--paper2,#f4efe3);color:var(--olive-dark);font-size:11px;padding:3px 9px;border-radius:999px;cursor:pointer;vertical-align:1px}
+.copy-btn:hover{border-color:var(--olive-dark)}
+html[data-theme="night"] .copy-btn{background:rgba(255,255,255,.06)}

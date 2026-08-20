@@ -54,6 +54,9 @@ body::before{
 .top-note .en{font-size:10px;color:#8b7c66;letter-spacing:.08em;margin-top:4px}
 .top-note .back-home{display:inline-block;margin-top:10px;font-size:13px;color:#a5742f;border-bottom:1px solid rgba(183,138,53,.35);padding-bottom:1px}
 .top-note .back-home:hover{color:#7d5518}
+.login-langs{margin-top:12px;display:flex;gap:6px}
+.login-langs button{border:1px solid rgba(112,88,52,.3);background:rgba(255,255,255,.6);color:#5c5340;font-size:12px;padding:4px 10px;border-radius:999px;cursor:pointer}
+.login-langs button.active{background:#163b2d;color:#fff;border-color:#163b2d}
 
 .hero{
   width:min(980px,calc(100% - 32px));
@@ -194,86 +197,89 @@ body::before{
 <body>
 <div class="page">
   <div class="top-note">
-    <div class="zh">真理 · 使命 · 装备 · 差遣</div>
+    <div class="zh" data-i18n="motto">真理 · 使命 · 装备 · 差遣</div>
     <div class="en">TRUTH · MISSION · EQUIP · SEND</div>
-    <a class="back-home" href="index.html">← 返回官网首页</a>
+    <a class="back-home" href="index.html" data-i18n="back">← 返回官网首页</a>
+    <div class="login-langs" role="group" aria-label="Language">
+      <button type="button" data-setlang="zh">中文</button><button type="button" data-setlang="en">EN</button><button type="button" data-setlang="ko">한국어</button><button type="button" data-setlang="th">ไทย</button>
+    </div>
   </div>
 
   <section class="hero">
     <div class="logo-wrap"><img src="assets/img/school-seal.webp" alt="AMAS Thailand"></div>
     <div class="amas-word">AMAS</div>
-    <h1>亚洲宣教神学院</h1>
+    <h1 data-i18n="school">亚洲宣教神学院</h1>
     <div class="subtitle">ASIA MISSIONARY ASSOCIATION SEMINARY</div>
     <div class="crossline">✝</div>
-    <div class="verse">你们要去，使万民作我的门徒。<small>— 马太福音 28:19</small></div>
+    <div class="verse"><span data-i18n="verse">你们要去，使万民作我的门徒。</span><small data-i18n="verseRef">— 马太福音 28:19</small></div>
   </section>
 
   <section class="login-card">
     <div class="tabs">
-      <button class="tab active" data-tab="login">登录</button>
-      <button class="tab" data-tab="register">注册</button>
+      <button class="tab active" data-tab="login" data-i18n="tabLogin">登录</button>
+      <button class="tab" data-tab="register" data-i18n="tabRegister">注册</button>
     </div>
 
     <div class="login-panel">
       <form class="form" id="loginForm">
         <div class="field">
-          <label>电子邮箱 / 学号</label>
+          <label data-i18n="account">电子邮箱 / 学号</label>
           <div class="input-wrap">
-            <input name="account" placeholder="请输入您的邮箱地址或学号" required>
+            <input name="account" data-i18n-ph="accountPh" placeholder="请输入您的邮箱地址或学号" required>
             <span class="icon">◯</span>
           </div>
         </div>
         <div class="field">
-          <label>密码</label>
+          <label data-i18n="password">密码</label>
           <div class="input-wrap">
-            <input id="loginPassword" name="password" type="password" placeholder="请输入密码" required>
+            <input id="loginPassword" name="password" type="password" data-i18n-ph="passwordPh" placeholder="请输入密码" required>
             <button class="icon eye" type="button" data-toggle-password="#loginPassword">◉</button>
           </div>
         </div>
         <div class="row">
-          <label class="remember"><input type="checkbox" name="remember">记住我</label>
-          <button type="button" class="forgot" id="forgotBtn">忘记密码？</button>
+          <label class="remember"><input type="checkbox" name="remember"><span data-i18n="remember">记住我</span></label>
+          <button type="button" class="forgot" id="forgotBtn" data-i18n="forgot">忘记密码？</button>
         </div>
-        <button class="submit" type="submit">进入 AMAS</button>
+        <button class="submit" type="submit" data-i18n="loginBtn">进入 AMAS</button>
       </form>
     </div>
 
     <div class="register-panel">
       <form class="form" id="registerForm">
         <div class="field">
-          <label>姓名</label>
-          <div class="input-wrap"><input name="name" placeholder="请输入您的姓名" required></div>
+          <label data-i18n="name">姓名</label>
+          <div class="input-wrap"><input name="name" data-i18n-ph="namePh" placeholder="请输入您的姓名" required></div>
         </div>
         <div class="field">
-          <label>电子邮箱</label>
-          <div class="input-wrap"><input type="email" name="email" placeholder="请输入电子邮箱" required></div>
+          <label data-i18n="email">电子邮箱</label>
+          <div class="input-wrap"><input type="email" name="email" data-i18n-ph="emailPh" placeholder="请输入电子邮箱" required></div>
         </div>
         <div class="field">
-          <label>联系方式（微信 / 电话，选填）</label>
-          <div class="input-wrap"><input name="contact" placeholder="便于招生同工与你联系"></div>
+          <label data-i18n="contact">联系方式（微信 / 电话，选填）</label>
+          <div class="input-wrap"><input name="contact" data-i18n-ph="contactPh" placeholder="便于招生同工与你联系"></div>
         </div>
-        <button class="submit" type="submit">提交注册申请</button>
-        <p class="register-note">提交后由招生同工审核开通账号，结果将通过邮件通知你。</p>
+        <button class="submit" type="submit" data-i18n="regBtn">提交注册申请</button>
+        <p class="register-note" data-i18n="regNote">提交后由招生同工审核开通账号，结果将通过邮件通知你。</p>
       </form>
     </div>
 
-    <div class="or">或</div>
+    <div class="or" data-i18n="or">或</div>
     <div class="quick-grid">
-      <button class="quick" id="applyBtn"><b>申请入学</b><span>提交入学申请</span></button>
-      <button class="quick" id="facultyBtn"><b>教师验证</b><span>教职工专用通道</span></button>
-      <button class="quick" id="helpBtn"><b>帮助中心</b><span>常见问题解答</span></button>
+      <button class="quick" id="applyBtn"><b data-i18n="qApply">申请入学</b><span data-i18n="qApplySub">提交入学申请</span></button>
+      <button class="quick" id="facultyBtn"><b data-i18n="qFaculty">教师验证</b><span data-i18n="qFacultySub">教职工专用通道</span></button>
+      <button class="quick" id="helpBtn"><b data-i18n="qHelp">帮助中心</b><span data-i18n="qHelpSub">常见问题解答</span></button>
     </div>
 
-    <div class="security">🔒 安全的学术访问<small>AMAS 采用标准安全机制保护您的信息与隐私</small></div>
+    <div class="security">🔒 <span data-i18n="secure">安全的学术访问</span><small data-i18n="secureSub">AMAS 采用标准安全机制保护您的信息与隐私</small></div>
   </section>
 
   <footer class="trust-strip">
     <div class="trust-inner">
       <div class="trust-logo"><img src="assets/img/school-seal.webp" alt=""></div>
-      <div class="trust-title"><b>装备今日的门徒 · 差遣明日的使者</b><span>EQUIPPING DISCIPLES TODAY<br>SENDING MISSIONARIES TOMORROW</span></div>
-      <div class="trust-item"><b>安全可靠</b><span>多重安全防护</span></div>
-      <div class="trust-item"><b>学术严谨</b><span>优质神学教育</span></div>
-      <div class="trust-item"><b>全球视野</b><span>普世宣教使命</span></div>
+      <div class="trust-title"><b data-i18n="trust">装备今日的门徒 · 差遣明日的使者</b><span>EQUIPPING DISCIPLES TODAY<br>SENDING MISSIONARIES TOMORROW</span></div>
+      <div class="trust-item"><b data-i18n="t1">安全可靠</b><span data-i18n="t1s">多重安全防护</span></div>
+      <div class="trust-item"><b data-i18n="t2">学术严谨</b><span data-i18n="t2s">优质神学教育</span></div>
+      <div class="trust-item"><b data-i18n="t3">全球视野</b><span data-i18n="t3s">普世宣教使命</span></div>
     </div>
     <div class="copyright">© 2026 Asia Missionary Association Seminary. All rights reserved.</div>
   </footer>
@@ -283,6 +289,29 @@ body::before{
 <script>
 const $ = (s)=>document.querySelector(s);
 const $$ = (s)=>[...document.querySelectorAll(s)];
+
+/* ===== 四语言 ===== */
+const L10N = {
+ zh:{motto:"真理 · 使命 · 装备 · 差遣",back:"← 返回官网首页",school:"亚洲宣教神学院",verse:"你们要去，使万民作我的门徒。",verseRef:"— 马太福音 28:19",tabLogin:"登录",tabRegister:"注册",account:"电子邮箱 / 学号",accountPh:"请输入您的邮箱地址或学号",password:"密码",passwordPh:"请输入密码",remember:"记住我",forgot:"忘记密码？",loginBtn:"进入 AMAS",name:"姓名",namePh:"请输入您的姓名",email:"电子邮箱",emailPh:"请输入电子邮箱",contact:"联系方式（微信 / 电话，选填）",contactPh:"便于招生同工与你联系",regBtn:"提交注册申请",regNote:"提交后由招生同工审核开通账号，结果将通过邮件通知你。",or:"或",qApply:"申请入学",qApplySub:"提交入学申请",qFaculty:"教师验证",qFacultySub:"教职工专用通道",qHelp:"帮助中心",qHelpSub:"常见问题解答",secure:"安全的学术访问",secureSub:"AMAS 采用标准安全机制保护您的信息与隐私",trust:"装备今日的门徒 · 差遣明日的使者",t1:"安全可靠",t1s:"多重安全防护",t2:"学术严谨",t2s:"优质神学教育",t3:"全球视野",t3s:"普世宣教使命",toastLogin:"学员系统即将开放。已提交注册申请的学员，开通后会收到邮件通知。",toastRegOk:"注册申请已提交！招生同工审核开通后，将通过邮件通知你。",toastRegFail:"提交失败，请稍后再试，或直接发邮件至 amasthai2026@gmail.com。",toastForgot:"请联系招生同工重置：amasthai2026@gmail.com / 微信 L52586222",toastFaculty:"教职工通道即将开放，请先联系教务同工。",toastHelp:"可返回官网使用 AI 咨询助手，或邮件联系我们。",sending:"提交中…"},
+ en:{motto:"TRUTH · MISSION · EQUIP · SEND",back:"← Back to Homepage",school:"Asia Missionary Association Seminary",verse:"Go therefore and make disciples of all nations.",verseRef:"— Matthew 28:19",tabLogin:"Sign In",tabRegister:"Register",account:"Email / Student ID",accountPh:"Enter your email or student ID",password:"Password",passwordPh:"Enter your password",remember:"Remember me",forgot:"Forgot password?",loginBtn:"Enter AMAS",name:"Name",namePh:"Enter your name",email:"Email",emailPh:"Enter your email",contact:"Contact (WeChat / phone, optional)",contactPh:"So our admissions team can reach you",regBtn:"Submit Registration Request",regNote:"Requests are reviewed by admissions; you will be notified by email once your account is ready.",or:"OR",qApply:"Apply",qApplySub:"Submit an application",qFaculty:"Faculty",qFacultySub:"Staff access",qHelp:"Help Center",qHelpSub:"Frequently asked questions",secure:"Secure academic access",secureSub:"AMAS protects your information and privacy with standard security measures",trust:"Equipping disciples today · Sending missionaries tomorrow",t1:"Secure",t1s:"Multi-layer protection",t2:"Rigorous",t2s:"Quality theological education",t3:"Global",t3s:"A worldwide mission calling",toastLogin:"The student portal is opening soon. Registered applicants will be notified by email.",toastRegOk:"Request submitted! You will be notified by email once your account is approved.",toastRegFail:"Submission failed. Please try again later or email amasthai2026@gmail.com.",toastForgot:"Please contact admissions to reset: amasthai2026@gmail.com / WeChat L52586222",toastFaculty:"The faculty portal is opening soon; please contact academic staff.",toastHelp:"Use the AI assistant on our homepage, or email us.",sending:"Submitting…"},
+ ko:{motto:"진리 · 사명 · 준비 · 파송",back:"← 홈페이지로 돌아가기",school:"아시아선교신학교",verse:"그러므로 너희는 가서 모든 민족을 제자로 삼으라.",verseRef:"— 마태복음 28:19",tabLogin:"로그인",tabRegister:"회원가입",account:"이메일 / 학번",accountPh:"이메일 또는 학번을 입력하세요",password:"비밀번호",passwordPh:"비밀번호를 입력하세요",remember:"로그인 유지",forgot:"비밀번호를 잊으셨나요?",loginBtn:"AMAS 입장",name:"이름",namePh:"이름을 입력하세요",email:"이메일",emailPh:"이메일을 입력하세요",contact:"연락처(위챗 / 전화, 선택)",contactPh:"입학 담당자가 연락드릴 수 있도록",regBtn:"가입 신청 제출",regNote:"신청은 입학 담당자의 심사를 거치며, 계정 개설 시 이메일로 알려 드립니다.",or:"또는",qApply:"입학 지원",qApplySub:"지원서 제출",qFaculty:"교직원",qFacultySub:"교직원 전용",qHelp:"도움말",qHelpSub:"자주 묻는 질문",secure:"안전한 학사 접속",secureSub:"AMAS는 표준 보안으로 정보와 개인정보를 보호합니다",trust:"오늘의 제자를 세우고 · 내일의 사역자를 보냅니다",t1:"안전",t1s:"다중 보안",t2:"엄정한 학사",t2s:"양질의 신학 교육",t3:"글로벌",t3s:"세계 선교의 사명",toastLogin:"학생 포털이 곧 열립니다. 가입 신청자는 개설 시 이메일로 안내받습니다.",toastRegOk:"신청이 제출되었습니다! 심사 후 이메일로 알려 드립니다.",toastRegFail:"제출 실패. 잠시 후 다시 시도하시거나 amasthai2026@gmail.com 으로 메일해 주세요.",toastForgot:"재설정 문의: amasthai2026@gmail.com / 위챗 L52586222",toastFaculty:"교직원 포털은 곧 열립니다. 교무 담당자에게 문의해 주세요.",toastHelp:"홈페이지의 AI 도우미를 이용하시거나 이메일로 문의해 주세요.",sending:"제출 중…"},
+ th:{motto:"ความจริง · พันธกิจ · เตรียม · ส่งออก",back:"← กลับหน้าแรก",school:"วิทยาลัยพระคริสตธรรมเอเชียมิชชัน",verse:"ท่านทั้งหลายจงออกไปและนำชนทุกชาติมาเป็นสาวก",verseRef:"— มัทธิว 28:19",tabLogin:"เข้าสู่ระบบ",tabRegister:"สมัครสมาชิก",account:"อีเมล / รหัสนักศึกษา",accountPh:"กรอกอีเมลหรือรหัสนักศึกษา",password:"รหัสผ่าน",passwordPh:"กรอกรหัสผ่าน",remember:"จดจำฉัน",forgot:"ลืมรหัสผ่าน?",loginBtn:"เข้าสู่ AMAS",name:"ชื่อ",namePh:"กรอกชื่อของคุณ",email:"อีเมล",emailPh:"กรอกอีเมล",contact:"ช่องทางติดต่อ (WeChat / โทร, ไม่บังคับ)",contactPh:"เพื่อให้ฝ่ายรับสมัครติดต่อกลับ",regBtn:"ส่งคำขอสมัคร",regNote:"คำขอจะผ่านการพิจารณาของฝ่ายรับสมัคร และแจ้งผลทางอีเมลเมื่อบัญชีพร้อมใช้งาน",or:"หรือ",qApply:"สมัครเรียน",qApplySub:"ยื่นใบสมัคร",qFaculty:"อาจารย์",qFacultySub:"ช่องทางบุคลากร",qHelp:"ศูนย์ช่วยเหลือ",qHelpSub:"คำถามที่พบบ่อย",secure:"การเข้าถึงที่ปลอดภัย",secureSub:"AMAS ปกป้องข้อมูลและความเป็นส่วนตัวด้วยมาตรการความปลอดภัยมาตรฐาน",trust:"เตรียมสาวกวันนี้ · ส่งผู้รับใช้ในวันพรุ่งนี้",t1:"ปลอดภัย",t1s:"การป้องกันหลายชั้น",t2:"เข้มงวดทางวิชาการ",t2s:"การศึกษาศาสนศาสตร์คุณภาพ",t3:"ระดับโลก",t3s:"พันธกิจมิชชันทั่วโลก",toastLogin:"ระบบนักศึกษาจะเปิดเร็ว ๆ นี้ ผู้ที่ส่งคำขอสมัครแล้วจะได้รับแจ้งทางอีเมล",toastRegOk:"ส่งคำขอแล้ว! เมื่อผ่านการพิจารณาจะแจ้งผลทางอีเมล",toastRegFail:"ส่งไม่สำเร็จ โปรดลองใหม่ หรืออีเมลมาที่ amasthai2026@gmail.com",toastForgot:"ติดต่อฝ่ายรับสมัครเพื่อรีเซ็ต: amasthai2026@gmail.com / WeChat L52586222",toastFaculty:"ช่องทางบุคลากรจะเปิดเร็ว ๆ นี้ โปรดติดต่อฝ่ายวิชาการ",toastHelp:"ใช้ผู้ช่วย AI ที่หน้าแรก หรืออีเมลถึงเรา",sending:"กำลังส่ง…"}
+};
+let lang = "zh";
+try{ lang = localStorage.getItem("amas-lang") || "zh"; }catch(e){}
+try{ const u = new URLSearchParams(location.search).get("lang"); if(u && L10N[u]) lang = u; }catch(e){}
+if(!L10N[lang]) lang = "zh";
+const LT = k => (L10N[lang] && L10N[lang][k]) || L10N.zh[k] || k;
+function applyLoginLang(l){
+  lang = L10N[l] ? l : "zh";
+  try{ localStorage.setItem("amas-lang", lang); }catch(e){}
+  document.documentElement.lang = ({zh:"zh-CN",en:"en",ko:"ko",th:"th"})[lang];
+  $$("[data-i18n]").forEach(el => { const v = LT(el.dataset.i18n); if(v) el.textContent = v; });
+  $$("[data-i18n-ph]").forEach(el => { const v = LT(el.dataset.i18nPh); if(v) el.placeholder = v; });
+  $$(".login-langs button").forEach(b => b.classList.toggle("active", b.dataset.setlang === lang));
+}
+$$(".login-langs button").forEach(b => b.addEventListener("click", () => applyLoginLang(b.dataset.setlang)));
+applyLoginLang(lang);
 
 $$(".tab").forEach(btn=>btn.addEventListener("click",()=>{
   $$(".tab").forEach(x=>x.classList.remove("active"));
@@ -306,7 +335,7 @@ function toast(msg){
 $("#loginForm").addEventListener("submit",e=>{
   e.preventDefault();
   if(!e.currentTarget.checkValidity()) return e.currentTarget.reportValidity();
-  toast("学员系统即将开放。已提交注册申请的学员，开通后会收到邮件通知。");
+  toast(LT("toastLogin"));
 });
 $("#registerForm").addEventListener("submit",async e=>{
   e.preventDefault();
@@ -314,7 +343,7 @@ $("#registerForm").addEventListener("submit",async e=>{
   if(!form.checkValidity()) return form.reportValidity();
   const fd=new FormData(form);
   const btn=form.querySelector(".submit");
-  btn.disabled=true;btn.textContent="提交中…";
+  btn.disabled=true;btn.textContent=LT("sending");
   try{
     const res=await fetch("https://formsubmit.co/ajax/amasthai2026@gmail.com",{
       method:"POST",
@@ -324,22 +353,24 @@ $("#registerForm").addEventListener("submit",async e=>{
         _template:"table",
         姓名:fd.get("name"),
         邮箱:fd.get("email"),
-        联系方式:fd.get("contact")||"未填写"
+        联系方式:fd.get("contact")||"未填写",
+        _autoresponse:"感谢你联系 AMAS 亚洲宣教神学院！我们已收到你的资料，招生同工会尽快与你联系。Thank you for contacting AMAS - we will follow up with you soon.",
+        语言:lang
       })
     });
     if(!res.ok) throw new Error();
-    toast("注册申请已提交！招生同工审核开通后，将通过邮件通知你。");
+    toast(LT("toastRegOk"));
     form.reset();
   }catch(err){
-    toast("提交失败，请稍后再试，或直接发邮件至 amasthai2026@gmail.com。");
+    toast(LT("toastRegFail"));
   }finally{
-    btn.disabled=false;btn.textContent="提交注册申请";
+    btn.disabled=false;btn.textContent=LT("regBtn");
   }
 });
-$("#forgotBtn").addEventListener("click",()=>toast("请联系招生同工重置：amasthai2026@gmail.com / 微信 L52586222"));
+$("#forgotBtn").addEventListener("click",()=>toast(LT("toastForgot")));
 $("#applyBtn").addEventListener("click",()=>{ window.location.href="index.html#admissions"; });
-$("#facultyBtn").addEventListener("click",()=>toast("这里可接入教师身份验证流程。"));
-$("#helpBtn").addEventListener("click",()=>toast("这里可打开帮助中心或 FAQ。"));
+$("#facultyBtn").addEventListener("click",()=>toast(LT("toastFaculty")));
+$("#helpBtn").addEventListener("click",()=>toast(LT("toastHelp")));
 </script>
 </body>
 </html>
