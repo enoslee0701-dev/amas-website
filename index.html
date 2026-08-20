@@ -85,25 +85,112 @@
 <a class="skip-link" href="#main" data-i18n="actions.skip">跳到主要内容</a>
 
 <div class="announce-bar">
-  <div class="announce-inner">
-    <div class="announce-track">
-      <div class="announce-set">
-      <span class="announce-item" data-i18n="announce.brand">AMAS 亚洲宣教神学院 · 清迈教学中心</span>
-      <b class="announce-item announce-hot" data-i18n="announce.hot">2026 届神学学士 B.Th 招生</b>
-      <a class="announce-item" href="#admissions" data-i18n="announce.link">查看招生信息 →</a>
-      <span class="announce-item announce-verse" data-i18n="announce.verse">“我可以差遣谁呢？谁肯为我们去呢？”“我在这里，请差遣我！”— 以赛亚书 6:8</span>
-      <span class="announce-item" data-i18n="announce.moto">装备今日的门徒 · 差遣明日的使者</span>
-      </div>
-      <div class="announce-set" aria-hidden="true">
-      <span class="announce-item" data-i18n="announce.brand">AMAS 亚洲宣教神学院 · 清迈教学中心</span>
-      <b class="announce-item announce-hot" data-i18n="announce.hot">2026 届神学学士 B.Th 招生</b>
-      <a class="announce-item" href="#admissions" data-i18n="announce.link">查看招生信息 →</a>
-      <span class="announce-item announce-verse" data-i18n="announce.verse">“我可以差遣谁呢？谁肯为我们去呢？”“我在这里，请差遣我！”— 以赛亚书 6:8</span>
-      <span class="announce-item" data-i18n="announce.moto">装备今日的门徒 · 差遣明日的使者</span>
-      </div>
-    </div>
+  <div class="announce-inner shell">
+    <span class="announce-brand" data-i18n="announce.brand">AMAS 亚洲宣教神学院 · 清迈教学中心</span>
+    <span class="announce-sep">·</span>
+    <b class="announce-hot" data-i18n="announce.hot">2026 届神学学士 B.Th 招生</b>
+    <a href="#admissions" data-i18n="announce.link">查看招生信息 →</a>
   </div>
 </div>
+
+<header class="site-header" id="top">
+  <div class="header-inner shell">
+    <div class="brand">
+      <button class="brand-seal-btn" type="button" data-open-seal aria-label="查看校标大图" data-i18n-aria="brand.zoom" title="点击查看校标">
+        <img class="brand-seal" src="assets/img/school-seal.webp" alt="Asia Missionary Association Seminary 校标" width="56" height="56" decoding="async" fetchpriority="high">
+      </button>
+      <a class="brand-name" href="#home" aria-label="AMAS 亚洲宣教神学院首页">AMAS<small data-i18n="brand.sub">亚洲宣教神学院</small></a>
+    </div>
+
+    <nav class="desktop-nav" aria-label="主要导航">
+      <a class="active" href="#home" data-i18n="nav.home">首页</a>
+      <a href="#about" data-i18n="nav.about">关于我们</a>
+      <a href="#courses" data-i18n="nav.courses">课程设置</a>
+      <a href="#admissions" data-i18n="nav.admissions">招生信息</a>
+      <a href="#life" data-i18n="nav.life">学院生活</a>
+      <a href="#resources" data-i18n="nav.resources">资源中心</a>
+      <a href="#contact" data-i18n="nav.contact">联系我们</a>
+    </nav>
+
+    <div class="header-actions">
+      <div class="lang-menu">
+        <button class="lang-btn" id="langBtn" aria-label="切换语言" data-i18n-aria="a11y.langSwitch" aria-haspopup="true" aria-expanded="false"><span id="langCurrent">中文</span><span class="lang-caret">▾</span></button>
+        <div class="lang-list" id="langList" hidden>
+          <button type="button" data-lang="zh">中文</button>
+          <button type="button" data-lang="en">English</button>
+          <button type="button" data-lang="ko">한국어</button>
+          <button type="button" data-lang="th">ไทย</button>
+        </div>
+      </div>
+      <a class="login-btn" href="login.html" data-i18n="actions.login">登录</a>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换白日/夜晚模式" aria-pressed="false" title="夜晚模式">
+        <span class="theme-icon sun">☀</span>
+        <span class="theme-icon moon">☾</span>
+        <span class="theme-knob" aria-hidden="true"></span>
+      </button>
+      <button class="menu-btn" type="button" id="menuBtn" aria-label="打开菜单" data-i18n-aria="a11y.openMenu" aria-expanded="false" aria-controls="mobileDrawer">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="mobile-drawer" id="mobileDrawer" aria-hidden="true">
+  <div class="drawer-backdrop" data-close-drawer></div>
+  <div class="drawer-panel">
+    <div class="drawer-head">
+      <strong>AMAS</strong>
+      <button class="icon-btn" type="button" data-close-drawer aria-label="关闭菜单" data-i18n-aria="a11y.closeMenu">×</button>
+    </div>
+    <nav>
+      <a href="#home" data-close-drawer data-i18n="nav.home">首页</a>
+      <a href="#about" data-close-drawer data-i18n="nav.about">关于我们</a>
+      <a href="#courses" data-close-drawer data-i18n="nav.courses">课程设置</a>
+      <a href="#programs" data-close-drawer data-i18n="nav.programs">培养项目</a>
+      <a href="#admissions" data-close-drawer data-i18n="nav.admissions">招生信息</a>
+      <a href="#tuition" data-close-drawer data-i18n="nav.tuition">学费说明</a>
+      <a href="#life" data-close-drawer data-i18n="nav.life">学院生活</a>
+      <a href="#resources" data-close-drawer data-i18n="nav.resources">资源中心</a>
+      <a href="#contact" data-close-drawer data-i18n="nav.contact">联系我们</a>
+      <a href="login.html" data-close-drawer data-i18n="actions.login">登录</a>
+    </nav>
+    <button class="apply-btn drawer-apply" data-open-application data-i18n="actions.apply">申请入学</button>
+  </div>
+</div>
+
+<main id="main">
+  <!-- HERO -->
+  <section class="hero" id="home" aria-label="首页" data-i18n-aria="nav.home">
+    <div class="hero-media" aria-hidden="true">
+      <img class="hero-bg hero-bg-day" src="assets/img/hero-day.webp" alt="" decoding="async" fetchpriority="high">
+      <img class="hero-bg hero-bg-night" src="assets/img/hero-night.webp" alt="" decoding="async" fetchpriority="low">
+      <div class="sunset-glow"></div>
+      <div class="hero-mist mist-1"></div>
+      <div class="hero-mist mist-2"></div>
+    </div>
+    <div class="hero-overlay"></div>
+    <div class="shell hero-inner">
+      <div class="hero-copy reveal">
+        <button class="hero-seal-btn" type="button" data-open-seal aria-label="查看校标大图" data-i18n-aria="brand.zoom">
+          <img class="hero-seal" src="assets/img/school-seal.webp" alt="Asia Missionary Association Seminary 校标" width="132" height="132" decoding="async">
+        </button>
+        <div class="hero-amas">AMAS</div>
+        <h1 class="hero-cnname" data-i18n="hero.title">亚洲宣教神学院</h1>
+        <div class="hero-enname" data-i18n="hero.sub">ASIA MISSIONARY ASSOCIATION SEMINARY</div>
+        <div class="hero-accred">ATA ACCREDITED PROGRAMS</div>
+        <div class="hero-cross" aria-hidden="true">✝</div>
+        <p class="hero-verse" data-i18n="hero.verse">你们要去，使万民作我的门徒。</p>
+        <div class="hero-verse-ref" data-i18n="hero.verseRef">— 马太福音 28:19</div>
+        <div class="hero-actions">
+          <button class="btn primary" type="button" id="consultBtn"><span data-i18n="actions.consult">咨询招生</span><span>→</span></button>
+          <button class="btn secondary" data-open-application><span data-i18n="actions.applyBth">申请神学学士 B.Th</span></button>
+        </div>
+        <div class="hero-meta">
+          <div class="hero-meta-item"><span data-i18n="herometa.program">项目</span><b data-i18n="herometa.programVal">神学学士 B.Th</b></div>
+          <div class="hero-meta-item"><span data-i18n="herometa.start">2026 届开学</span><b>2026.09.01</b></div>
+          <div class="hero-meta-item"><span data-i18n="herometa.mode">学习</span><b data-i18n="herometa.modeVal">线上 + 线下</b></div>
+        </div>
+      </div>
     </div>
   </section>
 

@@ -30,18 +30,11 @@ img{display:block;max-width:100%}
 /* Header */
 /* 顶部招生公告条 */
 .announce-bar{background:linear-gradient(135deg,#14382a,#0d2b21);color:#f4ecd8;font-size:11.5px;letter-spacing:.03em;border-bottom:1px solid rgba(213,180,107,.28)}
-.announce-inner{overflow:hidden;padding:6px 0}
-.announce-track{display:flex;width:max-content;animation:announceScroll 46s linear infinite}
-.announce-bar:hover .announce-track{animation-play-state:paused}
-@keyframes announceScroll{to{transform:translateX(-50%)}}
-.announce-set{display:flex;align-items:center;white-space:nowrap}
-.announce-item{display:inline-flex;align-items:center}
-.announce-item::after{content:"✦";margin:0 30px;font-size:9px;color:rgba(233,196,106,.55)}
+.announce-inner{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px;padding:5px 0}
 .announce-hot{color:#e9c46a;font-weight:700}
-.announce-verse{font-family:"Noto Serif SC","Songti SC",serif;color:#e6ddc4}
-.announce-bar a{color:#fff;font-weight:600;border-bottom:1px solid rgba(255,255,255,.35);padding-bottom:1px;transition:color .15s,border-color .15s}
+.announce-sep{color:rgba(244,236,216,.5)}
+.announce-bar a{color:#fff;font-weight:600;border-bottom:1px solid rgba(255,255,255,.35);padding-bottom:1px;margin-left:8px;transition:color .15s,border-color .15s}
 .announce-bar a:hover{color:#e9c46a;border-color:rgba(233,196,106,.6)}
-@media (prefers-reduced-motion:reduce){.announce-track{animation:none}}
 
 .site-header{height:78px;position:sticky;top:0;z-index:50;background:var(--header-bg);backdrop-filter:blur(16px);transition:background-color var(--theme-ease),border-color var(--theme-ease);border-bottom:1px solid rgba(40,35,26,.06)}
 /* 两侧按内容自适应、中间导航吃掉剩余空间。
@@ -535,7 +528,7 @@ html[data-theme="night"] .chat-chips button:hover{color:#0b0d0a}
  .section{padding:70px 0}.section h2{font-size:40px}.contact-form{grid-template-columns:1fr}.form-actions.full{grid-column:1}.footer-top{align-items:flex-start;flex-direction:column}.footer-links{flex-wrap:wrap}
 }
 @media(max-width:580px){
- .announce-bar{font-size:11px}.announce-item::after{margin:0 18px}
+ .announce-bar{font-size:11.5px}.announce-inner{gap:8px;padding:8px 0}.announce-brand,.announce-sep{display:none}
  .shell{width:calc(100% - 28px)}.brand-seal{width:44px;height:44px}.brand-name{font-size:19px}.brand-name small{letter-spacing:.1em;font-size:9.5px}.lang-btn{height:34px;padding:0 10px;font-size:12.5px}
  .hero{min-height:600px}.hero-inner{min-height:600px}.hero-bg{object-position:73% 45%}.hero-seal{width:88px;height:88px}.hero-cnname{font-size:30px;letter-spacing:.08em}.hero-enname{font-size:12.5px;letter-spacing:.16em}.hero-actions{flex-direction:column;width:220px;align-self:center}.hero-actions .btn{width:220px}
  .hero-meta{width:100%}.hero-meta-item{padding:10px 12px;flex:1}.hero-meta-item b{font-size:14px}
