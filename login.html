@@ -286,6 +286,7 @@ body::before{
 </div>
 <div class="toast" id="toast"></div>
 
+<script src="assets/js/supabase-config.js"></script>
 <script>
 const $ = (s)=>document.querySelector(s);
 const $$ = (s)=>[...document.querySelectorAll(s)];
@@ -359,6 +360,13 @@ $("#registerForm").addEventListener("submit",async e=>{
       })
     });
     if(!res.ok) throw new Error();
+    try{
+      const S=window.SUPA||{};
+      if(S.url&&S.anonKey){
+        fetch(S.url+"/rest/v1/submissions",{method:"POST",headers:{apikey:S.anonKey,Authorization:"Bearer "+S.anonKey,"Content-Type":"application/json",Prefer:"return=minimal"},
+          body:JSON.stringify({type:"registration",name:String(fd.get("name")||""),contact:String(fd.get("email")||""),program:"",lang:lang,data:{name:fd.get("name"),email:fd.get("email"),contact:fd.get("contact")||""}})}).catch(()=>{});
+      }
+    }catch(e){}
     toast(LT("toastRegOk"));
     form.reset();
   }catch(err){

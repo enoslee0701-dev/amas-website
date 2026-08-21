@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>AMAS 招生后台</title>
+<link rel="icon" href="assets/img/favicon.png">
+<script src="assets/js/supabase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#f4efe3;color:#26221a;font-size:14px}
+.bar{background:linear-gradient(135deg,#14382a,#0d2b21);color:#f4ecd8;padding:14px 22px;display:flex;align-items:center;gap:14px}
+.bar img{width:36px;height:36px;border-radius:50%;background:#fff;padding:2px}
+.bar b{font-size:16px;letter-spacing:2px}
+.bar .sp{flex:1}
+.bar button{border:1px solid rgba(233,196,106,.5);background:transparent;color:#e9c46a;padding:7px 14px;border-radius:8px;cursor:pointer}
+.wrap{max-width:1200px;margin:26px auto;padding:0 18px}
+/* 登录卡 */
+.login{max-width:380px;margin:70px auto;background:#fffdf9;border:1px solid rgba(183,138,53,.35);border-radius:14px;padding:30px;box-shadow:0 20px 50px rgba(60,48,20,.12)}
+.login h2{margin:0 0 18px;color:#14382a;font-size:18px}
+.login label{display:block;font-size:13px;font-weight:600;margin:12px 0 6px;color:#3e4a42}
+.login input{width:100%;height:44px;border:1px solid rgba(88,68,40,.25);border-radius:9px;padding:0 12px;font:inherit;background:#fff}
+.login button{width:100%;height:46px;margin-top:18px;border:0;border-radius:9px;background:linear-gradient(135deg,#14382a,#0d2b21);color:#fff;font-weight:700;cursor:pointer}
+.login .err{color:#a33;font-size:12.5px;margin-top:10px;min-height:16px}
+.hint{background:#fff7e0;border:1px dashed #c9963d;border-radius:10px;padding:14px 16px;color:#7a5a1f;font-size:13px;line-height:1.8}
+/* 工具条 */
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.tools select,.tools input{height:38px;border:1px solid rgba(88,68,40,.25);border-radius:8px;padding:0 10px;font:inherit;background:#fff}
+.tools input{flex:1;min-width:180px}
+.tools button{height:38px;border:1px solid #b78a35;background:#fffdf9;color:#8a6a1f;padding:0 14px;border-radius:8px;cursor:pointer;font-weight:600}
+.tools button.pri{background:linear-gradient(135deg,#14382a,#0d2b21);color:#fff;border-color:#14382a}
+.count{color:#6b5d40;font-size:13px}
+/* 表格 */
+table{width:100%;border-collapse:collapse;background:#fffdf9;border:1px solid rgba(88,68,40,.2);border-radius:10px;overflow:hidden}
+th,td{border-bottom:1px solid rgba(88,68,40,.12);padding:10px 12px;text-align:left;font-size:13px;vertical-align:top}
+th{background:#f3ecd9;font-size:12px;letter-spacing:1px;color:#5c5340;white-space:nowrap}
+tr.row{cursor:pointer}
+tr.row:hover{background:#faf6ea}
+.type-tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;border:1px solid}
+.t-application{color:#14382a;border-color:#14382a;background:rgba(20,56,42,.06)}
+.t-inquiry{color:#8a6a1f;border-color:#b78a35;background:rgba(183,138,53,.08)}
+.t-chat{color:#555;border-color:#999;background:rgba(0,0,0,.04)}
+.t-registration{color:#0f2437;border-color:#0f2437;background:rgba(15,36,55,.06)}
+td select{border:1px solid rgba(88,68,40,.25);border-radius:6px;padding:4px 6px;font-size:12.5px;background:#fff}
+.s-待处理{outline:2px solid rgba(200,60,40,.35)}
+.detail td{background:#faf7ee}
+.detail pre{margin:0;white-space:pre-wrap;word-break:break-all;font-size:12px;color:#3d372a;font-family:Consolas,monospace}
+.note-in{width:100%;border:1px solid rgba(88,68,40,.2);border-radius:6px;padding:6px 8px;font:inherit;font-size:12.5px;background:#fff}
+.empty{text-align:center;color:#8a8172;padding:40px}
+@media(max-width:760px){ th:nth-child(5),td:nth-child(5){display:none} }
+</style>
+</head>
+<body>
+<div class="bar">
+  <img src="assets/img/school-seal.webp" alt="">
+  <b>AMAS 招生后台</b>
+  <span class="sp"></span>
+  <span id="who" style="font-size:12.5px;color:#c9c2ae"></span>
+  <button id="logout" hidden>退出</button>
+</div>
+
+<div class="wrap">
+  <div id="setupHint" class="hint" hidden>
+    尚未配置数据库连接。请在 <b>assets/js/supabase-config.js</b> 中填入 Supabase 的 Project URL 与 anon key，并按 <b>admin-setup.sql</b> 在 Supabase SQL Editor 中建表后刷新本页。
+  </div>
+
+  <div class="login" id="loginBox" hidden>
+    <h2>管理员登录</h2>
+    <label>邮箱</label><input id="aEmail" type="email" autocomplete="username">
+    <label>密码</label><input id="aPass" type="password" autocomplete="current-password">
+    <button id="aGo">登录</button>
+    <div class="err" id="aErr"></div>
+  </div>
+
+  <div id="panel" hidden>
+    <div class="tools">
+      <select id="fType">
+        <option value="">全部类型</option>
+        <option value="application">入学申请</option>
+        <option value="inquiry">咨询</option>
+        <option value="chat">留言</option>
+        <option value="registration">注册申请</option>
+      </select>
+      <select id="fStatus">
+        <option value="">全部状态</option>
+        <option>待处理</option><option>已联系</option><option>已录取</option><option>不合适</option>
+      </select>
+      <input id="fSearch" placeholder="搜索姓名 / 联系方式 / 内容…">
+      <button id="reload">刷新</button>
+      <button id="csv" class="pri">导出 CSV</button>
+      <span class="count" id="count"></span>
+    </div>
+    <table>
+      <thead><tr><th>时间</th><th>类型</th><th>姓名</th><th>联系方式</th><th>项目</th><th>语言</th><th>状态</th><th>备注</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="empty" hidden>暂无数据</div>
+  </div>
+</div>
+
+<script>
+const S = window.SUPA || {};
+const $ = s => document.querySelector(s);
+const TYPE_ZH = { application:"入学申请", inquiry:"咨询", chat:"留言", registration:"注册申请" };
+const STATUSES = ["待处理","已联系","已录取","不合适"];
+let sb = null, rows = [];
+
+function esc(s){ return String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+async function init(){
+  if(!S.url || !S.anonKey || !window.supabase){ $("#setupHint").hidden = false; return; }
+  sb = supabase.createClient(S.url, S.anonKey);
+  const { data: { session } } = await sb.auth.getSession();
+  session ? enter(session) : ($("#loginBox").hidden = false);
+}
+async function enter(session){
+  $("#loginBox").hidden = true; $("#panel").hidden = false;
+  $("#logout").hidden = false; $("#who").textContent = session.user.email;
+  await load();
+}
+$("#aGo").addEventListener("click", async () => {
+  $("#aErr").textContent = "";
+  const { data, error } = await sb.auth.signInWithPassword({ email: $("#aEmail").value.trim(), password: $("#aPass").value });
+  if(error){ $("#aErr").textContent = "登录失败：" + error.message; return; }
+  enter(data.session);
+});
+$("#aPass").addEventListener("keydown", e => { if(e.key === "Enter") $("#aGo").click(); });
+$("#logout").addEventListener("click", async () => { await sb.auth.signOut(); location.reload(); });
+
+async function load(){
+  const { data, error } = await sb.from("submissions").select("*").order("created_at", { ascending:false }).limit(1000);
+  if(error){ alert("读取失败：" + error.message); return; }
+  rows = data || [];
+  render();
+}
+function filtered(){
+  const ft = $("#fType").value, fs = $("#fStatus").value, q = $("#fSearch").value.trim().toLowerCase();
+  return rows.filter(r =>
+    (!ft || r.type === ft) && (!fs || r.status === fs) &&
+    (!q || (r.name + " " + r.contact + " " + JSON.stringify(r.data)).toLowerCase().includes(q)));
+}
+function render(){
+  const list = filtered();
+  $("#count").textContent = "共 " + list.length + " 条";
+  $("#empty").hidden = list.length > 0;
+  $("#tbody").innerHTML = list.map(r => `
+    <tr class="row" data-id="${r.id}">
+      <td style="white-space:nowrap">${new Date(r.created_at).toLocaleString("zh-CN",{hour12:false})}</td>
+      <td><span class="type-tag t-${esc(r.type)}">${TYPE_ZH[r.type] || esc(r.type)}</span></td>
+      <td><b>${esc(r.name) || "—"}</b></td>
+      <td>${esc(r.contact) || "—"}</td>
+      <td>${esc(r.program) || "—"}</td>
+      <td>${esc(r.lang) || "—"}</td>
+      <td><select class="st s-${esc(r.status)}" data-id="${r.id}">${STATUSES.map(s => `<option ${s === r.status ? "selected" : ""}>${s}</option>`).join("")}</select></td>
+      <td style="min-width:130px"><input class="note-in" data-id="${r.id}" value="${esc(r.note || "")}" placeholder="备注…"></td>
+    </tr>
+    <tr class="detail" data-for="${r.id}" hidden><td colspan="8"><pre>${esc(JSON.stringify(r.data, null, 2))}</pre></td></tr>
+  `).join("");
+
+  document.querySelectorAll("tr.row").forEach(tr => tr.addEventListener("click", e => {
+    if(e.target.closest("select,input")) return;
+    const d = document.querySelector(`tr.detail[data-for="${tr.dataset.id}"]`);
+    d.hidden = !d.hidden;
+  }));
+  document.querySelectorAll("select.st").forEach(sel => sel.addEventListener("change", async () => {
+    const { error } = await sb.from("submissions").update({ status: sel.value }).eq("id", sel.dataset.id);
+    if(error) alert("更新失败：" + error.message);
+    else { const r = rows.find(x => String(x.id) === sel.dataset.id); if(r) r.status = sel.value; sel.className = "st s-" + sel.value; }
+  }));
+  document.querySelectorAll(".note-in").forEach(inp => inp.addEventListener("change", async () => {
+    const { error } = await sb.from("submissions").update({ note: inp.value }).eq("id", inp.dataset.id);
+    if(error) alert("备注保存失败：" + error.message);
+  }));
+}
+["fType","fStatus"].forEach(id => $("#" + id).addEventListener("change", render));
+$("#fSearch").addEventListener("input", render);
+$("#reload").addEventListener("click", load);
+$("#csv").addEventListener("click", () => {
+  const list = filtered();
+  const head = ["时间","类型","姓名","联系方式","项目","语言","状态","备注","详情JSON"];
+  const lines = [head.join(",")].concat(list.map(r => [
+    new Date(r.created_at).toLocaleString("zh-CN",{hour12:false}), TYPE_ZH[r.type] || r.type, r.name, r.contact, r.program, r.lang, r.status, r.note || "", JSON.stringify(r.data)
+  ].map(v => '"' + String(v ?? "").replace(/"/g, '""') + '"').join(",")));
+  const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "AMAS-申请数据-" + new Date().toISOString().slice(0,10) + ".csv";
+  a.click();
+});
+init();
+</script>
+</body>
+</html>

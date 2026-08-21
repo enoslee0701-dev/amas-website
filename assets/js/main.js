@@ -735,6 +735,29 @@ $$("[data-close-video]").forEach(x => x.addEventListener("click", () => closeLay
 
 
 /* ===== 提交到后端（未配置 endpoint 时回退到本地演示）===== */
+/* 数据库通道：SUPA 配置后，每次成功提交同时写入 Supabase（静默失败，绝不影响邮件通道） */
+function logToDB(kind, payload){
+  const S = window.SUPA || {};
+  if(!S.url || !S.anonKey) return;
+  const data = {};
+  for(const k in payload){ if(!k.startsWith("_")) data[k] = payload[k]; }
+  const rec = {
+    type: kind,
+    name: String(payload.fullName || payload.name || payload["姓名"] || ""),
+    contact: String(payload.email || payload.contact || payload.phone || payload["联系方式"] || ""),
+    program: String(payload.program || ""),
+    lang: String(payload.lang || currentLang || ""),
+    data
+  };
+  try{
+    fetch(S.url + "/rest/v1/submissions", {
+      method: "POST",
+      headers: { apikey: S.anonKey, Authorization: "Bearer " + S.anonKey, "Content-Type": "application/json", Prefer: "return=minimal" },
+      body: JSON.stringify(rec)
+    }).catch(() => {});
+  }catch(e){}
+}
+
 async function sendPayload(kind, payload){
   if(!CONFIG.formEndpoint){
     const key = kind === "application" ? "amas-applications"
@@ -745,6 +768,7 @@ async function sendPayload(kind, payload){
       all.push(payload);
       localStorage.setItem(key, JSON.stringify(all));
     }catch(e){}
+    logToDB(kind, payload);
     return { ok:true, demo:true };
   }
   const res = await fetch(CONFIG.formEndpoint, {
@@ -753,6 +777,7 @@ async function sendPayload(kind, payload){
     body: JSON.stringify(payload)
   });
   if(!res.ok) throw new Error("HTTP " + res.status);
+  logToDB(kind, payload);
   return { ok:true, demo:false };
 }
 
