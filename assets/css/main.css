@@ -875,3 +875,35 @@ html[data-theme="night"] .copy-btn{background:rgba(255,255,255,.06)}
 .digital-grid{grid-template-columns:repeat(3,1fr)}
 @media(max-width:860px){.app-featured{padding:26px 22px}.app-featured h3{font-size:20px}.app-badge{position:static;display:inline-block;margin-bottom:12px}.digital-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:580px){.digital-grid{grid-template-columns:1fr}}
+
+
+/* ===== 奉献支持 ===== */
+.giving-section{background:var(--paper2,#f4efe3)}
+.giving-verse{margin:14px 0 10px;font-family:"Noto Serif SC","Songti SC",serif;font-size:16px;line-height:1.8;color:var(--ink)}
+.giving-verse small{display:block;margin-top:4px;font-size:12px;color:#a5742f}
+.giving-dirs{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:6px 0 30px}
+.gdir{border:1px solid rgba(183,138,53,.4);border-left:3px solid #b78a35;border-radius:10px;background:var(--surface,#fffdf9);padding:18px 20px}
+.gdir b{display:block;font-size:16px;color:var(--ink)}
+.gdir span{display:block;margin-top:6px;font-size:12.5px;color:var(--muted);line-height:1.6}
+.giving-how h3,.giving-notify h3{font-size:18px;color:var(--ink);margin:0 0 12px}
+.gtabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.gtab{border:1px solid var(--line);background:var(--surface,#fffdf9);color:var(--ink);padding:9px 18px;border-radius:999px;font-size:13.5px;cursor:pointer}
+.gtab.active{background:linear-gradient(135deg,#14382a,#0d2b21);color:#fff;border-color:#14382a}
+.gpane{display:none}
+.gpane.active{display:block}
+.qr-slot{display:flex;align-items:center;justify-content:center;min-height:150px;border:1.5px dashed rgba(183,138,53,.55);border-radius:12px;background:var(--surface,#fffdf9);padding:22px;text-align:center;font-size:13.5px;color:var(--muted);max-width:520px}
+.qr-slot img{max-width:200px;height:auto;display:block}
+.giving-notify{margin-top:32px}
+.giving-notify>p{margin:0 0 16px;font-size:13.5px;color:var(--muted);max-width:640px;line-height:1.7}
+.giving-form{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;max-width:720px}
+.giving-form label{display:flex;flex-direction:column;gap:7px;font-size:13px;font-weight:600;color:var(--ink)}
+.giving-form input,.giving-form select{height:46px;border:1px solid var(--line);border-radius:9px;padding:0 12px;font:inherit;background:var(--surface,#fff);color:var(--ink)}
+.giving-actions{grid-column:1/-1;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.giving-actions .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);border-color:#14382a}
+.giving-status{font-size:13px;color:var(--olive-dark)}
+.giving-note{margin-top:26px;font-size:12px;color:var(--muted);max-width:720px}
+.tuition-copy a{color:#a5742f;border-bottom:1px solid rgba(183,138,53,.4)}
+html[data-theme="night"] .gtab.active{color:#f4ecd8;border-color:rgba(213,180,107,.45)}
+html[data-theme="night"] .giving-actions .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);color:#f4ecd8;border-color:rgba(213,180,107,.45)}
+@media(max-width:860px){.giving-dirs{grid-template-columns:1fr}}
+@media(max-width:580px){.giving-form{grid-template-columns:1fr}}
