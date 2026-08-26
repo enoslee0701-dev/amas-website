@@ -1005,12 +1005,13 @@ html[data-theme="night"] .footer{background:linear-gradient(180deg,#0a1220,#060b
 .app-try:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(160,116,38,.36)}
 .app-try-note{font-size:12px;color:#93a3b4}
 
-/* Hero：定制化神学测评入口 banner */
-.hero-ai-banner{display:flex;align-items:center;gap:14px;margin-top:16px;padding:12px 18px;border-radius:12px;background:linear-gradient(120deg,#0B2450 0%,#071A3C 100%);border:1px solid rgba(232,201,140,.4);box-shadow:0 10px 26px rgba(7,26,60,.35);text-align:left;transition:.2s}
-.hero-ai-banner:hover{transform:translateY(-2px);box-shadow:0 14px 32px rgba(7,26,60,.45)}
-.hab-badge{flex-shrink:0;width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(180deg,#F4D796,#E1B75F);color:#123061;font-family:Georgia,serif;font-weight:800;font-size:14px;letter-spacing:.05em}
+/* 定制化神学测评入口条：hero 信息带的深绿延伸 */
+.ai-strip{display:block;background:linear-gradient(120deg,#0f2f22,#0a231a);border-top:1px solid rgba(233,196,106,.22);transition:background .2s}
+.ai-strip:hover{background:linear-gradient(120deg,#123726,#0c281e)}
+.ai-strip-inner{display:flex;align-items:center;gap:16px;padding:13px 0}
+.hab-badge{flex-shrink:0;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(180deg,#e9c46a,#c9963d);color:#14382a;font-family:Georgia,serif;font-weight:800;font-size:13.5px;letter-spacing:.05em}
 .hab-text{flex:1;min-width:0}
-.hab-text b{display:block;font-size:14px;color:#F2D493;line-height:1.4}
-.hab-text small{display:block;margin-top:2px;font-size:11px;color:rgba(233,238,248,.75);letter-spacing:.04em}
-.hab-go{flex-shrink:0;font-size:12.5px;font-weight:700;color:#123061;background:linear-gradient(180deg,#F4D796,#E1B75F);border-radius:999px;padding:8px 16px;white-space:nowrap}
-@media(max-width:640px){.hero-ai-banner{flex-wrap:wrap;gap:10px;padding:12px 14px}.hab-go{margin-left:48px}}
+.hab-text b{display:block;font-size:14px;color:#f1d38a;line-height:1.4;font-weight:600}
+.hab-text small{display:block;margin-top:2px;font-size:11px;color:#9db3a5;letter-spacing:.04em}
+.hab-go{flex-shrink:0;font-size:12.5px;font-weight:700;color:#14382a;background:linear-gradient(180deg,#e9c46a,#c9963d);border-radius:999px;padding:8px 18px;white-space:nowrap}
+@media(max-width:640px){.ai-strip-inner{flex-wrap:wrap;gap:10px}.hab-go{margin-left:46px}}
