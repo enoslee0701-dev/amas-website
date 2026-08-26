@@ -859,3 +859,19 @@ html[data-theme="night"] .copy-btn{background:rgba(255,255,255,.06)}
 .training-list b{color:#e9c46a;white-space:nowrap;font-weight:700}
 .training-list b i{font-style:normal;font-weight:400;font-size:11px;color:#b9b29c}
 @media(max-width:700px){.training-list{grid-template-columns:1fr}}
+
+
+/* App 抢先看：定制化神学主打卡 */
+.app-featured{position:relative;margin-bottom:20px;padding:34px 38px;border-radius:16px;background:linear-gradient(150deg,#0f2437,#0a1a29);border:1px solid rgba(213,180,107,.45);color:#f4ecd8;overflow:hidden}
+.app-featured::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(233,196,106,.18),transparent 70%)}
+.app-badge{position:absolute;right:22px;top:20px;font-family:Georgia,serif;font-size:10.5px;font-weight:700;letter-spacing:.2em;color:#14382a;background:linear-gradient(135deg,#e9c46a,#c9963d);padding:6px 14px;border-radius:999px}
+.app-featured-eyebrow{font-size:10px;letter-spacing:.26em;font-weight:700;color:#d5b46b;margin-bottom:10px}
+.app-featured h3{margin:0 0 10px;font-family:"Noto Serif SC","Songti SC",serif;font-size:24px;color:#fff}
+.app-quote{margin:0 0 10px;font-family:"Noto Serif SC","Songti SC",serif;font-size:15.5px;color:#e9c46a}
+.app-body{margin:0 0 18px;font-size:13.5px;line-height:1.85;color:#c8d2da;max-width:760px}
+.app-flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.app-flow span{border:1px solid rgba(233,196,106,.5);border-radius:999px;padding:7px 15px;font-size:12.5px;color:#f1d38a;background:rgba(233,196,106,.07)}
+.app-flow i{font-style:normal;color:rgba(233,196,106,.55);font-size:13px}
+.digital-grid{grid-template-columns:repeat(3,1fr)}
+@media(max-width:860px){.app-featured{padding:26px 22px}.app-featured h3{font-size:20px}.app-badge{position:static;display:inline-block;margin-bottom:12px}.digital-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:580px){.digital-grid{grid-template-columns:1fr}}
