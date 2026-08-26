@@ -95,6 +95,7 @@ const i18n = {
   "chat.open":"打开在线咨询","chat.title":"招生咨询助手","chat.subtitle":"即时解答 · 可留言给招生同工","chat.placeholder":"输入问题…","chat.send":"发送","chat.note":"自动应答基于本站信息；留言将转交招生同工回复。",
   "chat.greeting":"平安！我是亚洲宣教神学院（AMAS）招生咨询助手，可以回答报名、学费、课程等问题；也可以直接给招生同工留言。想了解什么？","chat.fallback":"这个问题我暂时没有确切答案，建议留言给招生同工，他们会尽快回复你。",
   "chat.chips.apply":"如何报名？","chat.chips.tuition":"学费多少？","chat.chips.courses":"有哪些课程？","chat.chips.mode":"怎么上课？","chat.chips.leave":"给招生老师留言",
+  "chat.chips.human":"人工客服","chat.human.intro":"好的，你可以通过以下方式直接联系招生同工（一般当天回复）：","chat.human.wechat":"微信 {id} · 点击复制","chat.human.line":"Line {id} · 点击复制","chat.human.note":"添加好友时请注明「AMAS 咨询」。如果暂时联系不上，也可以在这里留言，同工会主动联系你。",
   "chat.kb.apply":"点击「申请入学」填写在线申请（约 3 分钟），提交后招生同工会主动联系你说明后续步骤；也可以在资源中心下载完整版 Word 申请表。",
   "chat.kb.tuition":"学费采用按科修读、按科缴费的方式，具体金额请亲自向招生同工咨询；经济上有困难的学员可说明情况，申请学费减免、分期或其他学习支持。","chat.kb.tuitionBtn":"查看学费与支持",
   "chat.kb.courses":"按官方课程体系开设 35 门必修、13 门选修与 11 项属灵训练（硕士班毕业 100 学分），涵盖圣经、系统、历史、实践神学与圣经语言。","chat.kb.coursesBtn":"浏览课程",
@@ -194,6 +195,7 @@ const i18n = {
   "chat.open":"Open live chat","chat.title":"Admissions Assistant","chat.subtitle":"Instant answers · leave a message","chat.placeholder":"Type a question…","chat.send":"Send","chat.note":"Auto-replies are based on this site; messages are forwarded to the admissions team.",
   "chat.greeting":"Peace! I am the AMAS admissions assistant. Ask me about applications, tuition or courses — or leave a message for the admissions team. How can I help?","chat.fallback":"I do not have a confident answer for that. Leave a message and the admissions team will get back to you.",
   "chat.chips.apply":"How do I apply?","chat.chips.tuition":"Tuition fees?","chat.chips.courses":"What courses?","chat.chips.mode":"How are classes held?","chat.chips.leave":"Leave a message",
+  "chat.chips.human":"Talk to a Person","chat.human.intro":"Sure — you can reach our admissions team directly (we usually reply the same day):","chat.human.wechat":"WeChat {id} · tap to copy","chat.human.line":"Line {id} · tap to copy","chat.human.note":"Please mention \u201cAMAS inquiry\u201d when adding us. You can also leave a message here and we will contact you.",
   "chat.kb.apply":"Click Apply and complete the online form (about 3 minutes). The admissions team will contact you with next steps. A full Word application form is also available in Resources.",
   "chat.kb.tuition":"Tuition is charged per course, paid course by course. For specific amounts, please contact our admissions team directly. Students facing financial hardship may ask about fee reduction, instalments or other learning support.","chat.kb.tuitionBtn":"Tuition & support",
   "chat.kb.courses":"The official curriculum offers 35 required courses, 13 electives and 11 spiritual-training items (100 credits for the G.Dip/M.Div track), spanning Bible, theology, history, ministry and biblical languages.","chat.kb.coursesBtn":"Browse courses",
@@ -293,6 +295,7 @@ const i18n = {
   "chat.open":"온라인 상담 열기","chat.title":"입학 상담 도우미","chat.subtitle":"즉시 답변 · 입학처에 메시지 남기기 가능","chat.placeholder":"질문을 입력하세요…","chat.send":"보내기","chat.note":"자동 응답은 본 사이트 정보를 기반으로 하며, 메시지는 입학 담당자에게 전달됩니다.",
   "chat.greeting":"평안하세요! 아시아선교신학교(AMAS) 입학 상담 도우미입니다. 지원 방법, 등록금, 과정 등에 대해 답해 드리며, 입학 담당자에게 직접 메시지를 남기실 수도 있습니다. 무엇이 궁금하신가요?","chat.fallback":"이 질문에는 정확한 답을 드리기 어렵습니다. 입학 담당자에게 메시지를 남겨 주시면 빠르게 회신해 드리겠습니다.",
   "chat.chips.apply":"어떻게 지원하나요?","chat.chips.tuition":"등록금은 얼마인가요?","chat.chips.courses":"어떤 과목이 있나요?","chat.chips.mode":"수업은 어떻게 진행되나요?","chat.chips.leave":"입학처에 메시지 남기기",
+  "chat.chips.human":"상담원 연결","chat.human.intro":"네, 아래 방법으로 입학 담당자에게 직접 연락하실 수 있습니다(보통 당일 회신):","chat.human.wechat":"WeChat {id} · 눌러서 복사","chat.human.line":"Line {id} · 눌러서 복사","chat.human.note":"친구 추가 시 \u201cAMAS 문의\u201d라고 남겨 주세요. 연락이 어려우시면 여기에 메시지를 남기셔도 됩니다.",
   "chat.kb.apply":"「입학 지원」을 눌러 온라인 지원서를 작성하세요(약 3분). 제출 후 입학 담당자가 연락드려 다음 단계를 안내합니다. 자료실에서 Word 지원서 전체 양식을 내려받을 수도 있습니다.",
   "chat.kb.tuition":"등록금은 과목별 수강·과목별 납부 방식입니다. 구체적인 금액은 입학 담당자에게 직접 문의해 주세요. 경제적으로 어려운 학생은 감면·분납 등 학업 지원을 신청할 수 있습니다.","chat.kb.tuitionBtn":"등록금과 지원 안내",
   "chat.kb.courses":"공식 커리큘럼으로 필수 35과목, 선택 13과목, 영성 훈련 11항목(석사 과정 졸업 100학점)을 개설하며 성경·신학·역사·실천·성경 언어를 아우릅니다.","chat.kb.coursesBtn":"과목 살펴보기",
@@ -392,6 +395,7 @@ const i18n = {
   "chat.open":"เปิดแชทสอบถาม","chat.title":"ผู้ช่วยรับสมัคร","chat.subtitle":"ตอบทันที · ฝากข้อความถึงฝ่ายรับสมัครได้","chat.placeholder":"พิมพ์คำถาม…","chat.send":"ส่ง","chat.note":"คำตอบอัตโนมัติอ้างอิงข้อมูลในเว็บไซต์นี้ ข้อความจะถูกส่งต่อให้ฝ่ายรับสมัคร",
   "chat.greeting":"สันติสุขครับ/ค่ะ! ฉันคือผู้ช่วยรับสมัครของวิทยาลัยพระคริสตธรรม AMAS ตอบคำถามเรื่องการสมัคร ค่าเล่าเรียน และรายวิชาได้ หรือจะฝากข้อความถึงฝ่ายรับสมัครโดยตรงก็ได้ อยากทราบเรื่องอะไรครับ/คะ?","chat.fallback":"คำถามนี้ยังไม่มีคำตอบที่แน่ชัด แนะนำให้ฝากข้อความถึงฝ่ายรับสมัคร แล้วจะติดต่อกลับโดยเร็ว",
   "chat.chips.apply":"สมัครอย่างไร?","chat.chips.tuition":"ค่าเล่าเรียนเท่าไร?","chat.chips.courses":"มีวิชาอะไรบ้าง?","chat.chips.mode":"เรียนอย่างไร?","chat.chips.leave":"ฝากข้อความถึงฝ่ายรับสมัคร",
+  "chat.chips.human":"คุยกับเจ้าหน้าที่","chat.human.intro":"ได้เลย ติดต่อทีมงานรับสมัครได้โดยตรงทางช่องทางนี้ (ปกติตอบภายในวันเดียวกัน):","chat.human.wechat":"WeChat {id} · แตะเพื่อคัดลอก","chat.human.line":"Line {id} · แตะเพื่อคัดลอก","chat.human.note":"กรุณาระบุ \u201cสอบถาม AMAS\u201d เมื่อแอดเพื่อน หรือฝากข้อความไว้ที่นี่ ทีมงานจะติดต่อกลับ",
   "chat.kb.apply":"กด「สมัครเข้าเรียน」เพื่อกรอกใบสมัครออนไลน์ (ประมาณ 3 นาที) หลังส่งแล้วฝ่ายรับสมัครจะติดต่อกลับเพื่อแนะนำขั้นตอนต่อไป หรือดาวน์โหลดใบสมัครฉบับเต็ม (Word) ได้ที่ศูนย์ทรัพยากร",
   "chat.kb.tuition":"ค่าเล่าเรียนคิดเป็นรายวิชา จ่ายทีละวิชา จำนวนเงินโปรดสอบถามฝ่ายรับสมัครโดยตรง ผู้เรียนที่มีข้อจำกัดทางการเงินสามารถขอส่วนลด ผ่อนชำระ หรือความช่วยเหลืออื่นได้","chat.kb.tuitionBtn":"ดูค่าเล่าเรียนและการช่วยเหลือ",
   "chat.kb.courses":"หลักสูตรทางการมีวิชาบังคับ 35 วิชา วิชาเลือก 13 วิชา และการฝึกฝ่ายวิญญาณ 11 รายการ (100 หน่วยกิตสำหรับ G.Dip/M.Div) ครอบคลุมพระคัมภีร์ ศาสนศาสตร์ ประวัติศาสตร์ และภาษา","chat.kb.coursesBtn":"ดูรายวิชา",
@@ -1105,12 +1109,15 @@ function chatGreet(){
     { label: t("chat.chips.tuition"), fn: () => chatAsk(t("chat.chips.tuition")) },
     { label: t("chat.chips.courses"), fn: () => chatAsk(t("chat.chips.courses")) },
     { label: t("chat.chips.mode"),    fn: () => chatAsk(t("chat.chips.mode")) },
+    { label: t("chat.chips.human"),   fn: startHumanFlow },
     { label: t("chat.chips.leave"),   fn: startLeaveFlow }
   ]);
 }
 
 /* 站点知识库：test 对中英输入都生效 */
 const CHAT_KB = [
+  { test: /人工|真人|客服|活人|转人工|human|real\s*person|agent|staff|상담원|사람과|เจ้าหน้าที่|คนจริง/i,
+    custom: () => startHumanFlow() },
   { test: /申请|报名|报读|apply|admission|enroll|지원|신청|입학|สมัคร|เข้าเรียน/i,
     reply: () => t("chat.kb.apply"),
     action: () => chatAction(t("actions.applyNow"), () => { closeChat(); openApplication(); }) },
@@ -1145,12 +1152,35 @@ const CHAT_KB = [
 function ruleAnswer(q){
   for(const item of CHAT_KB){
     if(item.test.test(q)){
+      if(item.custom){ item.custom(); return true; }
       chatMsg(item.reply(), "bot");
       item.action?.();
       return true;
     }
   }
   return false;
+}
+
+/* 人工客服：直接给出同工联系方式（微信/Line 复制、邮件直达） */
+function startHumanFlow(){
+  chatMsg(t("chat.human.intro"), "bot");
+  const c = CONFIG.contact || {};
+  const wrap = document.createElement("div");
+  wrap.className = "chat-chips";
+  const mk = (label, fn) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = label;
+    b.addEventListener("click", fn);
+    wrap.appendChild(b);
+  };
+  if(c.wechat) mk(t("chat.human.wechat", { id: c.wechat }), () =>
+    navigator.clipboard?.writeText(c.wechat).then(() => toast(t("toast.copied"))).catch(() => {}));
+  if(c.line) mk(t("chat.human.line", { id: c.line }), () =>
+    navigator.clipboard?.writeText(c.line).then(() => toast(t("toast.copied"))).catch(() => {}));
+  if(c.email) mk("\ud83d\udce7 " + c.email, () => { location.href = "mailto:" + c.email; });
+  chatBody.appendChild(wrap);
+  chatMsg(t("chat.human.note"), "bot");
+  chatBody.scrollTop = chatBody.scrollHeight;
 }
 
 /* 留言流程：姓名 → 联系方式 → 内容 → 提交 */
