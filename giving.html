@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>奉献方式 | AMAS</title>
+<link rel="icon" href="assets/img/favicon.png">
+<script src="assets/js/supabase-config.js"></script>
+<link rel="stylesheet" href="assets/css/main.css">
+<style>
+  .gv-wrap{max-width:860px;margin:0 auto;padding:40px 18px 70px}
+  .gv-top{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:26px}
+  .gv-back{font-size:13.5px;color:#a5742f;border-bottom:1px solid rgba(183,138,53,.4);padding-bottom:1px}
+  .gv-langs{display:flex;gap:6px}
+  .gv-langs button{border:1px solid var(--line);background:var(--surface,#fffdf9);color:var(--muted);font-size:12px;padding:4px 10px;border-radius:999px;cursor:pointer}
+  .gv-langs button.active{background:#163b2d;color:#fff;border-color:#163b2d}
+  .gv-head{text-align:center;margin-bottom:26px}
+  .gv-head img{width:84px;height:84px;border-radius:50%}
+  .gv-head h1{font-family:"Noto Serif SC","Songti SC",serif;font-size:30px;color:var(--ink);margin:14px 0 8px;letter-spacing:.06em}
+  .gv-verse{font-family:"Noto Serif SC","Songti SC",serif;font-size:14.5px;color:#8a6a1f;line-height:1.8}
+  .gv-verse small{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+  .gv-privacy{margin:18px auto 26px;max-width:640px;font-size:12.5px;color:var(--muted);background:var(--surface,#fffdf9);border:1px dashed rgba(183,138,53,.45);border-radius:10px;padding:12px 16px;text-align:center}
+  .reveal-box{max-width:520px;border:1px solid var(--line);border-radius:12px;background:var(--surface,#fffdf9);padding:20px}
+  .reveal-box[hidden]{display:none}
+  .reveal-box dl{display:grid;grid-template-columns:110px 1fr;gap:8px 14px;margin:0;font-size:14px}
+  .reveal-box dt{color:var(--muted)}
+  .reveal-box dd{margin:0;font-weight:600;color:var(--ink)}
+  html[data-theme="night"] body{background:#0b0d0a}
+</style>
+</head>
+<body>
+<div class="gv-wrap">
+  <div class="gv-top">
+    <a class="gv-back" href="index.html#giving" data-i18n="back">← 返回官网</a>
+    <div class="gv-langs">
+      <button type="button" data-setlang="zh">中文</button><button type="button" data-setlang="en">EN</button><button type="button" data-setlang="ko">한국어</button><button type="button" data-setlang="th">ไทย</button>
+    </div>
+  </div>
+
+  <div class="gv-head">
+    <img src="assets/img/school-seal.webp" alt="AMAS">
+    <h1 data-i18n="title">奉献方式</h1>
+    <p class="gv-verse"><span data-i18n="verse">“捐得乐意的人是神所喜爱的。”</span><small data-i18n="verseRef">— 哥林多后书 9:7</small></p>
+  </div>
+
+  <p class="gv-privacy" data-i18n="privacy">为保护奉献渠道，本页不对搜索引擎公开；请勿在公开社交平台转发本页截图，分享请直接告知官网地址。</p>
+
+  <div class="giving-how">
+    <div class="gtabs" role="tablist">
+      <button class="gtab active" type="button" data-pane="wechat" data-i18n="tabWechat">微信</button>
+      <button class="gtab" type="button" data-pane="alipay" data-i18n="tabAlipay">支付宝</button>
+      <button class="gtab" type="button" data-pane="thai" data-i18n="tabThai">泰国转账</button>
+      <button class="gtab" type="button" data-pane="intl" data-i18n="tabIntl">PayPal / 海外</button>
+    </div>
+    <div class="gpane active" data-pane="wechat">
+      <div class="qr-slot" id="qrWechat"><span data-i18n="qrSoon">收款码即将开通，可先联系招生同工奉献。</span></div>
+    </div>
+    <div class="gpane" data-pane="alipay">
+      <div class="qr-slot" id="qrAlipay"><span data-i18n="qrSoon">收款码即将开通，可先联系招生同工奉献。</span></div>
+    </div>
+    <div class="gpane" data-pane="thai">
+      <div class="qr-slot" id="qrThai"><span data-i18n="thaiSoon">泰国银行账户信息即将公布；开通后需点击按钮才会显示，避免无意曝光。</span></div>
+      <!-- 账户资料到位后启用：
+      <button class="btn secondary" id="revealThai" data-i18n="reveal">点击显示账户信息</button>
+      <div class="reveal-box" id="thaiBox" hidden>
+        <dl><dt>银行</dt><dd>____</dd><dt>户名</dt><dd>____</dd><dt>账号</dt><dd>____</dd></dl>
+      </div> -->
+    </div>
+    <div class="gpane" data-pane="intl">
+      <div class="qr-slot" id="qrIntl"><span data-i18n="intlSoon">PayPal 即将开通；届时此处会有一键跳转按钮。现可先邮件联系 amasthai2026@gmail.com。</span></div>
+    </div>
+  </div>
+
+  <div class="giving-notify">
+    <h3 data-i18n="notify">奉献后请告诉我们</h3>
+    <p data-i18n="notifyDesc">留下你的信息，方便同工确认并为你献上感恩；如需奉献确认或了解使用情况，也欢迎注明。</p>
+    <form class="giving-form" id="gvForm">
+      <label><span data-i18n="fName">姓名</span><input name="name" required></label>
+      <label><span data-i18n="fAmount">金额（选填）</span><input name="amount"></label>
+      <label><span data-i18n="fDir">奉献方向</span>
+        <select name="direction">
+          <option value="general" data-i18n="dGeneral">由学校统筹安排</option>
+          <option value="student" data-i18n="d1">学员助学</option>
+          <option value="teaching" data-i18n="d2">教学事工</option>
+          <option value="mission" data-i18n="d3">宣教士训练</option>
+        </select>
+      </label>
+      <label><span data-i18n="fContact">联系方式（选填）</span><input name="contact"></label>
+      <div class="giving-actions">
+        <button class="btn primary" type="submit"><span data-i18n="send">发送通知</span></button>
+        <span class="giving-status" id="gvStatus" aria-live="polite"></span>
+      </div>
+    </form>
+  </div>
+
+  <p class="giving-note" data-i18n="note">奉献完全出于自愿，用于学员助学、教学与宣教事工；如需了解奉献的使用情况，欢迎随时与我们联系。</p>
+</div>
+
+<script>
+const $ = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const L10N = {
+ zh:{back:"← 返回官网",title:"奉献方式",verse:"“各人要随本心所酌定的，不要作难，不要勉强，因为捐得乐意的人是神所喜爱的。”",verseRef:"— 哥林多后书 9:7",
+  privacy:"为保护奉献渠道，本页不对搜索引擎公开；请勿在公开社交平台转发本页截图，分享请直接告知官网地址。",
+  tabWechat:"微信",tabAlipay:"支付宝",tabThai:"泰国转账",tabIntl:"PayPal / 海外",
+  qrSoon:"收款码即将开通，可先联系招生同工奉献。",thaiSoon:"泰国银行账户信息即将公布；开通后需点击按钮才会显示，避免无意曝光。",intlSoon:"PayPal 即将开通；届时此处会有一键跳转按钮。现可先邮件联系 amasthai2026@gmail.com。",
+  reveal:"点击显示账户信息",notify:"奉献后请告诉我们",notifyDesc:"留下你的信息，方便同工确认并为你献上感恩；如需奉献确认或了解使用情况，也欢迎注明。",
+  fName:"姓名",fAmount:"金额（选填）",fDir:"奉献方向",dGeneral:"由学校统筹安排",d1:"学员助学",d2:"教学事工",d3:"宣教士训练",fContact:"联系方式（选填）",send:"发送通知",sending:"提交中…",
+  ok:"已收到，愿主纪念你的摆上！",fail:"发送失败，请稍后再试，或直接联系我们。",
+  note:"奉献完全出于自愿，用于学员助学、教学与宣教事工；如需了解奉献的使用情况，欢迎随时与我们联系。"},
+ en:{back:"← Back to Website",title:"Ways to Give",verse:"“Each of you should give what you have decided in your heart to give, not reluctantly or under compulsion, for God loves a cheerful giver.”",verseRef:"— 2 Corinthians 9:7",
+  privacy:"To protect our giving channels this page is hidden from search engines; please do not repost screenshots publicly — share the website address instead.",
+  tabWechat:"WeChat",tabAlipay:"Alipay",tabThai:"Thai Bank",tabIntl:"PayPal / International",
+  qrSoon:"Payment QR coming soon — please contact our team to give for now.",thaiSoon:"Thai bank details coming soon; they will be shown only after a click, to avoid casual exposure.",intlSoon:"PayPal coming soon with a one-click button. For now please email amasthai2026@gmail.com.",
+  reveal:"Click to show account details",notify:"Let Us Know After Giving",notifyDesc:"Leave your details so our team can confirm and give thanks for you; note if you need a confirmation or a report of use.",
+  fName:"Name",fAmount:"Amount (optional)",fDir:"Designation",dGeneral:"Where most needed",d1:"Student Aid",d2:"Teaching Ministry",d3:"Missionary Training",fContact:"Contact (optional)",send:"Send Notice",sending:"Submitting…",
+  ok:"Received — may the Lord remember your gift!",fail:"Failed to send. Please try again or contact us directly.",
+  note:"Giving is entirely voluntary and is used for student aid, teaching and mission; you are welcome to ask how gifts are used at any time."},
+ ko:{back:"← 홈페이지로",title:"후원 방법",verse:"“각각 그 마음에 정한 대로 할 것이요 인색함으로나 억지로 하지 말지니 하나님은 즐겁게 내는 자를 사랑하시느니라.”",verseRef:"— 고린도후서 9:7",
+  privacy:"후원 채널 보호를 위해 이 페이지는 검색엔진에 공개되지 않습니다. 스크린샷을 공개적으로 공유하지 마시고 홈페이지 주소로 안내해 주세요.",
+  tabWechat:"위챗",tabAlipay:"알리페이",tabThai:"태국 송금",tabIntl:"PayPal / 해외",
+  qrSoon:"QR 코드는 공개 예정입니다. 먼저 담당자에게 문의해 주세요.",thaiSoon:"태국 은행 계좌는 공개 예정이며, 노출 방지를 위해 클릭 시에만 표시됩니다.",intlSoon:"PayPal은 곧 오픈됩니다. 지금은 amasthai2026@gmail.com 으로 연락해 주세요.",
+  reveal:"클릭하여 계좌 정보 보기",notify:"후원 후 알려주세요",notifyDesc:"정보를 남겨 주시면 확인 후 감사를 드립니다. 확인서나 사용 내역이 필요하면 기재해 주세요.",
+  fName:"이름",fAmount:"금액(선택)",fDir:"후원 방향",dGeneral:"학교 재량에 맡김",d1:"학생 장학",d2:"교육 사역",d3:"선교사 훈련",fContact:"연락처(선택)",send:"알림 보내기",sending:"제출 중…",
+  ok:"접수되었습니다. 주님께서 당신의 드림을 기억하시기를!",fail:"전송 실패. 잠시 후 다시 시도하거나 직접 연락해 주세요.",
+  note:"후원은 전적으로 자발적이며 학생 장학·교육·선교 사역에 사용됩니다. 사용 내역은 언제든 문의하실 수 있습니다."},
+ th:{back:"← กลับหน้าเว็บ",title:"ช่องทางถวาย",verse:"“ทุกคนจงให้ตามที่ตนคิดหมายไว้ในใจ มิใช่ด้วยนิสัยเสียดายหรือด้วยความจำใจ เพราะว่าพระเจ้าทรงรักคนที่ให้ด้วยใจยินดี”",verseRef:"— 2 โครินธ์ 9:7",
+  privacy:"เพื่อปกป้องช่องทางถวาย หน้านี้ไม่เปิดต่อเสิร์ชเอนจิน โปรดอย่าแชร์ภาพหน้าจอในที่สาธารณะ แนะนำด้วยที่อยู่เว็บไซต์แทน",
+  tabWechat:"WeChat",tabAlipay:"Alipay",tabThai:"โอนธนาคารไทย",tabIntl:"PayPal / ต่างประเทศ",
+  qrSoon:"QR จะเปิดให้เร็ว ๆ นี้ ติดต่อทีมงานก่อนได้",thaiSoon:"ข้อมูลบัญชีธนาคารไทยจะประกาศเร็ว ๆ นี้ และจะแสดงเมื่อคลิกเท่านั้น",intlSoon:"PayPal จะเปิดเร็ว ๆ นี้ ตอนนี้อีเมล amasthai2026@gmail.com ก่อนได้",
+  reveal:"คลิกเพื่อแสดงข้อมูลบัญชี",notify:"ถวายแล้วบอกเราด้วย",notifyDesc:"ฝากข้อมูลไว้เพื่อให้ทีมงานยืนยันและขอบคุณพระคุณสำหรับคุณ",
+  fName:"ชื่อ",fAmount:"จำนวน (ไม่บังคับ)",fDir:"วัตถุประสงค์",dGeneral:"ให้วิทยาลัยจัดสรร",d1:"ทุนการศึกษา",d2:"พันธกิจการสอน",d3:"อบรมมิชชันนารี",fContact:"ช่องทางติดต่อ (ไม่บังคับ)",send:"ส่งแจ้ง",sending:"กำลังส่ง…",
+  ok:"ได้รับแล้ว ขอพระเจ้าทรงระลึกถึงของถวายของคุณ!",fail:"ส่งไม่สำเร็จ โปรดลองใหม่หรือติดต่อเรา",
+  note:"การถวายเป็นไปโดยสมัครใจ ใช้เพื่อทุนการศึกษา การสอน และมิชชัน สอบถามการใช้ได้ทุกเมื่อ"}
+};
+let lang="zh";
+try{ lang=localStorage.getItem("amas-lang")||"zh"; }catch(e){}
+try{ const u=new URLSearchParams(location.search).get("lang"); if(u&&L10N[u]) lang=u; }catch(e){}
+if(!L10N[lang]) lang="zh";
+const LT=k=>(L10N[lang]&&L10N[lang][k])||L10N.zh[k]||k;
+function applyLang(l){
+  lang=L10N[l]?l:"zh";
+  try{localStorage.setItem("amas-lang",lang);}catch(e){}
+  document.documentElement.lang=({zh:"zh-CN",en:"en",ko:"ko",th:"th"})[lang];
+  $$("[data-i18n]").forEach(el=>{const v=LT(el.dataset.i18n); if(v) el.textContent=v;});
+  $$(".gv-langs button").forEach(b=>b.classList.toggle("active",b.dataset.setlang===lang));
+}
+$$(".gv-langs button").forEach(b=>b.addEventListener("click",()=>applyLang(b.dataset.setlang)));
+applyLang(lang);
+
+$$(".gtab").forEach(b=>b.addEventListener("click",()=>{
+  $$(".gtab").forEach(x=>x.classList.toggle("active",x===b));
+  $$(".gpane").forEach(p=>p.classList.toggle("active",p.dataset.pane===b.dataset.pane));
+}));
+
+$("#gvForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const form=e.currentTarget;
+  if(!form.checkValidity()) return form.reportValidity();
+  const data=Object.fromEntries(new FormData(form).entries());
+  const st=$("#gvStatus");
+  st.textContent=LT("sending");
+  try{
+    const res=await fetch("https://formsubmit.co/ajax/amasthai2026@gmail.com",{
+      method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},
+      body:JSON.stringify({_subject:"AMAS 奉献通知 — "+(data.name||""),_template:"table",
+        _autoresponse:"感谢你的奉献与支持！我们已收到通知，愿主纪念你的摆上。Thank you for your gift — we have received your notice.",
+        姓名:data.name,金额:data.amount||"",方向:data.direction,联系方式:data.contact||"",语言:lang})
+    });
+    if(!res.ok) throw new Error();
+    try{
+      const S=window.SUPA||{};
+      if(S.url&&S.anonKey){
+        fetch(S.url+"/rest/v1/submissions",{method:"POST",headers:{apikey:S.anonKey,Authorization:"Bearer "+S.anonKey,"Content-Type":"application/json",Prefer:"return=minimal"},
+          body:JSON.stringify({type:"giving",name:String(data.name||""),contact:String(data.contact||""),program:"",lang:lang,data:data})}).catch(()=>{});
+      }
+    }catch(err){}
+    st.textContent=LT("ok"); form.reset();
+  }catch(err){ st.textContent=LT("fail"); }
+});
+</script>
+</body>
+</html>

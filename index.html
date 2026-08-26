@@ -698,40 +698,9 @@
         <div class="gdir"><b data-i18n="giving.d3">宣教士训练</b><span data-i18n="giving.d3b">支持差派预备中的工人</span></div>
       </div>
 
-      <div class="giving-how reveal">
-        <h3 data-i18n="giving.how">奉献方式</h3>
-        <div class="gtabs" role="tablist">
-          <button class="gtab active" type="button" data-pane="wechat" data-i18n="giving.tab.wechat">微信</button>
-          <button class="gtab" type="button" data-pane="alipay" data-i18n="giving.tab.alipay">支付宝</button>
-          <button class="gtab" type="button" data-pane="thai" data-i18n="giving.tab.thai">泰国转账</button>
-          <button class="gtab" type="button" data-pane="intl" data-i18n="giving.tab.intl">海外</button>
-        </div>
-        <div class="gpane active" data-pane="wechat"><div class="qr-slot" id="qrWechat"><span data-i18n="giving.qrSoon">收款码即将开通，可先联系招生同工奉献。</span></div></div>
-        <div class="gpane" data-pane="alipay"><div class="qr-slot" id="qrAlipay"><span data-i18n="giving.qrSoon">收款码即将开通，可先联系招生同工奉献。</span></div></div>
-        <div class="gpane" data-pane="thai"><div class="qr-slot" id="qrThai"><span data-i18n="giving.thaiSoon">泰国银行账户信息即将公布，可先联系我们获取。</span></div></div>
-        <div class="gpane" data-pane="intl"><div class="qr-slot" id="qrIntl"><span data-i18n="giving.intlSoon">PayPal 与国际电汇信息即将公布，可先邮件联系 amasthai2026@gmail.com。</span></div></div>
-      </div>
-
-      <div class="giving-notify reveal">
-        <h3 data-i18n="giving.notify">奉献后请告诉我们</h3>
-        <p data-i18n="giving.notifyDesc">留下你的信息，方便同工确认并为你献上感恩；如需奉献确认或了解使用情况，也欢迎注明。</p>
-        <form class="giving-form" id="givingForm">
-          <label><span data-i18n="giving.fName">姓名</span><input name="name" required></label>
-          <label><span data-i18n="giving.fAmount">金额（选填）</span><input name="amount"></label>
-          <label><span data-i18n="giving.fDir">奉献方向</span>
-            <select name="direction">
-              <option value="general" data-i18n="giving.dGeneral">由学校统筹安排</option>
-              <option value="student" data-i18n="giving.d1">学员助学</option>
-              <option value="teaching" data-i18n="giving.d2">教学事工</option>
-              <option value="mission" data-i18n="giving.d3">宣教士训练</option>
-            </select>
-          </label>
-          <label><span data-i18n="giving.fContact">联系方式（选填）</span><input name="contact"></label>
-          <div class="giving-actions">
-            <button class="btn primary" type="submit"><span data-i18n="giving.send">发送通知</span></button>
-            <span class="giving-status" id="givingStatus" aria-live="polite"></span>
-          </div>
-        </form>
+      <div class="giving-cta reveal">
+        <a class="btn primary" href="giving.html"><span data-i18n="giving.cta">查看奉献方式</span><span>→</span></a>
+        <span class="giving-cta-note" data-i18n="giving.ctaNote">收款方式在独立页面提供，以保护奉献渠道。</span>
       </div>
 
       <p class="giving-note reveal" data-i18n="giving.note">奉献完全出于自愿，用于学员助学、教学与宣教事工；如需了解奉献的使用情况，欢迎随时与我们联系。</p>
