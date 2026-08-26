@@ -907,3 +907,13 @@ html[data-theme="night"] .gtab.active{color:#f4ecd8;border-color:rgba(213,180,10
 html[data-theme="night"] .giving-actions .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);color:#f4ecd8;border-color:rgba(213,180,107,.45)}
 @media(max-width:860px){.giving-dirs{grid-template-columns:1fr}}
 @media(max-width:580px){.giving-form{grid-template-columns:1fr}}
+
+
+/* 版块经文 */
+.sec-verse{margin:12px 0 0;font-family:"Noto Serif SC","Songti SC",serif;font-size:14px;line-height:1.8;color:#8a6a1f}
+.sec-verse small{display:block;margin-top:2px;font-size:11px;color:var(--muted)}
+html[data-theme="night"] .sec-verse{color:#c9a54e}
+
+/* 导航 9 项适配 */
+.desktop-nav{font-size:14.5px}
+@media(max-width:1500px){.desktop-nav{font-size:13.5px;gap:clamp(10px,1.2vw,20px)}}
