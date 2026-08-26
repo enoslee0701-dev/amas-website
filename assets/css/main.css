@@ -923,3 +923,78 @@ html[data-theme="night"] .sec-verse{color:#c9a54e}
 .giving-cta .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);border-color:#14382a}
 html[data-theme="night"] .giving-cta .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);color:#f4ecd8;border-color:rgba(213,180,107,.45)}
 .giving-cta-note{font-size:12.5px;color:var(--muted)}
+
+
+/* ===== 全页配色节奏：打破单一米黄 ===== */
+html:not([data-theme="night"]) .accreditation-section{background:#fbfbf8}
+html:not([data-theme="night"]) .courses-section{background:#eef2ec}
+html:not([data-theme="night"]) .programs-section{background:#fbfbf7}
+html:not([data-theme="night"]) .life-section{background:#f6f8f4}
+html:not([data-theme="night"]) .resources-section{background:#eef0f2}
+html:not([data-theme="night"]) .admissions-section::after{background:linear-gradient(100deg,rgba(238,237,230,.97) 0%,rgba(238,237,230,.92) 50%,rgba(238,237,230,.80) 100%)}
+html:not([data-theme="night"]) .faq-section::after{background:linear-gradient(100deg,rgba(250,249,246,.97) 0%,rgba(250,249,246,.94) 55%,rgba(250,249,246,.88) 100%)}
+
+/* ===== 奉献支持：深绿科技风 ===== */
+.giving-section{background:
+  radial-gradient(circle at 88% 12%,rgba(233,196,106,.14),transparent 42%),
+  radial-gradient(circle at 8% 85%,rgba(70,140,110,.18),transparent 45%),
+  linear-gradient(rgba(233,196,106,.045) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(233,196,106,.045) 1px,transparent 1px),
+  linear-gradient(150deg,#122e23,#0a1f18);
+  background-size:auto,auto,46px 46px,46px 46px,auto}
+.giving-section .eyebrow{color:#d5b46b}
+.giving-section h2{color:#fff}
+.giving-section .giving-verse{color:#e9dfc6}
+.giving-section .giving-verse small{color:#c9963d}
+.giving-section .section-head p{color:#b7c4bc}
+.giving-section .gdir{background:rgba(255,255,255,.05);border-color:rgba(233,196,106,.30);border-left-color:#d5b46b;backdrop-filter:blur(2px)}
+.giving-section .gdir b{color:#fff}
+.giving-section .gdir span{color:#a9b6ad}
+.giving-section .giving-cta .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);color:#f4ecd8;border:1px solid rgba(213,180,107,.55)}
+.giving-section .giving-cta-note{color:#9fb0a6}
+.giving-section .giving-note{color:#8ba092}
+
+/* ===== 数字校园：深蓝科技风 ===== */
+.digital-section{background:#0a1626}
+.digital-section::after{background:
+  radial-gradient(circle at 85% 10%,rgba(90,160,230,.13),transparent 45%),
+  radial-gradient(circle at 10% 90%,rgba(233,196,106,.09),transparent 40%),
+  linear-gradient(rgba(140,180,220,.05) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(140,180,220,.05) 1px,transparent 1px),
+  linear-gradient(115deg,rgba(8,17,30,.97) 0%,rgba(8,17,30,.93) 45%,rgba(10,22,38,.88) 100%);
+  background-size:auto,auto,46px 46px,46px 46px,auto}
+html[data-theme="night"] .digital-section::after{background:
+  radial-gradient(circle at 85% 10%,rgba(90,160,230,.13),transparent 45%),
+  linear-gradient(rgba(140,180,220,.05) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(140,180,220,.05) 1px,transparent 1px),
+  linear-gradient(115deg,rgba(6,13,23,.97) 0%,rgba(6,13,23,.93) 45%,rgba(8,18,31,.9) 100%);
+  background-size:auto,46px 46px,46px 46px,auto}
+.digital-section .eyebrow{color:#8fb7dd}
+.digital-section h2{color:#fff}
+.digital-section .section-head p{color:#b4c2d2}
+.digital-section .sec-verse{color:#d5b46b}
+.digital-section .sec-verse small{color:#8fa0b8}
+.digital-section .digital-card{background:rgba(255,255,255,.05);border-color:rgba(140,180,220,.20);box-shadow:none;backdrop-filter:blur(2px)}
+.digital-section .digital-card>span{color:#8fb7dd}
+.digital-section .digital-card h3{color:#fff}
+.digital-section .digital-card p{color:#a9b6c4}
+.digital-section .icon-chip{background:rgba(143,183,221,.12);color:#8fb7dd}
+.digital-section .digital-note{color:#93a3b4}
+.digital-section .digital-note b{color:#d5b46b}
+
+/* ===== 页脚：深蓝多栏 ===== */
+.footer{background:linear-gradient(180deg,#0c1526,#070d19);color:#b9c2d2;padding:62px 0 24px}
+html[data-theme="night"] .footer{background:linear-gradient(180deg,#0a1220,#060b15)}
+.footer-top{display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr;gap:54px;align-items:start}
+.footer-id{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.footer-id img{width:56px;height:56px;border-radius:50%;background:#fff;flex-shrink:0}
+.footer-brand{font-family:"Noto Serif SC",Georgia,serif;color:#fff;font-size:19px;font-weight:700;letter-spacing:.04em;line-height:1.35}
+.footer-brand small{display:block;font-family:Georgia,serif;font-size:9px;letter-spacing:.17em;color:#8fa0b8;font-weight:400;margin-top:5px}
+.footer-desc{font-size:13px;line-height:2;color:#9fb0c6;max-width:330px;margin:0}
+.footer-col h4{font-size:14.5px;color:#e9c46a;margin:2px 0 18px;font-weight:700;font-family:"Noto Serif SC",Georgia,serif}
+.footer-col a{display:block;font-size:13px;color:#b9c2d2;margin-bottom:13px;transition:color .15s}
+.footer-col a:hover{color:#e9c46a}
+.footer-bottom{margin-top:44px;padding-top:18px;border-top:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;font-size:11px;color:#7e8da3}
+.footer-bottom button{border:0;background:transparent;color:#d5b46b;cursor:pointer}
+@media(max-width:960px){.footer-top{grid-template-columns:1fr 1fr;gap:36px}}
+@media(max-width:560px){.footer-top{grid-template-columns:1fr}}
