@@ -816,3 +816,46 @@ html[data-theme="night"] .promo-actions .btn.primary{background:linear-gradient(
 .copy-btn{margin-left:8px;border:1px solid var(--line);background:var(--paper2,#f4efe3);color:var(--olive-dark);font-size:11px;padding:3px 9px;border-radius:999px;cursor:pointer;vertical-align:1px}
 .copy-btn:hover{border-color:var(--olive-dark)}
 html[data-theme="night"] .copy-btn{background:rgba(255,255,255,.06)}
+
+
+/* 官方课程表新增课程封面 */
+.thumb-c-the202{background-image:url("../img/courses/the202.webp")}
+.thumb-c-the203{background-image:url("../img/courses/the203.webp")}
+.thumb-c-his201{background-image:url("../img/courses/his201.webp")}
+.thumb-c-his301{background-image:url("../img/courses/his301.webp")}
+.thumb-c-his302{background-image:url("../img/courses/his302.webp")}
+.thumb-c-lan201{background-image:url("../img/courses/lan201.webp")}
+.thumb-c-lan301{background-image:url("../img/courses/lan301.webp")}
+.thumb-c-min204{background-image:url("../img/courses/min204.webp")}
+.thumb-c-min304{background-image:url("../img/courses/min304.webp")}
+.thumb-c-min305{background-image:url("../img/courses/min305.webp")}
+.thumb-c-min306{background-image:url("../img/courses/min306.webp")}
+.thumb-c-min307{background-image:url("../img/courses/min307.webp")}
+.thumb-c-min314{background-image:url("../img/courses/min314.webp")}
+.thumb-c-gen101{background-image:url("../img/courses/gen101.webp")}
+.thumb-c-ele101{background-image:url("../img/courses/ele101.webp")}
+.thumb-c-ele102{background-image:url("../img/courses/ele102.webp")}
+.thumb-c-ele103{background-image:url("../img/courses/ele103.webp")}
+.thumb-c-ele104{background-image:url("../img/courses/ele104.webp")}
+.thumb-c-ele105{background-image:url("../img/courses/ele105.webp")}
+.thumb-c-ele106{background-image:url("../img/courses/ele106.webp")}
+.thumb-c-ele107{background-image:url("../img/courses/ele107.webp")}
+.thumb-c-ele108{background-image:url("../img/courses/ele108.webp")}
+.thumb-c-ele109{background-image:url("../img/courses/ele109.webp")}
+.thumb-c-ele110{background-image:url("../img/courses/ele110.webp")}
+.thumb-c-ele111{background-image:url("../img/courses/ele111.webp")}
+.thumb-c-ele112{background-image:url("../img/courses/ele112.webp")}
+.thumb-c-ele113{background-image:url("../img/courses/ele113.webp")}
+
+/* 课程 meta 双标签 */
+.course-meta{display:flex;gap:8px;justify-content:flex-end}
+
+/* 属灵训练与毕业要求 */
+.training-panel{margin-top:34px;border:1px solid rgba(183,138,53,.4);border-radius:14px;background:linear-gradient(160deg,#14382a,#0d2b21);color:#f4ecd8;padding:30px 34px}
+.training-head h3{font-family:"Noto Serif SC","Songti SC",serif;font-size:22px;color:#fff;margin:6px 0 8px}
+.training-head p{margin:0 0 14px;font-size:13px;color:#c3bda9;line-height:1.7}
+.training-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;column-gap:36px}
+.training-list li{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:10px 0;border-bottom:1px dashed rgba(255,255,255,.16);font-size:13.5px}
+.training-list b{color:#e9c46a;white-space:nowrap;font-weight:700}
+.training-list b i{font-style:normal;font-weight:400;font-size:11px;color:#b9b29c}
+@media(max-width:700px){.training-list{grid-template-columns:1fr}}
