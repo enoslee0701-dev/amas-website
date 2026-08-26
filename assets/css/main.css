@@ -998,3 +998,9 @@ html[data-theme="night"] .footer{background:linear-gradient(180deg,#0a1220,#060b
 .footer-bottom button{border:0;background:transparent;color:#d5b46b;cursor:pointer}
 @media(max-width:960px){.footer-top{grid-template-columns:1fr 1fr;gap:36px}}
 @media(max-width:560px){.footer-top{grid-template-columns:1fr}}
+
+/* 定制化神学：快速测评入口 */
+.app-try-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:20px}
+.app-try{display:inline-flex;align-items:center;gap:8px;height:46px;padding:0 24px;border-radius:999px;background:linear-gradient(180deg,#F4D796,#E1B75F);color:#123061;font-size:14px;font-weight:700;box-shadow:0 8px 18px rgba(160,116,38,.28);transition:.2s}
+.app-try:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(160,116,38,.36)}
+.app-try-note{font-size:12px;color:#93a3b4}

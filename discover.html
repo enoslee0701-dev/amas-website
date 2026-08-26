@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>3 分钟发现你的属灵成长阶段 · AMAS 定制化神学</title>
+<meta name="description" content="AMAS 亚洲宣教神学院 · 定制化神学快速测评：3 分钟了解你的信仰根基与装备方向，获取专属成长建议。" />
+<link rel="icon" href="assets/img/favicon.png">
+<style>
+  :root {
+    --navy: #04285F; --navy2: #071A3C; --gold: #C99A45; --gold-l: #F2D493;
+    --ink: #1F2A37; --sub: #667085; --line: rgba(20,40,90,.08);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+    background: #F5F7FA; color: var(--ink); min-height: 100vh;
+  }
+  .wrap { max-width: 430px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+  .card {
+    background: #fff; border: 1px solid var(--line); border-radius: 18px;
+    box-shadow: 0 1px 2px rgba(16,24,40,.04), 0 2px 8px rgba(16,24,40,.04);
+  }
+  .gold-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    height: 46px; padding: 0 22px; border: none; border-radius: 999px; cursor: pointer;
+    background: linear-gradient(180deg, #F4D796 0%, #E1B75F 100%); color: #123061;
+    font-size: 14px; font-weight: 800; letter-spacing: .4px;
+    box-shadow: 0 8px 18px rgba(160,116,38,.28), inset 0 1px 0 rgba(255,255,255,.55);
+  }
+  .gold-btn:active { transform: scale(.98); }
+  .hidden { display: none !important; }
+  .fade { animation: fade .3s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* ---- landing ---- */
+  #landing .hero {
+    background: linear-gradient(160deg, #0B2450 0%, #071A3C 70%, #051530 100%);
+    color: #fff; padding: 42px 24px 34px; border-radius: 0 0 26px 26px; position: relative; overflow: hidden;
+  }
+  #landing .hero::after {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(85% 110% at 85% 0%, rgba(240,205,135,.14) 0%, rgba(240,205,135,0) 45%);
+  }
+  .eyebrow { font-size: 10px; font-weight: 800; letter-spacing: 2.4px; color: rgba(232,201,140,.9); margin-bottom: 10px; }
+  #landing h1 {
+    font-size: 25px; line-height: 1.35; font-weight: 900; letter-spacing: .5px; margin-bottom: 10px;
+    background: linear-gradient(180deg, #F7E3B4 10%, #E4BC6E 90%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  #landing .hero p { font-size: 13px; line-height: 1.8; color: rgba(233,238,248,.88); margin-bottom: 20px; }
+  .points { padding: 20px 18px 8px; }
+  .point { display: flex; gap: 12px; align-items: flex-start; padding: 13px 14px; margin-bottom: 10px; }
+  .point .ic {
+    flex: 0 0 36px; height: 36px; border-radius: 11px; display: grid; place-items: center;
+    background: linear-gradient(180deg, #FFF8EA, #F4E8CF); border: 1px solid #EBD8AE; color: #A9812F; font-size: 16px;
+  }
+  .point b { font-size: 13.5px; display: block; margin-bottom: 2px; }
+  .point span { font-size: 11.5px; color: var(--sub); line-height: 1.6; }
+  .note { font-size: 10.5px; color: #98A2B3; text-align: center; padding: 6px 26px 20px; line-height: 1.7; }
+
+  /* ---- quiz (one question per page) ---- */
+  #quiz { display: flex; flex-direction: column; min-height: 100vh; }
+  .topbar { display: flex; align-items: center; gap: 10px; background: #fff; border-bottom: 1px solid #E7EAF0; padding: 12px 16px; }
+  .topbar .x { border: none; background: none; font-size: 20px; color: #98A2B3; cursor: pointer; line-height: 1; padding: 4px; }
+  .topbar .t { font-size: 14.5px; font-weight: 800; }
+  .bar { flex: 1; height: 4px; border-radius: 99px; background: #EEF1F5; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--navy), var(--gold)); transition: width .3s ease; }
+  .count { font-size: 11px; font-weight: 700; color: #98A2B3; }
+  .qbody { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 18px 20px 26px; }
+  .chip {
+    display: inline-block; align-self: flex-start; font-size: 10px; font-weight: 800; letter-spacing: 1px;
+    color: var(--gold); background: #FBF6EA; border: 1px solid rgba(201,154,69,.28);
+    border-radius: 999px; padding: 3px 10px; margin-bottom: 10px;
+  }
+  .qcard { padding: 20px 18px; }
+  .qtext { font-size: 16px; line-height: 1.65; font-weight: 700; margin-bottom: 16px; }
+  .opt {
+    display: block; width: 100%; text-align: left; cursor: pointer; margin-bottom: 9px;
+    font-size: 13.5px; line-height: 1.5; font-weight: 600; color: var(--navy);
+    border: 1.5px solid rgba(4,40,95,.22); border-radius: 13px; padding: 13px 14px; background: #F8FAFF;
+  }
+  .opt:active { transform: scale(.99); }
+  .undo {
+    display: inline-flex; align-items: center; gap: 6px; margin: 14px auto 0; cursor: pointer;
+    font-size: 12.5px; font-weight: 700; color: #475467; background: #fff;
+    border: 1px solid #E2E5EB; border-radius: 999px; padding: 9px 18px;
+  }
+  .undo:disabled { opacity: .35; cursor: default; }
+
+  /* ---- result ---- */
+  #result { padding: 26px 20px 30px; }
+  .stage-chip {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 800; letter-spacing: 1px;
+    color: var(--gold); background: #FBF6EA; border: 1px solid rgba(201,154,69,.28);
+    border-radius: 999px; padding: 4px 11px; margin-bottom: 10px;
+  }
+  #result h2 { font-size: 21px; font-weight: 900; margin-bottom: 6px; }
+  #result .desc { font-size: 12.5px; color: var(--sub); line-height: 1.8; margin-bottom: 18px; }
+  .dimrow { display: grid; grid-template-columns: 62px 1fr 32px; align-items: center; gap: 10px; margin-bottom: 11px; }
+  .dimrow .n { font-size: 12px; font-weight: 700; color: #475467; }
+  .dimrow .track { height: 7px; border-radius: 99px; background: #EEF1F5; overflow: hidden; }
+  .dimrow .track i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #16397E, #2C55A6); }
+  .dimrow .v { font-size: 12px; font-weight: 800; text-align: right; }
+  .advice { background: #FBF6EA; border: 1px solid rgba(201,154,69,.25); border-radius: 14px; padding: 13px 14px; margin: 16px 0; }
+  .advice b { font-size: 12.5px; color: #5C4A1E; display: block; margin-bottom: 4px; }
+  .advice p { font-size: 11.5px; color: #7A6A45; line-height: 1.75; }
+  .cta-deep {
+    background: linear-gradient(160deg, #0B2450 0%, #071A3C 100%); color: #fff;
+    border: 1px solid rgba(232,201,140,.22); border-radius: 20px; padding: 20px 18px; margin-top: 18px;
+  }
+  .cta-deep b { color: var(--gold-l); font-size: 15px; display: block; margin-bottom: 5px; }
+  .cta-deep p { font-size: 11.5px; color: rgba(233,238,248,.85); line-height: 1.7; margin-bottom: 14px; }
+  .brand { text-align: center; padding: 22px 0 26px; color: #A9B1C1; }
+  .brand .l { font-size: 12px; font-weight: 700; letter-spacing: 3px; font-family: Georgia, serif; }
+  .brand .s { font-size: 8.5px; letter-spacing: 2px; margin-top: 4px; color: #C2C8D4; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ 着陆页 ============ -->
+  <div id="landing" class="fade">
+    <div class="hero">
+      <div style="position:relative;z-index:1">
+        <a href="index.html" style="display:inline-block;font-size:11px;color:rgba(233,238,248,.75);margin-bottom:14px;border-bottom:1px solid rgba(233,238,248,.3);padding-bottom:1px">← AMAS 官网</a>
+        <div class="eyebrow">AMAS · PERSONALIZED THEOLOGY</div>
+        <h1>3 分钟，发现你的<br/>属灵成长阶段</h1>
+        <p>不是考试，没有对错。8 道题快速了解你的信仰根基与装备方向，立即获得专属成长建议。</p>
+        <button class="gold-btn" onclick="startQuiz()">开始快速测评 →</button>
+      </div>
+    </div>
+    <div class="points">
+      <div class="card point"><div class="ic">✦</div><div><b>成长阶段定位</b><span>了解你处于初信扎根、稳定成长还是服事装备阶段</span></div></div>
+      <div class="card point"><div class="ic">◈</div><div><b>四维快照</b><span>圣经 · 福音 · 生命 · 服事，四个维度的即时画像</span></div></div>
+      <div class="card point"><div class="ic">➤</div><div><b>下一步建议</b><span>根据结果给出你现在最值得开始的一件事</span></div></div>
+    </div>
+    <p class="note">测评在 AMAS 神学框架内进行，以圣经为最高权威。结果仅作装备参考，不构成对个人信仰状态的评判。完整的九维诊断与成长档案请在 AMAS App 中进行。</p>
+  </div>
+
+  <!-- ============ 答题（一页一题 + 撤销） ============ -->
+  <div id="quiz" class="hidden">
+    <div class="topbar">
+      <button class="x" onclick="exitQuiz()" aria-label="退出">✕</button>
+      <span class="t">快速测评</span>
+      <div class="bar"><i id="prog"></i></div>
+      <span class="count" id="count">1/8</span>
+    </div>
+    <div class="qbody">
+      <div class="card qcard fade" id="qcard">
+        <span class="chip" id="qnum">第 1 题</span>
+        <p class="qtext" id="qtext"></p>
+        <div id="opts"></div>
+      </div>
+      <button class="undo" id="undoBtn" onclick="undo()" disabled>↶ 上一题</button>
+    </div>
+  </div>
+
+  <!-- ============ 结果页 ============ -->
+  <div id="result" class="hidden fade">
+    <div class="card" style="padding:20px 18px">
+      <span class="stage-chip">✦ <span id="stageChip"></span></span>
+      <h2 id="stageName"></h2>
+      <p class="desc" id="stageDesc"></p>
+      <div id="dims"></div>
+      <div class="advice"><b>给你的下一步建议</b><p id="advice"></p></div>
+      <button class="gold-btn" style="width:100%" onclick="restart()">重新测一次</button>
+    </div>
+    <div class="cta-deep">
+      <b>想要完整的成长画像？</b>
+      <p>完整的 AI 九维诊断（约 6–8 分钟）将在 AMAS App 中进行：自适应追问、恩赐辨识、专属装备路径与事奉方向匹配，并随学习与服事持续更新你的成长档案。App 正在内部测试，正式发布后将在官网提供下载入口。</p>
+      <button class="gold-btn" style="width:100%" onclick="location.href='index.html#digital'">了解 AMAS 数字校园 →</button>
+      <button class="gold-btn" style="width:100%;margin-top:10px;background:linear-gradient(180deg,#1B3B75,#12305F);color:#F2D493;box-shadow:none;border:1px solid rgba(232,201,140,.35)" onclick="location.href='index.html#contact'">咨询 2026 届 B.Th 招生</button>
+    </div>
+    <div class="brand"><div class="l">A M A S</div><div class="s">ASIAN MISSIONARY ASSOCIATION SEMINARY</div></div>
+  </div>
+
+</div>
+
+<script>
+// 快速测评：8 题，4 维（圣经 bible / 福音 gospel / 生命 life / 服事 serve）。
+// 一页一题；answers[] 即撤销历史，undo() 弹出最后一个答案即可回上一题。
+var QS = [
+  { d:'bible', t:'先聊聊读经：下面哪句更接近你现在的状态？', o:[
+    ['还没有完整读过圣经，读经比较随机',32],
+    ['常读新约，旧约很多卷还不熟悉',52],
+    ['通读过一遍，大致知道各卷讲什么',70],
+    ['多次通读，熟悉多数书卷的主题',86]]},
+  { d:'bible', t:'如果请你讲一遍“创造—堕落—救赎—新造”的圣经主线，你有多大把握？', o:[
+    ['这个说法我还是第一次听到',35],
+    ['听过，但讲不完整',55],
+    ['能讲个大概，衔接不够清楚',70],
+    ['能完整讲出主线并举出书卷例证',88]]},
+  { d:'gospel', t:'“人怎样才能在神面前称义？”你的回答是：', o:[
+    ['尽力行善、好行为多过坏行为',25],
+    ['信心加上足够的善行',45],
+    ['不太确定',38],
+    ['唯独借着信心，领受基督的义',86]]},
+  { d:'gospel', t:'一位信徒因跌倒犯罪，觉得“神不爱我了”。你会怎样帮助他？', o:[
+    ['劝他多做好事来弥补',30],
+    ['安慰他别想太多',45],
+    ['我也不确定该怎么回应',50],
+    ['带他回到福音：称义在乎基督，引导认罪并确信恩典',90]]},
+  { d:'life', t:'过去一个月，你的灵修生活更接近哪种状态？', o:[
+    ['几乎没有固定的读经祷告',30],
+    ['想坚持但常中断，主要靠聚会',50],
+    ['大部分日子有读经或祷告',72],
+    ['有稳定节奏，也操练省察与顺服',90]]},
+  { d:'life', t:'遇到重大压力或试炼时，你通常：', o:[
+    ['信仰帮不上什么忙，靠自己扛',32],
+    ['会祷告，但很快又陷入焦虑',52],
+    ['借着祷告和经文慢慢恢复平安',74],
+    ['能在试炼中经历神，事后信心更坚固',90]]},
+  { d:'serve', t:'在教会服事参与上，你现在的情况是？', o:[
+    ['还没有参与服事',32],
+    ['偶尔帮忙做事务性服事',52],
+    ['有固定服事岗位',70],
+    ['带领他人（小组/门训/教导）',85]]},
+  { d:'serve', t:'关于信仰的使命感，你更接近哪种状态？', o:[
+    ['信仰主要是我个人的事',32],
+    ['有感动，但不知道能做什么',52],
+    ['在职场/家庭中有意识地作见证',74],
+    ['渴望被装备去带领和影响更多人',88]]}
+];
+var DIM_NAME = { bible:'圣经根基', gospel:'福音认识', life:'属灵生命', serve:'服事使命' };
+var answers = [];
+
+function show(id){ ['landing','quiz','result'].forEach(function(x){ document.getElementById(x).classList.toggle('hidden', x!==id); }); window.scrollTo(0,0); }
+function startQuiz(){ answers = []; render(); show('quiz'); }
+function exitQuiz(){ show('landing'); }
+function restart(){ startQuiz(); }
+
+function render(){
+  var i = answers.length;
+  if (i >= QS.length) { return finish(); }
+  var q = QS[i];
+  document.getElementById('qnum').textContent = '第 ' + (i+1) + ' 题';
+  document.getElementById('qtext').textContent = q.t;
+  document.getElementById('count').textContent = (i+1) + '/' + QS.length;
+  document.getElementById('prog').style.width = Math.min(96, (i/QS.length)*100) + '%';
+  var box = document.getElementById('opts'); box.innerHTML = '';
+  q.o.forEach(function(opt, oi){
+    var b = document.createElement('button');
+    b.className = 'opt'; b.textContent = opt[0];
+    b.onclick = function(){ answers.push(oi); render(); };
+    box.appendChild(b);
+  });
+  document.getElementById('undoBtn').disabled = answers.length === 0;
+  var card = document.getElementById('qcard');
+  card.classList.remove('fade'); void card.offsetWidth; card.classList.add('fade');
+}
+function undo(){ if (answers.length) { answers.pop(); render(); } }
+
+function finish(){
+  var acc = {};
+  answers.forEach(function(oi, qi){
+    var q = QS[qi], s = q.o[oi][1];
+    if (!acc[q.d]) acc[q.d] = [];
+    acc[q.d].push(s);
+  });
+  var dims = Object.keys(DIM_NAME).map(function(k){
+    var arr = acc[k] || [50];
+    return { k:k, n:DIM_NAME[k], v: Math.round(arr.reduce(function(a,b){return a+b;},0)/arr.length) };
+  });
+  var avg = Math.round(dims.reduce(function(a,d){return a+d.v;},0)/dims.length);
+  var stage = avg >= 78 ? { n:'成长型服事者', l:3, d:'你的根基相当扎实，已经（或预备好）进入带领与教导的阶段。接下来的关键是把经验系统化：完整的释经训练与教义框架，会让你的服事更稳、走得更远。' }
+    : avg >= 58 ? { n:'稳定成长者', l:2, d:'你的信仰生活已经稳定，这正是建立系统根基的最佳时期。有方向的装备会让你从“被喂养”走向“能喂养人”。' }
+    : { n:'初信扎根者', l:1, d:'每个人都从这里开始——从福音的确据和读经生活扎根。不需要着急，一步一步来，方向对了就不怕路远。' };
+  var weakest = dims.slice().sort(function(a,b){return a.v-b.v;})[0];
+  var adviceMap = {
+    bible:'从建立圣经整体框架开始：先了解新旧约脉络与救恩主线，再逐卷深入。AMAS 的《圣经概论》类课程是很好的第一步。',
+    gospel:'先把福音根基打稳：弄清“因信称义”与恩典的真理，这是所有成长的地基。建议从罗马书或救恩确据类课程开始。',
+    life:'从最小可行的灵修习惯开始：每天读经 15 分钟 + 祷告 10 分钟，坚持两周。稳定的与神关系比任何知识都重要。',
+    serve:'从一个具体的小服事开始参与，在实践中发现神给你的恩赐。App 内的恩赐辨识能帮你找到适合的事奉方向。'
+  };
+  document.getElementById('stageChip').textContent = stage.n + ' · LEVEL ' + stage.l + ' · 综合 ' + avg;
+  document.getElementById('stageName').textContent = stage.n;
+  document.getElementById('stageDesc').textContent = stage.d;
+  var dv = document.getElementById('dims'); dv.innerHTML = '';
+  dims.forEach(function(d){
+    var row = document.createElement('div'); row.className = 'dimrow';
+    row.innerHTML = '<span class="n">' + d.n + '</span><div class="track"><i style="width:' + d.v + '%"></i></div><span class="v">' + d.v + '</span>';
+    dv.appendChild(row);
+  });
+  document.getElementById('advice').textContent = '「' + weakest.n + '」是你目前最值得投入的方向。' + adviceMap[weakest.k];
+  show('result');
+}
+</script>
+</body>
+</html>
