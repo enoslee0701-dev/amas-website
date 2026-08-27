@@ -169,7 +169,7 @@
     <div class="cta-deep">
       <b>想要完整的成长画像？</b>
       <p>完整的 AI 九维诊断（约 6–8 分钟）将在 AMAS App 中进行：自适应追问、恩赐辨识、专属装备路径与事奉方向匹配，并随学习与服事持续更新你的成长档案。App 正在内部测试，正式发布后将在官网提供下载入口。</p>
-      <button class="gold-btn" style="width:100%" onclick="location.href='index.html#digital'">了解 AMAS 数字校园 →</button>
+      <button class="gold-btn" style="width:100%" onclick="location.href=APP_URL||'index.html#digital'" id="appCta">了解 AMAS 数字校园 →</button>
       <button class="gold-btn" style="width:100%;margin-top:10px;background:linear-gradient(180deg,#1B3B75,#12305F);color:#F2D493;box-shadow:none;border:1px solid rgba(232,201,140,.35)" onclick="location.href='index.html#contact'">咨询 2026 届 B.Th 招生</button>
     </div>
     <div class="brand"><div class="l">A M A S</div><div class="s">ASIAN MISSIONARY ASSOCIATION SEMINARY</div></div>
@@ -178,6 +178,8 @@
 </div>
 
 <script>
+// 配套 App 正式地址（与官网 CONFIG.app.web 保持一致）；填入后结果页主按钮直接打开 App
+var APP_URL = "";
 // 快速测评：8 题，4 维（圣经 bible / 福音 gospel / 生命 life / 服事 serve）。
 // 一页一题；answers[] 即撤销历史，undo() 弹出最后一个答案即可回上一题。
 var QS = [
@@ -252,6 +254,7 @@ function render(){
 function undo(){ if (answers.length) { answers.pop(); render(); } }
 
 function finish(){
+  if (APP_URL) document.getElementById('appCta').textContent = '打开 AMAS App · 开始完整诊断';
   var acc = {};
   answers.forEach(function(oi, qi){
     var q = QS[qi], s = q.o[oi][1];
