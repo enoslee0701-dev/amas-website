@@ -1081,9 +1081,11 @@ document.addEventListener("click", e => {
   let dismissed = false;
   try{ dismissed = localStorage.getItem(KEY) === today; }catch(e){}
   let shown = false;
-  function showCard(){ if(shown || dismissed) return; shown = true; card.hidden = false; }
+  function showCard(){ if(shown || dismissed) return; shown = true; card.classList.remove("out"); card.hidden = false; }
   function hideCard(remember){
-    card.hidden = true;
+    // 先播放向左滑出动画，再真正隐藏
+    card.classList.add("out");
+    setTimeout(() => { card.hidden = true; card.classList.remove("out"); }, 340);
     if(remember){ dismissed = true; try{ localStorage.setItem(KEY, today); }catch(e){} }
   }
   // 8 秒后自动弹出；或滚过首屏 60% 时弹出
