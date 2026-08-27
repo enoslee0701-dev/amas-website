@@ -1090,7 +1090,11 @@ document.addEventListener("click", e => {
   setTimeout(showCard, 8000);
   addEventListener("scroll", () => { if(scrollY > innerHeight * 0.6) showCard(); }, { passive:true });
   $("#promoClose").addEventListener("click", () => hideCard(true));
-  tab.addEventListener("click", () => { dismissed = false; shown = false; showCard(); });
+  // 侧边标签：开关式——已弹出则收回，已收回则弹出
+  tab.addEventListener("click", () => {
+    if(!card.hidden){ hideCard(false); return; }
+    dismissed = false; shown = false; showCard();
+  });
   $("#promoAsk").addEventListener("click", () => { hideCard(false); openChat(); });
   $("#promoApply").addEventListener("click", () => hideCard(false));
   // 打开客服面板或申请弹窗时自动收起，避免遮挡
