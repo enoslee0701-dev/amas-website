@@ -1005,13 +1005,23 @@ html[data-theme="night"] .footer{background:linear-gradient(180deg,#0a1220,#060b
 .app-try:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(160,116,38,.36)}
 .app-try-note{font-size:12px;color:#93a3b4}
 
-/* 定制化神学测评入口条：hero 信息带的深绿延伸 */
-.ai-strip{display:block;background:linear-gradient(120deg,#0f2f22,#0a231a);border-top:1px solid rgba(233,196,106,.22);transition:background .2s}
-.ai-strip:hover{background:linear-gradient(120deg,#123726,#0c281e)}
-.ai-strip-inner{display:flex;align-items:center;gap:16px;padding:13px 0}
-.hab-badge{flex-shrink:0;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(180deg,#e9c46a,#c9963d);color:#14382a;font-family:Georgia,serif;font-weight:800;font-size:13.5px;letter-spacing:.05em}
+/* 定制化神学测评入口条：hero 信息带的深绿延伸（醒目版） */
+.ai-strip{display:block;position:relative;overflow:hidden;border-top:1px solid rgba(233,196,106,.35);border-bottom:1px solid rgba(233,196,106,.2);
+  background:
+    radial-gradient(circle at 12% 50%,rgba(233,196,106,.22),transparent 38%),
+    radial-gradient(circle at 92% 50%,rgba(233,196,106,.16),transparent 30%),
+    linear-gradient(rgba(233,196,106,.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(233,196,106,.05) 1px,transparent 1px),
+    linear-gradient(120deg,#16412f,#0c2b20);
+  background-size:auto,auto,40px 40px,40px 40px,auto;transition:filter .2s}
+.ai-strip::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(180deg,#e9c46a,#b78a35)}
+.ai-strip:hover{filter:brightness(1.08)}
+.ai-strip-inner{display:flex;align-items:center;gap:20px;padding:20px 0}
+.hab-badge{flex-shrink:0;width:50px;height:50px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(180deg,#f2d493,#c9963d);color:#14382a;font-family:Georgia,serif;font-weight:800;font-size:17px;letter-spacing:.05em;box-shadow:0 6px 18px rgba(233,196,106,.35)}
 .hab-text{flex:1;min-width:0}
-.hab-text b{display:block;font-size:14px;color:#f1d38a;line-height:1.4;font-weight:600}
-.hab-text small{display:block;margin-top:2px;font-size:11px;color:#9db3a5;letter-spacing:.04em}
-.hab-go{flex-shrink:0;font-size:12.5px;font-weight:700;color:#14382a;background:linear-gradient(180deg,#e9c46a,#c9963d);border-radius:999px;padding:8px 18px;white-space:nowrap}
-@media(max-width:640px){.ai-strip-inner{flex-wrap:wrap;gap:10px}.hab-go{margin-left:46px}}
+.hab-text b{display:block;font-family:"Noto Serif SC",Georgia,serif;font-size:20px;color:#f6dc95;line-height:1.35;font-weight:700;letter-spacing:.02em}
+.hab-text small{display:block;margin-top:4px;font-size:12.5px;color:#b5c8bb;letter-spacing:.06em}
+.hab-go{flex-shrink:0;font-size:15px;font-weight:700;color:#14382a;background:linear-gradient(180deg,#f2d493,#c9963d);border-radius:999px;padding:13px 28px;white-space:nowrap;box-shadow:0 8px 22px rgba(233,196,106,.35);animation:habPulse 2.4s ease-in-out infinite}
+@keyframes habPulse{0%,100%{box-shadow:0 8px 22px rgba(233,196,106,.35)}50%{box-shadow:0 8px 30px rgba(233,196,106,.65)}}
+@media(prefers-reduced-motion:reduce){.hab-go{animation:none}}
+@media(max-width:760px){.ai-strip-inner{flex-wrap:wrap;gap:12px;padding:16px 0}.hab-text b{font-size:16px}.hab-go{margin-left:0;width:100%;text-align:center}}
