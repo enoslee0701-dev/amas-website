@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  SOURCE OF TRUTH: amas-website/discover.html
+  SOURCE OF TRUTH: amas-website/discover.html（十题九维 · 十二大成长角色版）
   AMAS-Seminary 仓库中的 public/discover.html 仅为集成副本，请勿在副本上独立修改；
   改动一律先在此文件完成，再同步到 App 仓库，避免双向漂移。
 -->
@@ -8,24 +8,20 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>3 分钟发现你的属灵成长阶段 · AMAS 定制化神学</title>
-<meta name="description" content="AMAS 亚洲宣教神学院 · 定制化神学快速测评：3 分钟了解你的信仰根基与装备方向，获取专属成长建议。" />
+<title>发现你的基督徒成长角色 · AMAS 定制化神学</title>
+<meta name="description" content="AMAS 亚洲宣教神学院 · 定制化神学快速测评：4 分钟九维快照，发现你在十二大成长角色中的位置，获取专属装备建议。" />
 <link rel="icon" href="assets/img/favicon.png">
 <style>
+  .site-back{position:fixed;left:12px;top:10px;z-index:50;font-size:11.5px;color:#fff;background:rgba(7,26,60,.72);border:1px solid rgba(232,201,140,.45);border-radius:999px;padding:5px 11px;backdrop-filter:blur(4px)}
+
   :root {
     --navy: #04285F; --navy2: #071A3C; --gold: #C99A45; --gold-l: #F2D493;
     --ink: #1F2A37; --sub: #667085; --line: rgba(20,40,90,.08);
   }
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  body {
-    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
-    background: #F5F7FA; color: var(--ink); min-height: 100vh;
-  }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif; background: #F5F7FA; color: var(--ink); min-height: 100vh; }
   .wrap { max-width: 430px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
-  .card {
-    background: #fff; border: 1px solid var(--line); border-radius: 18px;
-    box-shadow: 0 1px 2px rgba(16,24,40,.04), 0 2px 8px rgba(16,24,40,.04);
-  }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 1px 2px rgba(16,24,40,.04), 0 2px 8px rgba(16,24,40,.04); }
   .gold-btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
     height: 46px; padding: 0 22px; border: none; border-radius: 999px; cursor: pointer;
@@ -37,34 +33,28 @@
   .hidden { display: none !important; }
   .fade { animation: fade .3s ease; }
   @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .eyebrow { font-size: 10px; font-weight: 800; letter-spacing: 2.4px; color: rgba(232,201,140,.9); margin-bottom: 10px; }
+  .disclaimer { font-size: 10px; color: #98A2B3; line-height: 1.7; }
 
   /* ---- landing ---- */
   #landing .hero {
     background: linear-gradient(160deg, #0B2450 0%, #071A3C 70%, #051530 100%);
-    color: #fff; padding: 42px 24px 34px; border-radius: 0 0 26px 26px; position: relative; overflow: hidden;
+    color: #fff; padding: 42px 24px 30px; border-radius: 0 0 26px 26px; position: relative; overflow: hidden;
   }
-  #landing .hero::after {
-    content: ""; position: absolute; inset: 0;
-    background: radial-gradient(85% 110% at 85% 0%, rgba(240,205,135,.14) 0%, rgba(240,205,135,0) 45%);
-  }
-  .eyebrow { font-size: 10px; font-weight: 800; letter-spacing: 2.4px; color: rgba(232,201,140,.9); margin-bottom: 10px; }
+  #landing .hero::after { content: ""; position: absolute; inset: 0; background: radial-gradient(85% 110% at 85% 0%, rgba(240,205,135,.14) 0%, rgba(240,205,135,0) 45%); }
   #landing h1 {
     font-size: 25px; line-height: 1.35; font-weight: 900; letter-spacing: .5px; margin-bottom: 10px;
-    background: linear-gradient(180deg, #F7E3B4 10%, #E4BC6E 90%);
-    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    background: linear-gradient(180deg, #F7E3B4 10%, #E4BC6E 90%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
   }
   #landing .hero p { font-size: 13px; line-height: 1.8; color: rgba(233,238,248,.88); margin-bottom: 20px; }
-  .points { padding: 20px 18px 8px; }
-  .point { display: flex; gap: 12px; align-items: flex-start; padding: 13px 14px; margin-bottom: 10px; }
-  .point .ic {
-    flex: 0 0 36px; height: 36px; border-radius: 11px; display: grid; place-items: center;
-    background: linear-gradient(180deg, #FFF8EA, #F4E8CF); border: 1px solid #EBD8AE; color: #A9812F; font-size: 16px;
-  }
-  .point b { font-size: 13.5px; display: block; margin-bottom: 2px; }
-  .point span { font-size: 11.5px; color: var(--sub); line-height: 1.6; }
-  .note { font-size: 10.5px; color: #98A2B3; text-align: center; padding: 6px 26px 20px; line-height: 1.7; }
+  .strip { display: flex; gap: 10px; overflow-x: auto; padding: 18px 18px 6px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+  .strip img { width: 168px; flex: 0 0 auto; border-radius: 15px; scroll-snap-align: start; border: 1px solid rgba(20,40,90,.1); box-shadow: 0 4px 12px rgba(16,24,40,.08); cursor: pointer; }
+  .strip img:active { transform: scale(.98); }
+  .groups { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 6px 18px 0; }
+  .groups span { font-size: 10px; font-weight: 800; color: #8A6519; background: #FBF6EA; border: 1px solid rgba(201,154,69,.28); border-radius: 999px; padding: 3px 10px; }
+  .note { padding: 14px 26px 22px; text-align: center; }
 
-  /* ---- quiz (one question per page) ---- */
+  /* ---- quiz ---- */
   #quiz { display: flex; flex-direction: column; min-height: 100vh; }
   .topbar { display: flex; align-items: center; gap: 10px; background: #fff; border-bottom: 1px solid #E7EAF0; padding: 12px 16px; }
   .topbar .x { border: none; background: none; font-size: 20px; color: #98A2B3; cursor: pointer; line-height: 1; padding: 4px; }
@@ -73,85 +63,254 @@
   .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--navy), var(--gold)); transition: width .3s ease; }
   .count { font-size: 11px; font-weight: 700; color: #98A2B3; }
   .qbody { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 18px 20px 26px; }
-  .chip {
-    display: inline-block; align-self: flex-start; font-size: 10px; font-weight: 800; letter-spacing: 1px;
-    color: var(--gold); background: #FBF6EA; border: 1px solid rgba(201,154,69,.28);
-    border-radius: 999px; padding: 3px 10px; margin-bottom: 10px;
-  }
+  .notice { display: flex; gap: 11px; align-items: flex-start; padding: 12px 13px; margin-bottom: 14px; border-radius: 15px; background: linear-gradient(180deg, #FFFDF8, #FBF5E9); border: 1px solid rgba(201,154,69,.28); }
+  .notice .ic { flex: 0 0 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: linear-gradient(160deg, #0F2E6B, #071F4E); color: #E8C98C; font-size: 15px; }
+  .notice p { font-size: 10.5px; line-height: 1.75; color: #7A6A45; }
+  .chip { display: inline-block; align-self: flex-start; font-size: 10px; font-weight: 800; letter-spacing: 1px; color: var(--gold); background: #FBF6EA; border: 1px solid rgba(201,154,69,.28); border-radius: 999px; padding: 3px 10px; margin-bottom: 10px; }
   .qcard { padding: 20px 18px; }
   .qtext { font-size: 16px; line-height: 1.65; font-weight: 700; margin-bottom: 16px; }
-  .opt {
-    display: block; width: 100%; text-align: left; cursor: pointer; margin-bottom: 9px;
-    font-size: 13.5px; line-height: 1.5; font-weight: 600; color: var(--navy);
-    border: 1.5px solid rgba(4,40,95,.22); border-radius: 13px; padding: 13px 14px; background: #F8FAFF;
-  }
+  .opt { display: block; width: 100%; text-align: left; cursor: pointer; margin-bottom: 9px; font-size: 13.5px; line-height: 1.5; font-weight: 600; color: var(--navy); border: 1.5px solid rgba(4,40,95,.22); border-radius: 13px; padding: 13px 14px; background: #F8FAFF; }
   .opt:active { transform: scale(.99); }
-  .undo {
-    display: inline-flex; align-items: center; gap: 6px; margin: 14px auto 0; cursor: pointer;
-    font-size: 12.5px; font-weight: 700; color: #475467; background: #fff;
-    border: 1px solid #E2E5EB; border-radius: 999px; padding: 9px 18px;
-  }
+  .undo { display: inline-flex; align-items: center; gap: 6px; margin: 14px auto 0; cursor: pointer; font-size: 12.5px; font-weight: 700; color: #475467; background: #fff; border: 1px solid #E2E5EB; border-radius: 999px; padding: 9px 18px; }
   .undo:disabled { opacity: .35; cursor: default; }
 
   /* ---- result ---- */
-  #result { padding: 26px 20px 30px; }
-  .stage-chip {
-    display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 800; letter-spacing: 1px;
-    color: var(--gold); background: #FBF6EA; border: 1px solid rgba(201,154,69,.28);
-    border-radius: 999px; padding: 4px 11px; margin-bottom: 10px;
-  }
-  #result h2 { font-size: 21px; font-weight: 900; margin-bottom: 6px; }
-  #result .desc { font-size: 12.5px; color: var(--sub); line-height: 1.8; margin-bottom: 18px; }
-  .dimrow { display: grid; grid-template-columns: 62px 1fr 32px; align-items: center; gap: 10px; margin-bottom: 11px; }
-  .dimrow .n { font-size: 12px; font-weight: 700; color: #475467; }
+  #result { padding: 20px 18px 30px; }
+  .rhead { background: radial-gradient(90% 120% at 12% 0%, rgba(240,205,135,.16) 0%, rgba(240,205,135,0) 42%), linear-gradient(160deg, #0B2450 0%, #071A3C 100%); color: #fff; padding: 18px 16px 16px; border-radius: 18px 18px 0 0; }
+  .rhead .pre { display: inline-block; font-size: 9px; font-weight: 800; color: var(--gold-l); border: 1px solid rgba(242,212,147,.5); border-radius: 999px; padding: 2px 8px; margin-left: 8px; }
+  .rhead h2 { font-size: 23px; font-weight: 900; letter-spacing: 1px; margin: 6px 0 3px; background: linear-gradient(180deg, #F7E3B4 10%, #E4BC6E 90%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .rhead .en { font-family: Georgia, serif; font-size: 11px; letter-spacing: 2px; color: rgba(233,238,248,.6); text-transform: uppercase; margin-bottom: 10px; }
+  .rhead .decl { font-size: 12px; line-height: 1.8; color: rgba(233,238,248,.9); }
+  .rbody { background: #fff; border: 1px solid var(--line); border-top: none; border-radius: 0 0 18px 18px; padding: 14px 16px 16px; }
+  .rimg { width: 100%; border-radius: 14px; border: 1.5px solid rgba(201,154,69,.55); box-shadow: 0 4px 12px rgba(16,24,40,.08); display: block; margin-bottom: 12px; }
+  .rsel { padding: 11px 13px; margin: -4px 0 12px; border-radius: 13px; background: #FBF6EA; border: 1px solid rgba(201,154,69,.3); }
+  .rsel .tag { font-size: 9.5px; font-weight: 800; letter-spacing: 1px; color: #C99A45; }
+  .rsel b { display: block; font-size: 15px; color: #14295A; margin: 2px 0 3px; }
+  .rsel b small { font-family: Georgia, serif; font-size: 10.5px; letter-spacing: 1px; color: #A98230; font-weight: 700; }
+  .rsel p { font-size: 12px; color: #5C4A1E; line-height: 1.7; }
+  .rsel p.hint { font-size: 10.5px; color: #98A2B3; margin-top: 4px; }
+  .three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 13px; }
+  .three div { text-align: center; border-radius: 13px; padding: 10px 6px 9px; background: #F8FAFC; border: 1px solid #EDF0F4; cursor: pointer; transition: transform .15s ease; }
+  .three div:active { transform: scale(.97); }
+  .three div.gold { background: #FBF6EA; border: 1.2px solid rgba(201,154,69,.45); }
+  .three .tag { font-size: 9px; font-weight: 800; letter-spacing: 1px; color: #98A2B3; margin-bottom: 3px; }
+  .three .gold .tag { color: var(--gold); }
+  .three .nm { font-size: 13px; font-weight: 900; }
+  .three .sc { font-size: 15px; font-weight: 900; color: var(--navy); margin-top: 3px; }
+  .three .gold .sc { color: var(--gold); }
+  .three .gp { font-size: 9px; font-weight: 700; color: #B6BDC9; margin-top: 1px; }
+  .fuse { padding: 12px 13px; background: #F6F8FD; border: 1px solid #E2E8F4; border-radius: 13px; margin-bottom: 13px; }
+  .fuse b.t { display: block; font-size: 11.5px; color: #14295A; margin-bottom: 7px; }
+  .fuse .row { display: grid; grid-template-columns: 48px 1fr; gap: 6px; font-size: 11.5px; color: #475467; line-height: 1.65; margin-bottom: 4px; }
+  .fuse .row span:first-child { font-size: 10.5px; font-weight: 800; }
+  .fuse .concl { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #DDE4F0; font-size: 11.5px; color: #14295A; line-height: 1.7; }
+  .sec-t { font-size: 11px; font-weight: 800; margin: 0 0 5px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 11px; }
+  .chips span { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 3px 10px; }
+  .chips.green span { color: #0F5138; background: #EDFAF3; border: 1px solid #C7EDDA; }
+  .chips.navy span { color: var(--navy); background: #F8FAFF; border: 1px solid rgba(4,40,95,.22); }
+  .risk { font-size: 12px; color: #475467; line-height: 18px; margin-bottom: 3px; }
+  .dims { margin: 12px 0 4px; }
+  .dimrow { display: grid; grid-template-columns: 58px 1fr 30px; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .dimrow .n { font-size: 11.5px; font-weight: 700; color: #475467; }
   .dimrow .track { height: 7px; border-radius: 99px; background: #EEF1F5; overflow: hidden; }
   .dimrow .track i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #16397E, #2C55A6); }
-  .dimrow .v { font-size: 12px; font-weight: 800; text-align: right; }
-  .advice { background: #FBF6EA; border: 1px solid rgba(201,154,69,.25); border-radius: 14px; padding: 13px 14px; margin: 16px 0; }
-  .advice b { font-size: 12.5px; color: #5C4A1E; display: block; margin-bottom: 4px; }
-  .advice p { font-size: 11.5px; color: #7A6A45; line-height: 1.75; }
-  .cta-deep {
-    background: linear-gradient(160deg, #0B2450 0%, #071A3C 100%); color: #fff;
-    border: 1px solid rgba(232,201,140,.22); border-radius: 20px; padding: 20px 18px; margin-top: 18px;
-  }
+  .dimrow .track i.weak { background: linear-gradient(90deg, #C99A45, #E8C98C); }
+  .dimrow .v { font-size: 11.5px; font-weight: 800; text-align: right; }
+  .stage { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 800; letter-spacing: 1px; color: var(--gold); background: #FBF6EA; border: 1px solid rgba(201,154,69,.28); border-radius: 999px; padding: 4px 11px; margin-bottom: 8px; }
+  .advice { background: #FBF6EA; border: 1px solid rgba(201,154,69,.25); border-radius: 13px; padding: 11px 13px; margin: 10px 0 14px; }
+  .advice b { font-size: 11.5px; color: #5C4A1E; display: block; margin-bottom: 3px; }
+  .advice p { font-size: 11.5px; color: #7A6A45; line-height: 1.7; }
+  .cta-deep { background: linear-gradient(160deg, #0B2450 0%, #071A3C 100%); color: #fff; border: 1px solid rgba(232,201,140,.22); border-radius: 20px; padding: 20px 18px; margin-top: 16px; }
   .cta-deep b { color: var(--gold-l); font-size: 15px; display: block; margin-bottom: 5px; }
   .cta-deep p { font-size: 11.5px; color: rgba(233,238,248,.85); line-height: 1.7; margin-bottom: 14px; }
   .brand { text-align: center; padding: 22px 0 26px; color: #A9B1C1; }
   .brand .l { font-size: 12px; font-weight: 700; letter-spacing: 3px; font-family: Georgia, serif; }
   .brand .s { font-size: 8.5px; letter-spacing: 2px; margin-top: 4px; color: #C2C8D4; }
+
+  /* ---- role detail ---- */
+  #detail { padding: 0 0 30px; }
+  #detail .topbar .t { flex: 1; }
+  #detail .body { padding: 16px 18px 0; }
+  #detail .rimg { border-radius: 18px; }
+  .dcard { padding: 14px 16px; margin-top: 10px; }
+  .dcard .lab { font-size: 10px; font-weight: 800; letter-spacing: 1.5px; color: #C1A76A; margin-bottom: 4px; }
+  .dcard .core { font-size: 14px; font-weight: 800; color: #14295A; line-height: 1.7; }
+  .dswitch { margin-top: 12px; padding: 12px 12px 10px; border-radius: 16px; background: #fff; border: 1px solid var(--line); }
+  .dnav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
+  .dnav span { font-size: 11px; font-weight: 800; color: #667085; }
+  .dnav button { border: 1px solid #E2E5EB; background: #F8FAFF; color: var(--navy); font-size: 11px; font-weight: 800; border-radius: 999px; padding: 5px 11px; cursor: pointer; }
+  .dnav button:active { transform: scale(.97); }
+  .dgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .dgrid button { border: 1px solid #ECEEF2; border-radius: 10px; padding: 0 0 3px; background: #fff; overflow: hidden; cursor: pointer; text-align: center; }
+  .dgrid button img { width: 100%; display: block; }
+  .dgrid button span { display: block; font-size: 10px; font-weight: 800; color: #475467; padding-top: 3px; }
+  .dgrid button.on { border: 1.5px solid rgba(201,154,69,.7); background: #FBF6EA; }
+  .dgrid button.on span { color: #8A6519; }
+  .hero-cards { display: none; }
+
+  /* ---- 营销锁定区 ---- */
+  .lock { position: relative; border-radius: 14px; overflow: hidden; margin-bottom: 12px; border: 1px solid #EEF0F4; background: #FBFBFC; }
+  .lock .blur { filter: blur(5px); pointer-events: none; user-select: none; padding: 12px 13px 6px; opacity: .8; }
+  .lock .veil { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 5px; padding: 14px; background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.92)); }
+  .lock .veil .lk { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(160deg, #0F2E6B, #071F4E); color: #F2D493; font-size: 15px; margin-bottom: 2px; }
+  .lock .veil b { font-size: 12.5px; color: #14295A; }
+  .lock .veil span { font-size: 10.5px; color: #667085; }
+  .lock .veil .gold-btn { height: 36px; font-size: 12px; padding: 0 16px; margin-top: 6px; }
+  .locked-line { color: #8A6519; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+  .lockchip { font-size: 11px; font-weight: 800; border-radius: 999px; padding: 3px 10px; color: #8A6519 !important; background: #FBF6EA !important; border: 1px dashed rgba(201,154,69,.6) !important; cursor: pointer; }
+  .link-btn { display: inline-flex; align-items: center; margin-top: 8px; border: none; background: none; cursor: pointer; font-size: 11.5px; font-weight: 800; color: var(--navy); text-decoration: underline; text-underline-offset: 3px; }
+  .ghost-btn { width: 100%; height: 42px; border-radius: 999px; border: 1px solid #E2E5EB; background: #fff; color: #475467; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 4px; }
+  .unlock-card { margin-top: 12px; padding: 14px 15px; border-radius: 16px; background: linear-gradient(180deg, #FFFDF8, #FBF5E9); border: 1px solid rgba(201,154,69,.35); }
+  .unlock-card b { display: block; font-size: 13px; color: #5C4A1E; margin-bottom: 8px; }
+  .unlock-card ul { list-style: none; margin-bottom: 12px; }
+  .unlock-card li { font-size: 11.5px; color: #7A6A45; line-height: 1.7; padding-left: 18px; position: relative; }
+  .unlock-card li::before { content: "✦"; position: absolute; left: 0; color: var(--gold); }
+  .sticky-cta { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 430px; margin: 0 auto; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: rgba(7,26,60,.96); backdrop-filter: blur(10px); color: #F2D493; font-size: 12px; font-weight: 800; border-top: 1px solid rgba(232,201,140,.25); }
+  .sticky-cta .gold-btn { height: 36px; font-size: 12px; padding: 0 16px; }
+  .compare { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 16px 18px 0; }
+  .compare .col { padding: 14px 13px; border-radius: 16px; background: #fff; border: 1px solid var(--line); }
+  .compare .col.app { background: linear-gradient(160deg, #0B2450, #071A3C); color: #fff; border: 1px solid rgba(232,201,140,.3); }
+  .compare .h { font-size: 12.5px; font-weight: 900; margin-bottom: 8px; }
+  .compare .app .h { color: #F2D493; }
+  .compare ul { list-style: none; }
+  .compare li { font-size: 10.5px; line-height: 1.8; color: #475467; }
+  .compare .app li { color: rgba(233,238,248,.9); }
+  .compare li.off { color: #B6BDC9; }
+  .compare .gold-btn { width: 100%; height: 36px; font-size: 12px; margin-top: 10px; }
+  .strip::-webkit-scrollbar { display: none; }
+  .strip { scrollbar-width: none; }
+
+  /* ============ 平板 / 桌面自适应 ============ */
+  @media (min-width: 768px) {
+    body { background: #F1EFEA; background-image: radial-gradient(70% 50% at 50% 0%, rgba(201,154,69,.10), rgba(201,154,69,0) 60%); }
+    .wrap { max-width: 1120px; padding: 0 24px 40px; }
+    .topbar { border-radius: 0 0 18px 18px; }
+
+    /* 着陆页：英雄区横排 + 右侧角色卡扇形展示 */
+    #landing .hero { margin-top: 28px; border-radius: 28px; padding: 64px 64px 56px; display: grid; grid-template-columns: 1.15fr 1fr; align-items: center; gap: 40px; }
+    #landing h1 { font-size: 42px; }
+    #landing .hero p { font-size: 15px; max-width: 520px; }
+    .hero-cards { display: block; position: relative; height: 340px; z-index: 1; }
+    .hero-cards img { position: absolute; width: 190px; border-radius: 16px; box-shadow: 0 22px 44px rgba(0,0,0,.35); border: 1px solid rgba(232,201,140,.35); }
+    .hero-cards img:nth-child(1) { left: 6%; top: 50px; transform: rotate(-9deg); }
+    .hero-cards img:nth-child(2) { left: 32%; top: 10px; z-index: 2; }
+    .hero-cards img:nth-child(3) { left: 58%; top: 50px; transform: rotate(9deg); }
+    .strip { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; overflow: visible; padding: 32px 8px 8px; }
+    .strip img { width: 100%; transition: transform .2s ease, box-shadow .2s ease; }
+    .strip img:hover { transform: translateY(-6px); box-shadow: 0 16px 30px rgba(16,24,40,.16); }
+    .groups span { font-size: 11.5px; padding: 5px 14px; }
+    .note { max-width: 720px; margin: 0 auto; }
+    .compare { max-width: 860px; margin: 8px auto 0; }
+    .sticky-cta { max-width: 1120px; border-radius: 16px 16px 0 0; font-size: 13.5px; }
+
+    /* 答题：居中窄卡 */
+    #quiz { min-height: auto; }
+    .qbody { max-width: 640px; width: 100%; margin: 0 auto; padding-top: 40px; }
+    .qtext { font-size: 18px; }
+    .opt { font-size: 14.5px; padding: 15px 16px; }
+    .opt:hover { background: #EEF3FF; }
+
+    /* 结果页：双栏 */
+    #result { padding: 28px 0 30px; display: grid; grid-template-columns: 400px 1fr; grid-template-areas: "head head" "body body" "cta cta" "brand brand"; gap: 0 0; }
+    #result .rhead { grid-area: head; border-radius: 22px 22px 0 0; padding: 26px 28px 22px; }
+    #result .rhead h2 { font-size: 32px; }
+    #result .rbody { grid-area: body; display: grid; grid-template-columns: 380px 1fr; gap: 28px; padding: 24px 28px 26px; border-radius: 0 0 22px 22px; }
+    #result .rr { min-width: 0; }
+    #result .cta-deep { grid-area: cta; display: grid; grid-template-columns: 1fr auto; grid-template-areas: "t btn" "p btn"; align-items: center; column-gap: 32px; row-gap: 6px; padding: 26px 30px; }
+    #result .cta-deep b { grid-area: t; font-size: 18px; margin: 0; }
+    #result .cta-deep p { grid-area: p; margin-bottom: 0; max-width: 760px; }
+    #result .cta-deep .gold-btn { grid-area: btn; width: auto !important; padding: 0 28px; white-space: nowrap; }
+    #result .brand { grid-area: brand; }
+    #result > .gold-btn { display: none; }
+
+    /* 详情页：双栏 */
+    #detail .body { display: grid; grid-template-columns: 420px 1fr; gap: 28px; padding: 28px 0 0; align-items: start; }
+    #detail .dr .dcard:first-child { margin-top: 0; }
+    .dgrid { grid-template-columns: repeat(6, 1fr); }
+    .dnav span, .dnav button, .dgrid button span { font-size: 12px; }
+  }
+  /* 桌面：整体放大字号，避免手机尺寸的小字平铺在大屏上 */
+  @media (min-width: 1024px) {
+    .compare { grid-template-columns: 1fr 1.35fr; gap: 22px; max-width: 980px; margin-top: 18px; }
+    .compare .col { padding: 28px 30px; border-radius: 22px; }
+    .compare .h { font-size: 21px; margin-bottom: 14px; }
+    .compare li { font-size: 15px; line-height: 2.05; }
+    .compare .gold-btn { height: 48px; font-size: 15.5px; margin-top: 18px; }
+    .groups span { font-size: 13px; padding: 7px 16px; }
+    .note, .disclaimer { font-size: 12.5px; line-height: 1.8; }
+    .note { padding-top: 22px; }
+    .topbar { padding: 16px 22px; } .topbar .t { font-size: 17px; } .count { font-size: 13px; }
+    .notice p { font-size: 12.5px; } .chip { font-size: 11.5px; }
+    .qtext { font-size: 21px; } .opt { font-size: 15.5px; padding: 16px 18px; } .undo { font-size: 14px; }
+    .rhead h2 { font-size: 36px; } .rhead .en { font-size: 13px; } .rhead .decl { font-size: 15px; } .rhead .pre { font-size: 11px; }
+    .three .tag, .three .gp { font-size: 11px; } .three .nm { font-size: 16px; } .three .sc { font-size: 21px; }
+    .fuse { padding: 16px 18px; } .fuse b.t { font-size: 15px; } .fuse .row { font-size: 13.5px; grid-template-columns: 58px 1fr; } .fuse .row span:first-child { font-size: 12.5px; } .fuse .concl { font-size: 14px; }
+    .sec-t { font-size: 14px; } .chips span { font-size: 13px; padding: 5px 13px; } .risk { font-size: 13.5px; line-height: 22px; }
+    .lock .veil b { font-size: 15.5px; } .lock .veil span { font-size: 12.5px; } .lock .veil .gold-btn { height: 40px; font-size: 13.5px; }
+    .stage { font-size: 12px; padding: 6px 14px; }
+    .dimrow { grid-template-columns: 80px 1fr 38px; margin-bottom: 10px; } .dimrow .n, .dimrow .v { font-size: 13.5px; } .dimrow .track { height: 9px; }
+    .advice { padding: 16px 18px; } .advice b { font-size: 14.5px; } .advice p { font-size: 13.5px; } .link-btn { font-size: 13px; }
+    .unlock-card { padding: 20px 22px; } .unlock-card b { font-size: 16px; margin-bottom: 10px; } .unlock-card li { font-size: 13.5px; line-height: 1.9; }
+    .ghost-btn { font-size: 14px; height: 46px; }
+    .cta-deep b { font-size: 20px; } .cta-deep p { font-size: 14px; }
+    .dcard { padding: 20px 22px; } .dcard .lab { font-size: 11px; } .dcard .core { font-size: 19px; }
+    .sticky-cta { padding: 14px 24px; } .sticky-cta .gold-btn { height: 40px; font-size: 13.5px; }
+  }
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .compare { grid-template-columns: 1fr 1fr; }
+    .strip { grid-template-columns: repeat(4, 1fr); }
+    #landing .hero { grid-template-columns: 1fr; padding: 48px 40px; }
+    .hero-cards { display: none; }
+    #result .rbody, #detail .body { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
+<a class="site-back" href="index.html">← AMAS 官网</a>
 <div class="wrap">
 
   <!-- ============ 着陆页 ============ -->
   <div id="landing" class="fade">
     <div class="hero">
       <div style="position:relative;z-index:1">
-        <a href="index.html" style="display:inline-block;font-size:11px;color:rgba(233,238,248,.75);margin-bottom:14px;border-bottom:1px solid rgba(233,238,248,.3);padding-bottom:1px">← AMAS 官网</a>
-        <div class="eyebrow">AMAS · PERSONALIZED THEOLOGY</div>
-        <h1>3 分钟，发现你的<br/>属灵成长阶段</h1>
-        <p>不是考试，没有对错。8 道题快速了解你的信仰根基与装备方向，立即获得专属成长建议。</p>
+        <div class="eyebrow">AMAS · CHRISTIAN GROWTH ARCHETYPES</div>
+        <h1>4 分钟，发现你的<br/>基督徒成长角色</h1>
+        <p>不是考试，没有对错。10 道题做一次九维快照，看看你在十二大成长角色中最接近哪一个，并获得专属装备建议。</p>
         <button class="gold-btn" onclick="startQuiz()">开始快速测评 →</button>
       </div>
+      <div class="hero-cards" aria-hidden="true">
+        <img src="assets/img/archetypes/arch_shepherd.jpg" alt="" />
+        <img src="assets/img/archetypes/arch_teacher.jpg" alt="" />
+        <img src="assets/img/archetypes/arch_leader.jpg" alt="" />
+      </div>
     </div>
-    <div class="points">
-      <div class="card point"><div class="ic">✦</div><div><b>成长阶段定位</b><span>了解你处于初信扎根、稳定成长还是服事装备阶段</span></div></div>
-      <div class="card point"><div class="ic">◈</div><div><b>四维快照</b><span>圣经 · 福音 · 生命 · 服事，四个维度的即时画像</span></div></div>
-      <div class="card point"><div class="ic">➤</div><div><b>下一步建议</b><span>根据结果给出你现在最值得开始的一件事</span></div></div>
+    <div class="strip" id="strip"></div>
+    <div class="groups" id="groups"></div>
+    <div class="compare">
+      <div class="col">
+        <div class="h">网页快速版（本页）</div>
+        <ul><li>✓ 10 题九维快照</li><li>✓ 初步成长角色</li><li>✓ 角色卡与核心动机</li><li class="off">— 恩赐辨识</li><li class="off">— 成长风险与事奉匹配</li><li class="off">— 装备路径与课程</li></ul>
+      </div>
+      <div class="col app">
+        <div class="h">AMAS App 完整版</div>
+        <ul><li>✓ AI 自适应九维评估（阶梯追问）</li><li>✓ 恩赐辨识 12 题 → 正式角色确认</li><li>✓ 三层证据融合分析与确认度</li><li>✓ 事奉方向匹配与一键申请</li><li>✓ 三阶段装备路径 + 课程</li><li>✓ 成长档案跨设备同步</li></ul>
+        <button class="gold-btn" onclick="goApp('compare')">打开 AMAS App</button>
+      </div>
     </div>
-    <p class="note">测评在 AMAS 神学框架内进行，以圣经为最高权威。结果仅作装备参考，不构成对个人信仰状态的评判。完整的九维评估与成长画像请在 AMAS App 中建立。</p>
+    <p class="note disclaimer">点击卡片可查看角色介绍。测评在 AMAS 神学框架内进行，以圣经为最高权威；结果仅作装备参考，不构成对个人信仰状态的评判。完整的九维评估、恩赐辨识与成长档案请在 AMAS App 中进行。</p>
   </div>
 
   <!-- ============ 答题（一页一题 + 撤销） ============ -->
   <div id="quiz" class="hidden">
     <div class="topbar">
       <button class="x" onclick="exitQuiz()" aria-label="退出">✕</button>
-      <span class="t">快速测评</span>
+      <span class="t">快速测评 · 网页版</span>
       <div class="bar"><i id="prog"></i></div>
-      <span class="count" id="count">1/8</span>
+      <span class="count" id="count">1/10</span>
     </div>
     <div class="qbody">
+      <div class="notice"><div class="ic">🛡</div><p>评估与建议在 <b>AMAS 神学框架</b>内进行，以圣经为最高权威，以学院官方教学为准。结果仅作为装备参考，不构成对个人信仰状态的评判。</p></div>
       <div class="card qcard fade" id="qcard">
         <span class="chip" id="qnum">第 1 题</span>
         <p class="qtext" id="qtext"></p>
@@ -161,148 +320,320 @@
     </div>
   </div>
 
-  <!-- ============ 结果页 ============ -->
+  <!-- ============ 结果页（营销漏斗：部分展示 + App 解锁） ============ -->
   <div id="result" class="hidden fade">
-    <div class="card" style="padding:20px 18px">
-      <span class="stage-chip">✦ <span id="stageChip"></span></span>
-      <h2 id="stageName"></h2>
-      <p class="desc" id="stageDesc"></p>
-      <div id="dims"></div>
-      <div class="advice"><b>给你的下一步建议</b><p id="advice"></p></div>
-      <button class="gold-btn" style="width:100%" onclick="restart()">重新测一次</button>
+    <div class="rhead">
+      <span style="font-size:9.5px;font-weight:800;letter-spacing:2px;color:rgba(232,201,140,.9)">CHRISTIAN GROWTH ARCHETYPE</span><span class="pre">网页快速版 · 初步判定</span>
+      <h2 id="rName"></h2>
+      <div class="en" id="rEn"></div>
+      <p class="decl" id="rDecl"></p>
+    </div>
+    <div class="rbody">
+      <div class="rl">
+        <img class="rimg" id="rImg" alt="" />
+        <div class="rsel" id="rSel"></div>
+        <div class="three" id="three"></div>
+        <div class="unlock-card">
+          <b>在 AMAS App 里，你还能解锁</b>
+          <ul>
+            <li>恩赐辨识（12 题情境测评）→ 正式确认你的角色</li>
+            <li>三层证据融合分析与角色确认度</li>
+            <li>适合你的事奉方向匹配，一键提交申请</li>
+            <li>三阶段专属装备路径与对应课程</li>
+            <li>成长档案跨设备同步、服事记录、角色演变追踪</li>
+          </ul>
+          <button class="gold-btn" style="width:100%" onclick="goApp('unlock')">打开 AMAS App · 解锁完整结果</button>
+        </div>
+      </div>
+      <div class="rr">
+        <div class="fuse">
+          <b class="t" id="fuseT"></b>
+          <div class="row"><span style="color:#17397E">能力层</span><span id="fuseDim"></span></div>
+          <div class="row"><span style="color:#8A6519">恩赐层</span><span class="locked-line" onclick="goApp('gifts')">🔒 恩赐辨识仅在 App 内进行，完成后确认你的正式角色 ›</span></div>
+          <div class="row"><span style="color:#137A4F">服事层</span><span class="locked-line" onclick="goApp('service')">🔒 服事记录与证据层 · App 内解锁 ›</span></div>
+          <div class="concl" id="fuseC"></div>
+        </div>
+
+        <p class="sec-t" style="color:#137A4F">✦ 当前优势</p>
+        <div class="chips green" id="rStr"></div>
+
+        <div class="lock">
+          <div class="blur">
+            <p class="sec-t" style="color:#B42318">✦ 当前成长风险</p>
+            <div id="rRiskL"></div>
+            <p class="sec-t" style="color:#22345E;margin-top:8px">✦ 推荐探索的侍奉</p>
+            <div class="chips navy" id="rMinL"></div>
+          </div>
+          <div class="veil"><div class="lk">🔒</div><b>3 项成长风险提醒 · 6 个推荐侍奉方向</b><span>这部分需要结合恩赐辨识才准确，请在 App 中完成正式评估后查看</span><button class="gold-btn" onclick="goApp('risk')">打开 App 继续查看</button></div>
+        </div>
+
+        <div class="stage" id="stageChip"></div>
+        <div class="dims" id="dims"></div>
+        <div class="lock">
+          <div class="blur"><div class="dims" id="dimsLocked" style="margin:0"></div></div>
+          <div class="veil"><div class="lk">🔒</div><b>完整九维画像（其余 6 个维度）</b><span>App 内的 AI 评估会根据你的回答自动追问，画像更精准</span><button class="gold-btn" onclick="goApp('dims')">在 App 查看完整画像</button></div>
+        </div>
+
+        <div class="advice"><b id="adviceT"></b><p id="advice"></p><button class="link-btn" onclick="goApp('path')">查看 App 为你生成的三阶段装备路径 ›</button></div>
+
+        <button class="ghost-btn" onclick="restart()">重新测一次</button>
+        <p class="disclaimer" style="margin-top:12px" id="disc1"></p>
+      </div>
     </div>
     <div class="cta-deep">
-      <b>想要完整的成长画像？</b>
-      <p>完整的 AI 九维评估（约 6–8 分钟）将在 AMAS App 中建立：自适应追问、恩赐辨识、专属装备路径与事奉方向匹配，并随学习与服事持续更新你的成长档案。App 正在内部测试，正式发布后将在官网提供下载入口。</p>
-      <button class="gold-btn" style="width:100%" onclick="location.href=(window.APP_RESULT_URL||'index.html#digital')" id="appCta">了解 AMAS 数字校园 →</button>
-      <button class="gold-btn" style="width:100%;margin-top:10px;background:linear-gradient(180deg,#1B3B75,#12305F);color:#F2D493;box-shadow:none;border:1px solid rgba(232,201,140,.35)" onclick="location.href='index.html#contact'">咨询 2026 届 B.Th 招生</button>
+      <b>你的角色已经初步显现——下一步，在 App 里确认它</b>
+      <p>网页版只是一次九维快照。在 AMAS App 中完成 AI 自适应评估（约 6–8 分钟）与恩赐辨识（约 4 分钟）后，系统会以「恩赐 62% + 能力 38% + 服事记录」融合确认你的正式角色，并为你生成专属装备路径与事奉方向匹配。</p>
+      <button class="gold-btn" style="width:100%" onclick="goApp('bottom')">打开 AMAS App · 建立完整成长画像</button>
     </div>
-    <div class="brand"><div class="l">A M A S</div><div class="s">ASIAN MISSIONARY ASSOCIATION SEMINARY</div></div>
+    <div class="brand"><div class="l">A M A S</div><div class="s">ASIA MISSIONARY ASSOCIATION SEMINARY</div></div>
+  </div>
+  <div class="sticky-cta hidden" id="stickyCta"><span>🔒 更多分析与建议在 App 中继续</span><button class="gold-btn" onclick="goApp('sticky')">打开 AMAS App</button></div>
+
+  <!-- ============ 角色详情（核心动机 + 优势可见，其余 App 解锁） ============ -->
+  <div id="detail" class="hidden fade">
+    <div class="topbar">
+      <button class="x" onclick="closeDetail()" aria-label="返回">‹</button>
+      <span class="t" id="dTitle"></span>
+      <span class="groups" style="padding:0"><span id="dGroup"></span></span>
+    </div>
+    <div class="body">
+      <div class="dl">
+        <img class="rimg" id="dImg" alt="" />
+        <div class="dswitch">
+          <div class="dnav">
+            <button onclick="stepDetail(-1)">‹ 上一个</button>
+            <span>切换查看其他角色</span>
+            <button onclick="stepDetail(1)">下一个 ›</button>
+          </div>
+          <div class="dgrid" id="dGrid"></div>
+        </div>
+      </div>
+      <div class="dr">
+      <div class="card dcard"><div class="lab">CORE MOTIVATION · 核心动机</div><div class="core" id="dCore"></div><p class="disclaimer" id="dQ" style="margin-top:6px"></p></div>
+      <div class="card dcard">
+        <p class="sec-t" style="color:#137A4F">✦ 常见优势</p><div class="chips green" id="dStr"></div>
+        <div class="lock" style="margin-bottom:0">
+          <div class="blur">
+            <p class="sec-t" style="color:#B42318">✦ 潜在盲点</p><div id="dRisk"></div>
+            <p class="sec-t" style="color:#22345E;margin-top:8px">✦ 适合探索的侍奉</p><div class="chips navy" id="dMin"></div>
+            <p class="sec-t" style="color:#8A6519">✦ 推荐装备方向</p><div class="chips navy" id="dEq"></div>
+          </div>
+          <div class="veil"><div class="lk">🔒</div><b>潜在盲点 · 适合的侍奉 · 装备方向</b><span>这个角色的完整说明与个性化建议在 AMAS App 中查看</span><button class="gold-btn" onclick="goApp('detail')">打开 App 了解更多</button></div>
+        </div>
+      </div>
+      <button class="gold-btn" style="width:100%;margin-top:14px" onclick="closeDetail(); startQuiz()">先做快速测评，看看我是不是这个角色</button>
+      <p class="disclaimer" style="margin-top:14px" id="disc2"></p>
+      </div>
+    </div>
   </div>
 
 </div>
 
 <script>
-// 配套 App 链接（与官网 CONFIG.app 保持一致）。url 为空 = App 未上线；params 预留来源/评估/画像参数，
-// 结果页会把 stage / 四维分数一并带上，便于 App 端导入为成长画像的起点。
-var APP_LINK = { url: "", params: { source: "website-discover", assessment: "discover-quick-v1", profile: "" } };
+// ============================================================
+// 与 App 共享同一套数据（services/growthArchetypes.ts 的精简副本）
+// ============================================================
+var DISC = '成长角色用于帮助理解当前呈现的恩赐、能力、侍奉与成长倾向，不等同于属灵身份、教会职分或神对个人呼召的最终确认。角色判断应继续结合圣经、祷告、教会群体、导师、真实侍奉与长期果效进行辨识。';
+var GROUPS = { TRUTH:{cn:'真理型',q:'我如何帮助人更准确地认识并活出真理？'}, CARE:{cn:'生命型',q:'我如何陪伴、扶持与建造人的生命？'}, MISSION:{cn:'使命型',q:'我如何把福音带到尚未被触及的人群中？'}, BUILD:{cn:'建造型',q:'我如何建立团队、系统与实际摆上，使群体健康运转？'} };
+var DIM = { bible:'圣经基础', hermeneutics:'解经能力', theology:'系统神学', gospel:'福音根基', life:'属灵生命', church:'教会生活', ministry:'事奉能力', apologetics:'护教分辨', mission:'宣教使命' };
+var ARCH = [
+ {k:'teacher',l:'教导者',en:'Teacher',mod:'教导型',g:'TRUTH',core:'把真理讲解清楚，帮助人准确认识圣经',s:['清晰表达','逻辑结构','圣经教导','概念解释'],r:['知识可能大于生命','过度强调正确、缺少倾听','对学得慢的人缺乏耐心'],m:['圣经教师','主日学','小组查经','门训教学','讲道'],e:['释经学','系统神学','教学法','讲道学'],d:{theology:.4,hermeneutics:.35,bible:.25}},
+ {k:'explorer',l:'研道者',en:'Scripture Explorer',mod:'研究型',g:'TRUTH',core:'深入查考圣经与神学，追寻真理的确切含义',s:['深度思考','文本分析','问题意识','辨析能力'],r:['容易停留在研究、实践不足','过度批判','难以向普通信徒讲明白'],m:['神学研究','圣经研究','教材研发','护教写作','内容审核'],e:['释经方法','原文与分析工具','教会历史','研究方法'],d:{hermeneutics:.45,bible:.3,theology:.25}},
+ {k:'equipper',l:'装备者',en:'Equipper',mod:'装备型',g:'TRUTH',core:'训练并培育他人，使更多人能够服事',s:['培训门训','设计成长路径','发现潜力','培育带领者'],r:['容易把人当项目','训练节奏太快、要求过高','忽略陪伴过程'],m:['门徒训练','同工培训','小组长训练','领袖培育','教材系统开发'],e:['门徒训练','成人教育','教练技术','课程设计'],d:{ministry:.55,hermeneutics:.25,theology:.2}},
+ {k:'shepherd',l:'牧养者',en:'Shepherd',mod:'牧养型',g:'CARE',core:'长期陪伴与看顾，使生命稳步成长',s:['倾听','陪伴','建立信任','长期关怀'],r:['过度承担、难以设立界限','容易情绪耗竭','不愿进行必要的纠正'],m:['小组牧养','门徒陪伴','初信者关怀','家庭牧养','长者关怀'],e:['牧养学','辅导基础','冲突处理','界限建立'],d:{life:.4,ministry:.3,gospel:.3}},
+ {k:'encourager',l:'劝勉者',en:'Encourager',mod:'劝勉型',g:'CARE',core:'鼓励与劝导，帮助人重新看见希望并行动',s:['鼓舞人心','务实建议','推动改变','生命应用'],r:['太快给建议、倾听不够','把复杂问题简单化','忽略悲伤所需要的时间'],m:['门徒陪伴','青少年事工','辅导','小组','婚姻家庭'],e:['圣经辅导','沟通与倾听','门徒训练','实践神学'],d:{gospel:.35,life:.35,ministry:.3}},
+ {k:'mercy',l:'怜悯者',en:'Mercy Giver',mod:'怜悯型',g:'CARE',core:'靠近受伤与有需要的人，给予实际帮助',s:['同理','接纳','实际帮助','对弱势敏锐'],r:['情绪卷入、界限不足','容易被需求淹没、难以拒绝','有时忽略真理与责任'],m:['慈惠事工','医院关怀','长者与儿童事工','危机援助','社区关怀'],e:['慈惠事工','受伤者关怀','界限建立','圣经辅导'],d:{life:.45,church:.3,gospel:.25}},
+ {k:'intercessor',l:'代祷者',en:'Intercessor',mod:'代祷型',g:'CARE',core:'恒切祷告，把人和使命持续带到神面前',s:['安静专注','持续负担','忠心隐秘','属灵敏锐'],r:['以主观感觉替代分辨','缺少行动配合','容易把个人感动当确据'],m:['祷告会','宣教代祷','教会守望','私下代祷','危机祷告团队'],e:['祷告神学','诗篇','属灵操练','教会论'],d:{life:.55,mission:.25,church:.2}},
+ {k:'evangelist',l:'传福音者',en:'Evangelist',mod:'福音型',g:'MISSION',core:'向未信的人传讲福音，邀请人认识基督',s:['主动连结','福音表达','与陌生人交流','行动力'],r:['追求决志数字、跟进不足','信息过度简化','忽略长期门训'],m:['个人布道','职场校园事工','街头福音','网络福音','福音聚会'],e:['福音神学','护教学','福音表达','初信跟进'],d:{mission:.45,gospel:.4,apologetics:.15}},
+ {k:'missionary',l:'差传者',en:'Missionary',mod:'开拓型',g:'MISSION',core:'跨越文化与地域，把福音带向未及之地',s:['跨文化适应','开拓精神','使命感','坚韧'],r:['过快行动、忽略长期可持续性','文化理解不足','浪漫化宣教'],m:['跨文化宣教','植堂','未得之民','移民事工','宣教动员'],e:['宣教学','跨文化沟通','世界宗教','植堂与语言'],d:{mission:.6,church:.2,life:.2}},
+ {k:'leader',l:'领袖者',en:'Leader',mod:'领袖型',g:'BUILD',core:'带领群体朝着共同异象与使命前进',s:['异象与决策','组织人手','推动执行','承担责任'],r:['控制与急于结果','忽略弱者、不善倾听','把事工成果等同属灵成熟'],m:['小组领导','事工负责人','教会行政领导','项目带领','植堂'],e:['仆人领导','团队建设','冲突管理','教会治理'],d:{ministry:.45,church:.3,theology:.25}},
+ {k:'builder',l:'建造者',en:'Builder',mod:'建造型',g:'BUILD',core:'把混乱变有结构，建立可持续运行的系统',s:['系统思维','组织执行','规划','解决问题'],r:['系统大于人','沟通偏少、过度优化','对低效率的人缺乏耐心'],m:['教会行政','财务','媒体与技术','课程平台','项目管理','义工运营'],e:['事工管理','管家神学','项目管理','团队协作'],d:{church:.4,ministry:.4,theology:.2}},
+ {k:'servant',l:'服事者',en:'Servant',mod:'服事型',g:'BUILD',core:'看见需要就补上缺口，忠心配搭服事',s:['忠心','可靠','谦逊执行','默默摆上'],r:['不会拒绝、容易耗竭','长期被忽视而灰心','只做事、忽略自己也需要成长'],m:['接待','后勤','儿童帮助','场地与行政','活动执行','探访支持'],e:['仆人领导','团队协作','时间管理','恩赐辨识'],d:{church:.35,ministry:.35,life:.3}}
+];
+var img = function(k){ return 'assets/img/archetypes/arch_' + k + '.jpg'; };
+
+// 十题九维快照（事奉 2 题），与 App 题库同源
+var QS = [
+ {d:'bible',t:'先聊聊读经：下面哪句更接近你现在的状态？',o:[['还没有通读过圣经，读经比较随机',32],['常读新约，旧约很多卷还不熟悉',50],['通读过一遍，大致知道各卷讲什么',68],['多次通读，熟悉多数书卷的主题',82]]},
+ {d:'hermeneutics',t:'读到一段不容易明白的经文时，你通常会怎么做？',o:[['跳过去，或凭感动理解',30],['直接找一个应用点套在自己身上',45],['先看上下文，再想它对我的意义',68],['查上下文和背景，先弄清原意再应用',84]]},
+ {d:'theology',t:'关于“三位一体”，下面哪句表述是正确的？',o:[['父、子、圣灵是同一位神的三种不同形态',35],['父是真神，子和圣灵是被造的',22],['一位神，三个位格，同质、同权、同荣',84],['说不准，这个问题我还不太清楚',40]]},
+ {d:'gospel',t:'“人怎样才能在神面前称义？”你的回答是：',o:[['尽力行善、好行为多过坏行为',25],['唯独借着信心，领受基督的义',84],['信心加上足够的善行',45],['不太确定',38]]},
+ {d:'life',t:'过去一个月，你的灵修生活更接近哪种状态？',o:[['几乎没有固定的读经祷告',30],['想坚持但常中断，主要靠聚会',50],['大部分日子有读经或祷告',72],['有稳定节奏，也操练省察与顺服',90]]},
+ {d:'church',t:'关于教会，你更认同哪种理解？',o:[['教会主要是听道和聚会的场所',42],['信仰是个人的事，教会可有可无',22],['教会是基督的身体，信徒彼此连结、一同事奉',86],['没认真想过这个问题',36]]},
+ {d:'ministry',t:'在服事参与上，你现在的情况是？',o:[['还没有参与服事',32],['偶尔帮忙做事务性服事',50],['有固定服事岗位',68],['带领他人（小组/门训/教导）',82]]},
+ {d:'apologetics',t:'有人对你说：“耶稣是神造的第一个受造物。”你会如何判断和回应？',o:[['听起来有道理，说不出问题在哪',26],['感觉不对，但讲不清楚为什么',46],['能指出这违背“子与父同质”的正统信仰',86],['不但能判断，还能顾及对方感受、以挽回为目标去谈',95]]},
+ {d:'mission',t:'关于宣教与使命，你更接近哪种状态？',o:[['觉得那是宣教士的事，与我关系不大',30],['有感动，但不知道自己能做什么',52],['在职场/家庭中有意识地作见证',74],['持续参与或支持宣教，理解处境化的重要性',90]]},
+ {d:'ministry',t:'如果要带一位初信者开始门徒训练，你会怎么开始？',o:[['先让他多参加聚会，慢慢就会成长',48],['给他一本书或课程让他自己学',55],['定期见面，从救恩确据和读经祷告开始陪伴',85],['有一套自己实践过的门训路径，并按他的情况调整',95]]}
+];
+var answers = [], currentPri = null;
+
+function show(id){ ['landing','quiz','result','detail'].forEach(function(x){ document.getElementById(x).classList.toggle('hidden', x!==id); }); document.getElementById('stickyCta').classList.toggle('hidden', id!=='result'); window.scrollTo(0,0); }
+// 配套 App 链接（与官网 CONFIG.app 保持一致）。url 为空 = App 未上线（按钮改为引导至数字校园）；
+// params 预留来源 / 评估 / 画像参数；跳转时附带 archetype / stage / score / dims，供 App 端作为成长画像起点。
+var APP_LINK = { url: "", params: { source: "website-discover", assessment: "discover-arch-v1", profile: "" } };
+var lastResult = null;
 function appUrl(extra){
   if (!APP_LINK.url) return "";
   var q = Object.assign({}, APP_LINK.params, extra || {}), parts = [];
   for (var k in q) if (q[k] !== "" && q[k] != null) parts.push(k + "=" + encodeURIComponent(q[k]));
   return APP_LINK.url + (APP_LINK.url.indexOf("?") > -1 ? "&" : "?") + parts.join("&");
 }
-var APP_URL = APP_LINK.url;
-// 快速测评：8 题，4 维（圣经 bible / 福音 gospel / 生命 life / 服事 serve）。
-// 一页一题；answers[] 即撤销历史，undo() 弹出最后一个答案即可回上一题。
-var QS = [
-  { d:'bible', t:'先聊聊读经：下面哪句更接近你现在的状态？', o:[
-    ['还没有完整读过圣经，读经比较随机',32],
-    ['常读新约，旧约很多卷还不熟悉',52],
-    ['通读过一遍，大致知道各卷讲什么',70],
-    ['多次通读，熟悉多数书卷的主题',86]]},
-  { d:'bible', t:'如果请你讲一遍“创造—堕落—救赎—新造”的圣经主线，你有多大把握？', o:[
-    ['这个说法我还是第一次听到',35],
-    ['听过，但讲不完整',55],
-    ['能讲个大概，衔接不够清楚',70],
-    ['能完整讲出主线并举出书卷例证',88]]},
-  { d:'gospel', t:'“人怎样才能在神面前称义？”你的回答是：', o:[
-    ['尽力行善、好行为多过坏行为',25],
-    ['信心加上足够的善行',45],
-    ['不太确定',38],
-    ['唯独借着信心，领受基督的义',86]]},
-  { d:'gospel', t:'一位信徒因跌倒犯罪，觉得“神不爱我了”。你会怎样帮助他？', o:[
-    ['劝他多做好事来弥补',30],
-    ['安慰他别想太多',45],
-    ['我也不确定该怎么回应',50],
-    ['带他回到福音：称义在乎基督，引导认罪并确信恩典',90]]},
-  { d:'life', t:'过去一个月，你的灵修生活更接近哪种状态？', o:[
-    ['几乎没有固定的读经祷告',30],
-    ['想坚持但常中断，主要靠聚会',50],
-    ['大部分日子有读经或祷告',72],
-    ['有稳定节奏，也操练省察与顺服',90]]},
-  { d:'life', t:'遇到重大压力或试炼时，你通常：', o:[
-    ['信仰帮不上什么忙，靠自己扛',32],
-    ['会祷告，但很快又陷入焦虑',52],
-    ['借着祷告和经文慢慢恢复平安',74],
-    ['能在试炼中经历神，事后信心更坚固',90]]},
-  { d:'serve', t:'在教会服事参与上，你现在的情况是？', o:[
-    ['还没有参与服事',32],
-    ['偶尔帮忙做事务性服事',52],
-    ['有固定服事岗位',70],
-    ['带领他人（小组/门训/教导）',85]]},
-  { d:'serve', t:'关于信仰的使命感，你更接近哪种状态？', o:[
-    ['信仰主要是我个人的事',32],
-    ['有感动，但不知道能做什么',52],
-    ['在职场/家庭中有意识地作见证',74],
-    ['渴望被装备去带领和影响更多人',88]]}
-];
-var DIM_NAME = { bible:'圣经根基', gospel:'福音认识', life:'属灵生命', serve:'服事使命' };
-var answers = [];
-
-function show(id){ ['landing','quiz','result'].forEach(function(x){ document.getElementById(x).classList.toggle('hidden', x!==id); }); window.scrollTo(0,0); }
+function goApp(src){
+  try { localStorage.setItem('amas_discover_src', src || ''); } catch(e){}
+  if (!APP_LINK.url) { location.href = 'index.html#digital'; return; }
+  location.href = appUrl(Object.assign({ src: src || '' }, lastResult || {}));
+}
+// App 未上线时，把“打开 App”类按钮文案改为引导语
+if (!APP_LINK.url) {
+  document.addEventListener('DOMContentLoaded', function(){
+    var els = document.querySelectorAll('button, .link-btn, .locked-line, .lockchip, .sticky-cta span');
+    Array.prototype.forEach.call(els, function(el){
+      if (el.children.length) return;
+      el.textContent = el.textContent.replace(/打开 AMAS App[^，。]*?(?=$|›)/, 'App 即将上线 · 了解数字校园').replace(/打开 App[^，。›]*/, 'App 即将上线 · 了解更多');
+    });
+  });
+}
 function startQuiz(){ answers = []; render(); show('quiz'); }
 function exitQuiz(){ show('landing'); }
 function restart(){ startQuiz(); }
 
+// 着陆页画廊
+(function(){
+  var strip = document.getElementById('strip'), groups = document.getElementById('groups');
+  ARCH.forEach(function(a){ var im = document.createElement('img'); im.src = img(a.k); im.alt = a.l; im.loading = 'lazy'; im.onclick = function(){ openDetail(a.k); }; strip.appendChild(im); });
+  Object.keys(GROUPS).forEach(function(g){ var s = document.createElement('span'); s.textContent = g + ' ' + GROUPS[g].cn + ' · ' + ARCH.filter(function(a){return a.g===g;}).map(function(a){return a.l;}).join(' / '); groups.appendChild(s); });
+  document.getElementById('disc1').textContent = DISC; document.getElementById('disc2').textContent = DISC;
+})();
+
 function render(){
   var i = answers.length;
-  if (i >= QS.length) { return finish(); }
+  if (i >= QS.length) return finish();
   var q = QS[i];
   document.getElementById('qnum').textContent = '第 ' + (i+1) + ' 题';
   document.getElementById('qtext').textContent = q.t;
   document.getElementById('count').textContent = (i+1) + '/' + QS.length;
   document.getElementById('prog').style.width = Math.min(96, (i/QS.length)*100) + '%';
   var box = document.getElementById('opts'); box.innerHTML = '';
-  q.o.forEach(function(opt, oi){
-    var b = document.createElement('button');
-    b.className = 'opt'; b.textContent = opt[0];
-    b.onclick = function(){ answers.push(oi); render(); };
-    box.appendChild(b);
-  });
+  q.o.forEach(function(opt, oi){ var b = document.createElement('button'); b.className = 'opt'; b.textContent = opt[0]; b.onclick = function(){ answers.push(oi); render(); }; box.appendChild(b); });
   document.getElementById('undoBtn').disabled = answers.length === 0;
-  var card = document.getElementById('qcard');
-  card.classList.remove('fade'); void card.offsetWidth; card.classList.add('fade');
+  var card = document.getElementById('qcard'); card.classList.remove('fade'); void card.offsetWidth; card.classList.add('fade');
 }
 function undo(){ if (answers.length) { answers.pop(); render(); } }
 
-function finish(){
+// 九维分数 → 角色排名（与 App 引擎一致：无恩赐时 100% 按能力初判）
+function rank(dims){
+  return ARCH.map(function(a){ var dp=0, dw=0; Object.keys(a.d).forEach(function(k){ dp += dims[k]*a.d[k]; dw += a.d[k]; }); return { a:a, score: Math.round(Math.min(99, dp/dw)) }; })
+             .sort(function(x,y){ return y.score - x.score; });
+}
 
+function finish(){
   var acc = {};
-  answers.forEach(function(oi, qi){
-    var q = QS[qi], s = q.o[oi][1];
-    if (!acc[q.d]) acc[q.d] = [];
-    acc[q.d].push(s);
+  answers.forEach(function(oi, qi){ var q = QS[qi]; (acc[q.d] = acc[q.d] || []).push(q.o[oi][1]); });
+  var dims = {};
+  Object.keys(DIM).forEach(function(k){ var arr = acc[k] || [50]; dims[k] = Math.round(arr.reduce(function(a,b){return a+b;},0)/arr.length); });
+  var rows = rank(dims), pri = rows[0], sec = rows[1], third = rows[2];
+  currentPri = pri.a.k;
+  var combined = sec.a.mod + pri.a.l;
+
+  document.getElementById('rName').textContent = combined;
+  document.getElementById('rEn').textContent = 'The ' + pri.a.en + ' – ' + sec.a.en;
+  document.getElementById('rDecl').textContent = '你倾向于' + pri.a.core + '；同时也乐于' + sec.a.core + '。';
+  var ri = document.getElementById('rImg'); ri.src = img(pri.a.k); ri.alt = pri.a.l;
+
+  // 主/辅/第三：点击在本页切换左侧卡图与说明（不跳转）
+  var three = document.getElementById('three'); three.innerHTML = '';
+  var slots = [['初步主角色',pri],['初步辅助',sec],['第三倾向',third]];
+  var cells = slots.map(function(x, i){
+    var d = document.createElement('div');
+    var sc = i === 2 ? '<span style="font-size:11px;color:#8A6519">🔒 App</span>' : x[1].score;
+    d.innerHTML = '<div class="tag">'+x[0]+'</div><div class="nm">'+x[1].a.l+'</div><div class="sc">'+sc+'</div><div class="gp">'+GROUPS[x[1].a.g].cn+'</div>';
+    d.onclick = function(){ selectSlot(i); };
+    three.appendChild(d);
+    return d;
   });
-  var dims = Object.keys(DIM_NAME).map(function(k){
-    var arr = acc[k] || [50];
-    return { k:k, n:DIM_NAME[k], v: Math.round(arr.reduce(function(a,b){return a+b;},0)/arr.length) };
-  });
-  var avg = Math.round(dims.reduce(function(a,d){return a+d.v;},0)/dims.length);
-  var stage = avg >= 78 ? { n:'成长型服事者', l:3, d:'你的根基相当扎实，已经（或预备好）进入带领与教导的阶段。接下来的关键是把经验系统化：完整的释经训练与教义框架，会让你的服事更稳、走得更远。' }
-    : avg >= 58 ? { n:'稳定成长者', l:2, d:'你的信仰生活已经稳定，这正是建立系统根基的最佳时期。有方向的装备会让你从“被喂养”走向“能喂养人”。' }
-    : { n:'初信扎根者', l:1, d:'每个人都从这里开始——从福音的确据和读经生活扎根。不需要着急，一步一步来，方向对了就不怕路远。' };
-  var weakest = dims.slice().sort(function(a,b){return a.v-b.v;})[0];
-  var adviceMap = {
-    bible:'从建立圣经整体框架开始：先了解新旧约脉络与救恩主线，再逐卷深入。AMAS 的《圣经概论》类课程是很好的第一步。',
-    gospel:'先把福音根基打稳：弄清“因信称义”与恩典的真理，这是所有成长的地基。建议从罗马书或救恩确据类课程开始。',
-    life:'从最小可行的灵修习惯开始：每天读经 15 分钟 + 祷告 10 分钟，坚持两周。稳定的与神关系比任何知识都重要。',
-    serve:'从一个具体的小服事开始参与，在实践中发现神给你的恩赐。App 内的恩赐辨识能帮你找到适合的事奉方向。'
-  };
-  window.APP_RESULT_URL = APP_URL ? appUrl({ stage: stage.l, score: avg, dims: dims.map(function(d){ return d.k + ':' + d.v; }).join(',') }) : '';
-  if (APP_URL) document.getElementById('appCta').textContent = '打开 AMAS App · 建立完整成长画像';
-  document.getElementById('stageChip').textContent = stage.n + ' · LEVEL ' + stage.l + ' · 综合 ' + avg;
-  document.getElementById('stageName').textContent = stage.n;
-  document.getElementById('stageDesc').textContent = stage.d;
-  var dv = document.getElementById('dims'); dv.innerHTML = '';
-  dims.forEach(function(d){
+  function selectSlot(i){
+    var a = slots[i][1].a;
+    cells.forEach(function(c, j){ c.className = j === i ? 'gold' : ''; });
+    var im = document.getElementById('rImg'); im.src = img(a.k); im.alt = a.l;
+    document.getElementById('rSel').innerHTML =
+      '<span class="tag">' + slots[i][0] + ' · ' + GROUPS[a.g].cn + '</span>' +
+      '<b>' + a.l + ' <small>' + a.en + '</small></b>' +
+      '<p>' + a.core + '。</p>' +
+      (i === 0 ? '' : '<p class="hint">这是你的' + (i === 1 ? '辅助倾向' : '第三倾向') + '，最终角色以主角色为准；App 内完成恩赐辨识后会重新排序确认。</p>');
+  }
+  selectSlot(0);
+
+  var sorted = Object.keys(DIM).map(function(k){ return {k:k, v:dims[k]}; }).sort(function(a,b){ return b.v - a.v; });
+  var top = sorted.slice(0,2), weak = sorted[sorted.length-1];
+  document.getElementById('fuseT').textContent = '✦ 融合分析 · 为什么是「' + pri.a.l + '」';
+  document.getElementById('fuseDim').innerHTML = '九维快照中「<b>'+DIM[top[0].k]+'</b>」（'+top[0].v+'）、「<b>'+DIM[top[1].k]+'</b>」（'+top[1].v+'）领先，「'+DIM[weak.k]+'」（'+weak.v+'）偏弱';
+  document.getElementById('fuseC').innerHTML = '综合以上，与你当前最吻合的角色是「<b>'+combined+'</b>」——'+pri.a.core+'。<br/><span style="color:#8A6519">完成 App 内恩赐辨识后，这个结论会被三层证据正式确认或修正。</span>';
+
+  // 优势：只展示前 2 项，其余引导进 App
+  var rs = document.getElementById('rStr');
+  rs.innerHTML = pri.a.s.slice(0,2).map(function(x){ return '<span>'+x+'</span>'; }).join('') +
+    '<span class="lockchip" onclick="goApp(\'strengths\')">🔒 还有 ' + (pri.a.s.length - 2) + ' 项优势 · App 解锁</span>';
+
+  // 锁定区（模糊预览）
+  document.getElementById('rRiskL').innerHTML = pri.a.r.slice(0,2).concat([sec.a.r[0]]).map(function(r){ return '<p class="risk">· '+r+'</p>'; }).join('');
+  var mins = []; pri.a.m.concat(sec.a.m).forEach(function(m){ if (mins.indexOf(m)<0) mins.push(m); }); fill('rMinL', mins.slice(0,6));
+
+  // 九维：仅展示领先的 3 维，其余 6 维模糊
+  var avg = Math.round(Object.keys(DIM).reduce(function(t,k){return t+dims[k];},0)/9);
+  var stage = avg >= 78 ? ['成长型服事者',3] : avg >= 58 ? ['稳定成长者',2] : ['初信扎根者',1];
+  lastResult = { archetype: pri.a.k + '+' + sec.a.k, stage: stage[1], score: avg, dims: Object.keys(DIM).map(function(k){ return k + ':' + dims[k]; }).join(',') };
+  document.getElementById('stageChip').textContent = '✦ ' + stage[0] + ' · LEVEL ' + stage[1] + ' · 综合 ' + avg;
+  var dv = document.getElementById('dims'), dl = document.getElementById('dimsLocked'); dv.innerHTML = ''; dl.innerHTML = '';
+  sorted.forEach(function(x, i){
     var row = document.createElement('div'); row.className = 'dimrow';
-    row.innerHTML = '<span class="n">' + d.n + '</span><div class="track"><i style="width:' + d.v + '%"></i></div><span class="v">' + d.v + '</span>';
-    dv.appendChild(row);
+    row.innerHTML = '<span class="n">'+DIM[x.k]+'</span><div class="track"><i class="'+(x.k===weak.k?'weak':'')+'" style="width:'+x.v+'%"></i></div><span class="v">'+x.v+'</span>';
+    (i < 3 ? dv : dl).appendChild(row);
   });
-  document.getElementById('advice').textContent = '「' + weakest.n + '」是你目前最值得投入的方向。' + adviceMap[weakest.k];
+  document.getElementById('adviceT').textContent = '当前装备重点：' + DIM[weak.k] + '（' + weak.v + ' 分）';
+  document.getElementById('advice').textContent = '作为「' + pri.a.l + '」，建议优先补强这一维度。App 会按你的画像生成三阶段装备路径，并匹配对应课程与实践任务。';
   show('result');
 }
+function fill(id, arr){ document.getElementById(id).innerHTML = arr.map(function(s){ return '<span>'+s+'</span>'; }).join(''); }
+
+// 角色详情（优势可见；盲点/侍奉/装备方向模糊预览，引导进 App）
+var detailFrom = 'landing';
+function openDetail(k){
+  var a = ARCH.filter(function(x){return x.k===k;})[0]; if (!a) return;
+  detailFrom = document.getElementById('result').classList.contains('hidden') ? 'landing' : 'result';
+  var n = String(ARCH.indexOf(a)+1); if (n.length<2) n = '0'+n;
+  document.getElementById('dTitle').textContent = n + ' ' + a.l + ' · 角色详情';
+  document.getElementById('dGroup').textContent = a.g + ' · ' + GROUPS[a.g].cn;
+  var di = document.getElementById('dImg'); di.src = img(a.k); di.alt = a.l;
+  document.getElementById('dCore').textContent = '“' + a.core + '。”';
+  document.getElementById('dQ').textContent = GROUPS[a.g].q;
+  fill('dStr', a.s); document.getElementById('dRisk').innerHTML = a.r.map(function(r){ return '<p class="risk">· '+r+'</p>'; }).join('');
+  fill('dMin', a.m); fill('dEq', a.e);
+  currentDetail = k;
+  renderDetailGrid();
+  if (document.getElementById('detail').classList.contains('hidden')) show('detail'); else window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+var currentDetail = null;
+function renderDetailGrid(){
+  var g = document.getElementById('dGrid');
+  if (!g.childElementCount) {
+    ARCH.forEach(function(a){
+      var b = document.createElement('button'); b.setAttribute('data-k', a.k);
+      b.innerHTML = '<img src="' + img(a.k) + '" alt="' + a.l + '" loading="lazy" /><span>' + a.l + '</span>';
+      b.onclick = function(){ openDetail(a.k); };
+      g.appendChild(b);
+    });
+  }
+  Array.prototype.forEach.call(g.children, function(b){ b.className = b.getAttribute('data-k') === currentDetail ? 'on' : ''; });
+}
+function stepDetail(dir){
+  var i = ARCH.map(function(a){ return a.k; }).indexOf(currentDetail);
+  openDetail(ARCH[(i + dir + ARCH.length) % ARCH.length].k);
+}
+function closeDetail(){ show(detailFrom); }
+// 预览用：?demo=1 直接以示例答案进入结果页（便于设计核对）
+if (location.search.indexOf('demo=1') >= 0) { answers = QS.map(function(q, i){ return (i % 2) ? 2 : 3; }); finish(); }
+var roleParam = location.search.match(/[?&]role=([a-z]+)/);
+if (roleParam) openDetail(roleParam[1]);
 </script>
 </body>
 </html>

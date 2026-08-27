@@ -11,8 +11,8 @@
 
 | 项目 | 仓库 | 说明 |
 |---|---|---|
-| **AMAS App**（移动端） | [enoslee0701-dev/AMAS-Seminary](https://github.com/enoslee0701-dev/AMAS-Seminary) | React + Vite + Capacitor，课程、校友圈、语音房、口袋神学、AI 定制化神学（九维诊断与成长档案） |
-| **AMAS 官网**（本仓库） | enoslee0701-dev/amas-website | 对外门户与招生入口；网站上的快速测评是 App 完整诊断的「Discover」层 |
+| **AMAS App**（移动端） | [enoslee0701-dev/AMAS-Seminary](https://github.com/enoslee0701-dev/AMAS-Seminary) | React + Vite + Capacitor，课程、校友圈、语音房、口袋神学、AI 定制化神学（九维评估与成长画像） |
+| **AMAS 官网**（本仓库） | enoslee0701-dev/amas-website | 对外门户与招生入口；网站上的快速测评是 App 完整评估的「Discover」层 |
 
 两者同属 AMAS 亚洲宣教神学院，分工：**网站负责发现与招生，App 负责持续装备与成长。**
 
@@ -23,7 +23,7 @@
 
 ```
 index.html        首页（全部版块）
-discover.html     定制化神学 · 3 分钟快速测评
+discover.html     定制化神学 · 4 分钟快速测评（十题九维 · 十二大成长角色）
 giving.html       与我们同工（奉献，一对一联系）
 login.html        登录
 admin.html        管理后台（Supabase）

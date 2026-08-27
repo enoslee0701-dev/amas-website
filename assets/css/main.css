@@ -1043,3 +1043,10 @@ html[data-theme="night"] .footer{background:linear-gradient(180deg,#0a1220,#060b
   .hero-band-item:last-child{border-bottom:0}
   .hero-band-item:nth-child(3){padding-left:14px}
 }
+
+/* ATA 认证项目文字列表（图片之外的可读版本） */
+.accred-list{list-style:none;margin:18px 0 22px;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.accred-list li{border:1px solid rgba(183,138,53,.4);border-left:3px solid #c9963d;border-radius:10px;background:var(--surface,#fff);padding:14px 16px}
+.accred-list b{display:block;font-size:14.5px;color:var(--ink);line-height:1.5}
+.accred-list span{display:block;margin-top:4px;font-size:11.5px;color:var(--muted)}
+@media(max-width:860px){.accred-list{grid-template-columns:1fr}}
