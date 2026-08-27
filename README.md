@@ -16,6 +16,9 @@
 
 两者同属 AMAS 亚洲宣教神学院，分工：**网站负责发现与招生，App 负责持续装备与成长。**
 
+> **Source of Truth**：`discover.html`（快速测评）以本仓库为唯一权威版本；`AMAS-Seminary/public/discover.html` 仅为集成副本，改动一律先在本仓库完成再同步过去，避免双向独立修改造成漂移。
+> App 链接由 `assets/js/main.js` 的 `CONFIG.app` 统一配置（地址 + deep link + source / assessment / profile 参数），`appUrl()` 负责拼装。
+
 ## 目录
 
 ```

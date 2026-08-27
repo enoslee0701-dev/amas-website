@@ -19,7 +19,13 @@ const CONFIG = {
      支持 YouTube / Vimeo 的 embed 链接，或以 .mp4 结尾的直链。
        videoUrl: "https://www.youtube.com/embed/XXXXXXXXXXX"  */
   /* 配套 App（仓库 enoslee0701-dev/AMAS-Seminary）。填入正式地址后，数字校园版块自动出现入口按钮 */
-  app: { repo: "https://github.com/enoslee0701-dev/AMAS-Seminary", web: "", ios: "", android: "" },
+  /* 配套 App。地址保持为空 = 未上线；结构预留 deep link / 来源 / 评估 / 画像参数扩展 */
+  app: {
+    repo: "https://github.com/enoslee0701-dev/AMAS-Seminary",
+    web: "", ios: "", android: "",
+    deepLink: "",                       // 例：amas://profile 或 https://app.amasthai.com
+    params: { source: "website", assessment: "discover-quick-v1", profile: "" }
+  },
   videoUrl: "",
 
   /* 真实的下载文件地址。留空则沿用演示用的占位 .txt。
@@ -152,9 +158,9 @@ const i18n = {
   "digital.items.0.title":"远程课堂","digital.items.0.body":"正在修读的课程、直播讲座与课后回放汇总到一个入口，适合移动端连续学习。",
   "digital.items.1.title":"图书馆资源","digital.items.1.body":"讲义、音频与研究资料在图书馆与课程资料页同步出现，减少来回查找。",
   "digital.items.2.title":"校友社群","digital.items.2.body":"讨论、代祷、导师反馈与语音房，让学习与群体生活彼此连接。",
-  "digital.ai.cta":"3 分钟快速测评 · 抢先体验","digital.ai.ctaNote":"完整的 AI 九维诊断与成长档案将在 App 端进行。",
+  "digital.ai.cta":"3 分钟快速测评 · 抢先体验","digital.ai.ctaNote":"完整的 AI 九维评估与成长画像将在 App 端建立。",
   "digital.app.web":"打开网页版 App",
-  "digital.ai.title":"定制化神学 · AI 个性化装备","digital.ai.quote":"“不是每个人都需要从同一课开始。”","digital.ai.body":"AI 将根据你的信仰、圣经、神学、生命与服事处境进行对话式诊断，生成你的神学成长画像，并为你设计专属的装备路径——学习中持续评估、动态调整，直到差遣你进入真实服事。","digital.ai.f0":"认识你","digital.ai.f1":"诊断评估","digital.ai.f2":"成长画像","digital.ai.f3":"专属路径","digital.ai.f4":"持续调整","digital.items.3.title":"课程试听","digital.items.3.body":"精选免费公开课先听为快，体验课堂再决定报读。","digital.items.4.title":"课程路径","digital.items.4.body":"从证书课程到博士研究，阶梯式路径一目了然。","digital.items.5.title":"在线咨询","digital.items.5.body":"公告、答疑与招生咨询随时在手，同工及时回应。",
+  "digital.ai.title":"定制化神学 · AI 个性化装备","digital.ai.quote":"“不是每个人都需要从同一课开始。”","digital.ai.body":"AI 将根据你的信仰、圣经、神学、生命与服事处境进行对话式评估，生成你的神学成长画像，并为你设计专属的装备路径——学习中持续评估、动态调整，直到差遣你进入真实服事。","digital.ai.f0":"认识你","digital.ai.f1":"评估","digital.ai.f2":"成长画像","digital.ai.f3":"专属路径","digital.ai.f4":"持续调整","digital.items.3.title":"课程试听","digital.items.3.body":"精选免费公开课先听为快，体验课堂再决定报读。","digital.items.4.title":"课程路径","digital.items.4.body":"从证书课程到博士研究，阶梯式路径一目了然。","digital.items.5.title":"在线咨询","digital.items.5.body":"公告、答疑与招生咨询随时在手，同工及时回应。",
   "digital.note.label":"开发中：","digital.note.body":"学习 App 正在内部测试，正式发布后将在此提供下载入口。",
   "meta.lessons":"{n} 讲",
   "admissions.title":"2026 届神学学士 B.Th 招生","admissions.desc":"为愿意认真装备、持续成长并参与服事的人提供灵活、实践导向的神学教育路径。","admissions.points.0":"线上 + 线下灵活学习","admissions.points.1":"学费欢迎咨询","admissions.points.2":"2026 年 9 月开学","admissions.points.3":"总校审核并建立正式学籍","admissions.card.mode":"学习模式","admissions.card.modeValue":"线上 / 线下","admissions.card.start":"开学时间","admissions.card.location":"教学中心","admissions.card.locationValue":"清迈","admissions.card.language":"主要语言","admissions.card.languageValue":"中文",
@@ -255,7 +261,7 @@ const i18n = {
   "digital.items.0.title":"Remote Classroom","digital.items.0.body":"Current courses, live lectures and replays gathered into one entry point for continuous mobile learning.",
   "digital.items.1.title":"Library Resources","digital.items.1.body":"Notes, audio and research materials appear in both the library and course pages.",
   "digital.items.2.title":"Alumni Community","digital.items.2.body":"Discussion, intercession, mentor feedback and voice rooms connect learning with community life.",
-  "digital.ai.cta":"Try the 3-Minute Assessment","digital.ai.ctaNote":"The full nine-dimension AI diagnosis and growth profile will live in the App.",
+  "digital.ai.cta":"Try the 3-Minute Assessment","digital.ai.ctaNote":"The full nine-dimension AI assessment and growth profile will be built in the App.",
   "digital.app.web":"Open the Web App",
   "digital.ai.title":"Personalized Theology · AI Equipping","digital.ai.quote":"\u201cNot everyone needs to start from the same course.\u201d","digital.ai.body":"Through conversational assessment of your faith, Bible knowledge, theology, life and ministry context, AI builds your theological growth profile and designs a personal equipping path \u2014 continually re-evaluated and adjusted, until you are sent into real ministry.","digital.ai.f0":"Know you","digital.ai.f1":"Assess","digital.ai.f2":"Growth profile","digital.ai.f3":"Personal path","digital.ai.f4":"Keep adjusting","digital.items.3.title":"Course Trials","digital.items.3.body":"Sample selected free open courses before you enroll.","digital.items.4.title":"Study Pathways","digital.items.4.body":"See the ladder from certificate to doctoral studies at a glance.","digital.items.5.title":"Online Support","digital.items.5.body":"Announcements, Q&A and admissions help, right in your pocket.",
   "digital.note.label":"In development: ","digital.note.body":"The learning app is in internal testing; a download link will appear here at launch.",
@@ -322,7 +328,7 @@ const i18n = {
   "toast.themeNight":"야간 모드로 전환되었습니다","toast.themeDay":"주간 모드로 전환되었습니다","toast.applied":"지원서가 전송되었습니다","toast.appliedDemo":"지원서가 제출되었습니다(데모)","toast.inquiry":"문의가 전송되었습니다","toast.inquiryDemo":"문의가 제출되었습니다(데모)","toast.failed":"제출 실패. 잠시 후 다시 시도해 주세요","toast.downloaded":"샘플 파일이 다운로드되었습니다",
   "meta.credits":"{n}학점","meta.weeks":"{n}주",
   "hero.title":"아시아선교신학교","hero.sub":"ASIA MISSIONARY ASSOCIATION SEMINARY","hero.verse":"그러므로 너희는 가서 모든 민족을 제자로 삼으라.","hero.verseRef":"— 마태복음 28:19",
-  "hero.ai.title":"맞춤 신학 · 3분 만에 나의 성장 단계 발견","hero.ai.sub":"8문항 · 4차원 스냅샷 · 맞춤 성장 제안","hero.ai.go":"바로 진단 →",
+  "hero.ai.title":"맞춤 신학 · 3분 만에 나의 성장 단계 발견","hero.ai.sub":"8문항 · 4차원 스냅샷 · 맞춤 성장 제안","hero.ai.go":"바로 평가 →",
   "herometa.program":"과정","herometa.programVal":"신학사 B.Th","herometa.startVal":"2026년 9월","herometa.start":"2026학년도 개강","herometa.mode":"학습","herometa.modeVal":"온라인 + 오프라인",
   "accred.more":"인증 상세 보기 →","accred.title":"학술 인증","accred.intro":"AMAS의 다음 학위 과정은 Asia Theological Association(ATA)의 인증 평가를 통과했습니다.","accred.bthName":"신학사 Bachelor of Theology (B.Th.)","accred.mdivName":"목회학석사 Master of Divinity (M.Div.)","accred.dminName":"목회학박사 Doctor of Ministry (D.Min.)","accred.bthNote":"Asia Theological Association (ATA) 인증","accred.note":"ATA 인증은 위에 명시된 학위 과정에 적용되며, 인증 범위와 유효 기간은 ATA가 발급한 인증 문서를 기준으로 합니다.",
   "actions.consult":"입학 상담","actions.applyBth":"신학사 B.Th 지원",
@@ -358,9 +364,9 @@ const i18n = {
   "digital.items.0.title":"원격 강의실","digital.items.0.body":"수강 중인 과목·실시간 강의·다시보기를 한곳에 모아 모바일에서도 이어서 학습합니다.",
   "digital.items.1.title":"도서관 자료","digital.items.1.body":"강의안·오디오·연구 자료가 도서관과 과목 자료 페이지에 함께 제공됩니다.",
   "digital.items.2.title":"동문 커뮤니티","digital.items.2.body":"토론·중보기도·멘토 피드백·음성방으로 학습과 공동체가 연결됩니다.",
-  "digital.ai.cta":"3분 빠른 진단 · 미리 체험","digital.ai.ctaNote":"완전한 AI 9차원 진단과 성장 프로필은 App에서 제공됩니다.",
+  "digital.ai.cta":"3분 빠른 평가 · 미리 체험","digital.ai.ctaNote":"완전한 AI 9차원 평가와 성장 프로필은 App에서 만들어집니다.",
   "digital.app.web":"웹 앱 열기",
-  "digital.ai.title":"맞춤 신학 · AI 개인 맞춤 훈련","digital.ai.quote":"\u201c모든 사람이 같은 과목에서 시작할 필요는 없습니다.\u201d","digital.ai.body":"AI가 당신의 신앙·성경·신학·삶·사역 상황을 대화로 진단하여 신학 성장 프로필을 만들고, 개인 맞춤 훈련 경로를 설계합니다. 학습 중에도 계속 평가하고 조정하여 실제 사역으로 파송될 때까지 함께합니다.","digital.ai.f0":"당신을 알기","digital.ai.f1":"진단 평가","digital.ai.f2":"성장 프로필","digital.ai.f3":"맞춤 경로","digital.ai.f4":"지속 조정","digital.items.3.title":"강의 맛보기","digital.items.3.body":"엄선된 무료 공개 강의를 먼저 듣고 등록을 결정하세요.","digital.items.4.title":"학습 경로","digital.items.4.body":"수료 과정부터 박사 연구까지 단계별 경로를 한눈에.","digital.items.5.title":"온라인 상담","digital.items.5.body":"공지·질의응답·입학 상담을 언제든 손안에서.",
+  "digital.ai.title":"맞춤 신학 · AI 개인 맞춤 훈련","digital.ai.quote":"\u201c모든 사람이 같은 과목에서 시작할 필요는 없습니다.\u201d","digital.ai.body":"AI가 당신의 신앙·성경·신학·삶·사역 상황을 대화로 평가하여 신학 성장 프로필을 만들고, 개인 맞춤 훈련 경로를 설계합니다. 학습 중에도 계속 평가하고 조정하여 실제 사역으로 파송될 때까지 함께합니다.","digital.ai.f0":"당신을 알기","digital.ai.f1":"평가","digital.ai.f2":"성장 프로필","digital.ai.f3":"맞춤 경로","digital.ai.f4":"지속 조정","digital.items.3.title":"강의 맛보기","digital.items.3.body":"엄선된 무료 공개 강의를 먼저 듣고 등록을 결정하세요.","digital.items.4.title":"학습 경로","digital.items.4.body":"수료 과정부터 박사 연구까지 단계별 경로를 한눈에.","digital.items.5.title":"온라인 상담","digital.items.5.body":"공지·질의응답·입학 상담을 언제든 손안에서.",
   "digital.note.label":"개발 중: ","digital.note.body":"학습 앱은 내부 테스트 중이며 정식 출시 후 이곳에서 다운로드할 수 있습니다.",
   "meta.lessons":"{n}강",
   "admissions.title":"2026학년도 신학사 B.Th 모집","admissions.desc":"성실히 훈련받고 꾸준히 성장하며 섬김에 참여하려는 이들을 위한 유연하고 실천 중심적인 신학 교육의 길을 제공합니다.","admissions.points.0":"온·오프라인 유연 학습","admissions.points.1":"등록금은 문의해 주세요","admissions.points.2":"2026년 9월 개강","admissions.points.3":"본교 심사 후 정식 학적 등록","admissions.card.mode":"학습 방식","admissions.card.modeValue":"온라인 / 오프라인","admissions.card.start":"개강일","admissions.card.location":"교육센터","admissions.card.locationValue":"치앙마이","admissions.card.language":"주 사용 언어","admissions.card.languageValue":"중국어",
@@ -461,7 +467,7 @@ const i18n = {
   "digital.items.0.title":"ห้องเรียนทางไกล","digital.items.0.body":"รวมวิชาที่กำลังเรียน ไลฟ์บรรยาย และวิดีโอย้อนหลังไว้ที่เดียว เหมาะกับการเรียนต่อเนื่องบนมือถือ",
   "digital.items.1.title":"ทรัพยากรห้องสมุด","digital.items.1.body":"เอกสาร เสียง และงานวิจัยปรากฏพร้อมกันในห้องสมุดและหน้ารายวิชา ลดการค้นหาไปมา",
   "digital.items.2.title":"ชุมชนศิษย์เก่า","digital.items.2.body":"การสนทนา อธิษฐานเผื่อ ฟีดแบ็กจากพี่เลี้ยง และห้องเสียง เชื่อมการเรียนกับชีวิตชุมชน",
-  "digital.ai.cta":"ลองแบบประเมิน 3 นาที","digital.ai.ctaNote":"การวินิจฉัย AI 9 มิติฉบับเต็มและโปรไฟล์การเติบโตจะอยู่ในแอป",
+  "digital.ai.cta":"ลองแบบประเมิน 3 นาที","digital.ai.ctaNote":"การประเมิน AI 9 มิติฉบับเต็มและโปรไฟล์การเติบโตจะสร้างในแอป",
   "digital.app.web":"เปิดเว็บแอป",
   "digital.ai.title":"ศาสนศาสตร์เฉพาะบุคคล · AI","digital.ai.quote":"\u201cไม่ใช่ทุกคนต้องเริ่มจากวิชาเดียวกัน\u201d","digital.ai.body":"AI จะสนทนาเพื่อประเมินความเชื่อ ความรู้พระคัมภีร์ ศาสนศาสตร์ ชีวิต และบริบทการรับใช้ของคุณ สร้างโปรไฟล์การเติบโต และออกแบบเส้นทางการเตรียมเฉพาะคุณ พร้อมประเมินและปรับต่อเนื่องจนคุณถูกส่งออกไปรับใช้จริง","digital.ai.f0":"รู้จักคุณ","digital.ai.f1":"ประเมิน","digital.ai.f2":"โปรไฟล์","digital.ai.f3":"เส้นทางเฉพาะ","digital.ai.f4":"ปรับต่อเนื่อง","digital.items.3.title":"ทดลองเรียน","digital.items.3.body":"ฟังคอร์สเปิดฟรีที่คัดสรรก่อนตัดสินใจสมัคร","digital.items.4.title":"เส้นทางการเรียน","digital.items.4.body":"เห็นบันไดจากประกาศนียบัตรถึงดุษฎีบัณฑิตในภาพเดียว","digital.items.5.title":"ปรึกษาออนไลน์","digital.items.5.body":"ประกาศ ถาม-ตอบ และคำปรึกษาการสมัคร อยู่ในมือคุณ",
   "digital.note.label":"กำลังพัฒนา: ","digital.note.body":"แอปการเรียนอยู่ระหว่างทดสอบภายใน เปิดตัวเมื่อใดจะมีลิงก์ดาวน์โหลดที่นี่",
@@ -1066,13 +1072,20 @@ $("#givingForm")?.addEventListener("submit", async e => {
 });
 
 /* ===== 配套 App 入口：CONFIG.app 有地址时渲染 ===== */
+/* 构造带来源/评估/画像参数的 App 链接：appUrl("web", {stage:"2"}) */
+function appUrl(kind, extra){
+  const a = CONFIG.app || {}; const base = a[kind] || a.web; if(!base) return "";
+  const q = Object.entries(Object.assign({}, a.params || {}, extra || {})).filter(([,v]) => v !== "" && v != null);
+  return q.length ? base + (base.includes("?") ? "&" : "?") + q.map(([k,v]) => k + "=" + encodeURIComponent(v)).join("&") : base;
+}
+window.appUrl = appUrl;
 (function renderAppLinks(){
   const box = $("#appLinks"); if(!box) return;
   const a = CONFIG.app || {};
   const items = [
-    a.web && ["🌐 " + t("digital.app.web"), a.web],
-    a.ios && ["🍎 App Store", a.ios],
-    a.android && ["🤖 Android", a.android]
+    a.web && ["🌐 " + t("digital.app.web"), appUrl("web")],
+    a.ios && ["🍎 App Store", appUrl("ios")],
+    a.android && ["🤖 Android", appUrl("android")]
   ].filter(Boolean);
   if(!items.length){ box.hidden = true; return; }
   box.hidden = false;

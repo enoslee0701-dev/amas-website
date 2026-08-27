@@ -12,9 +12,9 @@
 html[data-theme="night"]{
   --paper:#090b0a; --paper2:#0d100e; --paper3:#131713;
   --ink:#f1f0e9; --muted:#b8b7ae;
-  --olive:#9ea64d; --olive2:#b7be63; --olive-dark:#9aa345;
-  --line:rgba(208,214,178,.13); --shadow:0 22px 70px rgba(0,0,0,.30);
-  --header-bg:rgba(7,9,8,.82); --surface:#111411; --surface-soft:#0f120f;
+  --olive:#d5b46b; --olive2:#b7be63; --olive-dark:#c9a85c;
+  --line:rgba(200,205,190,.13); --shadow:0 22px 70px rgba(0,0,0,.30);
+  --header-bg:rgba(7,8,12,.82); --surface:#111411; --surface-soft:#0f120f;
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;scroll-padding-top:78px}
@@ -29,7 +29,7 @@ img{display:block;max-width:100%}
 
 /* Header */
 /* 顶部招生公告条 */
-.announce-bar{background:linear-gradient(135deg,#14382a,#0d2b21);color:#f4ecd8;font-size:11.5px;letter-spacing:.03em;border-bottom:1px solid rgba(213,180,107,.28)}
+.announce-bar{background:linear-gradient(135deg,#10305a,#0a1d38);color:#f4ecd8;font-size:11.5px;letter-spacing:.03em;border-bottom:1px solid rgba(213,180,107,.28)}
 .announce-inner{overflow:hidden;padding:6px 0}
 .announce-track{display:flex;width:max-content;animation:announceScroll 46s linear infinite}
 .announce-bar:hover .announce-track{animation-play-state:paused}
@@ -73,7 +73,7 @@ img{display:block;max-width:100%}
 .lang-list button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:9px 12px;border-radius:7px;font-size:13.5px;color:var(--ink);cursor:pointer}
 .lang-list button:hover{background:var(--paper2)}
 .lang-list button.active{color:var(--olive-dark);font-weight:700}
-html[data-theme="night"] .lang-list{background:#11150f;border-color:rgba(255,255,255,.16)}
+html[data-theme="night"] .lang-list{background:#10131a;border-color:rgba(255,255,255,.16)}
 html[data-theme="night"] .lang-list button{color:#f1f0e9}
 html[data-theme="night"] .lang-list button:hover{background:rgba(255,255,255,.07)}
 
@@ -100,11 +100,11 @@ linear-gradient(180deg,rgba(255,253,247,.93) 0%,rgba(255,253,247,.86) 45%,rgba(2
 .hero-seal{width:132px;height:132px;border-radius:50%;box-shadow:0 10px 40px rgba(60,48,20,.16)}
 .hero-amas{margin-top:26px;font-family:Georgia,serif;font-size:26px;letter-spacing:.55em;text-indent:.55em;color:#9c7a24;font-weight:700;display:flex;align-items:center;gap:18px}
 .hero-amas::before,.hero-amas::after{content:"";width:44px;height:1.5px;background:#b8983f}
-.hero-cnname{margin:18px 0 0;font-family:"Noto Serif SC",Georgia,"Songti SC",serif;font-size:58px;line-height:1.2;font-weight:700;letter-spacing:.12em;text-indent:.12em;color:#27492f}
+.hero-cnname{margin:18px 0 0;font-family:"Noto Serif SC",Georgia,"Songti SC",serif;font-size:58px;line-height:1.2;font-weight:700;letter-spacing:.12em;text-indent:.12em;color:#1c3a63}
 .hero-enname{margin-top:14px;font-family:Georgia,serif;font-size:20px;font-weight:700;letter-spacing:.22em;text-indent:.22em;color:#9c7a24}
 .hero-accred{margin-top:12px;font-family:Georgia,serif;font-size:11.5px;font-weight:700;letter-spacing:.3em;text-indent:.3em;color:#8a6a1f}
 /* Hero 下方深绿信息条幅 */
-.hero-band{background:linear-gradient(135deg,#14382a,#0d2b21);border-top:1px solid rgba(213,180,107,.25)}
+.hero-band{background:linear-gradient(135deg,#10305a,#0a1d38);border-top:1px solid rgba(213,180,107,.25)}
 .hero-band-inner{display:grid;grid-template-columns:repeat(4,1fr)}
 .hero-band-item{padding:24px 28px;border-right:1px solid rgba(255,255,255,.12)}
 .hero-band-item:first-child{padding-left:0}
@@ -127,9 +127,9 @@ html[data-theme="night"] .hero-meta-item span{color:#a7a293}
 html[data-theme="night"] .hero-meta-item b{color:#eeece1}
 .btn{min-height:50px;border-radius:9px;border:1px solid transparent;padding:0 22px;display:inline-flex;align-items:center;justify-content:center;gap:14px;font-weight:520;transition:.2s}
 .btn:hover{transform:translateY(-1px)}
-.btn.primary{background:var(--olive-dark);color:#fff}
-.hero-actions .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);border-color:#14382a}
-html[data-theme="night"] .hero-actions .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);color:#f4ecd8;border-color:rgba(213,180,107,.45)}
+.btn.primary{background:linear-gradient(135deg,#10305a,#0a1d38);color:#fff}
+.hero-actions .btn.primary{background:linear-gradient(135deg,#10305a,#0a1d38);border-color:#10305a}
+html[data-theme="night"] .hero-actions .btn.primary{background:linear-gradient(135deg,#10305a,#0a1d38);color:#f4ecd8;border-color:rgba(213,180,107,.45)}
 .btn.secondary{background:rgba(255,254,250,.9);border-color:rgba(93,84,51,.42);color:var(--ink)}
 .play{width:22px;height:22px;border:1.5px solid currentColor;border-radius:50%;display:grid;place-items:center;font-size:10px}
 
@@ -160,7 +160,7 @@ html.js-reveal .reveal.visible{opacity:1;transform:none}
 .pillar-body{position:relative;padding:31px 17px 17px}
 .round-icon{position:absolute;top:0;left:18px;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;background:var(--olive-dark);color:#fff;border:3px solid var(--surface);display:grid;place-items:center;transition:border-color var(--theme-ease),background-color var(--theme-ease)}
 .pillar-body h3{font-size:17px;margin:0 0 8px;font-weight:600}.pillar-body p{margin:0;font-size:12px;line-height:1.62;color:var(--muted)}
-html[data-theme="night"] .round-icon{color:#0b0d0a}
+html[data-theme="night"] .round-icon{color:#0a0c10}
 .stats-bar{margin-top:24px;border:1px solid var(--line);border-radius:8px;display:grid;grid-template-columns:repeat(5,1fr);background:#fffdf9}
 .stat{padding:20px 24px;border-right:1px solid var(--line)}.stat:last-child{border-right:0}.stat b{display:block;font-size:19px;color:var(--olive-dark);font-weight:600}.stat span{display:block;font-size:11px;color:var(--muted);margin-top:5px}
 
@@ -233,7 +233,7 @@ html[data-theme="night"] .ata-official .ata-logo-night{display:block;opacity:.92
 .program-list li.program-featured{background:linear-gradient(90deg,rgba(142,134,71,.10),transparent 70%)}
 .program-featured .program-badge{background:var(--olive-dark);color:#fff;border-color:var(--olive-dark)}
 .programs-note{margin-top:16px;font-size:13px;color:var(--muted)}
-html[data-theme="night"] .program-featured .program-badge{color:#0b0d0a}
+html[data-theme="night"] .program-featured .program-badge{color:#0a0c10}
 
 /* 课程卡学制标签 */
 .course-degree{font-size:10px;letter-spacing:.08em;font-weight:700;color:var(--olive-dark);border:1px solid var(--line);border-radius:999px;padding:3px 9px;background:var(--paper2)}
@@ -331,8 +331,8 @@ html[data-theme="night"] .admissions-section::after{background:linear-gradient(1
 .admission-facts .fact span{font-size:13.5px;color:var(--muted)}
 .admission-facts .fact b{font-size:15.5px;color:var(--ink);font-weight:700;text-align:right}
 .admission-actions{display:flex;gap:14px;flex-wrap:wrap}
-.admission-actions .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);border-color:#14382a}
-html[data-theme="night"] .admission-actions .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);color:#f4ecd8;border-color:rgba(213,180,107,.45)}
+.admission-actions .btn.primary{background:linear-gradient(135deg,#10305a,#0a1d38);border-color:#10305a}
+html[data-theme="night"] .admission-actions .btn.primary{background:linear-gradient(135deg,#10305a,#0a1d38);color:#f4ecd8;border-color:rgba(213,180,107,.45)}
 
 /* 资源搜索：暂时隐藏（移除 hidden 属性即可恢复） */
 .resource-search-wrap[hidden]{display:none!important}
@@ -345,7 +345,7 @@ html[data-theme="night"] .admission-actions .btn.primary{background:linear-gradi
 .upload-box input[type="file"]{padding:9px 12px;height:auto}
 .upload-full{grid-column:1/-1}
 .upload-actions{grid-column:1/-1;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-.upload-actions .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);border-color:#14382a}
+.upload-actions .btn.primary{background:linear-gradient(135deg,#10305a,#0a1d38);border-color:#10305a}
 .upload-note{font-size:12px;color:var(--muted)}
 html[data-theme="night"] .upload-box{background:var(--surface)}
 html[data-theme="night"] .upload-box input{background:rgba(255,255,255,.06)}
@@ -355,20 +355,20 @@ html[data-theme="night"] .upload-box input{background:rgba(255,255,255,.06)}
 .faq-section{position:relative;isolation:isolate;overflow:hidden}
 .faq-section::before{content:"";position:absolute;inset:0;z-index:-2;background:url("../img/course-the201.webp") center/cover no-repeat}
 .faq-section::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(100deg,rgba(250,246,236,.97) 0%,rgba(250,246,236,.94) 55%,rgba(250,246,236,.88) 100%)}
-html[data-theme="night"] .faq-section::after{background:linear-gradient(100deg,rgba(10,13,11,.97) 0%,rgba(10,13,11,.94) 55%,rgba(10,13,11,.89) 100%)}
+html[data-theme="night"] .faq-section::after{background:linear-gradient(100deg,rgba(10,12,16,.97) 0%,rgba(10,12,16,.94) 55%,rgba(10,12,16,.89) 100%)}
 .faq-ask{margin-top:46px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;padding:26px 30px;border:1px solid rgba(183,138,53,.35);border-radius:14px;background:rgba(255,252,245,.82);backdrop-filter:blur(8px);box-shadow:0 16px 44px rgba(60,48,20,.10)}
 html[data-theme="night"] .faq-ask{background:rgba(14,17,14,.72);border-color:rgba(233,196,106,.3)}
 .faq-ask-text b{display:block;font-family:"Noto Serif SC","Songti SC",serif;font-size:20px;color:var(--ink)}
 .faq-ask-text span{display:block;margin-top:6px;font-size:13.5px;color:var(--muted);max-width:520px;line-height:1.7}
 .faq-ask-actions{display:flex;gap:12px;flex-wrap:wrap}
-.faq-ask-actions .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);border-color:#14382a}
-html[data-theme="night"] .faq-ask-actions .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);color:#f4ecd8;border-color:rgba(213,180,107,.45)}
+.faq-ask-actions .btn.primary{background:linear-gradient(135deg,#10305a,#0a1d38);border-color:#10305a}
+html[data-theme="night"] .faq-ask-actions .btn.primary{background:linear-gradient(135deg,#10305a,#0a1d38);color:#f4ecd8;border-color:rgba(213,180,107,.45)}
 
 /* 学费与学习支持 */
 .tuition-section{position:relative;isolation:isolate;overflow:hidden}
 .tuition-section::before{content:"";position:absolute;inset:0;z-index:-2;background:url("../img/pillar-life.webp") center/cover no-repeat}
 .tuition-section::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(100deg,rgba(250,246,236,.97) 0%,rgba(250,246,236,.93) 48%,rgba(250,246,236,.82) 100%)}
-html[data-theme="night"] .tuition-section::after{background:linear-gradient(100deg,rgba(10,13,11,.96) 0%,rgba(10,13,11,.93) 50%,rgba(10,13,11,.86) 100%)}
+html[data-theme="night"] .tuition-section::after{background:linear-gradient(100deg,rgba(10,12,16,.96) 0%,rgba(10,12,16,.93) 50%,rgba(10,12,16,.86) 100%)}
 .tuition-motto{margin-top:14px;font-family:"Noto Serif SC","Songti SC",serif;font-size:21px;color:#8a6a1f;letter-spacing:.04em}
 html[data-theme="night"] .tuition-motto{color:#c9a54e}
 .tuition-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:70px;margin-top:44px;align-items:start}
@@ -380,7 +380,7 @@ html[data-theme="night"] .tuition-verse{background:rgba(255,255,255,.05)}
 .tuition-verse cite{display:block;margin-top:8px;font-style:normal;font-size:12px;color:#a5742f}
 html[data-theme="night"] .tuition-verse cite{color:#c9a54e}
 .tuition-copy .admission-actions{margin-top:28px}
-.tuition-principles{background:linear-gradient(160deg,#14382a,#0d2b21);border-radius:16px;padding:36px 32px;color:#f4ecd8;box-shadow:0 24px 60px rgba(20,40,30,.22);position:sticky;top:100px}
+.tuition-principles{background:linear-gradient(160deg,#10305a,#0a1d38);border-radius:16px;padding:36px 32px;color:#f4ecd8;box-shadow:0 24px 60px rgba(16,48,90,.22);position:sticky;top:100px}
 .tp-eyebrow{font-size:10.5px;letter-spacing:.24em;font-weight:700;color:#d5b46b;margin-bottom:12px}
 .tuition-principles h3{font-family:"Noto Serif SC","Songti SC",serif;font-size:22px;color:#fff;margin:0 0 8px}
 .tuition-principles ul{list-style:none;margin:10px 0 0;padding:0}
@@ -388,7 +388,7 @@ html[data-theme="night"] .tuition-verse cite{color:#c9a54e}
 .tuition-principles li:first-child{color:#f1d38a;font-weight:650}
 
 /* 推荐路径卡片 */
-.path-card{background:linear-gradient(160deg,#14382a,#0d2b21);border-radius:18px;padding:42px 40px;color:#f4ecd8;box-shadow:0 24px 60px rgba(20,40,30,.22)}
+.path-card{background:linear-gradient(160deg,#10305a,#0a1d38);border-radius:18px;padding:42px 40px;color:#f4ecd8;box-shadow:0 24px 60px rgba(16,48,90,.22)}
 .path-eyebrow{font-size:10.5px;letter-spacing:.24em;font-weight:700;color:#d5b46b;margin-bottom:18px}
 .path-card h3{font-family:"Noto Serif SC","Songti SC",serif;font-size:26px;line-height:1.55;color:#fff;margin:0 0 10px;font-weight:700}
 .path-steps{list-style:none;margin:20px 0 0;padding:0}
@@ -482,12 +482,12 @@ html[data-theme="night"] .icon-chip{background:rgba(255,255,255,.06)}
 .chat-input input:focus{border-color:var(--olive)}
 .chat-input button{height:42px;padding:0 17px;border:0;border-radius:10px;background:var(--olive-dark);color:#fff;font-weight:600;cursor:pointer}
 .chat-note{font-size:10.5px;color:var(--muted);text-align:center;padding:0 12px 9px;background:var(--paper)}
-html[data-theme="night"] .chat-fab{color:#0b0d0a}
-html[data-theme="night"] .chat-head{color:#0b0d0a}
-html[data-theme="night"] .chat-head button{color:#0b0d0a}
-html[data-theme="night"] .chat-msg.user{color:#0b0d0a}
-html[data-theme="night"] .chat-input button{color:#0b0d0a}
-html[data-theme="night"] .chat-chips button:hover{color:#0b0d0a}
+html[data-theme="night"] .chat-fab{color:#0a0c10}
+html[data-theme="night"] .chat-head{color:#0a0c10}
+html[data-theme="night"] .chat-head button{color:#0a0c10}
+html[data-theme="night"] .chat-msg.user{color:#0a0c10}
+html[data-theme="night"] .chat-input button{color:#0a0c10}
+html[data-theme="night"] .chat-chips button:hover{color:#0a0c10}
 @media(max-width:580px){
   .chat-fab{right:14px;bottom:14px;width:52px;height:52px}
   .chat-panel{right:8px;left:8px;width:auto;bottom:76px;height:min(560px,calc(100vh - 96px))}
@@ -562,7 +562,7 @@ html[data-theme="night"] .desktop-nav a,
 html[data-theme="night"] .site-header{color:#f3f2eb}
 html[data-theme="night"] .lang-btn{background:rgba(255,255,255,.05);color:#f3f2eb;border-color:rgba(255,255,255,.16)}
 html[data-theme="night"] .login-btn{background:rgba(255,255,255,.05)}
-html[data-theme="night"] .login-btn:hover{background:var(--olive-dark);color:#0b0d0a}
+html[data-theme="night"] .login-btn:hover{background:var(--olive-dark);color:#0a0c10}
 html[data-theme="night"] .menu-btn span{background:#f3f2eb}
 html[data-theme="night"] .about,
 html[data-theme="night"] .life-section,
@@ -580,8 +580,8 @@ html[data-theme="night"] .about-copy p,
 html[data-theme="night"] .section-head p,
 html[data-theme="night"] .faq-item p{color:var(--muted)}
 html[data-theme="night"] .filter{background:var(--surface);color:var(--ink);border-color:var(--line)}
-html[data-theme="night"] .filter.active{background:var(--olive-dark);color:#0a0c09}
-html[data-theme="night"] .admissions-section{background:#0d110d}
+html[data-theme="night"] .filter.active{background:var(--olive-dark);color:#090b0f}
+html[data-theme="night"] .admissions-section{background:#0c0f15}
 html[data-theme="night"] .admissions-copy>p{color:#c7c5bb}
 html[data-theme="night"] .contact-section{background:#090b0a}
 html[data-theme="night"] .footer{background:#050605}
@@ -615,7 +615,7 @@ html[data-theme="night"] .steps span:not(.active){color:#8d8a7e}
 /* 夜晚的橄榄绿是提亮版，上面压白字只有 2.7:1，一律换成深色字 */
 html[data-theme="night"] .apply-btn,
 html[data-theme="night"] .round-icon,
-html[data-theme="night"] .steps span.active{color:#0b0d0a}
+html[data-theme="night"] .steps span.active{color:#0a0c10}
 
 /* 课程卡的学分/周数在深色卡片上偏暗 */
 html[data-theme="night"] .course-meta{color:#9a968b}
@@ -676,10 +676,10 @@ html[data-theme="night"] .hero-mist{opacity:.55}
 
 .hero-overlay{transition:background var(--theme-ease)}
 html[data-theme="night"] .hero-overlay{
-  background:linear-gradient(180deg,rgba(4,6,5,.82) 0%,rgba(4,6,5,.72) 45%,rgba(4,6,5,.58) 78%,rgba(4,6,5,.46) 100%);
+  background:linear-gradient(180deg,rgba(4,5,8,.82) 0%,rgba(4,5,8,.72) 45%,rgba(4,5,8,.58) 78%,rgba(4,5,8,.46) 100%);
 }
 .hero-copy,.hero-cnname,.hero-enname,.hero-verse,.hero-verse-ref,.hero-amas,.hero-cross{transition:color var(--theme-ease),text-shadow var(--theme-ease)}
-html[data-theme="night"] .hero-cnname{color:#eef0e4;text-shadow:0 3px 24px rgba(0,0,0,.4)}
+html[data-theme="night"] .hero-cnname{color:#eef1f5;text-shadow:0 3px 24px rgba(0,0,0,.4)}
 html[data-theme="night"] .hero-enname,
 html[data-theme="night"] .hero-amas{color:#d8b95a}
 html[data-theme="night"] .hero-amas::before,
@@ -689,7 +689,7 @@ html[data-theme="night"] .hero-verse-ref{color:#a39c88}
 html[data-theme="night"] .hero-cross{color:#b1a780}
 html[data-theme="night"] .hero-accred{color:#c9a54e}
 html[data-theme="night"] .btn.secondary{color:#f3f2eb;background:rgba(10,12,10,.28);border-color:rgba(255,255,255,.55);backdrop-filter:blur(9px)}
-html[data-theme="night"] .btn.primary{background:#9ca44e;color:#0b0d0a}
+html[data-theme="night"] .btn.primary{background:#c9a85c;color:#0a0c10}
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}
@@ -707,7 +707,7 @@ html[data-theme="night"] :focus-visible{outline-color:#b7be63}
 .honeypot{position:absolute!important;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
 .btn[aria-busy="true"]{opacity:.62;pointer-events:none}
 .form-status[data-state="error"]{color:#e08a6a}
-.form-status[data-state="ok"]{color:#9fb15c}
+.form-status[data-state="ok"]{color:#c9a85c}
 
 /* ===== 学费明细 ===== */
 .tuition-section{background:var(--paper2)}
@@ -777,12 +777,12 @@ html[data-theme="night"] :focus-visible{outline-color:#b7be63}
 
 
 /* ===== 招生浮标 ===== */
-.promo-tab{position:fixed;right:0;top:46%;z-index:93;writing-mode:vertical-rl;text-orientation:mixed;display:flex;align-items:center;gap:10px;padding:16px 11px 16px 10px;border:0;border-radius:12px 0 0 12px;background:linear-gradient(160deg,#c9963d,#e9c46a 55%,#c9963d);color:#14382a;font-size:13px;font-weight:800;letter-spacing:.14em;cursor:pointer;box-shadow:-6px 8px 26px rgba(120,90,20,.35);animation:promoGlow 2.6s ease-in-out infinite;transition:transform .2s}
+.promo-tab{position:fixed;right:0;top:46%;z-index:93;writing-mode:vertical-rl;text-orientation:mixed;display:flex;align-items:center;gap:10px;padding:16px 11px 16px 10px;border:0;border-radius:12px 0 0 12px;background:linear-gradient(160deg,#c9963d,#e9c46a 55%,#c9963d);color:#10305a;font-size:13px;font-weight:800;letter-spacing:.14em;cursor:pointer;box-shadow:-6px 8px 26px rgba(120,90,20,.35);animation:promoGlow 2.6s ease-in-out infinite;transition:transform .2s}
 .promo-tab:hover{transform:translateX(-4px)}
 .promo-tab-dot{width:8px;height:8px;border-radius:50%;background:#b32020;box-shadow:0 0 0 0 rgba(179,32,32,.6);animation:promoPulse 1.6s ease-out infinite}
 @keyframes promoGlow{0%,100%{box-shadow:-6px 8px 26px rgba(120,90,20,.35)}50%{box-shadow:-6px 8px 34px rgba(233,196,106,.7)}}
 @keyframes promoPulse{0%{box-shadow:0 0 0 0 rgba(179,32,32,.6)}100%{box-shadow:0 0 0 9px rgba(179,32,32,0)}}
-.promo-card{position:fixed;left:22px;bottom:22px;z-index:93;width:min(340px,calc(100vw - 44px));padding:22px 22px 20px;border-radius:16px;background:linear-gradient(160deg,#14382a,#0d2b21);color:#f4ecd8;border:1px solid rgba(213,180,107,.45);box-shadow:0 22px 60px rgba(10,30,20,.45);animation:promoIn .6s cubic-bezier(.22,1,.36,1)}
+.promo-card{position:fixed;left:22px;bottom:22px;z-index:93;width:min(340px,calc(100vw - 44px));padding:22px 22px 20px;border-radius:16px;background:linear-gradient(160deg,#10305a,#0a1d38);color:#f4ecd8;border:1px solid rgba(213,180,107,.45);box-shadow:0 22px 60px rgba(8,26,56,.45);animation:promoIn .6s cubic-bezier(.22,1,.36,1)}
 .promo-card[hidden]{display:none}
 .promo-card.out{animation:promoOut .35s ease-in forwards}
 @keyframes promoOut{to{opacity:0;transform:translateX(-120%)}}
@@ -794,10 +794,10 @@ html[data-theme="night"] :focus-visible{outline-color:#b7be63}
 .promo-desc{margin:10px 0 16px;font-size:13px;line-height:1.7;color:#d8d2bf}
 .promo-actions{display:flex;gap:10px}
 .promo-actions .btn{min-height:42px;padding:0 16px;font-size:13.5px}
-.promo-actions .btn.primary{background:linear-gradient(135deg,#e9c46a,#c9963d);color:#14382a;border-color:transparent;font-weight:750}
+.promo-actions .btn.primary{background:linear-gradient(135deg,#e9c46a,#c9963d);color:#10305a;border-color:transparent;font-weight:750}
 .promo-actions .btn.secondary{background:transparent;color:#f4ecd8;border-color:rgba(255,255,255,.35)}
 .promo-actions .btn.secondary:hover{background:rgba(255,255,255,.08)}
-html[data-theme="night"] .promo-actions .btn.primary{background:linear-gradient(135deg,#e9c46a,#c9963d);color:#14382a}
+html[data-theme="night"] .promo-actions .btn.primary{background:linear-gradient(135deg,#e9c46a,#c9963d);color:#10305a}
 @media(max-width:860px){
   .promo-tab{top:auto;bottom:96px;font-size:12px;padding:13px 9px 13px 8px}
   .promo-card{left:12px;right:12px;bottom:12px;width:auto;padding:18px 16px 16px}
@@ -810,7 +810,7 @@ html[data-theme="night"] .promo-actions .btn.primary{background:linear-gradient(
 .accred-under{margin-top:14px;font-size:12px;color:var(--muted);text-align:center}
 
 /* 开学倒计时 */
-.adm-countdown{display:inline-flex;align-items:center;gap:8px;margin:14px 0 4px;padding:9px 18px;border-radius:999px;background:linear-gradient(135deg,#e9c46a,#c9963d);color:#14382a;font-weight:750;font-size:14px;letter-spacing:.03em;box-shadow:0 8px 22px rgba(180,140,50,.3)}
+.adm-countdown{display:inline-flex;align-items:center;gap:8px;margin:14px 0 4px;padding:9px 18px;border-radius:999px;background:linear-gradient(135deg,#e9c46a,#c9963d);color:#10305a;font-weight:750;font-size:14px;letter-spacing:.03em;box-shadow:0 8px 22px rgba(180,140,50,.3)}
 .adm-countdown::before{content:"⏳"}
 .adm-countdown:empty{display:none}
 
@@ -853,7 +853,7 @@ html[data-theme="night"] .copy-btn{background:rgba(255,255,255,.06)}
 .course-meta{display:flex;gap:8px;justify-content:flex-end}
 
 /* 属灵训练与毕业要求 */
-.training-panel{margin-top:34px;border:1px solid rgba(183,138,53,.4);border-radius:14px;background:linear-gradient(160deg,#14382a,#0d2b21);color:#f4ecd8;padding:30px 34px}
+.training-panel{margin-top:34px;border:1px solid rgba(183,138,53,.4);border-radius:14px;background:linear-gradient(160deg,#10305a,#0a1d38);color:#f4ecd8;padding:30px 34px}
 .training-head h3{font-family:"Noto Serif SC","Songti SC",serif;font-size:22px;color:#fff;margin:6px 0 8px}
 .training-head p{margin:0 0 14px;font-size:13px;color:#c3bda9;line-height:1.7}
 .training-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;column-gap:36px}
@@ -866,7 +866,7 @@ html[data-theme="night"] .copy-btn{background:rgba(255,255,255,.06)}
 /* App 抢先看：定制化神学主打卡 */
 .app-featured{position:relative;margin-bottom:20px;padding:34px 38px;border-radius:16px;background:linear-gradient(150deg,#0f2437,#0a1a29);border:1px solid rgba(213,180,107,.45);color:#f4ecd8;overflow:hidden}
 .app-featured::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(233,196,106,.18),transparent 70%)}
-.app-badge{position:absolute;right:22px;top:20px;font-family:Georgia,serif;font-size:10.5px;font-weight:700;letter-spacing:.2em;color:#14382a;background:linear-gradient(135deg,#e9c46a,#c9963d);padding:6px 14px;border-radius:999px}
+.app-badge{position:absolute;right:22px;top:20px;font-family:Georgia,serif;font-size:10.5px;font-weight:700;letter-spacing:.2em;color:#10305a;background:linear-gradient(135deg,#e9c46a,#c9963d);padding:6px 14px;border-radius:999px}
 .app-featured-eyebrow{font-size:10px;letter-spacing:.26em;font-weight:700;color:#d5b46b;margin-bottom:10px}
 .app-featured h3{margin:0 0 10px;font-family:"Noto Serif SC","Songti SC",serif;font-size:24px;color:#fff}
 .app-quote{margin:0 0 10px;font-family:"Noto Serif SC","Songti SC",serif;font-size:15.5px;color:#e9c46a}
@@ -890,7 +890,7 @@ html[data-theme="night"] .copy-btn{background:rgba(255,255,255,.06)}
 .giving-how h3,.giving-notify h3{font-size:18px;color:var(--ink);margin:0 0 12px}
 .gtabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .gtab{border:1px solid var(--line);background:var(--surface,#fffdf9);color:var(--ink);padding:9px 18px;border-radius:999px;font-size:13.5px;cursor:pointer}
-.gtab.active{background:linear-gradient(135deg,#14382a,#0d2b21);color:#fff;border-color:#14382a}
+.gtab.active{background:linear-gradient(135deg,#10305a,#0a1d38);color:#fff;border-color:#10305a}
 .gpane{display:none}
 .gpane.active{display:block}
 .qr-slot{display:flex;align-items:center;justify-content:center;min-height:150px;border:1.5px dashed rgba(183,138,53,.55);border-radius:12px;background:var(--surface,#fffdf9);padding:22px;text-align:center;font-size:13.5px;color:var(--muted);max-width:520px}
@@ -901,12 +901,12 @@ html[data-theme="night"] .copy-btn{background:rgba(255,255,255,.06)}
 .giving-form label{display:flex;flex-direction:column;gap:7px;font-size:13px;font-weight:600;color:var(--ink)}
 .giving-form input,.giving-form select{height:46px;border:1px solid var(--line);border-radius:9px;padding:0 12px;font:inherit;background:var(--surface,#fff);color:var(--ink)}
 .giving-actions{grid-column:1/-1;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-.giving-actions .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);border-color:#14382a}
+.giving-actions .btn.primary{background:linear-gradient(135deg,#10305a,#0a1d38);border-color:#10305a}
 .giving-status{font-size:13px;color:var(--olive-dark)}
 .giving-note{margin-top:26px;font-size:12px;color:var(--muted);max-width:720px}
 .tuition-copy a{color:#a5742f;border-bottom:1px solid rgba(183,138,53,.4)}
 html[data-theme="night"] .gtab.active{color:#f4ecd8;border-color:rgba(213,180,107,.45)}
-html[data-theme="night"] .giving-actions .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);color:#f4ecd8;border-color:rgba(213,180,107,.45)}
+html[data-theme="night"] .giving-actions .btn.primary{background:linear-gradient(135deg,#10305a,#0a1d38);color:#f4ecd8;border-color:rgba(213,180,107,.45)}
 @media(max-width:860px){.giving-dirs{grid-template-columns:1fr}}
 @media(max-width:580px){.giving-form{grid-template-columns:1fr}}
 
@@ -922,16 +922,16 @@ html[data-theme="night"] .sec-verse{color:#c9a54e}
 
 /* 奉献 CTA */
 .giving-cta{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin:6px 0 10px}
-.giving-cta .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);border-color:#14382a}
-html[data-theme="night"] .giving-cta .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);color:#f4ecd8;border-color:rgba(213,180,107,.45)}
+.giving-cta .btn.primary{background:linear-gradient(135deg,#10305a,#0a1d38);border-color:#10305a}
+html[data-theme="night"] .giving-cta .btn.primary{background:linear-gradient(135deg,#10305a,#0a1d38);color:#f4ecd8;border-color:rgba(213,180,107,.45)}
 .giving-cta-note{font-size:12.5px;color:var(--muted)}
 
 
 /* ===== 全页配色节奏：打破单一米黄 ===== */
 html:not([data-theme="night"]) .accreditation-section{background:#fbfbf8}
-html:not([data-theme="night"]) .courses-section{background:#eef2ec}
+html:not([data-theme="night"]) .courses-section{background:#eef1f5}
 html:not([data-theme="night"]) .programs-section{background:#fbfbf7}
-html:not([data-theme="night"]) .life-section{background:#f6f8f4}
+html:not([data-theme="night"]) .life-section{background:#f5f7fa}
 html:not([data-theme="night"]) .resources-section{background:#eef0f2}
 html:not([data-theme="night"]) .admissions-section::after{background:linear-gradient(100deg,rgba(238,237,230,.97) 0%,rgba(238,237,230,.92) 50%,rgba(238,237,230,.80) 100%)}
 html:not([data-theme="night"]) .faq-section::after{background:linear-gradient(100deg,rgba(250,249,246,.97) 0%,rgba(250,249,246,.94) 55%,rgba(250,249,246,.88) 100%)}
@@ -939,10 +939,10 @@ html:not([data-theme="night"]) .faq-section::after{background:linear-gradient(10
 /* ===== 奉献支持：深绿科技风 ===== */
 .giving-section{background:
   radial-gradient(circle at 88% 12%,rgba(233,196,106,.14),transparent 42%),
-  radial-gradient(circle at 8% 85%,rgba(70,140,110,.18),transparent 45%),
+  radial-gradient(circle at 8% 85%,rgba(90,150,230,.18),transparent 45%),
   linear-gradient(rgba(233,196,106,.045) 1px,transparent 1px),
   linear-gradient(90deg,rgba(233,196,106,.045) 1px,transparent 1px),
-  linear-gradient(150deg,#122e23,#0a1f18);
+  linear-gradient(150deg,#0f2a4a,#081a33);
   background-size:auto,auto,46px 46px,46px 46px,auto}
 .giving-section .eyebrow{color:#d5b46b}
 .giving-section h2{color:#fff}
@@ -952,7 +952,7 @@ html:not([data-theme="night"]) .faq-section::after{background:linear-gradient(10
 .giving-section .gdir{background:rgba(255,255,255,.05);border-color:rgba(233,196,106,.30);border-left-color:#d5b46b;backdrop-filter:blur(2px)}
 .giving-section .gdir b{color:#fff}
 .giving-section .gdir span{color:#a9b6ad}
-.giving-section .giving-cta .btn.primary{background:linear-gradient(135deg,#14382a,#0d2b21);color:#f4ecd8;border:1px solid rgba(213,180,107,.55)}
+.giving-section .giving-cta .btn.primary{background:linear-gradient(135deg,#10305a,#0a1d38);color:#f4ecd8;border:1px solid rgba(213,180,107,.55)}
 .giving-section .giving-cta-note{color:#9fb0a6}
 .giving-section .giving-note{color:#8ba092}
 

@@ -1,4 +1,9 @@
 <!DOCTYPE html>
+<!--
+  SOURCE OF TRUTH: amas-website/discover.html
+  AMAS-Seminary 仓库中的 public/discover.html 仅为集成副本，请勿在副本上独立修改；
+  改动一律先在此文件完成，再同步到 App 仓库，避免双向漂移。
+-->
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
@@ -135,7 +140,7 @@
       <div class="card point"><div class="ic">◈</div><div><b>四维快照</b><span>圣经 · 福音 · 生命 · 服事，四个维度的即时画像</span></div></div>
       <div class="card point"><div class="ic">➤</div><div><b>下一步建议</b><span>根据结果给出你现在最值得开始的一件事</span></div></div>
     </div>
-    <p class="note">测评在 AMAS 神学框架内进行，以圣经为最高权威。结果仅作装备参考，不构成对个人信仰状态的评判。完整的九维诊断与成长档案请在 AMAS App 中进行。</p>
+    <p class="note">测评在 AMAS 神学框架内进行，以圣经为最高权威。结果仅作装备参考，不构成对个人信仰状态的评判。完整的九维评估与成长画像请在 AMAS App 中建立。</p>
   </div>
 
   <!-- ============ 答题（一页一题 + 撤销） ============ -->
@@ -168,8 +173,8 @@
     </div>
     <div class="cta-deep">
       <b>想要完整的成长画像？</b>
-      <p>完整的 AI 九维诊断（约 6–8 分钟）将在 AMAS App 中进行：自适应追问、恩赐辨识、专属装备路径与事奉方向匹配，并随学习与服事持续更新你的成长档案。App 正在内部测试，正式发布后将在官网提供下载入口。</p>
-      <button class="gold-btn" style="width:100%" onclick="location.href=APP_URL||'index.html#digital'" id="appCta">了解 AMAS 数字校园 →</button>
+      <p>完整的 AI 九维评估（约 6–8 分钟）将在 AMAS App 中建立：自适应追问、恩赐辨识、专属装备路径与事奉方向匹配，并随学习与服事持续更新你的成长档案。App 正在内部测试，正式发布后将在官网提供下载入口。</p>
+      <button class="gold-btn" style="width:100%" onclick="location.href=(window.APP_RESULT_URL||'index.html#digital')" id="appCta">了解 AMAS 数字校园 →</button>
       <button class="gold-btn" style="width:100%;margin-top:10px;background:linear-gradient(180deg,#1B3B75,#12305F);color:#F2D493;box-shadow:none;border:1px solid rgba(232,201,140,.35)" onclick="location.href='index.html#contact'">咨询 2026 届 B.Th 招生</button>
     </div>
     <div class="brand"><div class="l">A M A S</div><div class="s">ASIAN MISSIONARY ASSOCIATION SEMINARY</div></div>
@@ -178,8 +183,16 @@
 </div>
 
 <script>
-// 配套 App 正式地址（与官网 CONFIG.app.web 保持一致）；填入后结果页主按钮直接打开 App
-var APP_URL = "";
+// 配套 App 链接（与官网 CONFIG.app 保持一致）。url 为空 = App 未上线；params 预留来源/评估/画像参数，
+// 结果页会把 stage / 四维分数一并带上，便于 App 端导入为成长画像的起点。
+var APP_LINK = { url: "", params: { source: "website-discover", assessment: "discover-quick-v1", profile: "" } };
+function appUrl(extra){
+  if (!APP_LINK.url) return "";
+  var q = Object.assign({}, APP_LINK.params, extra || {}), parts = [];
+  for (var k in q) if (q[k] !== "" && q[k] != null) parts.push(k + "=" + encodeURIComponent(q[k]));
+  return APP_LINK.url + (APP_LINK.url.indexOf("?") > -1 ? "&" : "?") + parts.join("&");
+}
+var APP_URL = APP_LINK.url;
 // 快速测评：8 题，4 维（圣经 bible / 福音 gospel / 生命 life / 服事 serve）。
 // 一页一题；answers[] 即撤销历史，undo() 弹出最后一个答案即可回上一题。
 var QS = [
@@ -254,7 +267,7 @@ function render(){
 function undo(){ if (answers.length) { answers.pop(); render(); } }
 
 function finish(){
-  if (APP_URL) document.getElementById('appCta').textContent = '打开 AMAS App · 开始完整诊断';
+
   var acc = {};
   answers.forEach(function(oi, qi){
     var q = QS[qi], s = q.o[oi][1];
@@ -276,6 +289,8 @@ function finish(){
     life:'从最小可行的灵修习惯开始：每天读经 15 分钟 + 祷告 10 分钟，坚持两周。稳定的与神关系比任何知识都重要。',
     serve:'从一个具体的小服事开始参与，在实践中发现神给你的恩赐。App 内的恩赐辨识能帮你找到适合的事奉方向。'
   };
+  window.APP_RESULT_URL = APP_URL ? appUrl({ stage: stage.l, score: avg, dims: dims.map(function(d){ return d.k + ':' + d.v; }).join(',') }) : '';
+  if (APP_URL) document.getElementById('appCta').textContent = '打开 AMAS App · 建立完整成长画像';
   document.getElementById('stageChip').textContent = stage.n + ' · LEVEL ' + stage.l + ' · 综合 ' + avg;
   document.getElementById('stageName').textContent = stage.n;
   document.getElementById('stageDesc').textContent = stage.d;

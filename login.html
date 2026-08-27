@@ -11,11 +11,11 @@
   --bg:#f7f1e6;
   --paper:rgba(255,252,245,.88);
   --paper-solid:#fffaf1;
-  --green:#163b2d;
-  --green-2:#0f2f24;
+  --green:#12345f;
+  --green-2:#0e2b50;
   --gold:#b78a35;
   --gold-soft:#d5b46b;
-  --ink:#243329;
+  --ink:#1f2d44;
   --muted:#81796b;
   --line:rgba(88,68,40,.18);
   --shadow:0 30px 90px rgba(82,61,27,.18);
@@ -49,7 +49,7 @@ body::before{
 .top-note{
   padding:28px 34px 0;
   font-family:Georgia,"Noto Serif SC",serif;
-  color:#314538;
+  color:#2b3b58;
 }
 .top-note .zh{font-size:14px;letter-spacing:.08em}
 .top-note .en{font-size:10px;color:#8b7c66;letter-spacing:.08em;margin-top:4px}
@@ -57,7 +57,7 @@ body::before{
 .top-note .back-home:hover{color:#7d5518}
 .login-langs{margin-top:12px;display:flex;gap:6px}
 .login-langs button{border:1px solid rgba(112,88,52,.3);background:rgba(255,255,255,.6);color:#5c5340;font-size:12px;padding:4px 10px;border-radius:999px;cursor:pointer}
-.login-langs button.active{background:#163b2d;color:#fff;border-color:#163b2d}
+.login-langs button.active{background:#12345f;color:#fff;border-color:#12345f}
 
 .hero{
   width:min(980px,calc(100% - 32px));
@@ -111,14 +111,14 @@ body::before{
 .tab{
   height:54px;border:0;border-radius:13px;background:transparent;color:var(--green);font-weight:650;
 }
-.tab.active{background:linear-gradient(135deg,var(--green),var(--green-2));color:#fff;box-shadow:0 10px 28px rgba(15,47,36,.16)}
+.tab.active{background:linear-gradient(135deg,var(--green),var(--green-2));color:#fff;box-shadow:0 10px 28px rgba(14,43,80,.16)}
 .form{margin-top:28px}
 .field{margin-bottom:20px}
 .field label{display:block;font-size:13px;font-weight:600;margin-bottom:8px;color:#3e4a42}
 .input-wrap{position:relative}
 .input-wrap input{
   width:100%;height:55px;border-radius:12px;border:1px solid var(--line);
-  background:rgba(255,255,255,.72);padding:0 46px 0 16px;outline:none;color:#243329;
+  background:rgba(255,255,255,.72);padding:0 46px 0 16px;outline:none;color:#1f2d44;
   transition:.2s;
 }
 .input-wrap input:focus{border-color:#b6934c;box-shadow:0 0 0 3px rgba(183,138,53,.10)}
@@ -130,8 +130,8 @@ body::before{
 .forgot{color:#ad7a2f;border:0;background:transparent}
 .submit{
   width:100%;height:58px;border:0;border-radius:12px;color:white;font-weight:700;font-size:17px;
-  background:linear-gradient(135deg,#193e30,#0f2e24);
-  box-shadow:0 13px 30px rgba(22,59,45,.18);
+  background:linear-gradient(135deg,#163a66,#0e2b50);
+  box-shadow:0 13px 30px rgba(18,52,102,.18);
   transition:.2s;
 }
 .submit:hover{transform:translateY(-1px)}
@@ -140,7 +140,7 @@ body::before{
 .quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .quick{
   min-height:76px;border:1px solid rgba(112,88,52,.10);border-radius:13px;background:rgba(255,255,255,.42);
-  padding:12px 10px;text-align:left;color:#334238;
+  padding:12px 10px;text-align:left;color:#2c3a55;
 }
 .quick b{display:block;font-size:13px;margin-bottom:4px}
 .quick span{display:block;color:#918572;font-size:11px}
@@ -154,7 +154,7 @@ body::before{
 
 .trust-strip{
   margin-top:auto;
-  background:linear-gradient(135deg,#14382a,#0d2b21);
+  background:linear-gradient(135deg,#10305a,#0a1d38);
   color:#f8f0db;
   padding:22px 28px 18px;
   border-top:1px solid rgba(213,180,107,.28);
@@ -171,7 +171,7 @@ body::before{
 .trust-item span{font-size:10px;color:#c7c0ae}
 .copyright{text-align:center;margin-top:18px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08);font:11px Georgia,serif;color:#bfb7a6}
 
-.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:#132f25;color:white;padding:11px 16px;border-radius:999px;opacity:0;pointer-events:none;transition:.2s;z-index:20;font-size:13px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:#102b4e;color:white;padding:11px 16px;border-radius:999px;opacity:0;pointer-events:none;transition:.2s;z-index:20;font-size:13px}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 
 @media(max-width:820px){
@@ -287,7 +287,7 @@ body::before{
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="assets/js/supabase-config.js?v=202608270954"></script>
+<script src="assets/js/supabase-config.js?v=202608270959"></script>
 <script>
 const $ = (s)=>document.querySelector(s);
 const $$ = (s)=>[...document.querySelectorAll(s)];
