@@ -1041,4 +1041,5 @@ html[data-theme="night"] .footer{background:linear-gradient(180deg,#0a1220,#060b
   .hero-band-inner{grid-template-columns:1fr!important}
   .hero-band-item{border-right:0!important;border-bottom:1px solid rgba(255,255,255,.1)}
   .hero-band-item:last-child{border-bottom:0}
+  .hero-band-item:nth-child(3){padding-left:14px}
 }
