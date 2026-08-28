@@ -1050,3 +1050,34 @@ html[data-theme="night"] .footer{background:linear-gradient(180deg,#0a1220,#060b
 .accred-list b{display:block;font-size:14.5px;color:var(--ink);line-height:1.5}
 .accred-list span{display:block;margin-top:4px;font-size:11.5px;color:var(--muted)}
 @media(max-width:860px){.accred-list{grid-template-columns:1fr}}
+
+/* 67 门课程缩略图（最终课程表） */
+.thumb-c-nt02{background-image:url("../img/courses/nt02.webp")}
+.thumb-c-nt03{background-image:url("../img/courses/nt03.webp")}
+.thumb-c-nt05{background-image:url("../img/course-mis201.webp")}
+.thumb-c-nt06{background-image:url("../img/course-bib203.webp")}
+.thumb-c-nt09{background-image:url("../img/courses/nt09.webp")}
+.thumb-c-nt10{background-image:url("../img/courses/nt10.webp")}
+.thumb-c-nt11{background-image:url("../img/courses/nt11.webp")}
+.thumb-c-nt12{background-image:url("../img/courses/nt12.webp")}
+.thumb-c-nt13{background-image:url("../img/courses/nt13.webp")}
+.thumb-c-nt14{background-image:url("../img/courses/nt14.webp")}
+.thumb-c-nt15{background-image:url("../img/courses/nt15.webp")}
+.thumb-c-nt16{background-image:url("../img/courses/nt16.webp")}
+.thumb-c-nt17{background-image:url("../img/courses/nt17.webp")}
+.thumb-c-nt18{background-image:url("../img/courses/nt18.webp")}
+.thumb-c-nt20{background-image:url("../img/courses/nt20.webp")}
+.thumb-c-nt21{background-image:url("../img/courses/nt21.webp")}
+.thumb-c-nt22{background-image:url("../img/courses/nt22.webp")}
+.thumb-c-nt23{background-image:url("../img/courses/nt23.webp")}
+.thumb-c-nt24{background-image:url("../img/courses/nt24.webp")}
+.thumb-c-nt25{background-image:url("../img/courses/nt25.webp")}
+.thumb-c-nt26{background-image:url("../img/courses/nt26.webp")}
+.thumb-c-ot02{background-image:url("../img/courses/ot02.webp")}
+.thumb-c-bf01{background-image:url("../img/course-bib101.webp")}
+.thumb-c-bf03{background-image:url("../img/courses/bf03.webp")}
+.thumb-c-th04{background-image:url("../img/course-led401.webp")}
+.thumb-c-th05{background-image:url("../img/courses/th05.webp")}
+.thumb-c-th06{background-image:url("../img/courses/th06.webp")}
+.thumb-c-pt01{background-image:url("../img/course-pas210.webp")}
+.thumb-c-pt09{background-image:url("../img/course-min301.webp")}

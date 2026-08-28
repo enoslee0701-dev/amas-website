@@ -2,7 +2,7 @@
 
 **Asia Missionary Association Seminary — Chiang Mai, Thailand**
 
-学院官方网站（纯静态站，GitHub Pages 发布）。四语言（中 / 英 / 韩 / 泰），含课程设置、招生信息、学费与学习支持、奉献同工、数字校园、资源下载、AI 咨询助手与「定制化神学」三分钟快速测评入口。
+学院官方网站（纯静态站，GitHub Pages 发布）。四语言（中 / 英 / 韩 / 泰），含课程设置（67 门 · 7 类）、招生信息、学费与学习支持、奉献同工、数字校园、资源下载、AI 咨询助手与「定制化神学」三分钟快速测评入口。
 
 - 🌐 线上地址：https://enoslee0701-dev.github.io/amas-website/
 - 🧭 快速测评（Discover）：https://enoslee0701-dev.github.io/amas-website/discover.html
