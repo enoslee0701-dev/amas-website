@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>申请者中心 | AMAS</title>
+<link rel="icon" href="../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../assets/css/portal.css">
+</head>
+<body>
+<div class="wrap wide">
+  <div class="brandbar">
+    <img src="../../assets/img/school-seal.webp" alt="AMAS">
+    <h1>申请者中心</h1>
+    <div class="en">APPLICANT CENTER</div>
+  </div>
+
+  <div class="card">
+    <div class="pagehead">
+      <div><h2 style="margin:0">欢迎<span id="uname"></span> <span class="badge">申请者</span></h2>
+        <div class="who" id="uemail"></div></div>
+      <button class="link" id="btnOut">退出登录</button>
+    </div>
+
+    <div class="msg info show">
+      你现在是「申请者」账号：可以提交并跟进入学申请。正式学员身份将在教务审核录取并建档后开通（届时本中心会自动升级为学员中心）。
+    </div>
+
+    <h3 style="color:var(--navy);margin:20px 0 8px">下一步</h3>
+    <div class="spaces">
+      <a href="../../index.html#admissions"><span class="ic">📝</span><span><b>提交入学申请</b><span>选择正式 B.Th 或共同学习路径，填写在线申请</span></span></a>
+      <a href="../../discover.html"><span class="ic">🧭</span><span><b>3 分钟信仰成长快速探索</b><span>初步了解自己的学习起点（结果仅作参考）</span></span></a>
+      <a href="../../index.html#courses"><span class="ic">📚</span><span><b>浏览 67 门官方课程</b><span>七大类课程目录与培养项目</span></span></a>
+      <a href="../../help/"><span class="ic">💬</span><span><b>帮助中心</b><span>常见问题与联系招生同工</span></span></a>
+    </div>
+
+    <h3 style="color:var(--navy);margin:22px 0 8px">我的申请</h3>
+    <div class="msg info show" id="appStatus">申请进度跟踪将在下一阶段开通；目前提交的申请由招生同工通过邮件与你联系。</div>
+  </div>
+
+  <div class="foot"><a href="../../index.html">返回官网</a></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../assets/js/supabase-config.js"></script>
+<script src="../../assets/js/portal/auth.js"></script>
+<script>
+(async function(){
+  const A = window.AmasAuth;
+  const ctx = await A.requireRole(["applicant","student","teacher","mentor","registrar","finance","content_admin","academic_admin","super_admin"]);
+  if (!ctx) return;
+  const p = await A.getProfile();
+  if (p) {
+    document.getElementById("uname").textContent = p.display_name ? "，" + p.display_name : "";
+    document.getElementById("uemail").textContent = p.email || "";
+  }
+  document.getElementById("btnOut").addEventListener("click", () => A.signOut());
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>注册 | AMAS 亚洲宣教神学院</title>
+<link rel="icon" href="../assets/img/favicon.png">
+<link rel="stylesheet" href="../assets/css/portal.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="brandbar">
+    <img src="../assets/img/school-seal.webp" alt="AMAS">
+    <h1>亚洲宣教神学院</h1>
+    <div class="en">ASIA MISSIONARY ASSOCIATION SEMINARY</div>
+  </div>
+
+  <div class="card">
+    <div id="disabledNotice" class="notice" hidden>
+      <b>门户系统尚未启用。</b>暂时无法自助注册；想提前报名咨询，可直接<a class="link" href="../index.html#contact">联系招生同工</a>或使用官网「申请入学」。
+    </div>
+
+    <h2>注册账号</h2>
+    <p class="sub">注册后即为「申请者」账号：可提交与跟进入学申请。正式学员与教师身份须经学校审核开通，注册本身不产生学籍或教职（规范 §5.2）。</p>
+
+    <form id="regForm" novalidate>
+      <div class="field">
+        <label for="rName">姓名</label>
+        <input id="rName" name="name" autocomplete="name" placeholder="请输入您的姓名" required>
+      </div>
+      <div class="field">
+        <label for="rEmail">电子邮箱</label>
+        <input id="rEmail" name="email" type="email" autocomplete="email" placeholder="用于登录与接收通知" required>
+      </div>
+      <div class="field">
+        <label for="rPw">设置密码</label>
+        <input id="rPw" name="password" type="password" autocomplete="new-password" placeholder="至少 8 位，含字母与数字" minlength="8" required>
+        <div class="hint">注册即表示同意我们仅将你的信息用于招生与学习服务（见官网隐私说明）。</div>
+      </div>
+      <button class="btn" id="btnReg" type="submit">注册并发送验证邮件</button>
+      <div class="msg err" id="err" role="alert"></div>
+      <div class="msg ok" id="ok"></div>
+    </form>
+  </div>
+
+  <div class="foot">已有账号？<a href="../login/">登录</a> · <a href="../index.html">返回官网</a></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../assets/js/supabase-config.js"></script>
+<script src="../assets/js/portal/auth.js"></script>
+<script>
+(function(){
+  const A = window.AmasAuth;
+  const err = document.getElementById("err"), ok = document.getElementById("ok");
+  if (!A.CONFIGURED) {
+    document.getElementById("disabledNotice").hidden = false;
+    document.getElementById("btnReg").disabled = true;
+  }
+  const ERR = {
+    not_configured: "系统尚未启用，暂不可注册。",
+    exists: "该邮箱已注册，请直接登录或找回密码。",
+    weak_password: "密码强度不足：至少 8 位，建议包含字母与数字。",
+    signup_failed: "注册失败，请稍后再试。",
+  };
+  document.getElementById("regForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    err.classList.remove("show"); ok.classList.remove("show");
+    const f = e.currentTarget;
+    if (!f.checkValidity()) return f.reportValidity();
+    const btn = document.getElementById("btnReg");
+    btn.disabled = true; btn.textContent = "提交中…";
+    const r = await A.signUp(f.email.value, f.password.value, f.name.value.trim());
+    if (r.error) {
+      err.textContent = ERR[r.error] || ERR.signup_failed; err.classList.add("show");
+      btn.disabled = !A.CONFIGURED; btn.textContent = "注册并发送验证邮件"; return;
+    }
+    f.hidden = true;
+    ok.textContent = "验证邮件已发送至 " + f.email.value.trim() + "。请打开邮件完成验证后再登录；未收到时请检查垃圾邮件。";
+    ok.classList.add("show");
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>账号验证 | AMAS</title>
+<link rel="icon" href="../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../assets/css/portal.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="brandbar">
+    <img src="../../assets/img/school-seal.webp" alt="AMAS">
+    <h1>亚洲宣教神学院</h1>
+    <div class="en">ASIA MISSIONARY ASSOCIATION SEMINARY</div>
+  </div>
+
+  <div class="card" id="stateWorking">
+    <h2>正在处理…</h2>
+    <p class="sub">正在验证你的链接，请稍候。</p>
+  </div>
+
+  <div class="card" id="stateRecovery" hidden>
+    <h2>设置新密码</h2>
+    <p class="sub">身份已通过邮件链接确认，请设置新的登录密码。</p>
+    <form id="pwForm" novalidate>
+      <div class="field">
+        <label for="nPw">新密码</label>
+        <input id="nPw" type="password" autocomplete="new-password" minlength="8" placeholder="至少 8 位，含字母与数字" required>
+      </div>
+      <div class="field">
+        <label for="nPw2">再次输入新密码</label>
+        <input id="nPw2" type="password" autocomplete="new-password" minlength="8" required>
+      </div>
+      <button class="btn" id="btnPw" type="submit">保存新密码</button>
+      <div class="msg err" id="err" role="alert"></div>
+    </form>
+  </div>
+
+  <div class="card" id="stateDone" hidden>
+    <h2 id="doneTitle">完成</h2>
+    <p class="sub" id="doneText"></p>
+    <a class="btn" id="doneBtn" href="../../login/">前往登录</a>
+  </div>
+
+  <div class="foot"><a href="../../index.html">返回官网</a></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../assets/js/supabase-config.js"></script>
+<script src="../../assets/js/portal/auth.js"></script>
+<script>
+(async function(){
+  const A = window.AmasAuth;
+  const show = (id) => { for (const s of ["stateWorking","stateRecovery","stateDone"]) document.getElementById(s).hidden = (s !== id); };
+  const done = (title, text, btnText, href) => {
+    document.getElementById("doneTitle").textContent = title;
+    document.getElementById("doneText").textContent = text;
+    if (btnText) document.getElementById("doneBtn").textContent = btnText;
+    if (href) document.getElementById("doneBtn").setAttribute("href", href);
+    show("stateDone");
+  };
+  if (!A.CONFIGURED) return A.renderDisabled();
+
+  // supabase-js v2 会自动从 URL 中解析令牌并建立会话
+  const hash = location.hash + location.search;
+  const isRecovery = /type=recovery/.test(hash);
+  // 等待会话建立
+  let session = null;
+  for (let i = 0; i < 20 && !session; i++) { session = await A.getSession(); if (!session) await new Promise(r => setTimeout(r, 250)); }
+
+  if (isRecovery) {
+    if (!session) return done("链接无效或已过期", "请重新发起找回密码。", "重新找回", "../../forgot-password/");
+    show("stateRecovery");
+    document.getElementById("pwForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const err = document.getElementById("err"); err.classList.remove("show");
+      const p1 = document.getElementById("nPw").value, p2 = document.getElementById("nPw2").value;
+      if (p1.length < 8) { err.textContent = "密码至少 8 位。"; err.classList.add("show"); return; }
+      if (p1 !== p2) { err.textContent = "两次输入的密码不一致。"; err.classList.add("show"); return; }
+      const { error } = await A.client.auth.updateUser({ password: p1 });
+      if (error) { err.textContent = "保存失败，请重试。"; err.classList.add("show"); return; }
+      await A.client.auth.signOut();
+      done("密码已更新", "请使用新密码登录。");
+    });
+    return;
+  }
+
+  // 邮箱验证回调
+  if (session) {
+    const roles = await A.getRoles();
+    return done("邮箱验证成功", "你的账号已激活，即将进入门户。", "进入门户", A.homeForRoles(roles));
+  }
+  done("链接无效或已过期", "验证链接可能已使用或超时，请重新登录或重新注册。");
+})();
+</script>
+</body>
+</html>

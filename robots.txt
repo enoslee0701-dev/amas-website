@@ -2,3 +2,9 @@ User-agent: *
 Allow: /
 Disallow: /admin.html
 Disallow: /giving.html
+Disallow: /portal/
+Disallow: /auth/
+Disallow: /login/
+Disallow: /register/
+Disallow: /forgot-password/
+Disallow: /faculty/

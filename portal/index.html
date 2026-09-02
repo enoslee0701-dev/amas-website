@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>选择工作空间 | AMAS</title>
+<link rel="icon" href="../assets/img/favicon.png">
+<link rel="stylesheet" href="../assets/css/portal.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="brandbar">
+    <img src="../assets/img/school-seal.webp" alt="AMAS">
+    <h1>亚洲宣教神学院</h1>
+    <div class="en">ASIA MISSIONARY ASSOCIATION SEMINARY</div>
+  </div>
+  <div class="card">
+    <div class="pagehead">
+      <div><h2 style="margin:0">选择工作空间</h2><div class="who" id="who"></div></div>
+      <button class="link" id="btnOut">退出登录</button>
+    </div>
+    <p class="sub">你的账号拥有多重身份，请选择要进入的空间（§5.4）。</p>
+    <div class="spaces" id="spaces"></div>
+  </div>
+  <div class="foot"><a href="../index.html">返回官网</a></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../assets/js/supabase-config.js"></script>
+<script src="../assets/js/portal/auth.js"></script>
+<script>
+(async function(){
+  const A = window.AmasAuth;
+  const ctx = await A.requireRole(["applicant","student","teacher","mentor","registrar","finance","content_admin","academic_admin","super_admin"]);
+  if (!ctx) return;
+  const p = await A.getProfile();
+  document.getElementById("who").textContent = (p && (p.display_name || p.email)) || "";
+  document.getElementById("btnOut").addEventListener("click", () => A.signOut());
+
+  const DEFS = [
+    { roles:["super_admin","academic_admin","registrar","content_admin","finance"], href:"admin/",   ic:"🗂️", name:"管理后台",   sub:"招生 · 教师验证 · 学籍 · 课程 · 审计" },
+    { roles:["teacher","mentor"],                                                  href:"teacher/", ic:"📖", name:"教师工作台", sub:"我的课程 · 出勤 · 作业与成绩 · 导师反馈" },
+    { roles:["student"],                                                           href:"student/", ic:"🎓", name:"学员中心",   sub:"课程学习 · 记录 · 成长路径 · 实践训练" },
+    { roles:["applicant"],                                                         href:"applicant/", ic:"✉️", name:"申请者中心", sub:"入学申请 · 进度与补件 · 通知" },
+  ];
+  const box = document.getElementById("spaces");
+  const mine = DEFS.filter(d => d.roles.some(r => ctx.roles.includes(r)));
+  // 只有一个空间时直接进入
+  if (mine.length === 1) return location.replace(mine[0].href);
+  for (const d of mine) {
+    const a = document.createElement("a");
+    a.href = d.href;
+    a.innerHTML = '<span class="ic">' + d.ic + '</span><span><b>' + d.name + "</b><span>" + d.sub + "</span></span>";
+    box.appendChild(a);
+  }
+})();
+</script>
+</body>
+</html>

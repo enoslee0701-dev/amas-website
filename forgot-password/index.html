@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>找回密码 | AMAS 亚洲宣教神学院</title>
+<link rel="icon" href="../assets/img/favicon.png">
+<link rel="stylesheet" href="../assets/css/portal.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="brandbar">
+    <img src="../assets/img/school-seal.webp" alt="AMAS">
+    <h1>亚洲宣教神学院</h1>
+    <div class="en">ASIA MISSIONARY ASSOCIATION SEMINARY</div>
+  </div>
+
+  <div class="card">
+    <div id="disabledNotice" class="notice" hidden><b>门户系统尚未启用。</b>如需协助请<a class="link" href="../index.html#contact">联系招生同工</a>。</div>
+    <h2>找回密码</h2>
+    <p class="sub">输入注册邮箱，我们将发送重置链接。用学号登录且没有可用邮箱的账号，请联系教务同工人工核验后重置。</p>
+    <form id="fpForm" novalidate>
+      <div class="field">
+        <label for="fEmail">电子邮箱</label>
+        <input id="fEmail" type="email" autocomplete="email" placeholder="请输入注册邮箱" required>
+      </div>
+      <button class="btn" id="btnGo" type="submit">发送重置邮件</button>
+      <div class="msg ok" id="ok"></div>
+      <div class="msg err" id="err" role="alert"></div>
+    </form>
+  </div>
+
+  <div class="foot"><a href="../login/">返回登录</a> · <a href="../index.html">返回官网</a></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../assets/js/supabase-config.js"></script>
+<script src="../assets/js/portal/auth.js"></script>
+<script>
+(function(){
+  const A = window.AmasAuth;
+  const ok = document.getElementById("ok"), err = document.getElementById("err");
+  if (!A.CONFIGURED) { document.getElementById("disabledNotice").hidden = false; document.getElementById("btnGo").disabled = true; }
+  document.getElementById("fpForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    ok.classList.remove("show"); err.classList.remove("show");
+    const f = e.currentTarget;
+    if (!f.checkValidity()) return f.reportValidity();
+    const btn = document.getElementById("btnGo");
+    btn.disabled = true; btn.textContent = "发送中…";
+    await A.resetPassword(document.getElementById("fEmail").value);
+    // 统一提示：无论邮箱是否存在都返回同样文案，避免探测（§5.3）
+    ok.textContent = "如果该邮箱已注册，重置链接已发送。请查收邮件（含垃圾邮件）。";
+    ok.classList.add("show");
+    btn.textContent = "发送重置邮件"; btn.disabled = !A.CONFIGURED;
+  });
+})();
+</script>
+</body>
+</html>

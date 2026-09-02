@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>登录 | AMAS 亚洲宣教神学院</title>
+<link rel="icon" href="../assets/img/favicon.png">
+<link rel="stylesheet" href="../assets/css/portal.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="brandbar">
+    <img src="../assets/img/school-seal.webp" alt="AMAS">
+    <h1>亚洲宣教神学院</h1>
+    <div class="en">ASIA MISSIONARY ASSOCIATION SEMINARY</div>
+  </div>
+
+  <div class="card">
+    <div id="disabledNotice" class="notice" hidden>
+      <b>门户系统尚未启用。</b>账号与学习系统正在部署中，目前暂不可登录；如需咨询请<a class="link" href="../index.html#contact">联系招生同工</a>。
+    </div>
+
+    <h2>登录</h2>
+    <p class="sub">使用电子邮箱或学号登录你的 AMAS 账号</p>
+
+    <form id="loginForm" novalidate>
+      <div class="field">
+        <label for="fId">电子邮箱 / 学号</label>
+        <input id="fId" name="identifier" autocomplete="username" placeholder="请输入邮箱地址或学号" required>
+      </div>
+      <div class="field">
+        <label for="fPw">密码</label>
+        <input id="fPw" name="password" type="password" autocomplete="current-password" placeholder="请输入密码" required>
+      </div>
+      <div class="row">
+        <span></span>
+        <a class="link" href="../forgot-password/">忘记密码？</a>
+      </div>
+      <button class="btn" id="btnLogin" type="submit">进入 AMAS</button>
+      <div class="msg err" id="err" role="alert"></div>
+    </form>
+
+    <div class="quick">
+      <a href="../index.html#admissions"><b>申请入学</b><span>提交入学申请</span></a>
+      <a href="../faculty/verify/"><b>教师验证</b><span>教职工专用通道</span></a>
+      <a href="../help/"><b>帮助中心</b><span>常见问题解答</span></a>
+    </div>
+  </div>
+
+  <div class="foot">
+    还没有账号？<a href="../register/">注册</a> · <a href="../index.html">返回官网</a><br>
+    🔒 AMAS 采用标准安全机制保护您的信息与隐私
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../assets/js/supabase-config.js"></script>
+<script src="../assets/js/portal/auth.js"></script>
+<script>
+(function(){
+  const A = window.AmasAuth;
+  const err = document.getElementById("err");
+  const ERR = {
+    not_configured: "系统尚未启用，暂不可登录。",
+    invalid_input: "请输入账号与密码。",
+    bad_credentials: "账号或密码不正确。",           // 统一文案，不区分账号是否存在（§5.3）
+    rate_limited: "尝试次数过多，请 15 分钟后再试。",
+    alias_login_unavailable: "学号登录暂未开通，请先使用邮箱登录。",
+    network: "网络异常，请稍后再试。",
+  };
+  function showErr(code){ err.textContent = ERR[code] || ERR.bad_credentials; err.classList.add("show"); }
+
+  if (!A.CONFIGURED) {
+    document.getElementById("disabledNotice").hidden = false;
+    document.getElementById("btnLogin").disabled = true;
+  } else {
+    // 已登录直接进入工作空间
+    A.getSession().then(async s => { if (s) location.replace(A.homeForRoles(await A.getRoles())); });
+  }
+
+  document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    err.classList.remove("show");
+    const btn = document.getElementById("btnLogin");
+    btn.disabled = true; btn.textContent = "登录中…";
+    const r = await A.signIn(document.getElementById("fId").value, document.getElementById("fPw").value);
+    if (r.error) { showErr(r.error); btn.disabled = !A.CONFIGURED ? true : false; btn.textContent = "进入 AMAS"; return; }
+    const roles = await A.getRoles();
+    const next = new URLSearchParams(location.search).get("next");
+    location.replace(next && next.startsWith("/") ? next : A.homeForRoles(roles));
+  });
+})();
+</script>
+</body>
+</html>
