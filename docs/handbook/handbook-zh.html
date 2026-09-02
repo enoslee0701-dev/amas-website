@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>AMAS 新生入学手册｜中文完善版 V2.0</title>
+  <style>
+    :root{
+      --navy:#102f55;
+      --navy-2:#173f70;
+      --gold:#b48937;
+      --gold-soft:#f6edda;
+      --ink:#202735;
+      --muted:#5e6879;
+      --line:#d9dee8;
+      --paper:#fff;
+      --wash:#f4f6f9;
+      --success:#1f6b4f;
+      --warn:#815c12;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      color:var(--ink);
+      background:#e9edf2;
+      font-family:"Noto Sans SC","Microsoft YaHei","PingFang SC","Hiragino Sans GB",Arial,sans-serif;
+      font-size:16px;
+      line-height:1.75;
+    }
+    .book{
+      width:min(920px,100%);
+      margin:24px auto;
+      background:var(--paper);
+      box-shadow:0 18px 60px rgba(18,36,60,.12);
+    }
+    .status{
+      padding:8px 24px;
+      background:var(--gold-soft);
+      color:#62470f;
+      text-align:center;
+      font-size:13px;
+      font-weight:700;
+      letter-spacing:.12em;
+      border-bottom:1px solid #ead9b6;
+    }
+    .cover{
+      position:relative;
+      overflow:hidden;
+      min-height:460px;
+      padding:74px 64px 56px;
+      color:#fff;
+      background:
+        radial-gradient(circle at 83% 18%,rgba(194,154,76,.28),transparent 28%),
+        linear-gradient(145deg,#0c2849 0%,#173f70 72%,#234f7d 100%);
+    }
+    .cover::after{
+      content:"";
+      position:absolute;
+      right:-70px;
+      bottom:-120px;
+      width:340px;
+      height:340px;
+      border:1px solid rgba(255,255,255,.15);
+      border-radius:50%;
+      box-shadow:0 0 0 46px rgba(255,255,255,.04),0 0 0 92px rgba(255,255,255,.035);
+    }
+    .brand{position:relative;z-index:1;color:#e7c77f;font-size:15px;font-weight:700;letter-spacing:.16em}
+    .brand-en{position:relative;z-index:1;margin-top:5px;color:rgba(255,255,255,.66);font:12px Georgia,serif;letter-spacing:.12em}
+    .cover h1{position:relative;z-index:1;margin:76px 0 6px;font-size:44px;line-height:1.2;letter-spacing:.12em}
+    .cover .subtitle{position:relative;z-index:1;margin:0;font-size:18px;color:#f0d9a5;letter-spacing:.2em}
+    .cover .motto{position:relative;z-index:1;width:min(580px,100%);margin-top:52px;font-size:20px;line-height:1.65}
+    .cover-meta{position:relative;z-index:1;margin-top:32px;color:rgba(255,255,255,.72);font-size:13px}
+    main{padding:46px 58px 64px}
+    .notice{
+      margin:0 0 34px;
+      padding:18px 20px;
+      border:1px solid #ead9b6;
+      border-left:5px solid var(--gold);
+      border-radius:10px;
+      background:#fffaf0;
+      color:#5f4a21;
+    }
+    .notice strong{color:#4d370c}
+    h2{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin:42px 0 16px;
+      color:var(--navy);
+      font-size:23px;
+      line-height:1.4;
+    }
+    h2::before{content:"";width:6px;height:27px;border-radius:4px;background:var(--gold);flex:0 0 auto}
+    h3{margin:24px 0 8px;color:var(--navy-2);font-size:18px}
+    p{margin:8px 0 14px}
+    ul,ol{margin:8px 0 16px;padding-left:1.5em}
+    li{margin:4px 0}
+    a{color:var(--navy-2)}
+    .lead{font-size:18px;color:#364052}
+    .quote{
+      margin:22px 0;
+      padding:18px 22px;
+      color:var(--navy);
+      background:var(--wash);
+      border-radius:10px;
+      font-size:17px;
+      font-weight:700;
+      text-align:center;
+    }
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0 22px}
+    .card{padding:18px;border:1px solid var(--line);border-radius:12px;background:#fff}
+    .card h3{margin:0 0 7px;font-size:17px}
+    .card p{margin:0;color:var(--muted);font-size:14px}
+    .pill{display:inline-block;padding:2px 9px;border-radius:99px;background:#e9f3ee;color:var(--success);font-size:12px;font-weight:700}
+    table{width:100%;margin:16px 0 22px;border-collapse:separate;border-spacing:0;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+    th,td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
+    th{background:#eef2f7;color:var(--navy);font-size:14px}
+    td{font-size:14px}
+    tr:last-child td{border-bottom:0}
+    .course-table td:nth-child(2),.course-table th:nth-child(2){text-align:center;white-space:nowrap}
+    .callout{
+      padding:18px 20px;
+      margin:18px 0;
+      border-radius:10px;
+      background:#edf4fb;
+      border:1px solid #cfdeee;
+      color:#294764;
+    }
+    .callout.warning{background:#fff8e8;border-color:#ead9b6;color:var(--warn)}
+    .training-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0}
+    .training{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line);border-radius:9px;background:#fff}
+    .training b{display:grid;place-items:center;flex:0 0 28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;font-size:13px}
+    .steps{counter-reset:step;list-style:none;padding:0;margin:18px 0}
+    .steps li{position:relative;margin:0 0 14px;padding:4px 0 18px 52px;border-bottom:1px dashed var(--line)}
+    .steps li::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:0;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--gold);color:#fff;font-weight:800}
+    .steps li:last-child{border-bottom:0}
+    .steps strong{display:block;color:var(--navy);font-size:16px}
+    .checklist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;list-style:none;padding:0}
+    .checklist li{padding:10px 12px 10px 38px;position:relative;border-radius:8px;background:var(--wash);font-size:14px}
+    .checklist li::before{content:"✓";position:absolute;left:13px;color:var(--success);font-weight:900}
+    .contact td:first-child{width:24%;font-weight:700;color:var(--navy)}
+    .footer{padding:26px 40px 32px;background:var(--navy);color:rgba(255,255,255,.82);text-align:center;font-size:13px}
+    .footer strong{color:#efd598}
+    .review-note{
+      margin-top:42px;
+      padding:18px 20px;
+      border:1px dashed #c69842;
+      border-radius:10px;
+      background:#fffaf0;
+      color:#614b20;
+      font-size:13px;
+    }
+    .review-note h3{margin:0 0 8px;color:#60460e;font-size:15px}
+    .review-note ul{margin-bottom:0}
+    @media (max-width:680px){
+      .book{margin:0;box-shadow:none}
+      .cover{min-height:410px;padding:54px 26px 42px}
+      .cover h1{margin-top:68px;font-size:34px}
+      .cover .motto{font-size:17px}
+      main{padding:32px 20px 46px}
+      .grid,.training-grid,.checklist{grid-template-columns:1fr}
+      table{display:block;overflow-x:auto}
+      th,td{min-width:120px}
+    }
+    @page{size:A4;margin:14mm}
+    @media print{
+      body{background:#fff;font-size:10.5pt}
+      .book{width:100%;margin:0;box-shadow:none}
+      .status{display:none}
+      .cover{min-height:250mm;page-break-after:always;padding:42mm 18mm 20mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      .cover h1{margin-top:55mm}
+      main{padding:0}
+      h2{page-break-after:avoid;margin-top:8mm}
+      h3{page-break-after:avoid}
+      table,.card,.training,.callout,.notice{break-inside:avoid}
+      .review-note{display:none}
+      .footer{margin-top:10mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    }
+  </style>
+</head>
+<body>
+  <article class="book">
+    <div class="status">中文完善版 V2.0 · 发布前审阅</div>
+
+    <header class="cover">
+      <div class="brand">亚洲宣教神学院 · 清迈</div>
+      <div class="brand-en">ASIA MISSIONARY ASSOCIATION SEMINARY · CHIANG MAI</div>
+      <h1>新生入学手册</h1>
+      <p class="subtitle">认识 · 成长 · 装备 · 服事</p>
+      <p class="motto">让神学不只进入头脑，也进入生命、家庭、教会、职场与福音行动。</p>
+      <div class="cover-meta">2026 中文版 · 更新日期：2026年9月2日</div>
+    </header>
+
+    <main>
+      <div class="notice">
+        <strong>阅读说明：</strong>本手册用于帮助申请者了解 AMAS 清迈的办学方向、学习路径、课程资源和申请流程。正式校名、授权范围、课程学分、收费、开课日期及学位授予安排，以 AMAS 总校与学院当期正式书面通知为准。
+      </div>
+
+      <section>
+        <h2>一、欢迎来到 AMAS 清迈</h2>
+        <p class="lead">欢迎你开始一段系统认识圣经、建立生命并预备服事的学习旅程。</p>
+        <p>AMAS 清迈以圣经真理为根基，以福音主义为神学基准，重视系统学习，也重视真理在真实生活中的落实。我们希望帮助学习者逐步形成读经、分辨、表达、牧养、服事、门徒建立与传扬福音的能力。</p>
+        <div class="quote">神学，不只是为了知道更多；更是为了更忠心地认识神、跟随基督并服事人。</div>
+        <p>清迈学习中心以线下学习共同体为重要基础，并结合线上参与及经许可的课程录音补课，让在职、照顾家庭或参与教会服事的学习者能够持续前进。</p>
+      </section>
+
+      <section>
+        <h2>二、我们的异象与教育方向</h2>
+        <div class="grid">
+          <div class="card"><h3>忠于圣经</h3><p>以圣经检验神学、教导与实践，持守福音核心真理。</p></div>
+          <div class="card"><h3>生命建造</h3><p>让学习带来悔改、顺服、品格成长与关系更新。</p></div>
+          <div class="card"><h3>连接教会</h3><p>学院不取代地方教会，而是帮助学习者更好地回到教会服事。</p></div>
+          <div class="card"><h3>回应使命</h3><p>装备传道人、教会同工、宣教工人与愿意忠心服事的信徒。</p></div>
+          <div class="card"><h3>实践导向</h3><p>把课堂所学带入家庭、职场、人际关系与真实事奉现场。</p></div>
+          <div class="card"><h3>可持续学习</h3><p>结合线下、线上与弹性补课，帮助学习者开始、坚持并完成。</p></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>三、谁适合申请</h2>
+        <ul>
+          <li>愿意系统认识圣经与基督信仰的信徒；</li>
+          <li>希望建立稳固信仰根基、并愿意认真持续学习的人；</li>
+          <li>已经参与教会服事，希望获得更系统装备的同工；</li>
+          <li>预备承担教导、小组、关怀、讲道、门训或宣教责任的人；</li>
+          <li>因工作、家庭、距离或时间限制，无法进入传统全日制神学教育，但能够安排稳定学习时间的人。</li>
+        </ul>
+        <div class="callout">学院看重申请者是否真正理解项目、愿意投入稳定时间，并愿意接受真理、生命与服事实践的共同塑造。具体入学条件及所需材料，以当期招生通知为准。</div>
+      </section>
+
+      <section>
+        <h2>四、两种学习路径</h2>
+        <table>
+          <thead>
+            <tr><th style="width:21%">项目</th><th>正式 B.Th 学籍路径</th><th>共同学习路径</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>适合对象</td><td>希望按照正式学位课程、学分、评量与毕业制度修读的申请者</td><td>希望先参加开放课程、讲座、学习小组或单科共学的人</td></tr>
+            <tr><td>进入方式</td><td>咨询、提交申请、完成审核与注册，并按总校程序建立学籍</td><td>按学院开放范围报名参加，不自动建立 B.Th 学籍</td></tr>
+            <tr><td>学习记录</td><td>按正式课程计划记录课程、评量与有效学分</td><td>按活动或课程要求记录参与和完成情况</td></tr>
+            <tr><td>毕业与证书</td><td>按当期正式制度完成学分、评量及毕业审核</td><td>不自动授予 B.Th 学位；是否颁发学习或结业证明，以项目说明为准</td></tr>
+            <tr><td>后续衔接</td><td>—</td><td>以后申请正式 B.Th 时须重新完成当时有效的申请与审核；既往学习不自动转换为学位学分</td></tr>
+          </tbody>
+        </table>
+        <p class="callout warning"><strong>请特别注意：</strong>参加共同学习、旁听课程或教会训练，不等于已经取得正式 B.Th 学籍，也不会自动产生毕业学分。</p>
+      </section>
+
+      <section>
+        <h2>五、课程体系与学分边界</h2>
+        <p>学院目前整理有 <strong>67门现有课程资源</strong>，分为7大类别。课程将根据师资、教学计划、内容准备与授权情况逐步开设；课程列入现有目录，不代表每一门课程都在同一学期开放。</p>
+        <table class="course-table">
+          <thead><tr><th style="width:25%">类别</th><th style="width:11%">门数</th><th>课程内容</th></tr></thead>
+          <tbody>
+            <tr><td>新约书卷</td><td>27</td><td>马太福音至启示录：新约27卷逐卷研读</td></tr>
+            <tr><td>旧约书卷</td><td>2</td><td>创世记、士师记</td></tr>
+            <tr><td>圣经基础与研经</td><td>3</td><td>认识圣经（圣经综合概观）、圣经地理、研经标记法</td></tr>
+            <tr><td>神学与思想</td><td>11</td><td>平信徒系统神学、福音派神学核心要义、处境化神学、基督教教育、改革宗（加尔文主义）与福音派神学、中国教会的神学根基、基督教伦理、世界观、宗教比较、伊斯兰教理解、中国异端</td></tr>
+            <tr><td>实践神学与牧养</td><td>18</td><td>新信徒事工、新信徒教材、基督徒生活基础、确信生活、门徒训练、祷告与灵修生活、礼拜学（礼拜顺序）、小组运营、传道法、属灵争战、神的话语医治、内在医治、讲道学、讲道实习、敬拜学、协谈学（牧会相谈）、教会运营、主日学教育</td></tr>
+            <tr><td>历史与文化</td><td>3</td><td>以色列文化、世界教会史、中国教会史</td></tr>
+            <tr><td>语言与工具</td><td>3</td><td>希腊语、希伯来语、人工智能与教牧实践</td></tr>
+          </tbody>
+        </table>
+        <div class="callout warning">
+          <strong>关于学分：</strong>67门课程的逐课学分尚未形成正式确认表，因此本手册不编造、不推算，也不显示各课学分。正式 B.Th 的毕业总学分、必修与选修构成、课程学分及学分认定，以总校和学院最终书面制度为准。
+        </div>
+      </section>
+
+      <section>
+        <h2>六、11项实践训练</h2>
+        <p>实践训练帮助学习者把真理落实在读经、祷告、家庭、关系、奉献、讲道、传福音和教会建立中。它们与正式课程学分分开记录。</p>
+        <div class="training-grid">
+          <div class="training"><b>01</b><span>通读圣经训练</span></div>
+          <div class="training"><b>02</b><span>背诵圣经训练</span></div>
+          <div class="training"><b>03</b><span>家庭礼拜训练</span></div>
+          <div class="training"><b>04</b><span>人际关系训练</span></div>
+          <div class="training"><b>05</b><span>奉献训练</span></div>
+          <div class="training"><b>06</b><span>讲道作成训练</span></div>
+          <div class="training"><b>07</b><span>祷告训练</span></div>
+          <div class="training"><b>08</b><span>传道训练</span></div>
+          <div class="training"><b>09</b><span>Q.T 训练</span></div>
+          <div class="training"><b>10</b><span>晨祷训练</span></div>
+          <div class="training"><b>11</b><span>开辟教会训练</span></div>
+        </div>
+        <div class="callout"><strong>统一口径：</strong>目前正式资料为11项“实践训练”，不是12项“属灵训练”。这些训练不计入毕业学分；未完成不作为延迟毕业、拒绝毕业或拒绝授位的理由。</div>
+      </section>
+
+      <section>
+        <h2>七、学习方式与学习责任</h2>
+        <div class="grid">
+          <div class="card"><h3>线下学习共同体</h3><p>在真实关系中学习、讨论、敬拜、祷告、用餐并彼此陪伴。</p></div>
+          <div class="card"><h3>线上参与</h3><p>按课程安排参加线上教学、阅读、讨论或作业。</p></div>
+          <div class="card"><h3>经许可的录音补课</h3><p>仅在教师、课程版权与隐私许可范围内提供，不代表所有课程均有录播。</p></div>
+          <div class="card"><h3>生命与服事实践</h3><p>把课堂内容应用在家庭、教会、职场、人际关系及福音行动中。</p></div>
+        </div>
+        <h3>每位学员应当预备</h3>
+        <ul class="checklist">
+          <li>稳定的每周学习时间</li>
+          <li>可参与课程的设备与网络</li>
+          <li>按要求完成阅读、作业或评量</li>
+          <li>主动沟通缺席与学习困难</li>
+          <li>尊重教师、同学与教会关系</li>
+          <li>保护课堂和牧养分享中的隐私</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>八、费用、奉献与学习支持</h2>
+        <p>学院以费用可承担、制度可持续为原则安排课程费用。正式收费标准、缴费时间、退费、休学及学分保留办法，以当期书面通知为准；在费用尚未正式确认前，任何个人口头承诺均不作为收费依据。</p>
+        <p>学费与自愿奉献必须分开：奉献出于自愿，不影响申请、录取、成绩、学分或毕业。确有经济困难而愿意认真学习的人，可按学院程序申请分期、减免或其他学习支持；个人财务情况由指定同工按需要保密处理。</p>
+      </section>
+
+      <section>
+        <h2>九、申请与入学流程</h2>
+        <ol class="steps">
+          <li><strong>初步咨询</strong>了解学院定位、两种学习路径、课程方式及当前开放安排。</li>
+          <li><strong>选择路径</strong>确认申请正式 B.Th 学籍，或参加共同学习。</li>
+          <li><strong>提交资料</strong>按当期要求填写申请表，并补充必要的身份、信仰、教会与学习资料。</li>
+          <li><strong>沟通与审核</strong>招生同工确认申请动机、学习时间、路径理解及需要协调的事项；是否面谈以当期要求为准。</li>
+          <li><strong>收到书面结果</strong>结果可能为正式录取、共同学习接纳、补充资料、建议延后或当前不适合。</li>
+          <li><strong>注册与新生说明</strong>按通知完成注册、缴费及规则确认，参加新生说明后进入学习。</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>十、学籍、毕业与授位</h2>
+        <ul>
+          <li>正式 B.Th 学员须按总校与学院的申请、审核和注册程序建立学籍。</li>
+          <li>毕业审核以正式课程计划、有效课程记录、评量结果及最终确认的学分制度为依据。</li>
+          <li>共同学习记录不自动转换为正式学位学分或毕业资格。</li>
+          <li>实践训练可以进入个人成长档案，但不作为隐藏的毕业门槛。</li>
+          <li>转学分、免修、补考、重修、休学、复学、毕业审核、证书签发及授位程序，以正式教务制度为准。</li>
+        </ul>
+        <p class="callout warning">本手册不构成认证、学位等同、就业、移民、签证或跨国认可承诺。相关事项仅以有权机构出具的正式文件为准。</p>
+      </section>
+
+      <section>
+        <h2>十一、资料与隐私</h2>
+        <p>申请资料、信仰经历、教会关系、联系方式、付款信息及牧养内容，只用于必要的招生、教务、学员支持和安全管理。学院与学习者都应尊重他人隐私，未经许可不得公开、转发或用于无关宣传。</p>
+      </section>
+
+      <section>
+        <h2>十二、联系我们</h2>
+        <table class="contact">
+          <tbody>
+            <tr><td>电子邮箱</td><td>amasthai2026@gmail.com</td></tr>
+            <tr><td>泰国电话</td><td>+66 093 623 0780</td></tr>
+            <tr><td>中国电话</td><td>+86 187 1445 4664</td></tr>
+            <tr><td>微信</td><td>L52586222</td></tr>
+            <tr><td>LINE</td><td>enoslee0701</td></tr>
+            <tr><td>地区</td><td>Chiang Mai, Thailand · 泰国清迈</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <aside class="review-note">
+        <h3>院方发布前核对（打印时自动隐藏）</h3>
+        <ul>
+          <li>确认正式校名、总校授权范围与可使用的学位表述；</li>
+          <li>确认当期招生人数、申请条件、开课日期、地点与课表；</li>
+          <li>确认 B.Th 毕业总学分、67门逐课学分、必修与选修规则；</li>
+          <li>确认收费、退费、休学、助学与奉献管理办法；</li>
+          <li>确认学籍建立、毕业审核、证书签发与授位流程；</li>
+          <li>确认联系方式仍为当前有效信息。</li>
+        </ul>
+      </aside>
+    </main>
+
+    <footer class="footer">
+      <strong>AMAS · 亚洲宣教神学院清迈学习中心</strong><br>
+      让圣经真理进入生命，让所学成为服事。
+    </footer>
+  </article>
+</body>
+</html>

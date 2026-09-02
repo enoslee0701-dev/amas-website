@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>AMAS Student Handbook | English Edition V2.0</title>
+  <style>
+    :root{--navy:#102f55;--navy-2:#173f70;--gold:#b48937;--gold-soft:#f6edda;--ink:#202735;--muted:#5e6879;--line:#d9dee8;--paper:#fff;--wash:#f4f6f9;--success:#1f6b4f;--warn:#815c12}
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;color:var(--ink);background:#e9edf2;font-family:"Segoe UI",Georgia,Arial,sans-serif;font-size:16px;line-height:1.75}
+    .book{width:min(920px,100%);margin:24px auto;background:var(--paper);box-shadow:0 18px 60px rgba(18,36,60,.12)}
+    .cover{position:relative;overflow:hidden;min-height:460px;padding:74px 64px 56px;color:#fff;background:radial-gradient(circle at 83% 18%,rgba(194,154,76,.28),transparent 28%),linear-gradient(145deg,#0c2849 0%,#173f70 72%,#234f7d 100%)}
+    .cover::after{content:"";position:absolute;right:-70px;bottom:-120px;width:340px;height:340px;border:1px solid rgba(255,255,255,.15);border-radius:50%;box-shadow:0 0 0 46px rgba(255,255,255,.04),0 0 0 92px rgba(255,255,255,.035)}
+    .brand{position:relative;z-index:1;color:#e7c77f;font-size:15px;font-weight:700;letter-spacing:.16em}
+    .brand-en{position:relative;z-index:1;margin-top:5px;color:rgba(255,255,255,.66);font:12px Georgia,serif;letter-spacing:.12em}
+    .cover h1{position:relative;z-index:1;margin:76px 0 6px;font-size:42px;line-height:1.2;letter-spacing:.04em}
+    .cover .subtitle{position:relative;z-index:1;margin:0;font-size:17px;color:#f0d9a5;letter-spacing:.14em}
+    .cover .motto{position:relative;z-index:1;width:min(580px,100%);margin-top:52px;font-size:19px;line-height:1.65}
+    .cover-meta{position:relative;z-index:1;margin-top:32px;color:rgba(255,255,255,.72);font-size:13px}
+    main{padding:46px 58px 64px}
+    .notice{margin:0 0 34px;padding:18px 20px;border:1px solid #ead9b6;border-left:5px solid var(--gold);border-radius:10px;background:#fffaf0;color:#5f4a21}
+    .notice strong{color:#4d370c}
+    h2{display:flex;align-items:center;gap:12px;margin:42px 0 16px;color:var(--navy);font-size:23px;line-height:1.4}
+    h2::before{content:"";width:6px;height:27px;border-radius:4px;background:var(--gold);flex:0 0 auto}
+    h3{margin:24px 0 8px;color:var(--navy-2);font-size:18px}
+    p{margin:8px 0 14px}
+    ul,ol{margin:8px 0 16px;padding-left:1.5em}
+    li{margin:4px 0}
+    .lead{font-size:18px;color:#364052}
+    .quote{margin:22px 0;padding:18px 22px;color:var(--navy);background:var(--wash);border-radius:10px;font-size:17px;font-weight:700;text-align:center}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0 22px}
+    .card{padding:18px;border:1px solid var(--line);border-radius:12px;background:#fff}
+    .card h3{margin:0 0 7px;font-size:17px}
+    .card p{margin:0;color:var(--muted);font-size:14px}
+    table{width:100%;margin:16px 0 22px;border-collapse:separate;border-spacing:0;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+    th,td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
+    th{background:#eef2f7;color:var(--navy);font-size:14px}
+    td{font-size:14px}
+    tr:last-child td{border-bottom:0}
+    .course-table td:nth-child(2),.course-table th:nth-child(2){text-align:center;white-space:nowrap}
+    .callout{padding:18px 20px;margin:18px 0;border-radius:10px;background:#edf4fb;border:1px solid #cfdeee;color:#294764}
+    .callout.warning{background:#fff8e8;border-color:#ead9b6;color:var(--warn)}
+    .training-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0}
+    .training{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line);border-radius:9px;background:#fff}
+    .training b{display:grid;place-items:center;flex:0 0 28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;font-size:13px}
+    .steps{counter-reset:step;list-style:none;padding:0;margin:18px 0}
+    .steps li{position:relative;margin:0 0 14px;padding:4px 0 18px 52px;border-bottom:1px dashed var(--line)}
+    .steps li::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:0;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--gold);color:#fff;font-weight:800}
+    .steps li:last-child{border-bottom:0}
+    .steps strong{display:block;color:var(--navy);font-size:16px}
+    .checklist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;list-style:none;padding:0}
+    .checklist li{padding:10px 12px 10px 38px;position:relative;border-radius:8px;background:var(--wash);font-size:14px}
+    .checklist li::before{content:"\2713";position:absolute;left:13px;color:var(--success);font-weight:900}
+    .contact td:first-child{width:26%;font-weight:700;color:var(--navy)}
+    .footer{padding:26px 40px 32px;background:var(--navy);color:rgba(255,255,255,.82);text-align:center;font-size:13px}
+    .footer strong{color:#efd598}
+    @media (max-width:680px){.book{margin:0;box-shadow:none}.cover{min-height:410px;padding:54px 26px 42px}.cover h1{margin-top:68px;font-size:32px}main{padding:32px 20px 46px}.grid,.training-grid,.checklist{grid-template-columns:1fr}table{display:block;overflow-x:auto}th,td{min-width:120px}}
+    @page{size:A4;margin:14mm}
+    @media print{body{background:#fff;font-size:10.5pt}.book{width:100%;margin:0;box-shadow:none}.cover{min-height:250mm;page-break-after:always;padding:42mm 18mm 20mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}.cover h1{margin-top:55mm}main{padding:0}h2{page-break-after:avoid;margin-top:8mm}h3{page-break-after:avoid}table,.card,.training,.callout,.notice{break-inside:avoid}.footer{margin-top:10mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+  </style>
+</head>
+<body>
+  <article class="book">
+    <header class="cover">
+      <div class="brand">Asia Missionary Association Seminary · Chiang Mai</div>
+      <div class="brand-en">亚洲宣教神学院 · 清迈</div>
+      <h1>Student Handbook</h1>
+      <p class="subtitle">KNOW · GROW · BE EQUIPPED · SERVE</p>
+      <p class="motto">Theology that enters not only the mind, but also life, family, church, workplace and gospel action.</p>
+      <div class="cover-meta">2026 English Edition · Updated 2 September 2026</div>
+    </header>
+
+    <main>
+      <div class="notice">
+        <strong>Please read first:</strong> This handbook helps applicants understand the direction of AMAS Chiang Mai, its learning pathways, course resources and application process. The official school name, scope of accreditation, per-course credits, fees, start dates and degree conferral matters are subject to formal written notices issued by AMAS headquarters and the seminary at the relevant time.
+      </div>
+
+      <section>
+        <h2>1. Welcome to AMAS Chiang Mai</h2>
+        <p class="lead">Welcome to a journey of knowing the Scriptures systematically, building your life, and preparing to serve.</p>
+        <p>AMAS Chiang Mai is rooted in the truth of Scripture with an evangelical theological foundation. We value systematic study — and equally, truth put into practice in real life. We long to help learners gradually grow in reading, discernment, expression, shepherding, serving, discipling others and passing on the gospel.</p>
+        <div class="quote">Theology is not merely knowing more; it is knowing God more faithfully, following Christ, and serving people.</div>
+        <p>The Chiang Mai Learning Centre builds on online study communities as an important foundation, combined with in-person participation and licensed lecture recordings for catch-up, so that those juggling work, family or church service can keep moving forward.</p>
+      </section>
+
+      <section>
+        <h2>2. Our Vision and Educational Direction</h2>
+        <div class="grid">
+          <div class="card"><h3>Faithful to Scripture</h3><p>Testing theology, teaching and practice by the Bible; holding fast the core truth of the gospel.</p></div>
+          <div class="card"><h3>Building Lives</h3><p>Learning that brings repentance, obedience, character growth and renewed relationships.</p></div>
+          <div class="card"><h3>Connected to the Church</h3><p>The seminary does not replace the local church; it helps learners serve their churches better.</p></div>
+          <div class="card"><h3>Responding to Mission</h3><p>Equipping preachers, church co-workers, mission workers and believers willing to serve faithfully.</p></div>
+          <div class="card"><h3>Practice-Oriented</h3><p>Bringing classroom learning into family, church, relationships and real ministry settings.</p></div>
+          <div class="card"><h3>Sustainable Learning</h3><p>Online, in-person and flexible catch-up combined, helping learners start, persevere and finish.</p></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>3. Who Should Apply</h2>
+        <ul>
+          <li>Believers willing to know the Scriptures and the Christian faith systematically;</li>
+          <li>Those who want a stable foundation of faith and are committed to continued, serious study;</li>
+          <li>Those already serving in a church who hope to be equipped more systematically;</li>
+          <li>Those preparing to take up teaching, small-group, care, preaching, discipleship or mission responsibilities;</li>
+          <li>Those who cannot enter traditional full-time theological education because of work, family, distance or time — but can commit stable study time.</li>
+        </ul>
+        <div class="callout">In reviewing applications the seminary looks at whether the applicant truly understands the programme, is willing to commit stable time, and is willing to accept the shared shaping of truth, life and ministry practice. Specific entry conditions and quotas are subject to the notice current at the time.</div>
+      </section>
+
+      <section>
+        <h2>4. Two Learning Pathways</h2>
+        <table>
+          <thead>
+            <tr><th style="width:21%">Item</th><th>Formal B.Th (Enrolled) Pathway</th><th>Companion Learning Pathway</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>For whom</td><td>Applicants seeking formal degree courses and credit-based, assessed study</td><td>Those who first wish to join open courses, lectures or study groups as fellow learners</td></tr>
+            <tr><td>How to enter</td><td>Enquiry → application → review and registration under headquarters' procedures, establishing student status</td><td>Join within the seminary's open scope; B.Th student status is not created automatically</td></tr>
+            <tr><td>Study records</td><td>Courses, assessments and credits recorded under the formal course plan</td><td>Participation and completion recorded according to each activity or course</td></tr>
+            <tr><td>Graduation &amp; certificates</td><td>Credits, assessments and graduation review completed under the formal system current at the time</td><td>Does not confer the B.Th degree; any certificates of participation are as stated per programme</td></tr>
+            <tr><td>Moving across</td><td>—</td><td>Applying later for the formal B.Th requires completing the application and review current at that time; prior learning does not convert automatically into degree credits</td></tr>
+          </tbody>
+        </table>
+        <p class="callout warning"><strong>Please note:</strong> taking part in companion learning, audited courses or church training is not the same as holding formal B.Th student status, and does not automatically generate graduation credits.</p>
+      </section>
+
+      <section>
+        <h2>5. Curriculum and the Limits of Credit Information</h2>
+        <p>The seminary currently maintains <strong>67 existing course resources</strong> in 7 categories. Courses open progressively according to faculty, teaching plans, material preparation and enrolment; the list below is the current catalogue and does not mean every course opens every term.</p>
+        <table class="course-table">
+          <thead><tr><th style="width:27%">Category</th><th style="width:11%">Courses</th><th>Content</th></tr></thead>
+          <tbody>
+            <tr><td>New Testament Books</td><td>27</td><td>Matthew through Revelation — all 27 NT books, book by book</td></tr>
+            <tr><td>Old Testament Books</td><td>2</td><td>Genesis, Judges</td></tr>
+            <tr><td>Bible Foundations &amp; Study</td><td>3</td><td>Knowing the Bible (Bible survey), Bible Geography, Bible Marking Method</td></tr>
+            <tr><td>Theology &amp; Thought</td><td>11</td><td>Systematic Theology for Laypeople, Core Tenets of Evangelical Theology, Contextual Theology, Christian Education, Reformed (Calvinist) &amp; Evangelical Theology, Theological Foundations of the Chinese Church, Christian Ethics, Understanding Worldviews, Comparative Religion, Understanding Islam, Cults in China</td></tr>
+            <tr><td>Practical Theology &amp; Pastoral Care</td><td>18</td><td>New Believer Ministry, New Believer Curriculum, Foundations of Christian Living, Living in Assurance, Discipleship Training, Prayer &amp; Devotional Life, Liturgics (Order of Worship), Small Group Ministry, Evangelism Methods, Spiritual Warfare, Healing through God's Word, Inner Healing, Homiletics, Preaching Practicum, Worship Leading, Pastoral Counselling, Church Administration, Sunday School Education</td></tr>
+            <tr><td>History &amp; Culture</td><td>3</td><td>Culture of Israel, World Church History, Chinese Church History</td></tr>
+            <tr><td>Languages &amp; Tools</td><td>3</td><td>Greek, Hebrew, AI &amp; Pastoral Practice</td></tr>
+          </tbody>
+        </table>
+        <div class="callout warning">
+          <strong>About credits:</strong> a formally confirmed per-course credit table for the 67 courses has not yet been issued, so this handbook does not invent, infer or display per-course credits. The B.Th graduation credit total, required/elective arrangements, course credits and credit recognition are subject to the final written system of headquarters and the seminary.
+        </div>
+      </section>
+
+      <section>
+        <h2>6. The 11 Practical Trainings</h2>
+        <p>Practical trainings help learners live out the truth in Scripture reading, prayer, family, relationships, giving, preaching, evangelism and church building. They are recorded separately from formal course credits.</p>
+        <div class="training-grid">
+          <div class="training"><b>01</b><span>Bible read-through training</span></div>
+          <div class="training"><b>02</b><span>Scripture memorization training</span></div>
+          <div class="training"><b>03</b><span>Family worship training</span></div>
+          <div class="training"><b>04</b><span>Interpersonal relationship training</span></div>
+          <div class="training"><b>05</b><span>Giving training</span></div>
+          <div class="training"><b>06</b><span>Sermon writing training</span></div>
+          <div class="training"><b>07</b><span>Prayer training</span></div>
+          <div class="training"><b>08</b><span>Evangelism training</span></div>
+          <div class="training"><b>09</b><span>Quiet Time (Q.T) training</span></div>
+          <div class="training"><b>10</b><span>Morning prayer training</span></div>
+          <div class="training"><b>11</b><span>Church planting training</span></div>
+        </div>
+        <div class="callout"><strong>One consistent wording:</strong> the official material lists 11 "practical trainings", not 12 "spiritual trainings". These trainings do not count toward graduation credits, and not completing them is not grounds for delaying or refusing graduation.</div>
+      </section>
+
+      <section>
+        <h2>7. How We Learn, and a Learner's Responsibilities</h2>
+        <div class="grid">
+          <div class="card"><h3>Online learning community</h3><p>Learning within real relationships — discussion, care, prayer and walking together.</p></div>
+          <div class="card"><h3>Online participation</h3><p>Joining online teaching, reading, discussion and assignments as each course is arranged.</p></div>
+          <div class="card"><h3>Licensed recordings for catch-up</h3><p>Provided within the permission of the teacher and course team; not all courses are recorded.</p></div>
+          <div class="card"><h3>Life and ministry practice</h3><p>Applying what is learned in family, church, workplace, relationships and gospel action.</p></div>
+        </div>
+        <h3>Every learner should prepare</h3>
+        <ul class="checklist">
+          <li>Stable weekly study time</li>
+          <li>A device and internet access adequate for the courses</li>
+          <li>Reading, assignments and assessments completed as required</li>
+          <li>Proactive communication about absence or difficulty</li>
+          <li>Respect for teachers, classmates and church relationships</li>
+          <li>Confidentiality of what is shared in class and pastoral settings</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>8. Fees, Giving and Learning Support</h2>
+        <p>The seminary sets course fees on the principle that they should be affordable and keep the work sustainable. The official fee schedule, payment timing, reductions, scholarships and credit-retention arrangements are subject to written notice at the time; until fees are formally confirmed, no individual's verbal promise may be treated as a fee basis.</p>
+        <p>Tuition and voluntary giving are kept strictly separate. Giving is voluntary and has no bearing on application, admission, grades, credits or graduation. Those in genuine financial difficulty who are committed to serious study may apply through the seminary's process for reduction, instalments or other learning support; personal financial circumstances are handled confidentially by designated staff.</p>
+      </section>
+
+      <section>
+        <h2>9. Application and Enrolment Process</h2>
+        <ol class="steps">
+          <li><strong>Initial enquiry</strong>Learn about the seminary's direction, the two pathways, how courses run and current openings.</li>
+          <li><strong>Choose a pathway</strong>Confirm whether you are applying for formal B.Th student status or joining companion learning.</li>
+          <li><strong>Submit materials</strong>Complete the application form as required at the time, with the necessary identity, faith, church and study information.</li>
+          <li><strong>Conversation and review</strong>Admissions staff confirm motivation, study time, understanding of the pathway and matters needing coordination; whether an interview is needed follows current requirements.</li>
+          <li><strong>Written outcome</strong>The outcome may be formal admission, acceptance into companion learning, a request for further materials, a suggestion to defer, or non-admission.</li>
+          <li><strong>Registration and orientation</strong>Complete registration, payment and rules confirmation as notified, join the orientation session, then begin study.</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>10. Student Status, Graduation and Conferral</h2>
+        <ul>
+          <li>Formal B.Th student status is established through the application, review and registration procedures of headquarters and the seminary.</li>
+          <li>Graduation review is based on the formal course plan, completed course records, assessment results and the finally confirmed credit system.</li>
+          <li>Companion-learning records do not convert automatically into degree credits or graduation qualification.</li>
+          <li>Practical trainings may enter a learner's growth record, but are not a hidden graduation requirement.</li>
+          <li>Credit transfer, exemption, make-up, retakes, leave, resumption, graduation review, certificate signing and conferral follow the formal system as issued.</li>
+        </ul>
+        <p class="callout warning">This handbook makes no promises regarding educational accreditation, degree equivalence, employment, immigration, visas or cross-border recognition. Such matters are subject only to formal documents issued by the competent authorities.</p>
+      </section>
+
+      <section>
+        <h2>11. Information and Privacy</h2>
+        <p>Application materials, faith background, church relationships, contact details, payment information and pastoral conversations are used only for necessary admissions, service, learning support and secure administration. Both the seminary and learners should respect others' privacy; nothing may be made public, forwarded or used for unrelated publicity without permission.</p>
+      </section>
+
+      <section>
+        <h2>12. Contact Us</h2>
+        <table class="contact">
+          <tbody>
+            <tr><td>Email</td><td>amasthai2026@gmail.com</td></tr>
+            <tr><td>Phone (Thailand)</td><td>+66 093 623 0780</td></tr>
+            <tr><td>Phone (China)</td><td>+86 187 1445 4664</td></tr>
+            <tr><td>WeChat</td><td>L52586222</td></tr>
+            <tr><td>LINE</td><td>enoslee0701</td></tr>
+            <tr><td>Location</td><td>Chiang Mai, Thailand · AMAS Chiang Mai</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <strong>AMAS · Asia Missionary Association Seminary, Chiang Mai Learning Centre</strong><br>
+      Let the truth of Scripture enter life; let learning become service.
+    </footer>
+  </article>
+</body>
+</html>

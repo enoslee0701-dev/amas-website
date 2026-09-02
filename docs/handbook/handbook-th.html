@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>คู่มือนักศึกษาใหม่ AMAS | ฉบับภาษาไทย V2.0</title>
+  <style>
+    :root{--navy:#102f55;--navy-2:#173f70;--gold:#b48937;--gold-soft:#f6edda;--ink:#202735;--muted:#5e6879;--line:#d9dee8;--paper:#fff;--wash:#f4f6f9;--success:#1f6b4f;--warn:#815c12}
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;color:var(--ink);background:#e9edf2;font-family:"Leelawadee UI","Noto Sans Thai",Tahoma,sans-serif;font-size:16px;line-height:1.85}
+    .book{width:min(920px,100%);margin:24px auto;background:var(--paper);box-shadow:0 18px 60px rgba(18,36,60,.12)}
+    .cover{position:relative;overflow:hidden;min-height:460px;padding:74px 64px 56px;color:#fff;background:radial-gradient(circle at 83% 18%,rgba(194,154,76,.28),transparent 28%),linear-gradient(145deg,#0c2849 0%,#173f70 72%,#234f7d 100%)}
+    .cover::after{content:"";position:absolute;right:-70px;bottom:-120px;width:340px;height:340px;border:1px solid rgba(255,255,255,.15);border-radius:50%;box-shadow:0 0 0 46px rgba(255,255,255,.04),0 0 0 92px rgba(255,255,255,.035)}
+    .brand{position:relative;z-index:1;color:#e7c77f;font-size:15px;font-weight:700;letter-spacing:.06em}
+    .brand-en{position:relative;z-index:1;margin-top:5px;color:rgba(255,255,255,.66);font:12px Georgia,serif;letter-spacing:.12em}
+    .cover h1{position:relative;z-index:1;margin:76px 0 6px;font-size:40px;line-height:1.3}
+    .cover .subtitle{position:relative;z-index:1;margin:0;font-size:17px;color:#f0d9a5;letter-spacing:.08em}
+    .cover .motto{position:relative;z-index:1;width:min(580px,100%);margin-top:52px;font-size:19px;line-height:1.75}
+    .cover-meta{position:relative;z-index:1;margin-top:32px;color:rgba(255,255,255,.72);font-size:13px}
+    main{padding:46px 58px 64px}
+    .notice{margin:0 0 34px;padding:18px 20px;border:1px solid #ead9b6;border-left:5px solid var(--gold);border-radius:10px;background:#fffaf0;color:#5f4a21}
+    .notice strong{color:#4d370c}
+    h2{display:flex;align-items:center;gap:12px;margin:42px 0 16px;color:var(--navy);font-size:22px;line-height:1.5}
+    h2::before{content:"";width:6px;height:27px;border-radius:4px;background:var(--gold);flex:0 0 auto}
+    h3{margin:24px 0 8px;color:var(--navy-2);font-size:18px}
+    p{margin:8px 0 14px}
+    ul,ol{margin:8px 0 16px;padding-left:1.5em}
+    li{margin:4px 0}
+    .lead{font-size:18px;color:#364052}
+    .quote{margin:22px 0;padding:18px 22px;color:var(--navy);background:var(--wash);border-radius:10px;font-size:17px;font-weight:700;text-align:center}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0 22px}
+    .card{padding:18px;border:1px solid var(--line);border-radius:12px;background:#fff}
+    .card h3{margin:0 0 7px;font-size:17px}
+    .card p{margin:0;color:var(--muted);font-size:14px}
+    table{width:100%;margin:16px 0 22px;border-collapse:separate;border-spacing:0;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+    th,td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
+    th{background:#eef2f7;color:var(--navy);font-size:14px}
+    td{font-size:14px}
+    tr:last-child td{border-bottom:0}
+    .course-table td:nth-child(2),.course-table th:nth-child(2){text-align:center;white-space:nowrap}
+    .callout{padding:18px 20px;margin:18px 0;border-radius:10px;background:#edf4fb;border:1px solid #cfdeee;color:#294764}
+    .callout.warning{background:#fff8e8;border-color:#ead9b6;color:var(--warn)}
+    .training-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0}
+    .training{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line);border-radius:9px;background:#fff}
+    .training b{display:grid;place-items:center;flex:0 0 28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;font-size:13px}
+    .steps{counter-reset:step;list-style:none;padding:0;margin:18px 0}
+    .steps li{position:relative;margin:0 0 14px;padding:4px 0 18px 52px;border-bottom:1px dashed var(--line)}
+    .steps li::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:0;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--gold);color:#fff;font-weight:800}
+    .steps li:last-child{border-bottom:0}
+    .steps strong{display:block;color:var(--navy);font-size:16px}
+    .checklist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;list-style:none;padding:0}
+    .checklist li{padding:10px 12px 10px 38px;position:relative;border-radius:8px;background:var(--wash);font-size:14px}
+    .checklist li::before{content:"\2713";position:absolute;left:13px;color:var(--success);font-weight:900}
+    .contact td:first-child{width:28%;font-weight:700;color:var(--navy)}
+    .footer{padding:26px 40px 32px;background:var(--navy);color:rgba(255,255,255,.82);text-align:center;font-size:13px}
+    .footer strong{color:#efd598}
+    @media (max-width:680px){.book{margin:0;box-shadow:none}.cover{min-height:410px;padding:54px 26px 42px}.cover h1{margin-top:68px;font-size:30px}main{padding:32px 20px 46px}.grid,.training-grid,.checklist{grid-template-columns:1fr}table{display:block;overflow-x:auto}th,td{min-width:120px}}
+    @page{size:A4;margin:14mm}
+    @media print{body{background:#fff;font-size:10.5pt}.book{width:100%;margin:0;box-shadow:none}.cover{min-height:250mm;page-break-after:always;padding:42mm 18mm 20mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}.cover h1{margin-top:55mm}main{padding:0}h2{page-break-after:avoid;margin-top:8mm}h3{page-break-after:avoid}table,.card,.training,.callout,.notice{break-inside:avoid}.footer{margin-top:10mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+  </style>
+</head>
+<body>
+  <article class="book">
+    <header class="cover">
+      <div class="brand">วิทยาลัยพระคริสตธรรมเอเชียมิชชัน · เชียงใหม่</div>
+      <div class="brand-en">ASIA MISSIONARY ASSOCIATION SEMINARY · CHIANG MAI</div>
+      <h1>คู่มือนักศึกษาใหม่</h1>
+      <p class="subtitle">รู้จัก · เติบโต · รับการเตรียม · รับใช้</p>
+      <p class="motto">ให้ศาสนศาสตร์ไม่หยุดอยู่แค่ในความคิด แต่เข้าสู่ชีวิต ครอบครัว คริสตจักร ที่ทำงาน และการลงมือเพื่อข่าวประเสริฐ</p>
+      <div class="cover-meta">ฉบับภาษาไทย 2026 · ปรับปรุง 2 กันยายน 2026</div>
+    </header>
+
+    <main>
+      <div class="notice">
+        <strong>โปรดอ่านก่อน:</strong> คู่มือนี้ช่วยให้ผู้สมัครเข้าใจทิศทางการศึกษา เส้นทางการเรียน ทรัพยากรรายวิชา และขั้นตอนการสมัครของ AMAS เชียงใหม่ ชื่อสถาบันอย่างเป็นทางการ ขอบเขตการรับรอง หน่วยกิตรายวิชา ค่าใช้จ่าย วันเปิดเรียน และการประสาทปริญญา ให้ยึดหนังสือแจ้งอย่างเป็นทางการของสำนักงานใหญ่ AMAS และวิทยาลัย ณ เวลานั้นเป็นหลัก
+      </div>
+
+      <section>
+        <h2>๑. ยินดีต้อนรับสู่ AMAS เชียงใหม่</h2>
+        <p class="lead">ยินดีต้อนรับสู่เส้นทางแห่งการรู้จักพระคัมภีร์อย่างเป็นระบบ สร้างชีวิต และเตรียมตัวรับใช้</p>
+        <p>AMAS เชียงใหม่หยั่งรากในความจริงของพระคัมภีร์ บนรากฐานศาสนศาสตร์อีแวนเจลิคัล เราให้ความสำคัญกับการเรียนอย่างเป็นระบบ และให้ความสำคัญเท่ากันกับการที่ความจริงนั้นถูกปฏิบัติจริงในชีวิต เราปรารถนาช่วยผู้เรียนค่อย ๆ มีความสามารถในการอ่าน แยกแยะ สื่อสาร อภิบาล รับใช้ สร้างสาวก และส่งต่อข่าวประเสริฐ</p>
+        <div class="quote">ศาสนศาสตร์ไม่ใช่เพียงเพื่อรู้มากขึ้น แต่เพื่อรู้จักพระเจ้าอย่างสัตย์ซื่อยิ่งขึ้น ติดตามพระคริสต์ และรับใช้ผู้คน</div>
+        <p>ศูนย์การเรียนเชียงใหม่ใช้ชุมชนการเรียนออนไลน์เป็นฐานสำคัญ ผสานการเข้าร่วมในสถานที่และการดูบันทึกคำสอนที่ได้รับอนุญาตเพื่อเรียนชดเชย เพื่อให้ผู้ที่ต้องดูแลงาน ครอบครัว หรือการรับใช้ในคริสตจักรยังคงเดินหน้าต่อได้</p>
+      </section>
+
+      <section>
+        <h2>๒. นิมิตและทิศทางการศึกษา</h2>
+        <div class="grid">
+          <div class="card"><h3>สัตย์ซื่อต่อพระคัมภีร์</h3><p>ตรวจสอบศาสนศาสตร์ การสอน และการปฏิบัติด้วยพระคัมภีร์ ยึดมั่นแก่นความจริงของข่าวประเสริฐ</p></div>
+          <div class="card"><h3>สร้างชีวิต</h3><p>ให้การเรียนนำมาซึ่งการกลับใจ การเชื่อฟัง การเติบโตของอุปนิสัย และความสัมพันธ์ที่ถูกทำให้ใหม่</p></div>
+          <div class="card"><h3>เชื่อมกับคริสตจักร</h3><p>วิทยาลัยไม่แทนที่คริสตจักรท้องถิ่น แต่ช่วยผู้เรียนรับใช้คริสตจักรของตนได้ดียิ่งขึ้น</p></div>
+          <div class="card"><h3>ตอบสนองพันธกิจ</h3><p>เตรียมผู้ประกาศ ผู้ร่วมงานคริสตจักร ผู้รับใช้พันธกิจ และผู้เชื่อที่เต็มใจรับใช้อย่างสัตย์ซื่อ</p></div>
+          <div class="card"><h3>มุ่งการปฏิบัติ</h3><p>นำสิ่งที่เรียนเข้าสู่ครอบครัว คริสตจักร ความสัมพันธ์ และสนามพันธกิจจริง</p></div>
+          <div class="card"><h3>เรียนได้อย่างยั่งยืน</h3><p>ผสานออนไลน์ ออนไซต์ และการเรียนชดเชยยืดหยุ่น ช่วยให้เริ่มต้น อดทน และเรียนจบ</p></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>๓. เหมาะกับใคร</h2>
+        <ul>
+          <li>ผู้เชื่อที่ปรารถนารู้จักพระคัมภีร์และความเชื่อคริสเตียนอย่างเป็นระบบ</li>
+          <li>ผู้ต้องการรากฐานความเชื่อที่มั่นคงและตั้งใจเรียนต่อเนื่องอย่างจริงจัง</li>
+          <li>ผู้ที่รับใช้ในคริสตจักรอยู่แล้วและต้องการการเตรียมที่เป็นระบบยิ่งขึ้น</li>
+          <li>ผู้เตรียมรับหน้าที่สอน นำกลุ่มย่อย ดูแล เทศนา สร้างสาวก หรืองานมิชชัน</li>
+          <li>ผู้ที่เข้าเรียนศาสนศาสตร์เต็มเวลาแบบดั้งเดิมไม่ได้เพราะงาน ครอบครัว ระยะทาง หรือเวลา แต่จัดเวลาเรียนที่แน่นอนได้</li>
+        </ul>
+        <div class="callout">ในการพิจารณาใบสมัคร วิทยาลัยดูว่าผู้สมัครเข้าใจหลักสูตรอย่างถูกต้องหรือไม่ เต็มใจถวายเวลาที่แน่นอนหรือไม่ และเต็มใจรับการหล่อหลอมร่วมกันของความจริง ชีวิต และการปฏิบัติพันธกิจหรือไม่ เงื่อนไขการรับเข้าและจำนวนรับให้ยึดประกาศ ณ เวลานั้น</div>
+      </section>
+
+      <section>
+        <h2>๔. เส้นทางการเรียนสองแบบ</h2>
+        <table>
+          <thead>
+            <tr><th style="width:21%">หัวข้อ</th><th>เส้นทาง B.Th ทางการ (มีสถานภาพนักศึกษา)</th><th>เส้นทางเรียนร่วม</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>เหมาะกับ</td><td>ผู้ประสงค์เรียนหลักสูตรปริญญาทางการ แบบมีหน่วยกิตและการประเมิน</td><td>ผู้ต้องการเข้าร่วมวิชาเปิด บรรยาย หรือกลุ่มเรียนในฐานะผู้เรียนร่วมก่อน</td></tr>
+            <tr><td>วิธีเข้า</td><td>สอบถาม → ยื่นใบสมัคร → ตรวจสอบและลงทะเบียนตามขั้นตอนของสำนักงานใหญ่ จึงเกิดสถานภาพนักศึกษา</td><td>เข้าร่วมตามขอบเขตที่วิทยาลัยเปิด โดยไม่เกิดสถานภาพ B.Th โดยอัตโนมัติ</td></tr>
+            <tr><td>บันทึกการเรียน</td><td>บันทึกวิชา การประเมิน และหน่วยกิตตามแผนวิชาทางการ</td><td>บันทึกการเข้าร่วมและการเรียนจบตามข้อกำหนดของแต่ละกิจกรรมหรือวิชา</td></tr>
+            <tr><td>การจบและใบรับรอง</td><td>จบตามระบบทางการ ณ เวลานั้น ทั้งหน่วยกิต การประเมิน และการพิจารณาจบ</td><td>ไม่ประสาทปริญญา B.Th ส่วนใบรับรองการเข้าร่วมให้เป็นไปตามคำชี้แจงของแต่ละโปรแกรม</td></tr>
+            <tr><td>การเชื่อมต่อภายหลัง</td><td>—</td><td>หากสมัคร B.Th ทางการภายหลัง ต้องผ่านการสมัครและการพิจารณา ณ เวลานั้น การเรียนก่อนหน้าไม่แปลงเป็นหน่วยกิตปริญญาโดยอัตโนมัติ</td></tr>
+          </tbody>
+        </table>
+        <p class="callout warning"><strong>โปรดทราบ:</strong> การเข้าร่วมเรียนร่วม การนั่งฟัง หรือการอบรมของคริสตจักร ไม่เท่ากับการมีสถานภาพนักศึกษา B.Th ทางการ และไม่ทำให้เกิดหน่วยกิตจบการศึกษาโดยอัตโนมัติ</p>
+      </section>
+
+      <section>
+        <h2>๕. ระบบรายวิชาและขอบเขตข้อมูลหน่วยกิต</h2>
+        <p>ปัจจุบันวิทยาลัยรวบรวม<strong>ทรัพยากรรายวิชาที่มีอยู่ 67 วิชา</strong> แบ่งเป็น 7 หมวด รายวิชาจะเปิดตามลำดับโดยขึ้นกับคณาจารย์ แผนการสอน การเตรียมสื่อ และการรับสมัคร รายการด้านล่างคือบัญชีรายวิชาปัจจุบัน ไม่ได้หมายความว่าทุกวิชาเปิดทุกภาคเรียน</p>
+        <table class="course-table">
+          <thead><tr><th style="width:27%">หมวด</th><th style="width:11%">จำนวน</th><th>เนื้อหา</th></tr></thead>
+          <tbody>
+            <tr><td>พระธรรมพันธสัญญาใหม่</td><td>27</td><td>มัทธิวถึงวิวรณ์ ศึกษาพันธสัญญาใหม่ครบ 27 เล่มทีละเล่ม</td></tr>
+            <tr><td>พระธรรมพันธสัญญาเดิม</td><td>2</td><td>ปฐมกาล ผู้วินิจฉัย</td></tr>
+            <tr><td>พื้นฐานและการศึกษาพระคัมภีร์</td><td>3</td><td>รู้จักพระคัมภีร์ (ภาพรวม) ภูมิศาสตร์พระคัมภีร์ วิธีทำเครื่องหมายศึกษาพระคัมภีร์</td></tr>
+            <tr><td>ศาสนศาสตร์และความคิด</td><td>11</td><td>ศาสนศาสตร์ระบบสำหรับฆราวาส หลักสำคัญของศาสนศาสตร์อีแวนเจลิคัล ศาสนศาสตร์เชิงบริบท คริสต์ศาสนศึกษา ศาสนศาสตร์ปฏิรูป (คาลวิน) และอีแวนเจลิคัล รากฐานศาสนศาสตร์ของคริสตจักรจีน จริยศาสตร์คริสเตียน ความเข้าใจโลกทัศน์ ศาสนาเปรียบเทียบ ความเข้าใจอิสลาม ลัทธินอกรีตในจีน</td></tr>
+            <tr><td>ศาสนศาสตร์ภาคปฏิบัติและการอภิบาล</td><td>18</td><td>พันธกิจผู้เชื่อใหม่ หลักสูตรผู้เชื่อใหม่ พื้นฐานชีวิตคริสเตียน ชีวิตแห่งความมั่นใจ การฝึกสาวก การอธิษฐานและชีวิตเฝ้าเดี่ยว พิธีนมัสการ (ลำดับนมัสการ) การดำเนินกลุ่มย่อย วิธีประกาศ สงครามฝ่ายวิญญาณ การรักษาด้วยพระวจนะ การเยียวยาภายใน เทศนศาสตร์ ฝึกเทศนา การนำนมัสการ การให้คำปรึกษาอภิบาล การบริหารคริสตจักร การศึกษารวีวารศึกษา</td></tr>
+            <tr><td>ประวัติศาสตร์และวัฒนธรรม</td><td>3</td><td>วัฒนธรรมอิสราเอล ประวัติศาสตร์คริสตจักรโลก ประวัติศาสตร์คริสตจักรจีน</td></tr>
+            <tr><td>ภาษาและเครื่องมือ</td><td>3</td><td>ภาษากรีก ภาษาฮีบรู ปัญญาประดิษฐ์กับการอภิบาล</td></tr>
+          </tbody>
+        </table>
+        <div class="callout warning">
+          <strong>เกี่ยวกับหน่วยกิต:</strong> ตารางหน่วยกิตรายวิชาของทั้ง 67 วิชายังไม่ได้รับการยืนยันอย่างเป็นทางการ คู่มือนี้จึงไม่สร้างขึ้นเอง ไม่ประมาณการ และไม่แสดงหน่วยกิตรายวิชา หน่วยกิตรวมเพื่อจบ B.Th การจัดวิชาบังคับ/เลือก หน่วยกิตรายวิชา และการเทียบหน่วยกิต ให้ยึดระบบลายลักษณ์อักษรฉบับสุดท้ายของสำนักงานใหญ่และวิทยาลัย
+        </div>
+      </section>
+
+      <section>
+        <h2>๖. การฝึกภาคปฏิบัติ 11 รายการ</h2>
+        <p>การฝึกภาคปฏิบัติช่วยให้ผู้เรียนปฏิบัติความจริงในการอ่านพระคัมภีร์ การอธิษฐาน ครอบครัว ความสัมพันธ์ การถวาย การเทศนา การประกาศ และการสร้างคริสตจักร โดยบันทึกแยกจากหน่วยกิตวิชาทางการ</p>
+        <div class="training-grid">
+          <div class="training"><b>01</b><span>ฝึกอ่านพระคัมภีร์ตลอดเล่ม</span></div>
+          <div class="training"><b>02</b><span>ฝึกท่องจำพระคัมภีร์</span></div>
+          <div class="training"><b>03</b><span>ฝึกนมัสการในครอบครัว</span></div>
+          <div class="training"><b>04</b><span>ฝึกความสัมพันธ์ระหว่างบุคคล</span></div>
+          <div class="training"><b>05</b><span>ฝึกการถวาย</span></div>
+          <div class="training"><b>06</b><span>ฝึกเขียนคำเทศนา</span></div>
+          <div class="training"><b>07</b><span>ฝึกการอธิษฐาน</span></div>
+          <div class="training"><b>08</b><span>ฝึกการประกาศ</span></div>
+          <div class="training"><b>09</b><span>ฝึกเฝ้าเดี่ยว (Q.T)</span></div>
+          <div class="training"><b>10</b><span>ฝึกอธิษฐานเช้า</span></div>
+          <div class="training"><b>11</b><span>ฝึกบุกเบิกคริสตจักร</span></div>
+        </div>
+        <div class="callout"><strong>ใช้คำให้ตรงกัน:</strong> เอกสารทางการคือ "การฝึกภาคปฏิบัติ 11 รายการ" ไม่ใช่ "การฝึกฝ่ายวิญญาณ 12 รายการ" การฝึกเหล่านี้ไม่นับเป็นหน่วยกิตจบการศึกษา และการไม่ได้ทำไม่เป็นเหตุให้เลื่อนหรือปฏิเสธการจบ</div>
+      </section>
+
+      <section>
+        <h2>๗. วิธีการเรียนและความรับผิดชอบของผู้เรียน</h2>
+        <div class="grid">
+          <div class="card"><h3>ชุมชนการเรียนออนไลน์</h3><p>เรียนในความสัมพันธ์จริง อภิปราย ดูแล อธิษฐาน และเดินไปด้วยกัน</p></div>
+          <div class="card"><h3>การเข้าร่วมออนไลน์</h3><p>เข้าร่วมการสอนออนไลน์ การอ่าน การอภิปราย และงานมอบหมายตามการจัดของแต่ละวิชา</p></div>
+          <div class="card"><h3>บันทึกคำสอนที่ได้รับอนุญาต</h3><p>ให้ตามขอบเขตอนุญาตของอาจารย์และทีมวิชา ไม่ใช่ทุกวิชาที่มีบันทึก</p></div>
+          <div class="card"><h3>ชีวิตและการปฏิบัติพันธกิจ</h3><p>นำสิ่งที่เรียนไปใช้ในครอบครัว คริสตจักร ที่ทำงาน ความสัมพันธ์ และการลงมือเพื่อข่าวประเสริฐ</p></div>
+        </div>
+        <h3>ผู้เรียนทุกคนควรเตรียม</h3>
+        <ul class="checklist">
+          <li>เวลาเรียนประจำสัปดาห์ที่แน่นอน</li>
+          <li>อุปกรณ์และอินเทอร์เน็ตที่เข้าร่วมวิชาได้</li>
+          <li>อ่าน ทำงาน และรับการประเมินตามที่กำหนด</li>
+          <li>สื่อสารล่วงหน้าเมื่อขาดเรียนหรือมีอุปสรรค</li>
+          <li>ให้เกียรติอาจารย์ เพื่อนร่วมเรียน และคริสตจักร</li>
+          <li>รักษาความลับของสิ่งที่แบ่งปันในชั้นเรียนและการอภิบาล</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>๘. ค่าใช้จ่าย การถวาย และการช่วยเหลือการเรียน</h2>
+        <p>วิทยาลัยกำหนดค่าวิชาบนหลักการให้แบกรับได้และระบบยั่งยืน มาตรฐานค่าใช้จ่ายทางการ กำหนดชำระ การลดหย่อน ทุนการศึกษา และแนวทางเก็บรักษาหน่วยกิต ให้ยึดหนังสือแจ้ง ณ เวลานั้น ก่อนที่ค่าใช้จ่ายจะยืนยันอย่างเป็นทางการ คำสัญญาปากเปล่าของบุคคลใด ๆ ใช้เป็นเกณฑ์เก็บเงินไม่ได้</p>
+        <p>ค่าเล่าเรียนกับการถวายโดยสมัครใจต้องแยกจากกัน การถวายอยู่บนความสมัครใจ ไม่มีผลต่อการสมัคร การรับเข้า คะแนน หน่วยกิต หรือการจบ ผู้ที่มีความยากลำบากทางการเงินจริงแต่ตั้งใจเรียน สามารถยื่นขอลดหย่อน แบ่งชำระ หรือความช่วยเหลืออื่นตามขั้นตอนของวิทยาลัย ข้อมูลการเงินส่วนตัวจะได้รับการดูแลเป็นความลับโดยผู้ที่ได้รับมอบหมาย</p>
+      </section>
+
+      <section>
+        <h2>๙. ขั้นตอนการสมัครและเข้าเรียน</h2>
+        <ol class="steps">
+          <li><strong>สอบถามเบื้องต้น</strong>ทำความเข้าใจทิศทางของวิทยาลัย เส้นทางสองแบบ วิธีเรียน และการเปิดรับปัจจุบัน</li>
+          <li><strong>เลือกเส้นทาง</strong>ยืนยันว่าสมัครสถานภาพ B.Th ทางการ หรือเข้าร่วมเรียนร่วม</li>
+          <li><strong>ยื่นเอกสาร</strong>กรอกใบสมัครตามข้อกำหนด ณ เวลานั้น พร้อมข้อมูลตัวตน ความเชื่อ คริสตจักร และการเรียนที่จำเป็น</li>
+          <li><strong>พูดคุยและพิจารณา</strong>ทีมงานยืนยันแรงจูงใจ เวลาเรียน ความเข้าใจเส้นทาง และเรื่องที่ต้องประสาน การสัมภาษณ์เป็นไปตามข้อกำหนดขณะนั้น</li>
+          <li><strong>ผลเป็นลายลักษณ์อักษร</strong>ผลอาจเป็นการรับเข้าอย่างเป็นทางการ รับเข้าเรียนร่วม ขอเอกสารเพิ่ม แนะนำให้เลื่อน หรือไม่รับเข้า</li>
+          <li><strong>ลงทะเบียนและปฐมนิเทศ</strong>ลงทะเบียน ชำระเงิน ยืนยันระเบียบตามแจ้ง เข้าร่วมปฐมนิเทศ แล้วเริ่มเรียน</li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>๑๐. สถานภาพนักศึกษา การจบ และการประสาทปริญญา</h2>
+        <ul>
+          <li>สถานภาพนักศึกษา B.Th ทางการเกิดขึ้นผ่านขั้นตอนการสมัคร การพิจารณา และการลงทะเบียนของสำนักงานใหญ่และวิทยาลัย</li>
+          <li>การพิจารณาจบอ้างอิงแผนวิชาทางการ บันทึกการเรียน ผลประเมิน และระบบหน่วยกิตที่ยืนยันขั้นสุดท้าย</li>
+          <li>บันทึกการเรียนร่วมไม่แปลงเป็นหน่วยกิตปริญญาหรือคุณสมบัติจบโดยอัตโนมัติ</li>
+          <li>การฝึกภาคปฏิบัติอาจบันทึกในแฟ้มการเติบโตส่วนบุคคล แต่ไม่ใช่เงื่อนไขจบที่ซ่อนอยู่</li>
+          <li>การเทียบโอน การยกเว้น การเรียนซ่อม การเรียนซ้ำ การพักการเรียน การกลับเข้าเรียน การพิจารณาจบ การลงนามใบรับรอง และการประสาทปริญญา ให้เป็นไปตามระบบทางการที่ประกาศ</li>
+        </ul>
+        <p class="callout warning">คู่มือนี้ไม่ให้คำมั่นใด ๆ เรื่องการรับรองวุฒิ ความเทียบเท่าของปริญญา การจ้างงาน การย้ายถิ่น วีซ่า หรือการยอมรับข้ามประเทศ เรื่องเหล่านี้ให้ยึดเอกสารทางการของหน่วยงานที่มีอำนาจเท่านั้น</p>
+      </section>
+
+      <section>
+        <h2>๑๑. ข้อมูลและความเป็นส่วนตัว</h2>
+        <p>เอกสารสมัคร ภูมิหลังความเชื่อ ความสัมพันธ์กับคริสตจักร ช่องทางติดต่อ ข้อมูลการชำระเงิน และเนื้อหาการปรึกษาอภิบาล ใช้เฉพาะเพื่อการพิจารณา การบริการ การช่วยเหลือการเรียน และการบริหารอย่างปลอดภัยที่จำเป็นเท่านั้น ทั้งวิทยาลัยและผู้เรียนพึงเคารพความเป็นส่วนตัวของผู้อื่น ห้ามเผยแพร่ ส่งต่อ หรือใช้เพื่อการประชาสัมพันธ์ที่ไม่เกี่ยวข้องโดยไม่ได้รับอนุญาต</p>
+      </section>
+
+      <section>
+        <h2>๑๒. ติดต่อเรา</h2>
+        <table class="contact">
+          <tbody>
+            <tr><td>อีเมล</td><td>amasthai2026@gmail.com</td></tr>
+            <tr><td>โทร (ไทย)</td><td>+66 093 623 0780</td></tr>
+            <tr><td>โทร (จีน)</td><td>+86 187 1445 4664</td></tr>
+            <tr><td>WeChat</td><td>L52586222</td></tr>
+            <tr><td>LINE</td><td>enoslee0701</td></tr>
+            <tr><td>ที่ตั้ง</td><td>Chiang Mai, Thailand · AMAS เชียงใหม่</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <strong>AMAS · ศูนย์การเรียนเชียงใหม่ วิทยาลัยพระคริสตธรรมเอเชียมิชชัน</strong><br>
+      ให้ความจริงของพระวจนะเข้าสู่ชีวิต ให้การเรียนกลายเป็นการรับใช้
+    </footer>
+  </article>
+</body>
+</html>
