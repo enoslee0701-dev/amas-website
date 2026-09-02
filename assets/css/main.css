@@ -1081,3 +1081,13 @@ html[data-theme="night"] .footer{background:linear-gradient(180deg,#0a1220,#060b
 .thumb-c-th06{background-image:url("../img/courses/th06.webp")}
 .thumb-c-pt01{background-image:url("../img/course-pas210.webp")}
 .thumb-c-pt09{background-image:url("../img/course-min301.webp")}
+
+/* 测评入口条：十二角色卡预览 */
+.hab-cards{display:flex;align-items:center;margin:0 10px;flex-shrink:0}
+.hab-cards img{width:52px;height:78px;object-fit:cover;border-radius:7px;border:1px solid rgba(233,196,106,.6);box-shadow:0 5px 14px rgba(3,10,24,.45);margin-left:-14px;background:#0a1d38}
+.hab-cards img:first-child{margin-left:0;transform:rotate(-6deg)}
+.hab-cards img:nth-child(2){transform:rotate(3deg)}
+.hab-cards img:nth-child(3){transform:rotate(-3deg)}
+.hab-cards img:nth-child(4){transform:rotate(6deg)}
+.hab-more{font-style:normal;margin-left:8px;font-size:11.5px;font-weight:700;color:#f1d38a;border:1px solid rgba(233,196,106,.5);border-radius:999px;padding:3px 9px;background:rgba(233,196,106,.08);white-space:nowrap}
+@media(max-width:1000px){.hab-cards{display:none}}
