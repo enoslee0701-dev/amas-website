@@ -7,6 +7,13 @@
 <title>教师验证 | AMAS 亚洲宣教神学院</title>
 <link rel="icon" href="../../assets/img/favicon.png">
 <link rel="stylesheet" href="../../assets/css/portal.css">
+<style>
+.steps-mini{display:flex;gap:6px;margin:0 0 18px}
+.steps-mini i{flex:1;height:4px;border-radius:99px;background:var(--line)}
+.steps-mini i.on{background:var(--gold)}
+.status-line{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+.status-line b{color:var(--navy)}
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -16,22 +23,156 @@
     <div class="en">FACULTY VERIFICATION</div>
   </div>
 
-  <div class="card">
+  <div class="card" id="cardIntro">
     <h2>教职工身份核验</h2>
-    <p class="sub">教师账号采用「院方邀请 → 身份资料 → 邮箱验证 → 管理员审核 → 激活」流程（规范 §6）。验证通过后即可进入教师工作台，访问被分配的课程与班级。</p>
+    <p class="sub">流程：院方邀请 → 登录/注册（邮箱须与邀请一致）→ 填写资料 → 管理员审核 → 激活教师工作台（规范 §6）。教师账号不能自助开通。</p>
+    <div id="disabledNotice" class="notice" hidden><b>门户系统尚未启用。</b>系统部署完成前本页暂不能提交验证；请先联系教务同工（amasthai2026@gmail.com）。</div>
+    <form id="codeForm" novalidate>
+      <div class="field">
+        <label for="fCode">邀请码</label>
+        <input id="fCode" placeholder="粘贴学院发给你的邀请码" required>
+        <div class="hint">邀请码一次有效、限时、与你的邮箱绑定。没有邀请码？<a class="link" href="mailto:amasthai2026@gmail.com?subject=教师身份核验">联系教务申请</a></div>
+      </div>
+      <button class="btn" id="btnCode" type="submit">下一步</button>
+      <div class="msg err" id="codeErr" role="alert"></div>
+    </form>
+  </div>
 
-    <div class="msg info show" id="phaseNote">
-      <b>当前状态：</b>教师验证系统属于第二阶段功能，正在开发部署中，本页暂不能提交验证。
-      收到学院邀请邮件的老师，请留意邮件中的开通通知；尚未收到邀请的老师，请先联系教务同工核验身份。
-    </div>
+  <div class="card" id="cardForm" hidden>
+    <div class="steps-mini"><i class="on"></i><i class="on"></i><i></i></div>
+    <h2>填写身份资料</h2>
+    <p class="sub" id="whoLine"></p>
+    <form id="tvForm" novalidate>
+      <div class="field"><label for="tName">中文 / 常用姓名 *</label><input id="tName" required maxlength="80"></div>
+      <div class="field"><label for="tNameEn">英文姓名（选填）</label><input id="tNameEn" maxlength="80"></div>
+      <div class="field"><label for="tPhone">手机号 *</label><input id="tPhone" required maxlength="40"></div>
+      <div class="field"><label for="tOrg">所属机构 / 教会 *</label><input id="tOrg" required maxlength="120"></div>
+      <div class="field"><label for="tAreas">主要教学 / 事奉领域 *</label><input id="tAreas" required maxlength="200" placeholder="如：新约、讲道学、门徒训练"></div>
+      <div class="field"><label for="tCountry">所在国家与时区 *</label><input id="tCountry" required maxlength="80" placeholder="如：泰国 · Asia/Bangkok"></div>
+      <div class="field"><label for="tBio">个人简介（选填）</label><input id="tBio" maxlength="400"></div>
+      <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--muted)">
+        <input type="checkbox" id="tConsent" style="margin-top:4px" required>
+        <span>我确认以上信息真实，并同意隐私说明、教学资料使用规则与教职工系统规范。</span>
+      </label>
+      <button class="btn" id="btnSubmit" type="submit">提交审核</button>
+      <div class="msg err" id="tvErr" role="alert"></div>
+    </form>
+  </div>
 
-    <div class="quick" style="grid-template-columns:1fr 1fr">
-      <a href="mailto:amasthai2026@gmail.com?subject=%E6%95%99%E5%B8%88%E8%BA%AB%E4%BB%BD%E6%A0%B8%E9%AA%8C"><b>邮件联系教务</b><span>amasthai2026@gmail.com</span></a>
-      <a href="../../index.html#contact"><b>其他联系方式</b><span>微信 / Line / 电话</span></a>
-    </div>
+  <div class="card" id="cardStatus" hidden>
+    <div class="steps-mini"><i class="on"></i><i class="on"></i><i class="on"></i></div>
+    <h2>验证状态</h2>
+    <div id="statusBox"></div>
+    <div class="msg info show" id="statusHint" style="margin-top:14px"></div>
+    <a class="btn ghost" style="margin-top:14px" href="../../portal/">进入门户</a>
   </div>
 
   <div class="foot"><a href="../../login/">返回登录</a> · <a href="../../index.html">返回官网</a></div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../assets/js/supabase-config.js"></script>
+<script src="../../assets/js/portal/auth.js"></script>
+<script>
+(async function(){
+  const A = window.AmasAuth;
+  const show = (id) => { for (const s of ["cardIntro","cardForm","cardStatus"]) document.getElementById(s).hidden = (s !== id); };
+
+  const STATUS_TEXT = {
+    draft: ["草稿", "资料尚未提交。"],
+    submitted: ["已提交，等待审核", "管理员审核通过后你将获得教师权限；结果会同步显示在这里。"],
+    needs_information: ["需要补充资料", "请按下方说明补充后重新提交。"],
+    approved: ["已通过 ✓", "教师权限已开通。首次进入工作台需完成两步验证（MFA）设置。"],
+    rejected: ["未通过", "如有疑问请联系教务同工。"],
+    suspended: ["已暂停", "教师权限已暂停，请联系教务同工。"],
+    revoked: ["已撤销", "教师权限已撤销。"],
+  };
+
+  async function renderStatus() {
+    const { data, error } = await A.client.rpc("my_teacher_verification");
+    const rec = data && data[0];
+    if (error || !rec) return false;
+    const t = STATUS_TEXT[rec.status] || [rec.status, ""];
+    document.getElementById("statusBox").innerHTML =
+      '<div class="status-line"><span>当前状态</span><b>' + t[0] + "</b></div>" +
+      '<div class="status-line"><span>提交时间</span><b>' + (rec.submitted_at ? new Date(rec.submitted_at).toLocaleString("zh-CN") : "—") + "</b></div>" +
+      '<div class="status-line"><span>审核时间</span><b>' + (rec.reviewed_at ? new Date(rec.reviewed_at).toLocaleString("zh-CN") : "—") + "</b></div>" +
+      (rec.applicant_visible_message ? '<div class="status-line"><span>审核说明</span><b style="max-width:60%;text-align:right">' + rec.applicant_visible_message.replace(/</g,"&lt;") + "</b></div>" : "");
+    document.getElementById("statusHint").textContent = t[1];
+    if (rec.status === "needs_information") {
+      const back = document.createElement("button");
+      back.className = "btn"; back.style.marginTop = "12px"; back.textContent = "补充并重新提交";
+      back.onclick = () => { prefillAndShowForm(); };
+      document.getElementById("statusHint").after(back);
+    }
+    show("cardStatus");
+    return true;
+  }
+
+  let inviteToken = "";
+  function prefillAndShowForm() {
+    document.getElementById("whoLine").textContent = "提交后将进入管理员审核；带 * 为必填。";
+    show("cardForm");
+  }
+
+  if (!A.CONFIGURED) {
+    document.getElementById("disabledNotice").hidden = false;
+    document.getElementById("btnCode").disabled = true;
+  } else {
+    // 已登录且已有验证记录 → 直接显示状态页
+    const session = await A.getSession();
+    if (session) { await renderStatus(); }
+    // URL 携带邀请码
+    const qc = new URLSearchParams(location.search).get("code");
+    if (qc) document.getElementById("fCode").value = qc;
+  }
+
+  document.getElementById("codeForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const err = document.getElementById("codeErr"); err.classList.remove("show");
+    inviteToken = document.getElementById("fCode").value.trim();
+    if (!inviteToken) { err.textContent = "请输入邀请码。"; err.classList.add("show"); return; }
+    const session = await A.getSession();
+    if (!session) {
+      // 必须先用与邀请一致的邮箱登录/注册（服务端会校验一致性）
+      location.href = A.ROOT + "login/?next=" + encodeURIComponent(A.ROOT + "faculty/verify/?code=" + encodeURIComponent(inviteToken));
+      return;
+    }
+    prefillAndShowForm();
+  });
+
+  document.getElementById("tvForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const err = document.getElementById("tvErr"); err.classList.remove("show");
+    const f = e.currentTarget;
+    if (!f.checkValidity()) return f.reportValidity();
+    const btn = document.getElementById("btnSubmit");
+    btn.disabled = true; btn.textContent = "提交中…";
+    const r = await A.callFn("submit-teacher-verification", {
+      token: inviteToken || new URLSearchParams(location.search).get("code") || "",
+      form: {
+        name: document.getElementById("tName").value.trim(),
+        name_en: document.getElementById("tNameEn").value.trim(),
+        phone: document.getElementById("tPhone").value.trim(),
+        organization: document.getElementById("tOrg").value.trim(),
+        teaching_areas: document.getElementById("tAreas").value.trim(),
+        country: document.getElementById("tCountry").value.trim(),
+        bio: document.getElementById("tBio").value.trim(),
+        consent_terms: document.getElementById("tConsent").checked,
+      },
+    });
+    btn.disabled = false; btn.textContent = "提交审核";
+    if (r.status === 200) { await renderStatus(); return; }
+    const M = {
+      invitation_invalid: "邀请码无效、已过期、已使用，或与你的登录邮箱不一致。",
+      email_unverified: "请先完成邮箱验证再提交。",
+      missing_required: "请填写所有必填项并勾选确认。",
+      unauthenticated: "登录已失效，请重新登录。",
+    };
+    err.textContent = M[(r.data && r.data.error) || ""] || "提交失败，请稍后再试。";
+    err.classList.add("show");
+  });
+})();
+</script>
 </body>
 </html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>教师工作台 | AMAS</title>
+<link rel="icon" href="../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../assets/css/portal.css">
+</head>
+<body>
+<div class="wrap wide">
+  <div class="brandbar">
+    <img src="../../assets/img/school-seal.webp" alt="AMAS">
+    <h1>教师工作台</h1>
+    <div class="en">TEACHER WORKSPACE</div>
+  </div>
+
+  <div class="card">
+    <div class="pagehead">
+      <div><h2 style="margin:0">欢迎<span id="uname"></span> <span class="badge">教师</span><span class="badge" id="mfaBadge" style="background:#e9f3ee;color:var(--ok)">已两步验证</span></h2>
+        <div class="who" id="uemail"></div></div>
+      <button class="link" id="btnOut">退出登录</button>
+    </div>
+
+    <div class="msg info show">
+      教师身份已激活（本页要求两步验证通过后才能进入）。课程分配、点名、作业与成绩模块在 Phase 4 开通；
+      在此之前你可以在下方查看自己的验证与档案状态。
+    </div>
+
+    <h3 style="color:var(--navy);margin:20px 0 8px">我的教师档案</h3>
+    <div id="tpBox" class="msg info show">读取中…</div>
+
+    <h3 style="color:var(--navy);margin:20px 0 8px">即将开通</h3>
+    <div class="spaces">
+      <a href="#" onclick="return false" style="opacity:.55"><span class="ic">📚</span><span><b>我的课程</b><span>Phase 4 · 被分配的课程与班级</span></span></a>
+      <a href="#" onclick="return false" style="opacity:.55"><span class="ic">🗓️</span><span><b>出勤点名</b><span>Phase 4</span></span></a>
+      <a href="#" onclick="return false" style="opacity:.55"><span class="ic">📝</span><span><b>作业与成绩</b><span>Phase 4 · 批改、评分与发布建议</span></span></a>
+      <a href="#" onclick="return false" style="opacity:.55"><span class="ic">🤝</span><span><b>导师反馈</b><span>Phase 5 · 被授权学员的成长摘要</span></span></a>
+    </div>
+  </div>
+
+  <div class="foot"><a href="../">工作空间</a> · <a href="../../index.html">返回官网</a></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../assets/js/supabase-config.js"></script>
+<script src="../../assets/js/portal/auth.js"></script>
+<script>
+(async function(){
+  const A = window.AmasAuth;
+  const ctx = await A.requireRoleAal2(["teacher","mentor"]);   // 角色 + MFA 双闸
+  if (!ctx) return;
+  const p = await A.getProfile();
+  if (p) {
+    document.getElementById("uname").textContent = p.display_name ? "，" + p.display_name : "";
+    document.getElementById("uemail").textContent = p.email || "";
+  }
+  document.getElementById("btnOut").addEventListener("click", () => A.signOut());
+
+  const { data: tp } = await A.client.from("teacher_profiles").select("staff_number, public_name, status, verified_at").eq("user_id", ctx.session.user.id).maybeSingle();
+  const box = document.getElementById("tpBox");
+  if (tp) {
+    const S = { active: "在职", leave: "休假", suspended: "已暂停", departed: "已离任" };
+    box.innerHTML = "教职工号：<b>" + (tp.staff_number || "待分配") + "</b> ｜ 状态：<b>" + (S[tp.status] || tp.status) + "</b> ｜ 验证时间：" + new Date(tp.verified_at).toLocaleDateString("zh-CN");
+  } else {
+    box.textContent = "未找到教师档案，请联系教务同工。";
+  }
+})();
+</script>
+</body>
+</html>

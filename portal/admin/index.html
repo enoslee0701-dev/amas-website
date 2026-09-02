@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>管理后台 | AMAS</title>
+<link rel="icon" href="../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../assets/css/portal.css">
+<style>
+table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
+.list th,.list td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top}
+.list th{color:var(--navy);background:var(--wash)}
+.pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:700}
+.pill.submitted{background:#edf4fb;color:#294764}.pill.approved{background:#e9f3ee;color:var(--ok)}
+.pill.needs_information{background:#fff8e8;color:var(--warn)}.pill.rejected,.pill.revoked{background:#fdecec;color:var(--err)}
+.pill.suspended{background:#eee;color:#555}.pill.draft{background:#f2f2f2;color:#666}
+.act{display:flex;gap:6px;flex-wrap:wrap}
+.act button{font-size:12px;padding:5px 10px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer}
+.act button:hover{border-color:var(--gold)}
+.tokenbox{font:600 12px/1.6 Consolas,monospace;background:var(--wash);border-radius:8px;padding:10px 12px;word-break:break-all;margin-top:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:640px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap wide">
+  <div class="brandbar">
+    <img src="../../assets/img/school-seal.webp" alt="AMAS">
+    <h1>管理后台</h1>
+    <div class="en">ADMIN CONSOLE</div>
+  </div>
+
+  <div class="card">
+    <div class="pagehead">
+      <div><h2 style="margin:0">教师验证管理 <span class="badge">Phase 2</span></h2><div class="who" id="who"></div></div>
+      <span><a class="link" href="../../admin.html" style="margin-right:12px">表单收件箱</a><button class="link" id="btnOut">退出登录</button></span>
+    </div>
+
+    <h3 style="color:var(--navy)">① 创建教师邀请</h3>
+    <p class="sub">邀请码一次有效、限时、绑定邮箱；数据库只保存哈希。生成后请通过你自己的可信渠道发送给老师（当前阶段不自动发信）。</p>
+    <form id="invForm" class="grid2" novalidate>
+      <div class="field" style="margin:0"><label>教师邮箱 *</label><input id="ivEmail" type="email" required placeholder="teacher@example.com"></div>
+      <div class="field" style="margin:0"><label>姓名（预期）</label><input id="ivName" maxlength="80"></div>
+      <div class="field" style="margin:0"><label>教职工号（可留空，审核时再定）</label><input id="ivStaff" maxlength="40"></div>
+      <div class="field" style="margin:0"><label>有效期（天）</label><input id="ivDays" type="number" value="14" min="1" max="60"></div>
+      <div style="grid-column:1/-1"><button class="btn" id="btnInv" type="submit" style="margin-top:4px">生成邀请</button></div>
+    </form>
+    <div class="msg err" id="ivErr" role="alert"></div>
+    <div id="ivOut" hidden>
+      <div class="msg ok show">邀请已创建。以下链接/邀请码<b>只显示这一次</b>，请立即复制并发送给老师：</div>
+      <div class="tokenbox" id="ivLink"></div>
+      <button class="btn ghost" id="btnCopy" style="margin-top:8px">复制链接</button>
+    </div>
+
+    <h3 style="color:var(--navy);margin-top:28px">② 验证申请审核</h3>
+    <div class="msg info" id="qEmpty">暂无待处理申请。</div>
+    <div style="overflow-x:auto"><table class="list" id="qTable" hidden>
+      <thead><tr><th>申请人</th><th>提交资料</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
+      <tbody id="qBody"></tbody>
+    </table></div>
+    <div class="msg err" id="qErr" role="alert"></div>
+  </div>
+
+  <div class="foot"><a href="../">工作空间</a> · <a href="../../index.html">返回官网</a></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../assets/js/supabase-config.js"></script>
+<script src="../../assets/js/portal/auth.js"></script>
+<script>
+(async function(){
+  const A = window.AmasAuth;
+  const ctx = await A.requireRoleAal2(["academic_admin","super_admin","registrar"]);  // 角色 + MFA
+  if (!ctx) return;
+  const p = await A.getProfile();
+  document.getElementById("who").textContent = (p && (p.display_name || p.email)) || "";
+  document.getElementById("btnOut").addEventListener("click", () => A.signOut());
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+  // ---- ① 邀请 ----
+  document.getElementById("invForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const err = document.getElementById("ivErr"); err.classList.remove("show");
+    const btn = document.getElementById("btnInv"); btn.disabled = true; btn.textContent = "生成中…";
+    const r = await A.callFn("create-teacher-invitation", {
+      email: document.getElementById("ivEmail").value,
+      expected_name: document.getElementById("ivName").value,
+      staff_number: document.getElementById("ivStaff").value || null,
+      expires_days: Number(document.getElementById("ivDays").value) || 14,
+    });
+    btn.disabled = false; btn.textContent = "生成邀请";
+    if (r.status !== 200) {
+      const M = { mfa_required: "需要先完成两步验证。", forbidden: "没有权限。", bad_email: "邮箱格式不正确。" };
+      err.textContent = M[(r.data && r.data.error) || ""] || "创建失败。"; err.classList.add("show"); return;
+    }
+    const link = r.data.link || (location.origin + A.ROOT + "faculty/verify/?code=" + r.data.token);
+    document.getElementById("ivLink").textContent = link + "\n（截止：" + new Date(r.data.expires_at).toLocaleString("zh-CN") + "）";
+    document.getElementById("ivOut").hidden = false;
+    document.getElementById("btnCopy").onclick = () => navigator.clipboard?.writeText(link);
+  });
+
+  // ---- ② 审核队列 ----
+  const S = { draft:"草稿", submitted:"待审核", needs_information:"待补充", approved:"已通过", rejected:"已拒绝", suspended:"已暂停", revoked:"已撤销" };
+  async function loadQueue() {
+    const { data, error } = await A.client
+      .from("teacher_verification_requests")
+      .select("id, user_id, status, submitted_data, submitted_at, reviewed_at, profiles:user_id(display_name,email)")
+      .order("submitted_at", { ascending: false, nullsFirst: false })
+      .limit(200);
+    const qErr = document.getElementById("qErr"); qErr.classList.remove("show");
+    if (error) { qErr.textContent = "读取失败：" + error.message; qErr.classList.add("show"); return; }
+    const rows = data || [];
+    document.getElementById("qTable").hidden = rows.length === 0;
+    document.getElementById("qEmpty").classList.toggle("show", rows.length === 0);
+    document.getElementById("qBody").innerHTML = rows.map(r => {
+      const d = r.submitted_data || {};
+      const prof = r.profiles || {};
+      const acts = [];
+      if (["submitted","needs_information"].includes(r.status)) {
+        acts.push('<button data-a="approve" data-id="'+r.id+'">通过</button>');
+        acts.push('<button data-a="needs_information" data-id="'+r.id+'">要求补充</button>');
+        acts.push('<button data-a="reject" data-id="'+r.id+'">拒绝</button>');
+      }
+      if (r.status === "approved") acts.push('<button data-a="suspend" data-id="'+r.id+'">暂停</button>','<button data-a="revoke" data-id="'+r.id+'">撤销</button>');
+      if (r.status === "suspended") acts.push('<button data-a="reinstate" data-id="'+r.id+'">恢复</button>','<button data-a="revoke" data-id="'+r.id+'">撤销</button>');
+      return "<tr><td><b>" + esc(d.name || prof.display_name) + "</b><br><span style='color:var(--muted)'>" + esc(prof.email) + "</span></td>" +
+        "<td>" + esc(d.organization || "") + "<br>" + esc(d.teaching_areas || "") + "<br>" + esc(d.phone || "") + "</td>" +
+        '<td><span class="pill ' + r.status + '">' + (S[r.status] || r.status) + "</span></td>" +
+        "<td>" + (r.submitted_at ? new Date(r.submitted_at).toLocaleDateString("zh-CN") : "—") + "</td>" +
+        '<td><div class="act">' + acts.join("") + "</div></td></tr>";
+    }).join("");
+  }
+  await loadQueue();
+
+  document.getElementById("qBody").addEventListener("click", async (e) => {
+    const b = e.target.closest("button[data-a]");
+    if (!b) return;
+    const action = b.dataset.a, id = b.dataset.id;
+    let message = null, staff = null, mentor = false;
+    if (action === "approve") {
+      staff = prompt("分配教职工号（可留空稍后补）：") || null;
+      mentor = confirm("是否同时授予「导师」角色？");
+      message = prompt("给申请人的说明（可留空）：") || "验证通过，欢迎加入 AMAS 教学团队。";
+    } else if (action === "needs_information") {
+      message = prompt("需要补充什么资料？（申请人可见）");
+      if (!message) return;
+    } else {
+      message = prompt("给申请人的说明（可留空）：") || null;
+      if (!confirm("确认执行「" + action + "」？")) return;
+    }
+    const note = prompt("内部备注（仅管理员可见，可留空）：") || null;
+    b.disabled = true;
+    const r = await A.callFn("review-teacher-verification", {
+      request_id: id, action, message, staff_number: staff, grant_mentor: mentor, internal_note: note,
+    });
+    b.disabled = false;
+    if (r.status !== 200) {
+      const M = { mfa_required: "需要两步验证。", forbidden: "没有权限。", invalid_state: "当前状态不允许该操作。" };
+      alert(M[(r.data && r.data.error) || ""] || "操作失败。"); return;
+    }
+    await loadQueue();
+  });
+})();
+</script>
+</body>
+</html>

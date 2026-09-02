@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>两步验证 | AMAS</title>
+<link rel="icon" href="../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../assets/css/portal.css">
+<style>
+.qr{display:grid;place-items:center;margin:14px 0;padding:14px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.qr svg,.qr img{width:190px;height:190px}
+.secret{font:600 12px/1.6 Consolas,monospace;background:var(--wash);border-radius:8px;padding:8px 12px;word-break:break-all;text-align:center}
+.code input{letter-spacing:.5em;text-align:center;font-size:20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brandbar">
+    <img src="../../assets/img/school-seal.webp" alt="AMAS">
+    <h1>两步验证（MFA）</h1>
+    <div class="en">TWO-FACTOR AUTHENTICATION</div>
+  </div>
+
+  <div class="card" id="cardLoading"><h2>正在检查安全状态…</h2><p class="sub">请稍候。</p></div>
+
+  <!-- 注册 TOTP -->
+  <div class="card" id="cardEnroll" hidden>
+    <h2>启用两步验证</h2>
+    <p class="sub">教师与管理人员必须启用两步验证后才能进入工作台（规范 §5.3/§6.4）。请用身份验证器 App（如 Microsoft/Google Authenticator、1Password）扫描二维码。</p>
+    <div class="qr" id="qrBox"></div>
+    <p class="hint">无法扫码？在验证器中手动输入密钥：</p>
+    <div class="secret" id="secretBox"></div>
+    <form id="enrollForm" class="code" novalidate>
+      <div class="field">
+        <label for="enCode">输入验证器上的 6 位动态码</label>
+        <input id="enCode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="——————" required>
+      </div>
+      <button class="btn" id="btnEnroll" type="submit">确认并启用</button>
+      <div class="msg err" id="enErr" role="alert"></div>
+    </form>
+  </div>
+
+  <!-- 已注册：挑战验证 -->
+  <div class="card" id="cardChallenge" hidden>
+    <h2>请完成两步验证</h2>
+    <p class="sub">输入验证器 App 上当前的 6 位动态码，以进入受保护区域。</p>
+    <form id="chForm" class="code" novalidate>
+      <div class="field">
+        <label for="chCode">6 位动态码</label>
+        <input id="chCode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="——————" required>
+      </div>
+      <button class="btn" id="btnCh" type="submit">验证</button>
+      <div class="msg err" id="chErr" role="alert"></div>
+    </form>
+    <p class="hint" style="margin-top:12px">丢失验证器设备？请联系教务同工（amasthai2026@gmail.com）人工核验身份后由系统管理员重置两步验证；重置操作会记录审计日志。</p>
+  </div>
+
+  <div class="foot"><button class="link" id="btnOut">退出登录</button> · <a href="../../index.html">返回官网</a></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../assets/js/supabase-config.js"></script>
+<script src="../../assets/js/portal/auth.js"></script>
+<script>
+(async function(){
+  const A = window.AmasAuth;
+  if (!A.CONFIGURED) return A.renderDisabled();
+  const session = await A.getSession();
+  if (!session) return location.replace(A.ROOT + "login/");
+  document.getElementById("btnOut").addEventListener("click", () => A.signOut());
+
+  const next = new URLSearchParams(location.search).get("next") || (A.ROOT + "portal/");
+  const show = (id) => { for (const s of ["cardLoading","cardEnroll","cardChallenge"]) document.getElementById(s).hidden = (s !== id); };
+  const goBack = () => location.replace(next.startsWith("/") ? next : A.ROOT + "portal/");
+
+  const aal = await A.getAal();
+  if (aal.current === "aal2") return goBack();
+
+  const { data: factorData } = await A.client.auth.mfa.listFactors();
+  const totp = (factorData && factorData.totp && factorData.totp[0]) || null;
+
+  if (!totp) {
+    // ---- 注册流程 ----
+    const { data: enroll, error } = await A.client.auth.mfa.enroll({ factorType: "totp", friendlyName: "AMAS TOTP" });
+    if (error) { show("cardEnroll"); document.getElementById("enErr").textContent = "无法初始化两步验证：" + error.message; document.getElementById("enErr").classList.add("show"); return; }
+    document.getElementById("qrBox").innerHTML = enroll.totp.qr_code;       // Supabase 返回内联 SVG
+    document.getElementById("secretBox").textContent = enroll.totp.secret;
+    show("cardEnroll");
+    document.getElementById("enrollForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const err = document.getElementById("enErr"); err.classList.remove("show");
+      const code = document.getElementById("enCode").value.trim();
+      if (!/^\d{6}$/.test(code)) { err.textContent = "请输入 6 位数字。"; err.classList.add("show"); return; }
+      const { data: ch, error: e1 } = await A.client.auth.mfa.challenge({ factorId: enroll.id });
+      if (e1) { err.textContent = "验证失败，请重试。"; err.classList.add("show"); return; }
+      const { error: e2 } = await A.client.auth.mfa.verify({ factorId: enroll.id, challengeId: ch.id, code });
+      if (e2) { err.textContent = "动态码不正确或已过期。"; err.classList.add("show"); return; }
+      goBack();
+    });
+    return;
+  }
+
+  // ---- 挑战流程 ----
+  show("cardChallenge");
+  document.getElementById("chForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const err = document.getElementById("chErr"); err.classList.remove("show");
+    const code = document.getElementById("chCode").value.trim();
+    if (!/^\d{6}$/.test(code)) { err.textContent = "请输入 6 位数字。"; err.classList.add("show"); return; }
+    const { data: ch, error: e1 } = await A.client.auth.mfa.challenge({ factorId: totp.id });
+    if (e1) { err.textContent = "验证失败，请重试。"; err.classList.add("show"); return; }
+    const { error: e2 } = await A.client.auth.mfa.verify({ factorId: totp.id, challengeId: ch.id, code });
+    if (e2) { err.textContent = "动态码不正确或已过期。"; err.classList.add("show"); return; }
+    goBack();
+  });
+})();
+</script>
+</body>
+</html>

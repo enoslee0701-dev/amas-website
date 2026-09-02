@@ -1,8 +1,14 @@
-// AMAS · 受保护登录代理：邮箱/学号 + 密码（规范 §5.3 / §13）
+// AMAS · 受保护登录代理：邮箱/学号 + 密码（规范 §5.3 / §13；加固版）
 // 部署：supabase functions deploy login-by-identifier --no-verify-jwt
-// 环境（由 Supabase 平台注入，绝不进入前端/Git）：
-//   SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
-// 安全：学号→邮箱映射仅在本函数内完成；统一错误不泄露账号是否存在；15 分钟 5 次限流。
+// 密钥由平台注入（SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY），绝不进前端/Git。
+//
+// 限流（甲方审查 #2）：
+//   * 计数持久化在 Postgres public.security_events —— 跨 Edge 实例共享，非内存/Map；
+//   * 放行判定走 RPC public.auth_rate_check：pg_advisory_xact_lock 按标识串行化，杜绝并发竞态；
+//   * 成功登录写 login_success，作为该标识新的计数起点（失败计数即刻清零）；
+//   * 到期清理：auth_rate_check 内机会式删除 48h 前记录；
+//   * IP 说明：x-forwarded-for 由 Supabase 边缘网关注入，取第一跳；因客户端侧头部可伪造，
+//     IP 仅作宽阈值(20)辅助维度，主维度是标识(5)——伪造头无法绕过标识限流。
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -20,9 +26,6 @@ const fail = (status: number, code: string) =>
     status,
     headers: { ...CORS, "Content-Type": "application/json" },
   });
-
-const RATE_WINDOW_MIN = 15;
-const RATE_MAX = 5;
 
 function normalize(id: string): string {
   return id.trim().toUpperCase().replace(/\s+/g, "");
@@ -49,21 +52,14 @@ Deno.serve(async (req) => {
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawId.trim());
   const identKey = isEmail ? rawId.trim().toLowerCase() : normalize(rawId);
-  const since = new Date(Date.now() - RATE_WINDOW_MIN * 60_000).toISOString();
 
-  // --- 限流：同一标识或同一 IP，15 分钟内最多 5 次失败（§5.3）---
-  const [{ count: cId }, { count: cIp }] = await Promise.all([
-    admin.from("security_events").select("id", { count: "exact", head: true })
-      .eq("event_type", "login_failed").eq("identifier", identKey).gte("created_at", since),
-    admin.from("security_events").select("id", { count: "exact", head: true })
-      .eq("event_type", "login_failed").eq("ip", ip).gte("created_at", since),
-  ]);
-  if ((cId ?? 0) >= RATE_MAX || (cIp ?? 0) >= RATE_MAX) {
-    await admin.from("security_events").insert({
-      event_type: "login_locked", identifier: identKey, ip,
-    });
-    return fail(429, "rate_limited");
-  }
+  // --- 原子限流（Postgres advisory lock，见文件头说明）---
+  const { data: gate, error: gateErr } = await admin.rpc("auth_rate_check", {
+    p_identifier: identKey,
+    p_ip: ip,
+  });
+  if (gateErr) return fail(500, "server_error");
+  if (!gate?.allowed) return fail(429, "rate_limited");
 
   // --- 解析登录邮箱 ---
   let email = isEmail ? identKey : "";
@@ -78,23 +74,24 @@ Deno.serve(async (req) => {
     if (alias) {
       aliasUser = alias.user_id;
       const { data: prof } = await admin
-        .from("profiles").select("email, account_status")
-        .eq("id", alias.user_id).maybeSingle();
+        .from("profiles")
+        .select("email, account_status")
+        .eq("id", alias.user_id)
+        .maybeSingle();
       if (prof && prof.account_status === "active") email = prof.email;
     }
-  }
-
-  // --- 账号状态检查（邮箱路径）---
-  if (isEmail) {
+  } else {
     const { data: prof } = await admin
-      .from("profiles").select("id, account_status")
-      .eq("email", email).maybeSingle();
+      .from("profiles")
+      .select("id, account_status")
+      .eq("email", email)
+      .maybeSingle();
     if (prof && ["locked", "suspended", "disabled"].includes(prof.account_status)) {
-      email = ""; // 统一走失败分支，不泄露状态
+      email = ""; // 统一失败分支，不泄露状态
     }
   }
 
-  // --- 密码校验（无有效邮箱时也执行一次哑操作，尽量均衡时序）---
+  // --- 密码校验（无有效邮箱时执行哑校验，均衡时序）---
   const authClient = createClient(URL, ANON, { auth: { persistSession: false } });
   const { data: signIn, error } = await authClient.auth.signInWithPassword({
     email: email || `nonexistent+${crypto.randomUUID()}@invalid.amas`,
@@ -102,19 +99,22 @@ Deno.serve(async (req) => {
   });
 
   if (error || !signIn.session) {
-    await admin.from("security_events").insert({
-      event_type: "login_failed", identifier: identKey, ip,
-      user_id: aliasUser,
+    await admin.rpc("auth_record_attempt", {
+      p_identifier: identKey, p_ip: ip, p_ok: false, p_user: aliasUser,
     });
     return fail(401, "bad_credentials");
   }
 
-  await admin.from("security_events").insert({
-    event_type: "login_success", identifier: identKey, ip, user_id: signIn.user?.id ?? null,
+  await admin.rpc("auth_record_attempt", {
+    p_identifier: identKey, p_ip: ip, p_ok: true, p_user: signIn.user?.id ?? null,
   });
   await admin.from("audit_logs").insert({
-    actor_id: signIn.user?.id ?? null, event_type: "login",
-    target_type: "auth", target_id: isEmail ? "email" : "alias", ip,
+    actor_id: signIn.user?.id ?? null,
+    event_type: "login",
+    target_type: "auth",
+    target_id: isEmail ? "email" : "alias",
+    category: "security",
+    ip,
   });
 
   return new Response(

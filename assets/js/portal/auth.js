@@ -159,9 +159,49 @@
     document.body.style.background = "#f4f6f9";
   }
 
+  /** 当前/可达的认证保障级别（MFA）。返回 {current:'aal1'|'aal2', next:'aal1'|'aal2'} */
+  async function getAal() {
+    if (!client) return { current: "aal1", next: "aal1" };
+    const { data, error } = await client.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (error || !data) return { current: "aal1", next: "aal1" };
+    return { current: data.currentLevel, next: data.nextLevel };
+  }
+
+  /** 敏感角色（教师/管理员）页面守卫：requireRole 之上强制 aal2（甲方审查 #8 前端层）。
+      未注册 MFA 或未完成挑战时跳 /portal/mfa/，完成后回跳。数据面仍由 Edge/DB 双重校验。 */
+  async function requireRoleAal2(allowedRoles) {
+    const ctx = await requireRole(allowedRoles);
+    if (!ctx) return null;
+    const aal = await getAal();
+    if (aal.current !== "aal2") {
+      location.replace(ROOT + "portal/mfa/?next=" + encodeURIComponent(location.pathname));
+      return null;
+    }
+    return ctx;
+  }
+
+  /** 调用受保护 Edge Function（自动携带用户 JWT） */
+  async function callFn(name, payload) {
+    const session = await getSession();
+    if (!session) return { status: 401, data: { error: "unauthenticated" } };
+    const res = await fetch(SUPA.url + "/functions/v1/" + name, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPA.anonKey,
+        Authorization: "Bearer " + session.access_token,
+      },
+      body: JSON.stringify(payload || {}),
+    });
+    let data = null;
+    try { data = await res.json(); } catch (e) { /* noop */ }
+    return { status: res.status, data };
+  }
+
   window.AmasAuth = {
     CONFIGURED, ROOT, client,
     getSession, getRoles, getProfile, homeForRoles,
     signIn, signUp, resetPassword, signOut, requireRole, renderDisabled,
+    getAal, requireRoleAal2, callFn,
   };
 })();
