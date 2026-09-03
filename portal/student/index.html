@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>学员中心 | AMAS</title>
+<link rel="icon" href="../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../assets/css/portal.css">
+<style>
+.idcard{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);color:#fff;border-radius:16px;padding:20px 22px;margin-bottom:18px}
+.idcard h2{margin:0;font-size:19px;color:#fff}
+.idcard .sub{opacity:.82;font-size:13px;margin-top:4px}
+.idrow{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:16px}
+.idrow>div{min-width:120px}
+.idrow span{display:block;font-size:11.5px;opacity:.72;letter-spacing:.04em}
+.idrow b{display:block;font-size:16px;margin-top:3px;font-variant-numeric:tabular-nums;word-break:break-all}
+.idcard .badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);
+  border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:3px 12px;font-size:12.5px;
+  margin:8px 0 0;color:#fff}
+.mods{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}
+.mod h3{font-size:15px;color:var(--navy);margin:0 0 8px}
+.mod .none{color:var(--muted);font-size:13.5px;line-height:1.7}
+.mod .none b{color:var(--navy2)}
+@media(max-width:640px){.idcard{padding:18px}.idrow{gap:12px 20px}}
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../assets/js/supabase-config.js"></script>
+<script src="../../assets/js/portal/auth.js"></script>
+<script src="../../assets/js/portal/api.js"></script>
+<script src="../../assets/js/portal/ui.js"></script>
+<script src="../../assets/js/portal/shell.js"></script>
+<script>
+/* PORTAL-2 学员中心（V1）
+   原则：状态机与 DB 是权威源，UI 不模拟业务状态；没有真实数据就显示真实空态，绝不填充假数据。
+   本页不展示学分、进度百分比、成绩或任何未经批准的教务结论。 */
+(async function(){
+  const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell;
+
+  // 路由守卫：只有 student 能进（applicant 伪造路由会被弹回自己的空间）
+  const mounted = await Shell.mount({ space: "student", title: "学员中心", allow: ["student"] });
+  if (!mounted) return;
+  const { main, profile } = mounted;
+
+  const ST = {
+    pre_enrolled: { t: "待正式注册", d: "学籍已建立，正在等待教务完成正式注册。完成后即可开始课程学习。" },
+    active:       { t: "在读", d: "学籍状态正常。" },
+  };
+
+  UI.loading(main, 4);
+  const [{ data: recRows, error }, { data: tl }, { data: pc }] = await Promise.all([
+    Api.rpc("my_student_record"),
+    Api.rpc("my_student_timeline"),
+    Api.select("program_catalog", { columns: "code,name_zh,short_label" }),
+  ]);
+  if (error) return UI.error(main, { message: error.message, onRetry: () => location.reload() });
+
+  const rec = recRows && recRows[0];
+  const name = (profile && (profile.display_name || profile.email)) || "";
+  const pcMap = Object.fromEntries((pc || []).map(p => [p.code, p]));
+  const prog = rec && rec.program_code ? pcMap[rec.program_code] : null;
+
+  // 有 student 角色但查不到学籍记录：这是数据异常，如实说明并给出求助路径，不臆造状态
+  if (!rec) {
+    main.innerHTML =
+      '<h1>学员中心</h1>' +
+      '<div class="msg warn show" style="margin:14px 0"><b>尚未查到你的学籍记录。</b>' +
+      '如果教务已通知你完成建档，请联系招生/教务同工核对；在学籍记录建立前，学习功能不会开放。</div>' +
+      '<a class="btn" style="width:auto;padding:0 22px" href="' + A.ROOT + 'help/">前往帮助中心</a>';
+    return;
+  }
+
+  const s = ST[rec.status] || { t: rec.status, d: "" };
+  const isActive = rec.status === "active";
+
+  // 当前提醒：完全由真实学籍状态推导，没有待办就说"没有"
+  const todo = isActive
+    ? '<p class="none">目前没有需要你处理的事项。课程注册与教务安排开通后会显示在这里。</p>'
+    : '<p class="none">等待教务完成<b>正式注册</b>。这一步由 AMAS 教务处执行，无需你操作；如长时间未更新，可联系教务同工。</p>';
+
+  main.innerHTML =
+    '<h1>学员中心</h1>' +
+    '<p class="lead">这里显示你的学籍状态与学习入口。课程与学分安排以 AMAS 教务处正式通知为准。</p>' +
+
+    // ---------- 身份卡 ----------
+    '<div class="idcard">' +
+      '<h2>' + UI.esc(name) + '</h2>' +
+      '<div class="sub">AMAS 亚洲宣教神学院 · 学员</div>' +
+      '<div class="badge">' + UI.esc(s.t) + '</div>' +
+      '<div class="idrow">' +
+        '<div><span>学号</span><b>' + (rec.student_number ? UI.esc(rec.student_number) : "待教务录入") + '</b></div>' +
+        '<div><span>修读项目</span><b>' + (prog ? UI.esc(prog.name_zh) : "待确认") + '</b></div>' +
+        '<div><span>学籍建立</span><b>' + new Date(rec.created_at).toLocaleDateString("zh-CN") + '</b></div>' +
+        (rec.activated_at ? '<div><span>正式注册</span><b>' + new Date(rec.activated_at).toLocaleDateString("zh-CN") + '</b></div>' : "") +
+      '</div>' +
+    '</div>' +
+
+    '<div class="card" style="margin-bottom:14px"><h3 style="font-size:15px;color:var(--navy);margin:0 0 6px">学籍状态</h3>' +
+      '<p class="none">' + UI.esc(s.d) + '</p></div>' +
+
+    // ---------- 模块区 ----------
+    '<div class="mods">' +
+      '<div class="card mod"><h3>当前提醒</h3>' + todo + '</div>' +
+
+      '<div class="card mod"><h3>我的学习</h3>' +
+        '<p class="none">当前尚无已注册课程。课程注册与教务安排开通后将在这里显示。</p>' +
+        '<a class="link" href="' + A.ROOT + 'index.html#courses">浏览 67 门官方课程目录 →</a></div>' +
+
+      '<div class="card mod"><h3>学习记录</h3>' +
+        '<p class="none">尚无学习记录。出勤、作业与成绩由教务系统在正式开课后写入。</p></div>' +
+
+      '<div class="card mod"><h3>信仰成长档案</h3>' +
+        '<p class="none">成长画像与评估结果保存在「AMAS 神学院」App 中。你可以先做 3 分钟快速探索，' +
+        '初步了解自己的学习起点（结果仅作参考，不构成评定）。</p>' +
+        '<a class="link" href="' + A.ROOT + 'discover.html">开始快速探索 →</a></div>' +
+    '</div>' +
+
+    // ---------- 最近活动：真实的学籍状态历史 ----------
+    '<div class="card" style="margin-top:16px"><h3 style="font-size:15px;color:var(--navy);margin:0 0 10px">最近活动</h3>' +
+      '<div id="tl"></div></div>';
+
+  const box = document.getElementById("tl");
+  const items = (tl || []).slice().reverse().map(h => ({
+    title: (ST[h.to_status] && ST[h.to_status].t) || h.to_status,
+    text: h.student_visible_message || "",
+    time: new Date(h.created_at).toLocaleString("zh-CN"),
+  }));
+  box.innerHTML = UI.timeline(items);
+})();
+</script>
+</body>
+</html>

@@ -14,12 +14,11 @@
       { href: "portal/applicant/profile/", icon: "👤", label: "个人资料" },
       { href: "help/", icon: "💬", label: "帮助" },
     ],
+    // PORTAL-2 V1 只上线学员首页：课程/记录/成长尚无已批准的业务规则与真实数据，
+    // 先不放导航项——宁可少一个入口，也不做点进去空无一物的假页面。
     student: [
       { href: "portal/student/", icon: "🏠", label: "首页" },
-      { href: "portal/student/courses/", icon: "📚", label: "课程" },
-      { href: "portal/student/records/", icon: "🗃️", label: "记录" },
-      { href: "portal/student/growth/", icon: "🌱", label: "成长" },
-      { href: "portal/student/profile/", icon: "👤", label: "我的" },
+      { href: "help/", icon: "💬", label: "帮助" },
     ],
     teacher: [
       { href: "portal/teacher/", icon: "🏠", label: "工作台" },
@@ -28,7 +27,8 @@
     admin: [
       { href: "portal/admin/", icon: "🏠", label: "总览" },
       { href: "portal/admin/admissions/", icon: "📥", label: "招生审核" },
-      { href: "portal/admin/teachers/", icon: "🎓", label: "教师验证" },
+      { href: "portal/admin/students/", icon: "🎓", label: "学籍管理" },
+      { href: "portal/admin/teachers/", icon: "🏫", label: "教师验证" },
       { href: "help/", icon: "💬", label: "帮助" },
     ],
   };

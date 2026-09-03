@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>选择工作空间 | AMAS</title>
 <link rel="icon" href="../assets/img/favicon.png">
-<link rel="stylesheet" href="../assets/css/portal.css?v=202609031208">
+<link rel="stylesheet" href="../assets/css/portal.css?v=202609031240">
 </head>
 <body>
 <div class="wrap">
@@ -27,8 +27,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../assets/js/supabase-config.js?v=202609031208"></script>
-<script src="../assets/js/portal/auth.js?v=202609031208"></script>
+<script src="../assets/js/supabase-config.js?v=202609031240"></script>
+<script src="../assets/js/portal/auth.js?v=202609031240"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
@@ -41,7 +41,7 @@
   const DEFS = [
     { roles:["super_admin","academic_admin","registrar","content_admin","finance"], href:"admin/",   ic:"🗂️", name:"管理后台",   sub:"招生 · 教师验证 · 学籍 · 课程 · 审计" },
     { roles:["teacher","mentor"],                                                  href:"teacher/", ic:"📖", name:"教师工作台", sub:"我的课程 · 出勤 · 作业与成绩 · 导师反馈" },
-    { roles:["student"],                                                           href:"student/", ic:"🎓", name:"学员中心",   sub:"课程学习 · 记录 · 成长路径 · 实践训练" },
+    { roles:["student"],                                                           href:"student/", ic:"🎓", name:"学员中心",   sub:"学籍状态 · 学号 · 学习入口 · 成长探索" },
     { roles:["applicant"],                                                         href:"applicant/", ic:"✉️", name:"申请者中心", sub:"入学申请 · 进度与补件 · 通知" },
   ];
   const box = document.getElementById("spaces");

@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>学籍管理 | AMAS</title>
+<link rel="icon" href="../../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../../assets/css/portal.css">
+<style>
+.tabs{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap}
+.tabs button{min-height:40px;padding:0 16px;border:1.5px solid var(--line);border-radius:999px;background:#fff;
+  font:inherit;font-size:13.5px;cursor:pointer;color:var(--ink)}
+.tabs button[aria-selected="true"]{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700}
+.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.tbl th,.tbl td{padding:11px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.tbl th{font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.03em}
+.tbl td b{color:var(--navy)}
+.scroller{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.st{display:inline-block;padding:2px 10px;border-radius:99px;font-size:11.5px;font-weight:700}
+.st.pre_enrolled{background:#fdf4e3;color:#7a5a12}
+.st.active{background:#e9f3ee;color:var(--ok)}
+.num{font-variant-numeric:tabular-nums;word-break:break-all}
+.acts2{display:flex;gap:6px;flex-wrap:wrap}
+.acts2 button{min-height:40px;padding:0 12px;border:1.5px solid var(--line);border-radius:9px;background:#fff;font:inherit;font-size:13px;cursor:pointer}
+.acts2 button.pri{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700}
+.fld{margin-top:12px}
+.fld label{display:block;font-size:13px;font-weight:700;color:var(--navy);margin-bottom:5px}
+.fld input{width:100%;min-height:44px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font:inherit}
+@media(max-width:640px){.tbl th:nth-child(3),.tbl td:nth-child(3){display:none}}
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../../assets/js/supabase-config.js"></script>
+<script src="../../../assets/js/portal/auth.js"></script>
+<script src="../../../assets/js/portal/api.js"></script>
+<script src="../../../assets/js/portal/ui.js"></script>
+<script src="../../../assets/js/portal/shell.js"></script>
+<script>
+/* PORTAL-2 学籍管理（教务侧）
+   闭环：录取 → 记录总校审核确认 → 建档(pre_enrolled) → 正式注册(active)；学号可经专用通道更正。
+   本页所有写操作一律经 student-lifecycle Edge Function（aal2 + 角色复核），
+   前端不做任何权限判断——按钮显隐只是展示，真正的门禁在 DB 与 Edge。 */
+(async function(){
+  const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell;
+
+  const mounted = await Shell.mount({
+    space: "admin", title: "管理后台",
+    allow: ["registrar","academic_admin","super_admin"], requireAal2: true,
+  });
+  if (!mounted) return;
+  const { main } = mounted;
+
+  const ST = { pre_enrolled: "待正式注册", active: "在读" };
+  const HQ = { pending: "待确认", approved: "总校已确认", rejected: "总校未通过" };
+  let tab = "queue", pcMap = {};
+
+  const { data: pc } = await Api.select("program_catalog", { columns: "code,name_zh,short_label" });
+  pcMap = Object.fromEntries((pc || []).map(p => [p.code, p]));
+
+  main.innerHTML =
+    '<h1>学籍管理</h1>' +
+    '<p class="lead">录取不等于学籍。必须先有 AMAS 总校审核确认记录，才能建档；建档后由教务完成正式注册。</p>' +
+    '<div class="tabs" role="tablist">' +
+      '<button role="tab" data-tab="accepted" aria-selected="false">待总校确认</button>' +
+      '<button role="tab" data-tab="queue" aria-selected="true">待建档</button>' +
+      '<button role="tab" data-tab="students" aria-selected="false">在册学生</button>' +
+    '</div>' +
+    '<div class="msg err" id="err" role="alert"></div>' +
+    '<div id="panel"></div>';
+
+  const panel = document.getElementById("panel");
+  const errBox = document.getElementById("err");
+  const showErr = (m) => { errBox.textContent = m; errBox.classList.add("show"); };
+  const clearErr = () => errBox.classList.remove("show");
+
+  main.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => {
+    tab = b.dataset.tab;
+    main.querySelectorAll("[data-tab]").forEach(x => x.setAttribute("aria-selected", String(x === b)));
+    load();
+  }));
+
+  load();
+
+  async function load(){
+    clearErr();
+    panel.innerHTML = UI.skeleton(4);
+    if (tab === "accepted")  return renderAccepted();
+    if (tab === "queue")     return renderQueue();
+    return renderStudents();
+  }
+
+  const progName = (code) => code && pcMap[code] ? pcMap[code].name_zh : (code || "—");
+
+  // ---------- 1. 已录取、等待记录总校确认 ----------
+  async function renderAccepted(){
+    const { data, error } = await Api.select("applications", {
+      columns: "id,applicant_id,status,form_data,decided_at",
+      eq: { status: "accepted" }, order: { column: "decided_at", asc: true },
+    });
+    if (error) return UI.error(panel, { message: error.message, onRetry: load });
+    const { data: hq } = await Api.select("application_hq_approvals", {
+      columns: "application_id,status,approval_reference,confirmed_at",
+    });
+    const hqMap = Object.fromEntries((hq || []).map(h => [h.application_id, h]));
+    const rows = (data || []).filter(a => (hqMap[a.id] || {}).status !== "approved");
+
+    if (!rows.length) return panel.innerHTML = UI.box("✅", "没有待确认的录取", "已录取的申请都已记录总校审核结论。");
+
+    panel.innerHTML = '<div class="card"><div class="scroller"><table class="tbl">' +
+      '<thead><tr><th>姓名</th><th>项目</th><th>录取时间</th><th>总校状态</th><th>操作</th></tr></thead><tbody>' +
+      rows.map(a => {
+        const d = a.form_data || {};
+        const h = hqMap[a.id];
+        return '<tr><td><b>' + UI.esc(d.name_zh || "—") + '</b></td>' +
+          '<td>' + UI.esc(progName((d.programs || [])[0])) + '</td>' +
+          '<td>' + (a.decided_at ? new Date(a.decided_at).toLocaleDateString("zh-CN") : "—") + '</td>' +
+          '<td>' + UI.esc(h ? (HQ[h.status] || h.status) : "未记录") + '</td>' +
+          '<td><div class="acts2"><button class="pri" data-hq="' + a.id + '">记录总校确认</button></div></td></tr>';
+      }).join("") + '</tbody></table></div></div>';
+
+    panel.querySelectorAll("[data-hq]").forEach(b =>
+      b.addEventListener("click", () => promptHq(b.dataset.hq)));
+  }
+
+  // ---------- 2. 总校已确认、等待建档 ----------
+  async function renderQueue(){
+    const { data, error } = await Api.rpc("admissions_ready_for_enrollment");
+    if (error) return UI.error(panel, { message: error.message, onRetry: load });
+    if (!data || !data.length) {
+      return panel.innerHTML = UI.box("📋", "没有待建档的申请",
+        "只有「已录取 + 总校已确认 + 尚未建档」的申请才会出现在这里。");
+    }
+    panel.innerHTML = '<div class="card"><div class="scroller"><table class="tbl">' +
+      '<thead><tr><th>姓名</th><th>项目</th><th>总校批文</th><th>确认时间</th><th>操作</th></tr></thead><tbody>' +
+      data.map(r =>
+        '<tr><td><b>' + UI.esc(r.display_name || r.email || "—") + '</b></td>' +
+        '<td>' + UI.esc(progName(r.program_code)) + '</td>' +
+        '<td>' + UI.esc(r.approval_reference || "—") + '</td>' +
+        '<td>' + (r.confirmed_at ? new Date(r.confirmed_at).toLocaleDateString("zh-CN") : "—") + '</td>' +
+        '<td><div class="acts2"><button class="pri" data-create="' + r.application_id + '">建立学籍</button></div></td></tr>'
+      ).join("") + '</tbody></table></div></div>';
+
+    panel.querySelectorAll("[data-create]").forEach(b =>
+      b.addEventListener("click", () => promptCreate(b.dataset.create)));
+  }
+
+  // ---------- 3. 在册学生 ----------
+  async function renderStudents(){
+    const { data, error } = await Api.select("student_records", {
+      columns: "id,user_id,status,student_number,program_code,activated_at,created_at",
+      order: { column: "created_at", asc: false },
+    });
+    if (error) return UI.error(panel, { message: error.message, onRetry: load });
+    if (!data || !data.length) {
+      return panel.innerHTML = UI.box("🎓", "还没有学籍记录", "完成建档后，学生会出现在这里。");
+    }
+    const { data: profs } = await Api.select("profiles", {
+      columns: "id,display_name,email", in: { id: data.map(s => s.user_id) },
+    });
+    const pm = Object.fromEntries((profs || []).map(p => [p.id, p]));
+
+    panel.innerHTML = '<div class="card"><div class="scroller"><table class="tbl">' +
+      '<thead><tr><th>姓名</th><th>学号</th><th>项目</th><th>状态</th><th>操作</th></tr></thead><tbody>' +
+      data.map(s => {
+        const p = pm[s.user_id] || {};
+        return '<tr><td><b>' + UI.esc(p.display_name || p.email || "—") + '</b></td>' +
+          '<td class="num">' + UI.esc(s.student_number || "待录入") + '</td>' +
+          '<td>' + UI.esc(progName(s.program_code)) + '</td>' +
+          '<td><span class="st ' + s.status + '">' + (ST[s.status] || s.status) + '</span></td>' +
+          '<td><div class="acts2">' +
+            (s.status === "pre_enrolled" ? '<button class="pri" data-activate="' + s.id + '">正式注册</button>' : "") +
+            '<button data-fixnum="' + s.id + '">更正学号</button>' +
+          '</div></td></tr>';
+      }).join("") + '</tbody></table></div></div>';
+
+    panel.querySelectorAll("[data-activate]").forEach(b =>
+      b.addEventListener("click", () => doActivate(b.dataset.activate)));
+    panel.querySelectorAll("[data-fixnum]").forEach(b =>
+      b.addEventListener("click", () => promptFixNumber(b.dataset.fixnum)));
+  }
+
+  // ---------- 服务端调用 ----------
+  async function call(body, okMsg){
+    clearErr();
+    const { data, error } = await A.callFn("student-lifecycle", body);
+    if (error) { showErr(error.message); return null; }
+    if (data && data.ok === false) {
+      showErr({
+        hq_approval_required: "缺少 AMAS 总校审核确认记录，不能建档。",
+        student_already_exists: "该申请人已有学籍记录。",
+        student_number_taken: "该学号已被使用过，不能重复分配（已使用的学号不回收）。",
+        student_number_required: "请先录入学号，再执行正式注册。",
+        invalid_state: "当前状态不允许该操作。",
+        unchanged: "学号没有变化。",
+      }[data.error] || data.error);
+      return null;
+    }
+    UI.toast(okMsg);
+    await load();
+    return data;
+  }
+
+  function promptHq(appId){
+    modal({
+      title: "记录 AMAS 总校审核确认",
+      desc: "只有记录为「总校已确认」后，才能为该申请人建立学籍。批文编号可留空。",
+      fields: [
+        { id: "ref", label: "总校批文 / 会议纪要编号（可选）" },
+        { id: "note", label: "给申请人的说明（可选）" },
+        { id: "inote", label: "内部备注（仅管理员可见，可选）" },
+      ],
+      actions: [
+        { label: "记录为已确认", primary: true, run: (v) => call({
+          action: "confirm_hq_approval", application_id: appId, hq_status: "approved",
+          approval_reference: v.ref || null, visible_note: v.note || null, internal_note: v.inote || null,
+        }, "已记录总校确认") },
+        { label: "记录为未通过", run: (v) => call({
+          action: "confirm_hq_approval", application_id: appId, hq_status: "rejected",
+          visible_note: v.note || null, internal_note: v.inote || null,
+        }, "已记录总校未通过") },
+      ],
+    });
+  }
+
+  function promptCreate(appId){
+    modal({
+      title: "建立学籍",
+      desc: "学号请按 AMAS 总校实际分配结果填写；系统不自行生成编号。暂时没有学号可以留空，" +
+            "但正式注册前必须补齐。学号一经使用不再回收给他人。",
+      fields: [{ id: "num", label: "学号（可留空）" }],
+      actions: [{ label: "建立学籍", primary: true, run: (v) => call({
+        action: "create_student_record", application_id: appId, student_number: v.num || null,
+      }, "学籍已建立（待正式注册）") }],
+    });
+  }
+
+  function promptFixNumber(sid){
+    modal({
+      title: "更正学号",
+      desc: "更正会记录前后值、操作者与原因，并同步更换学号登录别名；旧学号不会回收给其他人。",
+      fields: [
+        { id: "num", label: "新学号", required: true },
+        { id: "reason", label: "更正原因", required: true },
+      ],
+      actions: [{ label: "确认更正", primary: true, run: (v) => call({
+        action: "correct_student_number", student_id: sid, student_number: v.num, reason: v.reason,
+      }, "学号已更正") }],
+    });
+  }
+
+  async function doActivate(sid){
+    const ok = await UI.confirmDialog({
+      title: "正式注册",
+      text: "确认将该学生的学籍状态从「待正式注册」改为「在读」？该操作会写入状态历史与审计记录。",
+      confirmLabel: "确认注册",
+    });
+    if (!ok) return;
+    await call({ action: "activate_student", student_id: sid, message: "学籍已正式生效" }, "已完成正式注册");
+  }
+
+  /** 通用表单弹窗（焦点可达、Esc 关闭） */
+  function modal({ title, desc, fields, actions }){
+    const wrap = document.createElement("div");
+    wrap.className = "portal-modal";
+    wrap.innerHTML = '<div class="pm-backdrop"></div>' +
+      '<div class="pm-card" role="dialog" aria-modal="true" aria-labelledby="m-t" style="width:min(500px,calc(100% - 32px))">' +
+        '<h3 id="m-t">' + UI.esc(title) + '</h3><p>' + UI.esc(desc) + '</p>' +
+        fields.map(f =>
+          '<div class="fld"><label for="f-' + f.id + '">' + UI.esc(f.label) + '</label>' +
+          '<input id="f-' + f.id + '" data-f="' + f.id + '"' + (f.required ? " required" : "") + '></div>').join("") +
+        '<div class="pm-acts"><button class="btn ghost" id="m-cancel" style="width:auto;padding:0 20px">取消</button>' +
+        actions.map((a, i) =>
+          '<button class="btn' + (a.primary ? "" : " ghost") + '" data-act="' + i + '" style="width:auto;padding:0 20px">' +
+          UI.esc(a.label) + '</button>').join("") + '</div></div>';
+    document.body.appendChild(wrap);
+
+    const close = () => { wrap.remove(); document.removeEventListener("keydown", onKey); };
+    const onKey = (e) => { if (e.key === "Escape") close(); };
+    document.addEventListener("keydown", onKey);
+    wrap.querySelector("#m-cancel").addEventListener("click", close);
+    wrap.querySelector(".pm-backdrop").addEventListener("click", close);
+    wrap.querySelector("input")?.focus();
+
+    wrap.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", async () => {
+      const v = {};
+      wrap.querySelectorAll("[data-f]").forEach(i => v[i.dataset.f] = i.value.trim());
+      const missing = fields.filter(f => f.required && !v[f.id]);
+      if (missing.length) { alert("请填写：" + missing.map(f => f.label).join("、")); return; }
+      b.disabled = true;
+      close();
+      await actions[+b.dataset.act].run(v);
+    }));
+  }
+})();
+</script>
+</body>
+</html>
