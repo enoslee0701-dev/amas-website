@@ -11,9 +11,8 @@
 --      由此天然满足：「Supabase recovery credential 已失效时，
 --      AMAS flow 绝不能让它重新变有效」。
 --
---   2. processing 过期 = **Edge Function 不可能还在运行的时间**。
---      若 claim 已超过该上限，那次调用必已结束（正常/崩溃/超时），
---      锁就该释放。取值见 EDGE_MAX_RUNTIME 常量与其注释。
+--   2. processing stale threshold = **AMAS 当前运行策略**（见函数内常量注释）。
+--      它用于识别明显异常中断的 processing flow，不是对平台行为的永久假设。
 --
 -- ★ 自愈优先于外部 cron：start_recovery_flow 先回收调用者**自己**的陈旧 flow。
 --   用户再次点开恢复链接就能继续，不依赖任何后台任务是否跑过。
@@ -49,14 +48,21 @@ create unique index if not exists recovery_flows_one_active
 -- ============================================================
 -- 陈旧回收
 -- ============================================================
--- Edge Function 的挂钟上限。超过它，那次 claim 的调用必然已经结束
--- （正常返回 / 崩溃 / 被平台回收），因此锁可以安全释放。
--- 取 10 分钟：显著大于任何一次正常 finalize（实测在秒级），
--- 又远小于凭据 1 小时的有效期，不会与 credential_expired 抢判定。
+-- 当前 processing stale threshold 为 10 分钟。
+--
+-- 该值基于当前 password finalization 实测通常为秒级完成，并留有显著安全余量，
+-- 用于识别**明显异常中断**的 processing flow。
+-- 它是 AMAS 当前的运行策略，**不是**对 Supabase Edge Function 最大执行时间的
+-- 永久平台假设。
+--
+-- ★ 出现以下任一情况时必须重新评估该阈值：
+--     · finalize 流程增加外部依赖
+--     · Edge runtime 行为变化
+--     · 实测 latency 明显提高
 create or replace function public.reap_stale_recovery_flows(p_user uuid default null)
 returns jsonb language plpgsql security definer set search_path = '' as $$
 declare
-  EDGE_MAX_RUNTIME constant interval := interval '10 minutes';
+  PROCESSING_STALE_THRESHOLD constant interval := interval '10 minutes';
   v_expired int := 0;
   v_stuck   int := 0;
 begin
@@ -69,11 +75,11 @@ begin
   get diagnostics v_expired = row_count;
 
   -- 2) processing 卡死 → failed_retryable（受控可重试，**不是**回到 pending）
-  --    只有超过 Edge 挂钟上限才判定为卡死；不因一次慢请求就抢锁。
+  --    只有超过 stale threshold 才判定为异常中断；不因一次慢请求就抢锁。
   update public.recovery_flows
      set status = 'failed_retryable', reaped_at = now(), reap_reason = 'processing_timeout'
    where status = 'processing'
-     and claimed_at is not null and claimed_at <= now() - EDGE_MAX_RUNTIME
+     and claimed_at is not null and claimed_at <= now() - PROCESSING_STALE_THRESHOLD
      and (p_user is null or user_id = p_user);
   get diagnostics v_stuck = row_count;
 
