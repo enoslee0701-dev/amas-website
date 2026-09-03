@@ -32,8 +32,11 @@ python -m http.server 8090 --bind 127.0.0.1 &     # 探针访问 http://127.0.0.
 | 文件 | 层 | 断言数 | 运行方式 |
 |---|---|---|---|
 | `portal2_acceptance.sql` | 数据库（生命周期 / HQ 门禁 / 学号 / 角色 / RLS） | 32 | `psql -f supabase/tests/portal2_acceptance.sql`，结束自动回滚 |
-| `portal2_http.mjs` | REST / RPC / Edge（P2-9 十项攻击） | 52 | `node supabase/tests/portal2_http.mjs` |
-| `portal2_ui.mjs` | 浏览器（守卫 / console / 移动端 / 真实空态） | 30 | 先起本地站点，再 `node supabase/tests/portal2_ui.mjs` |
+| `portal2_number_void.sql` | 数据库（学号状态模型 / 纯行政误录纠错 / 双人控制） | 19 | `psql -f supabase/tests/portal2_number_void.sql`，结束自动回滚 |
+| `portal2_http.mjs` | REST / RPC / Edge（P2-9 十项攻击 + 纠错双人流程） | 72 | `node supabase/tests/portal2_http.mjs` |
+| `portal2_ui.mjs` | 浏览器（守卫 / 真实 MFA / console / 移动端 / 真实空态） | 41 | 先起本地站点，再 `node supabase/tests/portal2_ui.mjs` |
+
+所有 `.mjs` 用例都自建种子账号、跑完自删，可重复运行，不依赖任何预先存在的数据。
 
 `0013` 改动了 PORTAL-1 与 PORTAL-2 共用的 RPC 上下文守卫，**改这块务必回归 PORTAL-1 两套用例**。
 

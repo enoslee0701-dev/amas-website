@@ -36,6 +36,7 @@ const E = {
   app:  `p2ui-app-${tag}@amas-test.dev`,   // 仅 applicant（越权测试）
 };
 const ids = {}, jwts = {};
+let regSecret = null;    // registrar 的 TOTP secret —— 浏览器里走真实 MFA 挑战页
 const GOOD = {
   name_zh: "界面测试学生", birth_ym: "1995-06", gender: "male", nationality: "中国",
   phone: "+86 13800000000", address: "广州市", church_name: "测试教会",
@@ -60,6 +61,7 @@ async function seed() {
   const ch = await (await fetch(`${ENV.URL}/auth/v1/factors/${enr.id}/challenge`, { method: "POST", headers: H(ENV.ANON, jwts.reg), body: "{}" })).json();
   const ver = await (await fetch(`${ENV.URL}/auth/v1/factors/${enr.id}/verify`, { method: "POST", headers: H(ENV.ANON, jwts.reg), body: JSON.stringify({ challenge_id: ch.id, code: totp(enr.totp.secret) }) })).json();
   const regAal2 = ver.access_token;
+  regSecret = enr.totp.secret;
 
   const enroll = async (who, num, activate) => {
     const c = await rest("/applications", jwts[who], { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ applicant_id: ids[who], pathway: "bth", status: "draft", form_data: GOOD }) });
@@ -284,6 +286,67 @@ try {
   rec("P2-U25", "AAL1 页面不渲染在册学生列表", !a1.text.includes("在册学生"), "");
   rec("P2-U26", "学籍管理页无 console 错误", aal1.errors.length === 0, aal1.errors.slice(0, 2).join(" ; ").slice(0, 150));
   await aal1.close();
+
+  // ============ 6. aal2 教务：走真实 MFA 挑战页，再看学籍管理与学号纠错界面 ============
+  // 已在第 5 节以 registrar 身份登录（aal1），此时访问受保护页会被导向 /portal/mfa/
+  const mfa = await open(browser, BASE + "/portal/mfa/?next=%2Fportal%2Fadmin%2Fstudents%2F", { wait: 3800 });
+  const hasChallenge = await mfa.eval(`!!document.getElementById("chCode") && !document.getElementById("cardChallenge").hidden`);
+  rec("P2-U27a", "已登记 TOTP 的教务看到验证码挑战页", hasChallenge === true, `challenge=${hasChallenge}`);
+
+  await mfa.eval(`(()=>{
+    const i = document.getElementById("chCode");
+    i.value = ${JSON.stringify(totp(regSecret))};
+    i.dispatchEvent(new Event("input", {bubbles:true}));
+    document.getElementById("chForm").requestSubmit();
+    return 1;
+  })()`);
+  await sleep(4500);
+  const aal = await mfa.eval(`(async()=>{
+    const s = await window.AmasAuth.getSession();
+    return s ? JSON.parse(atob(s.access_token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))).aal : "none";
+  })()`);
+  rec("P2-U27", "在浏览器完成真实 MFA 后取得 aal2", aal === "aal2", `aal=${aal}`);
+  rec("P2-U27b", "MFA 页面无 console 错误", mfa.errors.length === 0, mfa.errors.slice(0, 2).join(" ; ").slice(0, 150));
+  await mfa.close();
+
+  const mgr = await open(browser, BASE + "/portal/admin/students/", { wait: 4000 });
+  const g = JSON.parse(await mgr.eval(`JSON.stringify({
+    href: location.href,
+    tabs: [...document.querySelectorAll("[data-tab]")].map(b=>b.innerText),
+    overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+  })`));
+  rec("P2-U28", "aal2 教务可进入学籍管理", /portal\/admin\/students/.test(g.href), `href=${g.href.replace(BASE, "")}`);
+  rec("P2-U29", "学籍管理含「学号纠错」页签", g.tabs.includes("学号纠错"), `tabs=${g.tabs.join("/")}`);
+  rec("P2-U30", "学籍管理桌面无横向溢出", g.overflow <= 0, `overflow=${g.overflow}px`);
+
+  // 切到学号纠错：应显示双人控制说明（当前无待确认申请 → 真实空态）
+  await mgr.eval(`[...document.querySelectorAll("[data-tab]")].find(b=>b.innerText==="学号纠错").click()`);
+  await sleep(2200);
+  const vtxt = await mgr.eval(`document.body.innerText`);
+  rec("P2-U31", "纠错页签说明双人控制规则",
+    /发起人不能确认自己|另一人确认|两人之中必须有 super_admin|须由另一人确认/.test(vtxt), "");
+  rec("P2-U32", "无待确认申请时显示真实空态", /没有待确认的学号纠错/.test(vtxt), "");
+
+  // 在册学生页签：pre_enrolled 才给「申请纠正误录」，active 不给
+  await mgr.eval(`[...document.querySelectorAll("[data-tab]")].find(b=>b.innerText==="在册学生").click()`);
+  await sleep(2200);
+  const rowsInfo = JSON.parse(await mgr.eval(`(()=>{
+    const rows=[...document.querySelectorAll(".tbl tbody tr")].map(tr=>({
+      st: (tr.querySelector(".st")||{}).innerText || "",
+      acts: [...tr.querySelectorAll("button")].map(b=>b.innerText),
+    }));
+    return JSON.stringify(rows);
+  })()`));
+  const preRows = rowsInfo.filter(r => r.st.includes("待正式注册"));
+  const actRows = rowsInfo.filter(r => r.st.includes("在读"));
+  rec("P2-U33", "pre_enrolled 行提供「申请纠正误录」",
+    preRows.length > 0 && preRows.every(r => r.acts.some(a => a.includes("申请纠正误录"))),
+    `pre=${preRows.length}`);
+  rec("P2-U34", "active 行不提供误录纠正入口",
+    actRows.length > 0 && actRows.every(r => !r.acts.some(a => a.includes("申请纠正误录"))),
+    `active=${actRows.length}`);
+  rec("P2-U35", "学籍管理页无 console 错误", mgr.errors.length === 0, mgr.errors.slice(0, 2).join(" ; ").slice(0, 150));
+  await mgr.close();
 
 } catch (e) {
   rec("P2-UXX", "测试执行异常", false, String(e).slice(0, 250));

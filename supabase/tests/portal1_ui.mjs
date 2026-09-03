@@ -10,6 +10,16 @@ const BASE = "http://127.0.0.1:8090";
 // staging.env 只放在本机运行目录，绝不入库（见 supabase/tests/README.md）
 const ENV = Object.fromEntries(fs.readFileSync(process.env.AMAS_ENV || "staging.env", "utf8").trim().split("\n").map(l => l.split("=").map(s => s.trim())).map(([k, ...v]) => [k, v.join("=")]));
 
+// 测试自建账号、跑完自删：不依赖任何预先存在的数据，可重复运行
+const TAG = Date.now().toString(36);
+const UI_EMAIL = `p1ui-${TAG}@amas-test.dev`;
+const UI_PW = "P1Ui!2026x";
+let uiUserId = null;
+const svc = (p, o = {}) => fetch(`${ENV.URL}${p}`, {
+  ...o, headers: { apikey: ENV.SERVICE, Authorization: `Bearer ${ENV.SERVICE}`,
+                   "Content-Type": "application/json", ...(o.headers || {}) },
+});
+
 const results = [];
 const rec = (id, name, ok, detail = "") => {
   results.push({ id, name, ok, detail });
@@ -124,10 +134,16 @@ try {
   }
 
   // ============ 2. 登录申请人，跑真实闭环 UI ============
+  const seeded = await (await svc("/auth/v1/admin/users", { method: "POST", body: JSON.stringify({
+    email: UI_EMAIL, password: UI_PW, email_confirm: true,
+    user_metadata: { display_name: "UI 测试申请人" },
+  }) })).json();
+  uiUserId = seeded.id;
+
   const login = await open(browser, BASE + "/login/");
   await login.eval(`(async()=>{
     const c = window.supabase.createClient(${JSON.stringify(ENV.URL)}, ${JSON.stringify(ENV.ANON)});
-    const r = await c.auth.signInWithPassword({email:"p1-ui@amas-test.dev", password:"UiTest!2345"});
+    const r = await c.auth.signInWithPassword({email:${JSON.stringify(UI_EMAIL)}, password:${JSON.stringify(UI_PW)}});
     return r.error ? r.error.message : "ok";
   })()`).catch(() => null);
   const who = await login.eval(`(async()=>{const s=await window.AmasAuth.getSession();return s? s.user.email : "none";})()`);
@@ -207,6 +223,7 @@ try {
     await deny.close();
   }
 } finally {
+  if (uiUserId) await svc(`/auth/v1/admin/users/${uiUserId}`, { method: "DELETE" });
   browser.close();
   chrome.kill();
 }

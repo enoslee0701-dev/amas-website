@@ -275,8 +275,10 @@ begin
   if (select student_number_normalized from public.student_records where id = stu_id) <> 'AMAS-0009' then
     raise exception 'FAIL P2-D19 new number not applied';
   end if;
-  if (select released_at from public.student_number_registry where normalized = 'AMAS0001') is null then
-    raise exception 'FAIL P2-D19 old number not marked released';
+  -- 0015 状态模型：换号属 A 类（真实用过）→ 旧号 retired，永久占用；不是纠错
+  if not exists (select 1 from public.student_number_registry
+                  where normalized = 'AMAS0001' and state = 'retired' and retired_at is not null) then
+    raise exception 'FAIL P2-D19 old number not marked retired';
   end if;
   select count(*) into v_cnt from public.login_aliases
    where alias_normalized = 'AMAS0001' and revoked_at is not null;
@@ -290,13 +292,13 @@ begin
   raise notice 'PASS P2-D19 correction applies new number, retains old, syncs alias, audits both values';
 
   ------------------------------------------------------------
-  -- P2-D20 已释放的旧学号不得回收给他人（核心规则）
+  -- P2-D20 retired（真实使用过）的旧学号不得回收给他人（核心规则）
   ------------------------------------------------------------
   v := public.correct_student_number(stu2_id, adm, 'AMAS 0001', '试图回收旧号');
   if (v->>'ok')::boolean or v->>'error' <> 'student_number_taken' then
     raise exception 'FAIL P2-D20 released student number was reassigned: %', v;
   end if;
-  raise notice 'PASS P2-D20 released student number can never be reassigned';
+  raise notice 'PASS P2-D20 retired student number can never be reassigned';
 
   ------------------------------------------------------------
   -- P2-D21 student 角色撤销 → 学号别名同事务失权

@@ -29,9 +29,13 @@ const E = {
   reg: `p2-reg-${tag}@amas-test.dev`,    // registrar
   fin: `p2-fin-${tag}@amas-test.dev`,    // finance
   tch: `p2-tch-${tag}@amas-test.dev`,    // teacher
+  ap3: `p2-ap3-${tag}@amas-test.dev`,    // 学号被误录的申请人（纠错流程）
+  sup: `p2-sup-${tag}@amas-test.dev`,    // super_admin —— 纠错流程的第二人
+  reg2:`p2-reg2-${tag}@amas-test.dev`,   // 第二个 registrar —— 验证两名教务不足以释放学号
+  ap4: `p2-ap4-${tag}@amas-test.dev`,    // 真正应当拿到该学号的人
 };
 const ids = {}, jwts = {};
-let appId = null, app2Id = null, stuId = null, stu2Id = null, regAal2 = null;
+let appId = null, app2Id = null, stuId = null, stu2Id = null, regAal2 = null, supAal2 = null, reg2Aal2 = null;
 const NUM = `AMAS-${tag.toUpperCase()}-1`;
 const NUM2 = `AMAS-${tag.toUpperCase()}-2`;
 
@@ -50,6 +54,8 @@ try {
   for (const [k, email] of Object.entries(E)) ids[k] = (await mk(email)).id;
   const grant = (uid, role) => admin("/rest/v1/user_roles", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ user_id: uid, role, granted_by: uid }) });
   await grant(ids.reg, "registrar");
+  await grant(ids.sup, "super_admin");
+  await grant(ids.reg2, "registrar");
   await grant(ids.fin, "finance");
   await grant(ids.tch, "teacher");
   const sign = async (email) => (await fetch(`${URL_}/auth/v1/token?grant_type=password`, { method: "POST", headers: H(ANON), body: JSON.stringify({ email, password: PW }) })).json();
@@ -62,6 +68,17 @@ try {
   const ver = await (await fetch(`${URL_}/auth/v1/factors/${enr.id}/verify`, { method: "POST", headers: H(ANON, jwts.reg), body: JSON.stringify({ challenge_id: ch.id, code: totp(enr.totp.secret) }) })).json();
   regAal2 = ver.access_token;
   rec("P2-H01", "教务完成 MFA 取得 aal2", jwtPayload(regAal2).aal === "aal2");
+
+  const upgrade = async (who) => {
+    const e = await (await fetch(`${URL_}/auth/v1/factors`, { method: "POST", headers: H(ANON, jwts[who]), body: JSON.stringify({ factor_type: "totp", friendly_name: "P2" }) })).json();
+    const c = await (await fetch(`${URL_}/auth/v1/factors/${e.id}/challenge`, { method: "POST", headers: H(ANON, jwts[who]), body: "{}" })).json();
+    const vv = await (await fetch(`${URL_}/auth/v1/factors/${e.id}/verify`, { method: "POST", headers: H(ANON, jwts[who]), body: JSON.stringify({ challenge_id: c.id, code: totp(e.totp.secret) }) })).json();
+    return vv.access_token;
+  };
+  supAal2 = await upgrade("sup");
+  reg2Aal2 = await upgrade("reg2");
+  rec("P2-H01b", "super_admin 与第二教务均取得 aal2",
+    jwtPayload(supAal2).aal === "aal2" && jwtPayload(reg2Aal2).aal === "aal2");
 
   // 走真实招生闭环把两份申请推到 accepted
   const mkApp = async (who, pathway) => {
@@ -242,6 +259,94 @@ try {
   const auditAll = await (await rest(`/audit_logs?select=old_value,new_value,reason&limit=200&order=created_at.desc`, regAal2)).json();
   const leak = (auditAll || []).filter(a => /secret|otpauth|password/i.test(JSON.stringify(a)));
   rec("P2-H43", "审计中无 MFA secret / 口令等敏感值", leak.length === 0, `hits=${leak.length}`);
+
+  // ============ 7.5 学号纯行政误录纠错：双人控制（0015）============
+  // 第三名学生：建档时被"误录"成 VOID_WRONG，真正该拿这个号的是另一个人
+  const VOID_WRONG = `AMAS-${tag.toUpperCase()}-W`;
+  const VOID_RIGHT = `AMAS-${tag.toUpperCase()}-R`;
+  const app3Id = await mkApp("ap3", "bth");
+  await fn("student-lifecycle", regAal2, { action: "confirm_hq_approval", application_id: app3Id, hq_status: "approved", approval_reference: "HQ-V" });
+  const cre3 = await json(await fn("student-lifecycle", regAal2, { action: "create_student_record", application_id: app3Id, student_number: VOID_WRONG }));
+  const stu3Id = cre3?.student_id;
+  rec("P2-H47", "第三名学生建档（学号被误录）", cre3?.ok === true, JSON.stringify(cre3).slice(0, 60));
+
+  // 缺依据 / 缺原因
+  const noEv = await fn("student-lifecycle", regAal2, { action: "request_number_void", student_id: stu3Id, replacement_number: VOID_RIGHT, reason: "手误" });
+  rec("P2-H48", "纠错申请缺 HQ 依据被拒", noEv.status === 400, `status=${noEv.status}`);
+
+  // teacher / finance / applicant 不得发起
+  for (const [who, label] of [["ap", "学生"], ["fin", "财务"], ["tch", "教师"]]) {
+    const r = await fn("student-lifecycle", jwts[who], { action: "request_number_void", student_id: stu3Id, replacement_number: VOID_RIGHT, reason: "x", evidence_reference: "y" });
+    rec(`P2-H49-${who}`, `${label}不得发起学号纠错`, r.status === 403, `status=${r.status}`);
+  }
+
+  // registrar 发起
+  const vreq = await json(await fn("student-lifecycle", regAal2, { action: "request_number_void", student_id: stu3Id, replacement_number: VOID_RIGHT, reason: "总校实际分配为 R，录入手误", evidence_reference: "HQ-LETTER-2026-09" }));
+  rec("P2-H50", "registrar 可发起纠错申请", vreq?.ok === true && vreq?.status === "pending", JSON.stringify(vreq).slice(0, 70));
+  const vreqId = vreq?.request_id;
+
+  // 发起人自己确认 → 拒绝
+  const selfAppr = await json(await fn("student-lifecycle", regAal2, { action: "approve_number_void", request_id: vreqId }));
+  rec("P2-H51", "发起人不得确认自己的申请", selfAppr?.ok === false && selfAppr?.error === "same_actor_not_allowed", JSON.stringify(selfAppr).slice(0, 70));
+
+  // 另一名 registrar 确认 → 拒绝（两人之中必须有 super_admin）
+  const reg2Appr = await json(await fn("student-lifecycle", reg2Aal2, { action: "approve_number_void", request_id: vreqId }));
+  rec("P2-H52", "两名 registrar 不足以释放学号", reg2Appr?.ok === false && reg2Appr?.error === "super_admin_required", JSON.stringify(reg2Appr).slice(0, 70));
+
+  // 号码在确认前仍被占用：真正的持有人也拿不到（必须是"号被占"，不是别的原因）
+  const app4Id = await mkApp("ap4", "bth");
+  await fn("student-lifecycle", regAal2, { action: "confirm_hq_approval", application_id: app4Id, hq_status: "approved", approval_reference: "HQ-V4" });
+  const takenBefore = await json(await fn("student-lifecycle", regAal2, { action: "create_student_record", application_id: app4Id, student_number: VOID_WRONG }));
+  rec("P2-H53", "确认前误录号仍被占用",
+    takenBefore?.ok === false && takenBefore?.error === "student_number_taken", JSON.stringify(takenBefore).slice(0, 70));
+
+  // super_admin 确认
+  const appr = await json(await fn("student-lifecycle", supAal2, { action: "approve_number_void", request_id: vreqId, note: "已核对总校批文" }));
+  rec("P2-H54", "super_admin 确认后完成纠错",
+    appr?.ok === true && appr?.student_number === VOID_RIGHT && appr?.voided_number === VOID_WRONG,
+    JSON.stringify(appr).slice(0, 90));
+
+  // 重复确认
+  const reAppr = await json(await fn("student-lifecycle", supAal2, { action: "approve_number_void", request_id: vreqId }));
+  rec("P2-H55", "同一申请不得重复确认", reAppr?.ok === false && reAppr?.error === "invalid_state", JSON.stringify(reAppr).slice(0, 60));
+
+  // 学生看到的是新号
+  const stu3Now = await (await rest(`/student_records?select=student_number&id=eq.${stu3Id}`, regAal2)).json();
+  rec("P2-H56", "学籍记录已换成正确学号", stu3Now[0]?.student_number === VOID_RIGHT, `value=${stu3Now[0]?.student_number}`);
+
+  // 别名同步
+  const al3 = await (await admin(`/rest/v1/login_aliases?select=alias_normalized,revoked_at&user_id=eq.${ids.ap3}`)).json();
+  const activeAl = (al3 || []).filter(a => !a.revoked_at).map(a => a.alias_normalized);
+  rec("P2-H57", "登录别名同步换成新号",
+    activeAl.length === 1 && activeAl[0] === VOID_RIGHT.toUpperCase().replace(/\s+/g, ""),
+    `active=${activeAl.join(",")}`);
+
+  // 被 void 的号可以重新分配给真正的持有人
+  const reassign = await json(await fn("student-lifecycle", regAal2, { action: "create_student_record", application_id: app4Id, student_number: VOID_WRONG }));
+  rec("P2-H58", "voided_clerical_error 的号可重新分配给正确的人", reassign?.ok === true, JSON.stringify(reassign).slice(0, 70));
+
+  // 已 active 的学生不得申请纠错
+  const onActive = await json(await fn("student-lifecycle", regAal2, { action: "request_number_void", student_id: stuId, replacement_number: `AMAS-${tag.toUpperCase()}-Z`, reason: "想改", evidence_reference: "X" }));
+  rec("P2-H59", "已 active 学生不得申请纠错", onActive?.ok === false && onActive?.error === "student_not_pre_enrolled", JSON.stringify(onActive).slice(0, 70));
+
+  // 客户端不得直接写申请表 / registry
+  const patchReq = await rest(`/student_number_void_requests?id=eq.${vreqId}`, supAal2, { method: "PATCH", body: JSON.stringify({ status: "pending" }) });
+  rec("P2-H60", "super_admin 也不能直接 PATCH 纠错申请", patchReq.status >= 400, `status=${patchReq.status}`);
+  const patchReg = await rest(`/student_number_registry?normalized=eq.${encodeURIComponent(VOID_WRONG)}`, supAal2, { method: "PATCH", body: JSON.stringify({ state: "voided_clerical_error" }) });
+  rec("P2-H61", "super_admin 也不能直接 PATCH 学号登记簿", patchReg.status >= 400, `status=${patchReg.status}`);
+
+  // 审计
+  const vAudit = await (await rest(`/audit_logs?select=event_type,old_value,new_value,reason&target_id=eq.${stu3Id}&order=created_at`, supAal2)).json();
+  const ev = (vAudit || []).map(a => a.event_type);
+  const apprAudit = (vAudit || []).find(a => a.event_type === "student_number_void_approved");
+  rec("P2-H62", "纠错的发起与确认都写入审计",
+    ev.includes("student_number_void_requested") && ev.includes("student_number_void_approved"), `events=${ev.join(",")}`);
+  rec("P2-H63", "确认审计含前后值、发起人与依据",
+    apprAudit?.old_value?.student_number === VOID_WRONG &&
+    apprAudit?.new_value?.student_number === VOID_RIGHT &&
+    apprAudit?.new_value?.initiated_by === ids.reg &&
+    !!apprAudit?.new_value?.evidence && !!apprAudit?.reason,
+    JSON.stringify(apprAudit || {}).slice(0, 120));
 
   // ============ 8. 即时失权（P2-9 ⑩）============
   const roleRow = await (await admin(`/rest/v1/user_roles?select=id&user_id=eq.${ids.reg}&role=eq.registrar&revoked_at=is.null`)).json();

@@ -66,6 +66,7 @@
       '<button role="tab" data-tab="accepted" aria-selected="false">待总校确认</button>' +
       '<button role="tab" data-tab="queue" aria-selected="true">待建档</button>' +
       '<button role="tab" data-tab="students" aria-selected="false">在册学生</button>' +
+      '<button role="tab" data-tab="voids" aria-selected="false">学号纠错</button>' +
     '</div>' +
     '<div class="msg err" id="err" role="alert"></div>' +
     '<div id="panel"></div>';
@@ -88,6 +89,7 @@
     panel.innerHTML = UI.skeleton(4);
     if (tab === "accepted")  return renderAccepted();
     if (tab === "queue")     return renderQueue();
+    if (tab === "voids")     return renderVoids();
     return renderStudents();
   }
 
@@ -171,7 +173,9 @@
           '<td><span class="st ' + s.status + '">' + (ST[s.status] || s.status) + '</span></td>' +
           '<td><div class="acts2">' +
             (s.status === "pre_enrolled" ? '<button class="pri" data-activate="' + s.id + '">正式注册</button>' : "") +
-            '<button data-fixnum="' + s.id + '">更正学号</button>' +
+            '<button data-fixnum="' + s.id + '">换发学号</button>' +
+            (s.status === "pre_enrolled" && s.student_number
+              ? '<button data-void="' + s.id + '">申请纠正误录</button>' : "") +
           '</div></td></tr>';
       }).join("") + '</tbody></table></div></div>';
 
@@ -179,6 +183,8 @@
       b.addEventListener("click", () => doActivate(b.dataset.activate)));
     panel.querySelectorAll("[data-fixnum]").forEach(b =>
       b.addEventListener("click", () => promptFixNumber(b.dataset.fixnum)));
+    panel.querySelectorAll("[data-void]").forEach(b =>
+      b.addEventListener("click", () => promptVoid(b.dataset.void)));
   }
 
   // ---------- 服务端调用 ----------
@@ -194,6 +200,14 @@
         student_number_required: "请先录入学号，再执行正式注册。",
         invalid_state: "当前状态不允许该操作。",
         unchanged: "学号没有变化。",
+        student_not_pre_enrolled: "该学生已不是「待正式注册」状态，不能再按误录纠正。",
+        number_has_official_records: "该学号已产生正式记录，不能作为误录撤销；如需换号请用「换发学号」。",
+        replacement_number_taken: "正确学号已被占用，无法分配。",
+        request_already_pending: "该学生已有一份待确认的纠错申请。",
+        same_actor_not_allowed: "不能确认自己发起的申请，请由另一名管理员确认。",
+        super_admin_required: "两名管理员之中必须有 super_admin 才能完成纠错。",
+        number_changed_since_request: "学号在申请提交后已发生变化，请重新发起。",
+        no_current_number: "该学生尚未录入学号。",
       }[data.error] || data.error);
       return null;
     }
@@ -238,8 +252,10 @@
 
   function promptFixNumber(sid){
     modal({
-      title: "更正学号",
-      desc: "更正会记录前后值、操作者与原因，并同步更换学号登录别名；旧学号不会回收给其他人。",
+      title: "换发学号",
+      desc: "用于学号确实换发的情形：旧学号会记为 retired，作为历史身份标识**永久占用**，" +
+            "不会再分配给任何人。若是纯粹的录入手误（该号从未真正属于这名学生），" +
+            "请改用「申请纠正误录」，那条通道需要第二名管理员确认。",
       fields: [
         { id: "num", label: "新学号", required: true },
         { id: "reason", label: "更正原因", required: true },
@@ -258,6 +274,75 @@
     });
     if (!ok) return;
     await call({ action: "activate_student", student_id: sid, message: "学籍已正式生效" }, "已完成正式注册");
+  }
+
+  // ---------- 4. 学号纠错（双人控制）----------
+  function promptVoid(sid){
+    modal({
+      title: "申请纠正误录学号",
+      desc: "仅适用于纯行政误录：该学号从未真正属于这名学生（例如总校分配的是 A，录入时写成了 B）。" +
+            "提交后需要另一名管理员确认，且两人之中必须有 super_admin；同一人不能既发起又确认。" +
+            "确认后误录号会保留完整历史，但不再占用分配资格，可以给真正的持有人使用。",
+      fields: [
+        { id: "num", label: "正确学号（总校实际分配）", required: true },
+        { id: "reason", label: "纠错原因", required: true },
+        { id: "evidence", label: "HQ / 教务依据（批文号、邮件、会议纪要…）", required: true },
+      ],
+      actions: [{ label: "提交纠错申请", primary: true, run: (v) => call({
+        action: "request_number_void", student_id: sid,
+        replacement_number: v.num, reason: v.reason, evidence_reference: v.evidence,
+      }, "纠错申请已提交，等待第二名管理员确认") }],
+    });
+  }
+
+  async function renderVoids(){
+    const { data, error } = await Api.rpc("pending_number_void_requests");
+    if (error) return UI.error(panel, { message: error.message, onRetry: load });
+    if (!data || !data.length) {
+      return panel.innerHTML = UI.box("🔢", "没有待确认的学号纠错",
+        "纠错申请由 registrar 或 super_admin 发起，须由另一人确认后才生效。");
+    }
+    panel.innerHTML =
+      '<div class="msg info show" style="margin-bottom:14px">' +
+        '释放一个曾出现过的学号属于身份标识级操作，因此必须由两个人完成：' +
+        '发起人不能确认自己的申请，且两人之中必须有 super_admin。' +
+      '</div>' +
+      '<div class="card"><div class="scroller"><table class="tbl">' +
+      '<thead><tr><th>学生</th><th>误录 → 正确</th><th>依据</th><th>发起人</th><th>操作</th></tr></thead><tbody>' +
+      data.map(r =>
+        '<tr><td><b>' + UI.esc(r.display_name || "—") + '</b></td>' +
+        '<td class="num">' + UI.esc(r.wrong_original) + ' → ' + UI.esc(r.replacement_original) +
+          '<div class="who">' + UI.esc(r.reason) + '</div></td>' +
+        '<td>' + UI.esc(r.evidence_reference) + '</td>' +
+        '<td>' + UI.esc(r.initiator_name || "—") + '<div class="who">' +
+          new Date(r.initiated_at).toLocaleString("zh-CN") + '</div></td>' +
+        '<td><div class="acts2">' +
+          (r.can_i_approve
+            ? '<button class="pri" data-approve="' + r.id + '">确认纠正</button>'
+            : '<span class="who">你不能确认此申请<br>（发起人本人，或缺少 super_admin）</span>') +
+          '<button data-reject="' + r.id + '">驳回 / 撤回</button>' +
+        '</div></td></tr>'
+      ).join("") + '</tbody></table></div></div>';
+
+    panel.querySelectorAll("[data-approve]").forEach(b => b.addEventListener("click", async () => {
+      const ok = await UI.confirmDialog({
+        title: "确认纠正误录学号",
+        text: "确认后：误录号将保留历史但不再占用分配资格，学生换成正确学号，登录别名同步更换，全过程写入审计。",
+        confirmLabel: "确认纠正",
+      });
+      if (!ok) return;
+      await call({ action: "approve_number_void", request_id: b.dataset.approve }, "学号纠错已完成");
+    }));
+    panel.querySelectorAll("[data-reject]").forEach(b => b.addEventListener("click", () => {
+      modal({
+        title: "驳回 / 撤回纠错申请",
+        desc: "发起人可撤回自己的申请；其他管理员则记为驳回。两种结果都会写入审计。",
+        fields: [{ id: "note", label: "说明（可选）" }],
+        actions: [{ label: "提交", primary: true, run: (v) => call({
+          action: "reject_number_void", request_id: b.dataset.reject, note: v.note || null,
+        }, "已处理") }],
+      });
+    }));
   }
 
   /** 通用表单弹窗（焦点可达、Esc 关闭） */
