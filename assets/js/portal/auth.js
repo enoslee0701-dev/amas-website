@@ -117,8 +117,11 @@
 
   async function resetPassword(email) {
     if (!CONFIGURED) return { error: "not_configured" };
+    // D-AUTH-R2：canonical recovery route 统一为 /auth/recovery。
+    // 旧的 auth/callback/?type=recovery 仅在迁移期由兼容层识别，不再作为签发目标。
+    // production 的精确 allow list 见 docs/operations/AUTH-production-auth-config.md。
     const { error } = await client.auth.resetPasswordForEmail(String(email || "").trim().toLowerCase(), {
-      redirectTo: location.origin + ROOT + "auth/callback/?type=recovery",
+      redirectTo: location.origin + ROOT + "auth/recovery/",
     });
     if (error) return { error: "reset_failed" };
     return {};

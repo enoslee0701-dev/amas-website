@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>账号验证 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609031618">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609031627">
 </head>
 <body>
 <div class="wrap">
@@ -48,8 +48,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609031618"></script>
-<script src="../../assets/js/portal/auth.js?v=202609031618"></script>
+<script src="../../assets/js/supabase-config.js?v=202609031627"></script>
+<script src="../../assets/js/portal/auth.js?v=202609031627"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
@@ -66,6 +66,13 @@
   // supabase-js v2 会自动从 URL 中解析令牌并建立会话
   const hash = location.hash + location.search;
   const isRecovery = /type=recovery/.test(hash);
+  // D-AUTH-R2 迁移期兼容：旧地址仍可能出现在早前签发的邮件里。
+  // 识别到 recovery 就把凭据片段原样带到 canonical route /auth/recovery，
+  // 不在这里自行处理——避免出现第三种 recovery 实现。
+  if (isRecovery) {
+    const base = location.pathname.replace(/auth\/callback\/?$/, "auth/recovery/");
+    location.replace(base + location.search + location.hash);
+  }
   // 等待会话建立
   let session = null;
   for (let i = 0; i < 20 && !session; i++) { session = await A.getSession(); if (!session) await new Promise(r => setTimeout(r, 250)); }

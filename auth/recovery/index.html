@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>重设密码 | AMAS</title>
+<link rel="icon" href="../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../assets/css/portal.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="brandbar">
+    <img src="../../assets/img/school-seal.webp" alt="AMAS">
+    <h1>亚洲宣教神学院</h1>
+    <div class="en">ASIA MISSIONARY ASSOCIATION SEMINARY</div>
+  </div>
+
+  <div class="card" id="cardLoading">
+    <h2>正在验证恢复链接…</h2>
+    <p class="sub">请稍候。</p>
+  </div>
+
+  <div class="card" id="cardForm" hidden>
+    <h2>设置新密码</h2>
+    <p class="sub">设置完成后，你的旧密码将立即失效，其他设备上的登录状态也会结束。</p>
+    <form id="f" novalidate>
+      <div class="field">
+        <label for="pw1">新密码</label>
+        <input id="pw1" type="password" autocomplete="new-password" minlength="8"
+               placeholder="至少 8 位" required>
+        <div class="hint">只有你本人知道这个密码；AMAS 不会保存它的明文。</div>
+      </div>
+      <div class="field">
+        <label for="pw2">再输入一次</label>
+        <input id="pw2" type="password" autocomplete="new-password" minlength="8" required>
+      </div>
+      <button class="btn" id="btn" type="submit">保存新密码</button>
+      <div class="msg err" id="err" role="alert"></div>
+    </form>
+  </div>
+
+  <div class="card" id="cardDone" hidden>
+    <h2>密码已更新</h2>
+    <p class="sub">请用新密码重新登录。</p>
+    <a class="btn" href="../../login/">前往登录</a>
+  </div>
+
+  <div class="card" id="cardFail" hidden>
+    <h2>无法完成重设</h2>
+    <p class="sub" id="failMsg"></p>
+    <a class="btn ghost" href="../../forgot-password/">重新申请重设链接</a>
+  </div>
+
+  <div class="foot"><a href="../../index.html">返回官网</a></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../assets/js/supabase-config.js"></script>
+<script src="../../assets/js/portal/auth.js"></script>
+<script src="../../assets/js/portal/api.js"></script>
+<script>
+/* AMAS canonical recovery route（D-AUTH-R2）：/auth/recovery
+ *
+ * 统一状态机（Web 与 Android 共用同一套语义）：
+ *   Incoming callback
+ *   → route validation（必须是 recovery，不能"有 hash 就当 recovery"）
+ *   → Supabase credential validation（真正的认证在这里）
+ *   → recovery flow validation（start_recovery_flow，重复打开复用同一 flow）
+ *   → Set Password
+ *   → AMAS atomic finalize（Edge：pending→processing 原子 claim）
+ *   → completed → cleanup → 正常登录态
+ * 任何失败：fail closed，显示明确错误，不建立半完成状态、不跳任意 returnUrl。
+ *
+ * ★ 不接受任何 URL 里的跳转目标：成功后固定进入 AMAS 登录页，
+ *   不读取 next / returnTo / redirect 之类参数（防 open redirect）。
+ * ★ 不把 URL 中的 token 写进任何日志。
+ */
+(function () {
+  "use strict";
+  const A = window.AmasAuth, Api = window.AmasApi;
+  const $ = (id) => document.getElementById(id);
+  const show = (id) => {
+    ["cardLoading", "cardForm", "cardDone", "cardFail"].forEach(x => { $(x).hidden = x !== id; });
+  };
+  const bail = (msg) => { $("failMsg").textContent = msg; show("cardFail"); };
+
+  /** 清理 URL 上的凭据片段——不留在地址栏、历史记录与 referrer 里。 */
+  function scrubUrl() {
+    try { history.replaceState(null, "", location.pathname); } catch (e) { /* 忽略 */ }
+  }
+
+  if (!A || !A.CONFIGURED) { bail("门户系统尚未启用，无法处理密码重设。"); return; }
+
+  let flowId = null;
+
+  (async function main() {
+    // ---- route validation：必须是 recovery 类型 ----
+    const raw = (location.hash || "") + (location.search || "");
+    const isRecovery = /(^|[#&?])type=recovery(&|$)/.test(raw) || /access_token=/.test(raw);
+    if (!isRecovery) { scrubUrl(); bail("这个链接不是密码重设链接，或者参数已丢失。"); return; }
+
+    // ---- Supabase credential validation：真正的认证 ----
+    // supabase-js 会在加载时消费 URL 中的 recovery 凭据并建立 session。
+    let session = null;
+    for (let i = 0; i < 20 && !session; i++) {
+      session = await A.getSession();
+      if (!session) await new Promise(r => setTimeout(r, 200));
+    }
+    scrubUrl();                     // 无论成败，先把凭据从 URL 上抹掉
+    if (!session) {
+      bail("恢复链接无效或已过期。请重新申请一封重设邮件。");
+      return;
+    }
+
+    // ---- recovery flow validation：重复打开复用同一 flow（防双写）----
+    const { data: flow, error } = await Api.rpc("start_recovery_flow");
+    if (error || !flow || !flow.ok) {
+      bail("无法开始密码重设流程，请稍后重试。");
+      return;
+    }
+    flowId = flow.flow_id;
+    show("cardForm");
+    $("pw1").focus();
+  })();
+
+  $("f").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const err = $("err"), btn = $("btn");
+    err.classList.remove("show");
+
+    const p1 = $("pw1").value, p2 = $("pw2").value;
+    if (p1.length < 8) { err.textContent = "密码至少 8 位。"; err.classList.add("show"); return; }
+    if (p1 !== p2) { err.textContent = "两次输入的密码不一致。"; err.classList.add("show"); return; }
+
+    // 双击保护的第一道：立即禁用。真正的保护在服务端的原子 claim。
+    btn.disabled = true; btn.textContent = "正在保存…";
+
+    const { data, error } = await A.callFn("recovery-finalize", { flow_id: flowId, password: p1 });
+    // 表单里的明文不再需要，尽早清掉
+    $("pw1").value = ""; $("pw2").value = "";
+
+    if (error || !data || data.ok !== true) {
+      const code = (data && data.error) || (error && error.message) || "unknown";
+      const MSG = {
+        already_completed: "这个重设流程已经完成过了。请直接用新密码登录。",
+        already_processing: "上一次提交还在处理中，请稍候再试。",
+        flow_not_found: "重设流程已失效，请重新申请重设链接。",
+        flow_not_owned: "重设流程与当前账号不匹配。",
+        password_too_short: "密码至少 8 位。",
+        password_rejected: "这个密码不被接受，请换一个更强的密码。",
+        auth_update_failed: "保存失败，请稍后重试。",
+      };
+      if (code === "already_completed") { show("cardDone"); return; }
+      err.textContent = MSG[code] || "保存失败，请稍后重试。";
+      err.classList.add("show");
+      btn.disabled = false; btn.textContent = "保存新密码";
+      return;
+    }
+
+    // ---- cleanup：结束 recovery 态，回到正常登录流程 ----
+    try { await A.client.auth.signOut(); } catch (e2) { /* 忽略 */ }
+    show("cardDone");
+  });
+})();
+</script>
+</body>
+</html>
