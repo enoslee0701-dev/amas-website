@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>招生审核 | AMAS 管理后台</title>
+<link rel="icon" href="../../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../../assets/css/portal.css">
+<style>
+.qtable{width:100%;border-collapse:collapse;font-size:13px}
+.qtable th,.qtable td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:top}
+.qtable th{background:var(--wash);color:var(--navy);font-size:12.5px;position:sticky;top:0}
+.qtable tr.sel{background:#f4f8ff}
+.qwrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.filters select,.filters input{min-height:40px;padding:8px 10px;border:1.5px solid var(--line);border-radius:9px;font:inherit;background:#fff}
+.detail{position:fixed;right:0;top:0;bottom:0;width:min(560px,100%);background:#fff;border-left:1px solid var(--line);
+  box-shadow:-16px 0 50px rgba(16,32,56,.16);z-index:50;overflow-y:auto;padding:22px;display:none}
+.detail.open{display:block}
+.detail .ro{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13px}
+.detail .ro span{color:var(--muted);flex:0 0 34%}
+.detail .ro b{text-align:right}
+.dclose{position:absolute;right:16px;top:14px;border:0;background:none;font-size:22px;color:var(--muted);cursor:pointer;min-width:44px;min-height:44px}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.acts button{min-height:44px;padding:0 16px;border-radius:10px;border:1.5px solid var(--line);background:#fff;font:inherit;font-size:13.5px;cursor:pointer}
+.acts button:hover{border-color:var(--gold)}
+.acts button.pri{background:var(--navy);color:#fff;border-color:var(--navy)}
+.reqrow{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.reqrow input{flex:1 1 140px;min-height:40px;padding:8px 10px;border:1.5px solid var(--line);border-radius:9px;font:inherit}
+.reqrow select{flex:0 0 auto;min-height:40px;padding:8px 10px;border:1.5px solid var(--line);border-radius:9px;font:inherit;background:#fff}
+@media(max-width:640px){.reqrow input,.reqrow select{flex:1 1 100%}}
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../../assets/js/supabase-config.js"></script>
+<script src="../../../assets/js/portal/auth.js"></script>
+<script src="../../../assets/js/portal/api.js"></script>
+<script src="../../../assets/js/portal/ui.js"></script>
+<script src="../../../assets/js/portal/shell.js"></script>
+<script src="../../../assets/js/portal/application-form.js"></script>
+<script>
+(async function(){
+  const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
+  const mounted = await Shell.mount({
+    space: "admin", title: "管理后台",
+    allow: ["registrar","academic_admin","super_admin"],
+    requireAal2: true,                       // 角色 + MFA 双闸（服务端仍会再验）
+  });
+  if (!mounted) return;
+  const { main } = mounted;
+
+  const ST = { draft:"草稿", submitted:"待审核", under_review:"审核中",
+    needs_information:"待补充", accepted:"已录取", rejected:"已拒绝", withdrawn:"已撤回" };
+  const PW = { bth:"正式 B.Th 学籍", common_learning:"共同学习", undecided:"未选择" };
+  // 提交后锁定的字段 → 中文名（要求补件时可按条解锁，见 migration 0011）
+  const LOCK_LABEL = { name_zh:"中文姓名", birth_ym:"出生年月", gender:"性别", nationality:"国籍",
+    conversion_date:"初信日期", baptism_date:"受洗日期", programs:"申请项目" };
+
+  let rows = [], pcMap = {}, current = null;
+
+  main.innerHTML = `
+    <h1>招生审核</h1>
+    <p class="lead">审核决定由服务端事务执行并写入审计；<b>录取（accepted）不等于学籍建立</b>，学籍须经 AMAS 总校审核确认后另行建档。</p>
+    <div class="filters">
+      <select id="fSt">
+        <option value="">全部状态</option>
+        <option value="submitted">待审核</option>
+        <option value="under_review">审核中</option>
+        <option value="needs_information">待补充</option>
+        <option value="accepted">已录取</option>
+        <option value="rejected">已拒绝</option>
+        <option value="withdrawn">已撤回</option>
+        <option value="draft">草稿</option>
+      </select>
+      <select id="fPw">
+        <option value="">全部路径</option>
+        <option value="bth">正式 B.Th 学籍</option>
+        <option value="common_learning">共同学习</option>
+      </select>
+      <input id="fQ" placeholder="搜索姓名 / 教会" style="min-width:180px">
+      <button class="link" id="fReload">刷新</button>
+    </div>
+    <div id="list">${UI.skeleton(4)}</div>
+    <aside class="detail" id="detail" aria-label="申请详情" tabindex="-1"></aside>`;
+
+  const { data: pc } = await Api.select("program_catalog", { columns: "code,name_zh,short_label" });
+  pcMap = Object.fromEntries((pc || []).map(p => [p.code, p]));
+
+  document.getElementById("fReload").addEventListener("click", load);
+  ["fSt","fPw"].forEach(id => document.getElementById(id).addEventListener("change", renderList));
+  document.getElementById("fQ").addEventListener("input", renderList);
+
+  await load();
+
+  async function load(){
+    UI.loading("#list", 4);
+    const { data, error } = await Api.select("applications", {
+      columns: "id,applicant_id,pathway,status,form_data,locked_fields,submitted_at,decided_at,updated_at,applicant_visible_message",
+      order: { column: "submitted_at", asc: false }, limit: 300,
+    });
+    if (error) return UI.error("#list", { message: error.message, onRetry: load });
+    rows = data || [];
+    renderList();
+  }
+
+  function renderList(){
+    const st = document.getElementById("fSt").value;
+    const pw = document.getElementById("fPw").value;
+    const q = document.getElementById("fQ").value.trim().toLowerCase();
+    const list = rows.filter(r =>
+      (!st || r.status === st) && (!pw || r.pathway === pw) &&
+      (!q || JSON.stringify([r.form_data?.name_zh, r.form_data?.name_en, r.form_data?.church_name]).toLowerCase().includes(q)));
+
+    if (!list.length) return UI.empty("#list", { title: "没有符合条件的申请", text: "调整筛选条件后再试。" });
+
+    document.getElementById("list").innerHTML = `<div class="qwrap"><table class="qtable">
+      <thead><tr><th>申请人</th><th>项目 / 路径</th><th>状态</th><th>提交时间</th><th></th></tr></thead>
+      <tbody>${list.map(r => {
+        const d = r.form_data || {};
+        const p = Array.isArray(d.programs) ? pcMap[d.programs[0]] : null;
+        return `<tr data-id="${r.id}">
+          <td><b>${UI.esc(d.name_zh || "（未填姓名）")}</b><br><span style="color:var(--muted)">${UI.esc(d.church_name || "")}</span></td>
+          <td>${UI.esc(p ? p.name_zh : "—")}<br><span style="color:var(--muted)">${UI.esc(PW[r.pathway] || r.pathway)}</span></td>
+          <td><span class="st ${r.status}">${ST[r.status] || r.status}</span></td>
+          <td>${r.submitted_at ? new Date(r.submitted_at).toLocaleString("zh-CN",{hour12:false}) : "—"}</td>
+          <td><button class="link" data-open="${r.id}">查看</button></td>
+        </tr>`;
+      }).join("")}</tbody></table></div>`;
+
+    document.querySelectorAll("[data-open]").forEach(b =>
+      b.addEventListener("click", () => openDetail(b.dataset.open)));
+  }
+
+  async function openDetail(id){
+    current = rows.find(r => r.id === id);
+    if (!current) return;
+    const box = document.getElementById("detail");
+    box.classList.add("open");
+    box.innerHTML = UI.skeleton(6);
+
+    const [{ data: internal }, { data: reqs }, { data: hist }] = await Promise.all([
+      Api.select("application_internal", { columns: "notes,updated_at", eq: { application_id: id }, single: true }),
+      Api.select("application_requirements", { columns: "id,label,detail,field,resolved", eq: { application_id: id }, order: { column: "created_at", asc: true } }),
+      Api.select("application_status_history", { columns: "from_status,to_status,actor_role,applicant_visible_message,created_at", eq: { application_id: id }, order: { column: "created_at", asc: true } }),
+    ]);
+
+    const d = current.form_data || {};
+    const p = Array.isArray(d.programs) ? pcMap[d.programs[0]] : null;
+    const ro = (k, v) => v ? `<div class="ro"><span>${UI.esc(k)}</span><b>${UI.esc(v)}</b></div>` : "";
+    const rowsOf = (arr, cols) => (arr || []).map(r => cols.map(c => r[c]).filter(Boolean).join(" · ")).filter(Boolean).join("<br>");
+
+    const editable = ["submitted","under_review","needs_information"].includes(current.status);
+    box.innerHTML = `
+      <button class="dclose" id="dClose" aria-label="关闭">×</button>
+      <h2 style="font-size:18px;color:var(--navy);margin:0 0 4px">${UI.esc(d.name_zh || "申请详情")}</h2>
+      <div><span class="st ${current.status}">${ST[current.status] || current.status}</span></div>
+
+      ${editable ? `<div class="acts">
+        ${current.status === "submitted" ? `<button data-a="start_review">开始审核</button>` : ""}
+        <button data-a="needs_information">要求补充资料</button>
+        <button data-a="accept" class="pri">录取</button>
+        <button data-a="reject">拒绝</button>
+      </div>` : `<div class="msg info show" style="margin:12px 0">该申请已处于终态，不可再变更。</div>`}
+      <div class="msg err" id="dErr" role="alert"></div>
+
+      <h3 style="font-size:14.5px;color:var(--navy);margin:16px 0 6px">申请内容</h3>
+      ${ro("学习路径", PW[current.pathway] || current.pathway)}
+      ${ro("申请项目", p ? p.name_zh + (p.short_label ? "（" + p.short_label + "）" : "") : "")}
+      ${ro("中文姓名", d.name_zh)} ${ro("英文姓名", d.name_en)}
+      ${ro("性别", d.gender === "male" ? "男" : d.gender === "female" ? "女" : "")}
+      ${ro("出生年月", d.birth_ym)} ${ro("国籍", d.nationality)}
+      ${ro("使用语言", (d.languages || []).join("、"))}
+      ${ro("现居地址", d.address)} ${ro("手机", d.phone)} ${ro("固定电话", d.tel)}
+      ${ro("备用 Email/QQ", d.email_alt)} ${ro("微信/Line", d.im_contact)}
+      ${ro("教会名称", d.church_name)} ${ro("教会电话", d.church_phone)} ${ro("目前服事", d.church_role)}
+      ${ro("初信日期", d.conversion_date)} ${ro("受洗日期", d.baptism_date)}
+      ${ro("学历", rowsOf(d.education, ["school","city","start_ym","end_ym","degree"]))}
+      ${ro("事奉简历", rowsOf(d.experience, ["org","city","start_ym","end_ym","position"]))}
+      ${ro("性格", d.personality)} ${ro("恩赐", d.gifts)}
+      ${ro("异象/蒙召", d.calling)}
+      ${ro("介绍人", d.referrer)}
+      ${d.testimony ? `<h3 style="font-size:14.5px;color:var(--navy);margin:16px 0 6px">自我介绍与见证</h3>
+        <p style="font-size:13px;line-height:1.9;color:var(--ink);white-space:pre-wrap">${UI.esc(d.testimony)}</p>` : ""}
+
+      ${(reqs || []).length ? `<h3 style="font-size:14.5px;color:var(--navy);margin:16px 0 6px">补充资料要求</h3>
+        <ul style="padding-left:18px;font-size:13px">${reqs.map(r => `<li>${UI.esc(r.label)}${r.field ? `<span class="who">（已解锁：${UI.esc(LOCK_LABEL[r.field] || r.field)}）</span>` : ""}${r.resolved ? " ✓ 已完成" : " · 待完成"}</li>`).join("")}</ul>` : ""}
+
+      <h3 style="font-size:14.5px;color:var(--navy);margin:16px 0 6px">内部备注（仅管理员可见）</h3>
+      <p style="font-size:13px;color:var(--muted);white-space:pre-wrap">${UI.esc(internal?.notes || "（暂无）")}</p>
+
+      <h3 style="font-size:14.5px;color:var(--navy);margin:16px 0 6px">状态时间线</h3>
+      ${UI.timeline((hist || []).map(h => ({
+        title: (ST[h.to_status] || h.to_status) + (h.actor_role ? " · " + (h.actor_role === "admin" ? "教务" : "申请人") : ""),
+        time: new Date(h.created_at).toLocaleString("zh-CN",{hour12:false}),
+        text: h.applicant_visible_message || "",
+      })))}`;
+
+    document.getElementById("dClose").addEventListener("click", () => box.classList.remove("open"));
+    box.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => act(b.dataset.a)));
+    box.focus();
+  }
+
+  async function act(action){
+    const err = document.getElementById("dErr"); err.classList.remove("show");
+    let message = null, requirements = null, internal_note = null;
+
+    if (action === "needs_information") {
+      const r = await promptRequirements();
+      if (!r) return;
+      requirements = r.items; message = r.message; internal_note = r.note;
+    } else {
+      const labels = { start_review: "开始审核", accept: "录取", reject: "拒绝" };
+      const ok = await UI.confirmDialog({
+        title: labels[action],
+        text: action === "accept"
+          ? "录取仅表示分校层面的录取决定；学籍须经 AMAS 总校审核确认后由教务另行建档。确认执行？"
+          : `确认执行「${labels[action]}」？该操作会写入审计记录。`,
+        confirmLabel: "确认", danger: action === "reject",
+      });
+      if (!ok) return;
+      if (action !== "start_review") {
+        message = prompt("给申请人的说明（可留空）：") || null;
+        internal_note = prompt("内部备注（仅管理员可见，可留空）：") || null;
+      }
+    }
+
+    const { data, error } = await Api.fn("review-application", {
+      application_id: current.id, action, message, requirements, internal_note,
+    }, { requireAal2: true });
+
+    if (error) { err.textContent = error.message; err.classList.add("show"); return; }
+    UI.toast("已执行：" + action);
+    document.getElementById("detail").classList.remove("open");
+    await load();
+  }
+
+  /** 条目化补件输入（服务端要求至少一条） */
+  function promptRequirements(){
+    return new Promise((resolve) => {
+      const wrap = document.createElement("div");
+      wrap.className = "portal-modal";
+      wrap.innerHTML = `<div class="pm-backdrop"></div>
+        <div class="pm-card" role="dialog" aria-modal="true" aria-labelledby="rq-t" style="width:min(520px,calc(100% - 32px))">
+          <h3 id="rq-t">要求补充资料</h3>
+          <p>逐条列出需要申请人补充的内容，申请人须全部标记完成后才能重新提交。若需要申请人订正的是提交后已锁定的字段，请在该条选择「对应字段」，系统会仅为这一条解锁该字段。</p>
+          <div id="rqRows" style="margin:12px 0"></div>
+          <button class="link" id="rqAdd">+ 添加一条</button>
+          <div style="margin-top:12px"><label style="font-size:13px;font-weight:700;color:var(--navy)">给申请人的说明（可留空）</label>
+            <input id="rqMsg" style="width:100%;min-height:44px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font:inherit;margin-top:6px"></div>
+          <div style="margin-top:10px"><label style="font-size:13px;font-weight:700;color:var(--navy)">内部备注（仅管理员可见）</label>
+            <input id="rqNote" style="width:100%;min-height:44px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font:inherit;margin-top:6px"></div>
+          <div class="pm-acts">
+            <button class="btn ghost" id="rqCancel" style="width:auto;padding:0 20px">取消</button>
+            <button class="btn" id="rqOk" style="width:auto;padding:0 20px">发送要求</button>
+          </div>
+        </div>`;
+      document.body.appendChild(wrap);
+      const rowsBox = wrap.querySelector("#rqRows");
+      // 只有提交时锁定的字段才需要解锁；其余字段申请人本来就能改
+      const lockOpts = (current.locked_fields || [])
+        .map(f => `<option value="${UI.esc(f)}">${UI.esc(LOCK_LABEL[f] || f)}</option>`).join("");
+      const addRow = () => {
+        const div = document.createElement("div");
+        div.className = "reqrow";
+        div.innerHTML = `<input placeholder="需要补充什么（必填）" data-label><input placeholder="说明（可选）" data-detail>` +
+          (lockOpts ? `<select data-field aria-label="对应字段（可选，选择后解锁该锁定字段）"><option value="">不解锁字段</option>${lockOpts}</select>` : "");
+        rowsBox.appendChild(div);
+      };
+      addRow();
+      wrap.querySelector("#rqAdd").addEventListener("click", addRow);
+      const close = (v) => { wrap.remove(); resolve(v); };
+      wrap.querySelector("#rqCancel").addEventListener("click", () => close(null));
+      wrap.querySelector(".pm-backdrop").addEventListener("click", () => close(null));
+      wrap.querySelector("#rqOk").addEventListener("click", () => {
+        const items = [...rowsBox.querySelectorAll(".reqrow")].map(r => ({
+          label: r.querySelector("[data-label]").value.trim(),
+          detail: r.querySelector("[data-detail]").value.trim() || undefined,
+          field: (r.querySelector("[data-field]") || {}).value || undefined,
+        })).filter(x => x.label);
+        if (!items.length) { alert("请至少填写一条需要补充的内容。"); return; }
+        close({ items, message: wrap.querySelector("#rqMsg").value.trim() || null, note: wrap.querySelector("#rqNote").value.trim() || null });
+      });
+    });
+  }
+})();
+</script>
+</body>
+</html>

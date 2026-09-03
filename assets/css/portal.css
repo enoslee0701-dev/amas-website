@@ -27,6 +27,9 @@ body::before{content:"";position:fixed;inset:0;background:rgba(250,247,240,.86);
 .btn.ghost{background:#fff;color:var(--navy);border:1.5px solid var(--line)}
 .link{color:var(--navy2);cursor:pointer;text-decoration:none;background:none;border:0;font:inherit;font-size:13px}
 .link:hover{color:var(--gold)}
+.link:focus-visible{outline:2px solid var(--navy2);outline-offset:2px;border-radius:6px}
+/* 触控目标下限 40px（WCAG 2.5.8）。句子中的行内链接属该条款的 inline 例外，故排除 .notice 内的链接。 */
+:where(button.link, a.link):not(.notice .link){display:inline-flex;align-items:center;min-height:40px;padding:0 2px}
 .msg{display:none;margin-top:14px;padding:11px 14px;border-radius:10px;font-size:13px;line-height:1.7}
 .msg.show{display:block}
 .msg.err{background:#fdecec;border:1px solid #f2b8b5;color:var(--err)}

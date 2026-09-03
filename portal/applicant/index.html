@@ -6,56 +6,82 @@
 <meta name="robots" content="noindex">
 <title>申请者中心 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609031153">
+<link rel="stylesheet" href="../../assets/css/portal.css">
 </head>
 <body>
-<div class="wrap wide">
-  <div class="brandbar">
-    <img src="../../assets/img/school-seal.webp" alt="AMAS">
-    <h1>申请者中心</h1>
-    <div class="en">APPLICANT CENTER</div>
-  </div>
-
-  <div class="card">
-    <div class="pagehead">
-      <div><h2 style="margin:0">欢迎<span id="uname"></span> <span class="badge">申请者</span></h2>
-        <div class="who" id="uemail"></div></div>
-      <button class="link" id="btnOut">退出登录</button>
-    </div>
-
-    <div class="msg info show">
-      你现在是「申请者」账号：可以提交并跟进入学申请。正式学员身份将在教务审核录取并建档后开通（届时本中心会自动升级为学员中心）。
-    </div>
-
-    <h3 style="color:var(--navy);margin:20px 0 8px">下一步</h3>
-    <div class="spaces">
-      <a href="../../index.html#admissions"><span class="ic">📝</span><span><b>提交入学申请</b><span>选择正式 B.Th 或共同学习路径，填写在线申请</span></span></a>
-      <a href="../../discover.html"><span class="ic">🧭</span><span><b>3 分钟信仰成长快速探索</b><span>初步了解自己的学习起点（结果仅作参考）</span></span></a>
-      <a href="../../index.html#courses"><span class="ic">📚</span><span><b>浏览 67 门官方课程</b><span>七大类课程目录与培养项目</span></span></a>
-      <a href="../../help/"><span class="ic">💬</span><span><b>帮助中心</b><span>常见问题与联系招生同工</span></span></a>
-    </div>
-
-    <h3 style="color:var(--navy);margin:22px 0 8px">我的申请</h3>
-    <div class="msg info show" id="appStatus">申请进度跟踪将在下一阶段开通；目前提交的申请由招生同工通过邮件与你联系。</div>
-  </div>
-
-  <div class="foot"><a href="../../index.html">返回官网</a></div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609031153"></script>
-<script src="../../assets/js/portal/auth.js?v=202609031153"></script>
+<script src="../../assets/js/supabase-config.js"></script>
+<script src="../../assets/js/portal/auth.js"></script>
+<script src="../../assets/js/portal/api.js"></script>
+<script src="../../assets/js/portal/ui.js"></script>
+<script src="../../assets/js/portal/shell.js"></script>
 <script>
 (async function(){
-  const A = window.AmasAuth;
-  const ctx = await A.requireRole(["applicant","student","teacher","mentor","registrar","finance","content_admin","academic_admin","super_admin"]);
-  if (!ctx) return;
-  const p = await A.getProfile();
-  if (p) {
-    document.getElementById("uname").textContent = p.display_name ? "，" + p.display_name : "";
-    document.getElementById("uemail").textContent = p.email || "";
+  const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell;
+  const mounted = await Shell.mount({
+    space: "applicant", title: "申请者中心",
+    allow: ["applicant","student","registrar","academic_admin","super_admin"],
+  });
+  if (!mounted) return;
+  const { main, profile } = mounted;
+
+  const ST = {
+    draft:{t:"草稿",a:"继续填写",d:"申请尚未提交。"},
+    submitted:{t:"已提交",a:"查看申请",d:"已进入招生流程，等待教务查阅。"},
+    under_review:{t:"审核中",a:"查看申请",d:"招生同工正在审核。"},
+    needs_information:{t:"需补充资料",a:"立即补充",d:"有资料需要你补充后重新提交。"},
+    accepted:{t:"已录取",a:"查看结果",d:"录取不等于学籍建立；学籍须由 AMAS 总校审核确认后由教务建档。"},
+    rejected:{t:"未通过",a:"查看结果",d:""},
+  };
+
+  UI.loading(main, 4);
+  const [{ data: rows, error }, { data: pc }] = await Promise.all([
+    Api.rpc("my_application"),
+    Api.select("program_catalog", { columns: "code,name_zh,short_label", order: { column: "sort_order", asc: true } }),
+  ]);
+  if (error) return UI.error(main, { message: error.message, onRetry: () => location.reload() });
+  const app = rows && rows[0];
+  const pcMap = Object.fromEntries((pc || []).map(p => [p.code, p]));
+
+  let pending = 0;
+  if (app && app.status === "needs_information") {
+    const { data: rq } = await Api.select("application_requirements", {
+      columns: "id,resolved", eq: { application_id: app.id },
+    });
+    pending = (rq || []).filter(r => !r.resolved).length;
   }
-  document.getElementById("btnOut").addEventListener("click", () => A.signOut());
+
+  const name = profile && profile.display_name ? profile.display_name : "";
+  const s = app ? (ST[app.status] || { t: app.status, a: "查看申请", d: "" }) : null;
+  const code = app && app.form_data && Array.isArray(app.form_data.programs) ? app.form_data.programs[0] : null;
+  const prog = code ? pcMap[code] : null;
+
+  main.innerHTML =
+    "<h1>欢迎" + (name ? "，" + UI.esc(name) : "") + "</h1>" +
+    '<p class="lead">这里可以提交并跟进你的入学申请。正式学员身份将在教务建档后开通。</p>' +
+    (app ? `
+      <div class="card" style="margin-bottom:16px">
+        <div class="pagehead" style="margin:0">
+          <div>
+            <h2 style="margin:0;font-size:17px">当前申请 <span class="st ${app.status}">${s.t}</span></h2>
+            <div class="who" style="margin-top:6px">${UI.esc(s.d)}</div>
+            ${prog ? `<div class="who" style="margin-top:4px">申请项目：<b>${UI.esc(prog.name_zh)}</b>${prog.short_label ? "（" + UI.esc(prog.short_label) + "）" : ""}</div>` : ""}
+            ${pending ? `<div class="msg info show" style="margin-top:10px">有 <b>${pending}</b> 项资料需要补充。</div>` : ""}
+          </div>
+          <a class="btn" style="width:auto;padding:0 22px;margin:0" href="application/">${s.a}</a>
+        </div>
+      </div>` : `
+      <div class="card" style="margin-bottom:16px">
+        <h2 style="font-size:17px">开始你的入学申请</h2>
+        <p class="sub">正式申请包含基本资料、信仰与教会、学历经历、申请意向与个人见证；可随时保存草稿。</p>
+        <a class="btn" style="width:auto;padding:0 22px" href="application/">开始填写申请</a>
+      </div>`) +
+    '<h2 style="font-size:16px;color:var(--navy);margin:20px 0 10px">其他入口</h2>' +
+    '<div class="spaces">' +
+      '<a href="' + A.ROOT + 'discover.html"><span class="ic">🧭</span><span><b>3 分钟信仰成长快速探索</b><span>初步了解自己的学习起点（结果仅作参考）</span></span></a>' +
+      '<a href="' + A.ROOT + 'index.html#courses"><span class="ic">📚</span><span><b>浏览 67 门官方课程</b><span>七大类课程目录与培养项目</span></span></a>' +
+      '<a href="' + A.ROOT + 'help/"><span class="ic">💬</span><span><b>帮助中心</b><span>常见问题与联系招生同工</span></span></a>' +
+    '</div>';
 })();
 </script>
 </body>

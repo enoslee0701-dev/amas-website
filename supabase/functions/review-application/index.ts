@@ -43,7 +43,8 @@ Deno.serve(async (req) => {
 
   let body: {
     application_id?: string; action?: string; message?: string;
-    requirements?: Array<{ label: string; detail?: string }>; internal_note?: string;
+    // field 可选：填写后该表单字段在 needs_information 阶段解锁，供申请人修改（见 0011）
+    requirements?: Array<{ label: string; detail?: string; field?: string }>; internal_note?: string;
   };
   try { body = await req.json(); } catch { return fail(400, "bad_request"); }
   if (!body.application_id || !ACTIONS.includes(String(body.action))) return fail(400, "bad_request");
@@ -58,7 +59,7 @@ Deno.serve(async (req) => {
     p_reviewer: userData.user.id,
     p_action: body.action,
     p_message: body.message ?? null,
-    p_requirements: body.requirements ? JSON.stringify(body.requirements) : null,
+    p_requirements: body.requirements ?? null,
     p_internal_note: body.internal_note ?? null,
   });
 

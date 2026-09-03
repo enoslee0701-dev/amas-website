@@ -131,13 +131,35 @@ begin
   reset role;
   perform set_config('request.jwt.claims', null, true);
   v := public.review_application(app_id, adm, 'needs_information', '请补充受洗日期',
-        jsonb_build_array(jsonb_build_object('label','受洗日期','detail','请填写受洗年月')), '内部：材料不全');
+        jsonb_build_array(jsonb_build_object('label','受洗日期','detail','请填写受洗年月','field','baptism_date')), '内部：材料不全');
   if (select status from public.applications where id = app_id) <> 'needs_information' then
     raise exception 'FAIL P1-D10 status not needs_information';
   end if;
   select count(*) into v_cnt from public.application_requirements where application_id = app_id and resolved = false;
   if v_cnt <> 1 then raise exception 'FAIL P1-D10 requirement not created'; end if;
   raise notice 'PASS P1-D10 needs_information creates requirement item';
+
+  ------------------------------------------------------------
+  -- P1-D10b 被要求补充的字段精确解锁（其余仍锁定）· migration 0011
+  ------------------------------------------------------------
+  if exists (select 1 from public.applications a, unnest(a.locked_fields) x
+               where a.id = app_id and x = 'baptism_date') then
+    raise exception 'FAIL P1-D10b requested field still locked';
+  end if;
+  if not exists (select 1 from public.applications a, unnest(a.locked_fields) x
+               where a.id = app_id and x = 'name_zh') then
+    raise exception 'FAIL P1-D10b unrelated field was unlocked';
+  end if;
+  raise notice 'PASS P1-D10b requested field unlocked, others stay locked';
+
+  -- 申请人确实能改被解锁的字段
+  perform set_config('request.jwt.claims', json_build_object('sub', ap, 'role','authenticated')::text, true);
+  update public.applications set form_data = good || '{"baptism_date":"2016-05"}'::jsonb where id = app_id;
+  if (select form_data->>'baptism_date' from public.applications where id = app_id) <> '2016-05' then
+    raise exception 'FAIL P1-D10c unlocked field not writable by applicant';
+  end if;
+  raise notice 'PASS P1-D10c applicant can correct the unlocked field';
+  perform set_config('request.jwt.claims', null, true);
 
   ------------------------------------------------------------
   -- P1-D11 未完成补件不得重新提交
@@ -156,6 +178,13 @@ begin
   v := public.submit_application(app_id);
   if not (v->>'ok')::boolean then raise exception 'FAIL P1-D12 resubmit failed: %', v; end if;
   raise notice 'PASS P1-D12 resubmit after resolving requirements';
+
+  -- P1-D12b 重新提交后再次全量锁定
+  if not exists (select 1 from public.applications a, unnest(a.locked_fields) x
+               where a.id = app_id and x = 'baptism_date') then
+    raise exception 'FAIL P1-D12b field not re-locked after resubmit';
+  end if;
+  raise notice 'PASS P1-D12b fields re-locked on resubmit';
 
   ------------------------------------------------------------
   -- P1-D13 录取 + 审计 + 时间线

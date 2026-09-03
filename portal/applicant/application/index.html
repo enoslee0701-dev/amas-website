@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>我的申请 | AMAS 申请者中心</title>
+<link rel="icon" href="../../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../../assets/css/portal.css">
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../../assets/js/supabase-config.js"></script>
+<script src="../../../assets/js/portal/auth.js"></script>
+<script src="../../../assets/js/portal/api.js"></script>
+<script src="../../../assets/js/portal/ui.js"></script>
+<script src="../../../assets/js/portal/shell.js"></script>
+<script src="../../../assets/js/portal/application-form.js"></script>
+<script>
+(async function(){
+  const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
+  const mounted = await Shell.mount({
+    space: "applicant", title: "申请者中心",
+    allow: ["applicant","student","registrar","academic_admin","super_admin"],
+  });
+  if (!mounted) return;
+  const { main, ctx } = mounted;
+  const uid = ctx.session.user.id;
+
+  const ST = {
+    draft:{t:"草稿",d:"尚未提交，可继续填写。"},
+    submitted:{t:"已提交",d:"已进入招生流程，等待教务查阅。"},
+    under_review:{t:"审核中",d:"招生同工正在审核你的申请。"},
+    needs_information:{t:"需补充资料",d:"请按下方要求补充后重新提交。"},
+    accepted:{t:"已录取",d:"录取不等于学籍建立；学籍须由 AMAS 总校审核确认后由教务建档。"},
+    rejected:{t:"未通过",d:"如有疑问请联系招生同工。"},
+    withdrawn:{t:"已撤回",d:"此申请已撤回。"},
+  };
+  const EDITABLE = ["draft","needs_information"];
+
+  let app = null, programs = [], reqs = [], dirty = false, saveTimer = null, step = 0;
+
+  // ---------- 载入 ----------
+  UI.loading(main, 4);
+  const [{ data: appRows, error: appErr }, { data: pcRows }] = await Promise.all([
+    Api.rpc("my_application"),
+    Api.select("program_catalog", { columns: "code,name_zh,short_label,category,intake_note_zh,is_open_for_application", order: { column: "sort_order", asc: true } }),
+  ]);
+  if (appErr) return UI.error(main, { message: appErr.message, onRetry: () => location.reload() });
+  programs = (pcRows || []).filter(p => p.is_open_for_application);
+  app = (appRows && appRows[0]) || null;
+
+  if (!app) return renderStart();
+  await loadRequirements();
+  render();
+
+  async function loadRequirements(){
+    if (!app) return;
+    const { data } = await Api.select("application_requirements", {
+      columns: "id,label,detail,resolved,created_at", eq: { application_id: app.id },
+      order: { column: "created_at", asc: true },
+    });
+    reqs = data || [];
+  }
+
+  // ---------- 尚无申请 ----------
+  function renderStart(){
+    UI.empty(main, {
+      title: "还没有正式申请",
+      text: "正式入学申请包含基本资料、信仰与教会、学历经历、申请意向与个人见证；可随时保存草稿，稍后继续。",
+      actions: [{ id: "new", label: "开始填写正式申请" }],
+      handlers: { new: createDraft },
+    });
+  }
+
+  async function createDraft(){
+    const qs = Object.fromEntries(new URLSearchParams(location.search));
+    const form = F.prefillFromQuickApply(qs);
+    const { data, error } = await Api.insert("applications", {
+      applicant_id: uid, pathway: "undecided", status: "draft", form_data: form,
+    });
+    if (error) return UI.toast(error.message, "err");
+    const { data: rows } = await Api.rpc("my_application");
+    app = rows && rows[0];
+    reqs = [];
+    render();
+    UI.toast("草稿已创建，内容会自动保存");
+  }
+
+  // ---------- 渲染 ----------
+  function render(){
+    const editable = EDITABLE.includes(app.status);
+    const locked = new Set(app.locked_fields || []);
+    const s = ST[app.status] || { t: app.status, d: "" };
+
+    main.innerHTML = `
+      <h1>我的申请</h1>
+      <p class="lead">正式入学申请 · 表单版本 ${UI.esc(app.form_version)}</p>
+
+      <div class="card" style="margin-bottom:18px">
+        <div class="pagehead" style="margin:0">
+          <div>
+            <span class="st ${app.status}">${s.t}</span>
+            <div class="who" style="margin-top:6px">${UI.esc(s.d)}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="who" id="saveState">${editable ? "自动保存已开启" : "已锁定，不可编辑"}</div>
+            ${editable ? `<button class="link" id="btnWithdraw" style="margin-top:6px">撤回申请</button>` : ""}
+          </div>
+        </div>
+        ${app.applicant_visible_message ? `<div class="msg info show" style="margin-top:12px"><b>招生同工留言：</b>${UI.esc(app.applicant_visible_message)}</div>` : ""}
+      </div>
+
+      ${reqs.length ? renderRequirements() : ""}
+
+      ${editable ? `
+        <div class="steps" role="tablist" id="stepBar"></div>
+        <form id="appForm" class="card" novalidate></form>
+        <div class="card" style="margin-top:14px">
+          <div class="row">
+            <button class="link" id="btnPrev">← 上一步</button>
+            <button class="link" id="btnNext">下一步 →</button>
+          </div>
+          <button class="btn" id="btnSubmit" type="button">提交申请</button>
+          <div class="msg err" id="subErr" role="alert"></div>
+          <div class="hint">提交后，姓名、出生年月、性别、国籍、初信/受洗日期与申请项目将被锁定；其余字段仍可修改。</div>
+        </div>` : `<div class="card">${renderReadonly(locked)}</div>`}
+
+      <div class="card" style="margin-top:18px">
+        <h2 style="font-size:16px">状态时间线</h2>
+        <div id="tl">${UI.skeleton(2)}</div>
+      </div>`;
+
+    if (editable) { buildSteps(); bindEditor(); }
+    document.getElementById("btnWithdraw")?.addEventListener("click", withdraw);
+    loadTimeline();
+  }
+
+  function renderRequirements(){
+    const items = reqs.map(r => `
+      <li class="rq${r.resolved ? " done" : ""}">
+        <label>
+          <input type="checkbox" data-req="${r.id}" ${r.resolved ? "checked disabled" : ""}>
+          <span><b>${UI.esc(r.label)}</b>${r.detail ? `<em>${UI.esc(r.detail)}</em>` : ""}</span>
+        </label>
+      </li>`).join("");
+    const pending = reqs.filter(r => !r.resolved).length;
+    return `<div class="card" style="margin-bottom:18px;border-left:4px solid var(--gold)">
+      <h2 style="font-size:16px">需要补充的资料（未完成 ${pending} 项）</h2>
+      <p class="sub">补充完成后勾选，全部完成才能重新提交。</p>
+      <ul class="rqlist">${items}</ul>
+    </div>`;
+  }
+
+  function renderReadonly(locked){
+    const rows = [];
+    for (const st of F.STEPS) for (const f of st.fields) {
+      if (f.name.startsWith("__")) continue;
+      const v = app.form_data[f.name];
+      if (v === undefined || v === "" || (Array.isArray(v) && !v.length)) continue;
+      let text;
+      if (f.type === "rows") text = (v || []).map(r => Object.values(r).filter(Boolean).join(" · ")).join("；");
+      else if (Array.isArray(v)) text = v.join("、");
+      else if (typeof v === "boolean") text = v ? "已确认" : "未确认";
+      else text = String(v);
+      if (f.name === "programs") {
+        const p = programs.find(x => x.code === v[0]);
+        text = p ? `${p.name_zh}（${p.short_label}）` : text;
+      }
+      rows.push(`<div class="ro"><span>${UI.esc(f.label)}</span><b>${UI.esc(text)}</b>${locked.has(f.name) ? '<i class="lockmark">已锁定</i>' : ""}</div>`);
+    }
+    const pw = F.PATHWAYS.find(p => p.value === app.pathway);
+    rows.unshift(`<div class="ro"><span>学习路径</span><b>${UI.esc(pw ? pw.label : app.pathway)}</b></div>`);
+    return `<h2 style="font-size:16px">申请内容</h2>${rows.join("")}`;
+  }
+
+  // ---------- 分步编辑 ----------
+  function buildSteps(){
+    const bar = document.getElementById("stepBar");
+    bar.innerHTML = F.STEPS.map((s, i) =>
+      `<button type="button" role="tab" data-step="${i}" class="${i === step ? "on" : ""}" aria-selected="${i === step}">${UI.esc(s.title)}</button>`).join("");
+    bar.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { step = +b.dataset.step; buildSteps(); renderStep(); }));
+    renderStep();
+  }
+
+  function renderStep(){
+    const st = F.STEPS[step];
+    const locked = new Set(app.locked_fields || []);
+    const form = document.getElementById("appForm");
+    form.innerHTML = `<h2 style="font-size:16px">${UI.esc(st.title)}</h2>` +
+      (st.note ? `<p class="sub">${UI.esc(st.note)}</p>` : "") +
+      `<div class="fgrid">${st.fields.map(f => fieldHtml(f, locked)).join("")}</div>`;
+    bindFieldEvents();
+  }
+
+  function fieldHtml(f, locked){
+    const isLocked = locked.has(f.name);
+    const v = f.name === "__pathway" ? app.pathway : app.form_data[f.name];
+    const dis = isLocked ? "disabled" : "";
+    const req = f.required ? ' <span aria-hidden="true" style="color:var(--err)">*</span>' : "";
+    const lab = `<label for="fd-${f.name}">${UI.esc(f.label)}${req}${isLocked ? '<i class="lockmark">提交后锁定</i>' : ""}</label>`;
+    const hint = f.hint ? `<div class="fhint">${UI.esc(f.hint)}</div>` : "";
+    let ctl = "";
+
+    if (f.type === "select") {
+      ctl = `<select id="fd-${f.name}" data-f="${f.name}" ${dis}><option value="">请选择</option>` +
+        f.options.map(([val, txt]) => `<option value="${val}"${v === val ? " selected" : ""}>${UI.esc(txt)}</option>`).join("") + `</select>`;
+    } else if (f.type === "checkboxes") {
+      const arr = Array.isArray(v) ? v : [];
+      ctl = `<div class="cbs" data-f="${f.name}">` + f.options.map(([val, txt]) =>
+        `<label class="cb"><input type="checkbox" value="${val}" ${arr.includes(val) ? "checked" : ""} ${dis}><span>${UI.esc(txt)}</span></label>`).join("") + `</div>`;
+    } else if (f.type === "checkbox") {
+      ctl = `<label class="cb"><input type="checkbox" id="fd-${f.name}" data-f="${f.name}" ${v ? "checked" : ""} ${dis}><span>${UI.esc(f.label)}</span></label>`;
+      return `<div class="full">${ctl}${hint}</div>`;
+    } else if (f.type === "textarea") {
+      ctl = `<textarea id="fd-${f.name}" data-f="${f.name}" maxlength="${f.max || 2000}" ${dis}>${UI.esc(v || "")}</textarea>`;
+    } else if (f.type === "program") {
+      const cur = Array.isArray(v) ? v[0] : "";
+      ctl = `<select id="fd-programs" data-f="programs" ${dis}><option value="">请选择一个项目</option>` +
+        programs.map(p => `<option value="${p.code}"${cur === p.code ? " selected" : ""}>${UI.esc(p.name_zh)}${p.short_label ? "（" + UI.esc(p.short_label) + "）" : ""}</option>`).join("") +
+        `</select><div class="fhint">一份申请对应一个主项目；如需申请其他项目，请在本申请结束后另行提交。</div>`;
+    } else if (f.type === "pathway") {
+      ctl = `<div class="cbs" data-f="__pathway">` + F.PATHWAYS.map(p =>
+        `<label class="cb"><input type="radio" name="pathway" value="${p.value}" ${app.pathway === p.value ? "checked" : ""} ${dis}>
+          <span><b>${UI.esc(p.label)}</b><em>${UI.esc(p.hint)}</em></span></label>`).join("") + `</div>`;
+    } else if (f.type === "rows") {
+      const rows = Array.isArray(v) ? v : [];
+      ctl = `<div class="rowsets" data-f="${f.name}">` +
+        rows.map((r, i) => rowsetHtml(f, r, i, isLocked)).join("") +
+        `</div>${isLocked ? "" : `<button type="button" class="btn ghost" data-addrow="${f.name}" style="width:auto;padding:0 18px;margin-top:8px">+ 添加一行</button>`}`;
+    } else {
+      ctl = `<input id="fd-${f.name}" data-f="${f.name}" type="${f.type === "month" ? "month" : f.type || "text"}" maxlength="${f.max || 200}" value="${UI.esc(v || "")}" ${dis}>`;
+    }
+    return `<div class="${f.full ? "full" : ""}">${lab}${ctl}${hint}</div>`;
+  }
+
+  function rowsetHtml(f, r, i, locked){
+    return `<div class="rowset" data-i="${i}">
+      <div class="rowset-head"><b>第 ${i + 1} 项</b>${locked ? "" : `<button type="button" class="link" data-delrow="${f.name}:${i}">删除</button>`}</div>
+      <div class="fgrid">${f.columns.map(([k, lbl]) =>
+        `<div><label>${UI.esc(lbl)}</label><input data-row="${f.name}:${i}:${k}" value="${UI.esc(r[k] || "")}" ${locked ? "disabled" : ""}></div>`).join("")}</div>
+    </div>`;
+  }
+
+  function bindFieldEvents(){
+    const form = document.getElementById("appForm");
+    form.querySelectorAll("[data-f]").forEach(el => {
+      const name = el.dataset.f;
+      if (el.classList.contains("cbs")) {
+        el.querySelectorAll("input").forEach(i => i.addEventListener("change", () => {
+          if (name === "__pathway") { app.pathway = el.querySelector("input:checked")?.value || "undecided"; }
+          else { app.form_data[name] = [...el.querySelectorAll("input:checked")].map(x => x.value); }
+          touch();
+        }));
+      } else {
+        el.addEventListener("input", () => {
+          app.form_data[name] = el.type === "checkbox" ? el.checked
+            : (name === "programs" ? (el.value ? [el.value] : []) : el.value);
+          touch();
+        });
+        el.addEventListener("change", () => {
+          app.form_data[name] = el.type === "checkbox" ? el.checked
+            : (name === "programs" ? (el.value ? [el.value] : []) : el.value);
+          touch();
+        });
+      }
+    });
+    form.querySelectorAll("[data-row]").forEach(el => el.addEventListener("input", () => {
+      const [fname, idx, key] = el.dataset.row.split(":");
+      app.form_data[fname] = app.form_data[fname] || [];
+      app.form_data[fname][+idx] = app.form_data[fname][+idx] || {};
+      app.form_data[fname][+idx][key] = el.value;
+      touch();
+    }));
+    form.querySelectorAll("[data-addrow]").forEach(b => b.addEventListener("click", () => {
+      const n = b.dataset.addrow;
+      app.form_data[n] = (app.form_data[n] || []).concat([{}]);
+      touch(); renderStep();
+    }));
+    form.querySelectorAll("[data-delrow]").forEach(b => b.addEventListener("click", () => {
+      const [n, i] = b.dataset.delrow.split(":");
+      app.form_data[n].splice(+i, 1); touch(); renderStep();
+    }));
+    document.querySelectorAll("[data-req]").forEach(cb => cb.addEventListener("change", async () => {
+      const { error } = await Api.rpc("resolve_requirement", { p_req: cb.dataset.req });
+      if (error) { cb.checked = false; return UI.toast(error.message, "err"); }
+      await loadRequirements(); render();
+      UI.toast("已标记完成");
+    }));
+  }
+
+  function bindEditor(){
+    document.getElementById("btnPrev").addEventListener("click", () => { if (step > 0) { step--; buildSteps(); } });
+    document.getElementById("btnNext").addEventListener("click", () => { if (step < F.STEPS.length - 1) { step++; buildSteps(); } });
+    document.getElementById("btnSubmit").addEventListener("click", submit);
+    UI.formGuard(() => dirty);
+  }
+
+  // ---------- 自动保存 ----------
+  function touch(){
+    dirty = true;
+    setSaveState("正在编辑…");
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(save, 800);
+  }
+  function setSaveState(t){ const e = document.getElementById("saveState"); if (e) e.textContent = t; }
+
+  async function save(){
+    if (!EDITABLE.includes(app.status)) return;
+    const { error } = await Api.update("applications", { id: app.id },
+      { form_data: app.form_data, pathway: app.pathway });
+    if (error) { setSaveState("保存失败：" + error.message); return; }
+    dirty = false;
+    setSaveState("已保存 " + new Date().toLocaleTimeString("zh-CN", { hour12: false }));
+  }
+
+  // ---------- 提交 / 撤回 ----------
+  async function submit(){
+    const err = document.getElementById("subErr"); err.classList.remove("show");
+    clearTimeout(saveTimer); await save();
+    const btn = document.getElementById("btnSubmit");
+    btn.disabled = true; btn.textContent = "提交中…";
+    const { data, error } = await Api.rpc("submit_application", { p_app: app.id });
+    btn.disabled = false; btn.textContent = "提交申请";
+    if (error) { err.textContent = error.message; err.classList.add("show"); return; }
+    if (!data.ok) {
+      if (data.error === "validation_failed") {
+        const names = {}; F.STEPS.forEach(s => s.fields.forEach(f => names[f.name] = f.label));
+        names.pathway = "学习路径";
+        err.innerHTML = "请完成以下必填项：<b>" + (data.missing || []).map(m => UI.esc(names[m] || m)).join("、") + "</b>";
+      } else if (data.error === "requirements_pending") {
+        err.textContent = `还有 ${data.count} 项补充资料未标记完成。`;
+      } else err.textContent = "提交未成功，请检查后重试。";
+      err.classList.add("show");
+      return;
+    }
+    UI.toast("申请已提交");
+    const { data: rows } = await Api.rpc("my_application");
+    app = rows && rows[0]; dirty = false; await loadRequirements(); render();
+  }
+
+  async function withdraw(){
+    if (!await UI.confirmDialog({ title: "撤回申请", text: "撤回后该申请将结束，如需再次申请须重新填写。", confirmLabel: "确认撤回", danger: true })) return;
+    const { error } = await Api.rpc("withdraw_application", { p_app: app.id, p_reason: null });
+    if (error) return UI.toast(error.message, "err");
+    UI.toast("申请已撤回");
+    const { data: rows } = await Api.rpc("my_application");
+    app = (rows && rows[0]) || null;
+    app ? render() : renderStart();
+  }
+
+  // ---------- 时间线 ----------
+  async function loadTimeline(){
+    const { data, error } = await Api.rpc("my_application_timeline", { p_app: app.id });
+    const box = document.getElementById("tl");
+    if (!box) return;
+    if (error) return UI.render(box, UI.box("⚠️", "时间线载入失败", error.message));
+    box.innerHTML = UI.timeline((data || []).map(h => ({
+      title: (ST[h.to_status] || {}).t || h.to_status,
+      time: new Date(h.created_at).toLocaleString("zh-CN", { hour12: false }),
+      text: h.applicant_visible_message || "",
+    })));
+  }
+})();
+</script>
+<style>
+.ro{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+.ro span{color:var(--muted);flex:0 0 34%}
+.ro b{text-align:right;color:var(--ink);font-weight:600}
+.cbs{display:grid;gap:8px}
+.cb{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;cursor:pointer;font-size:13.5px;min-height:44px}
+.cb input{margin-top:3px;width:18px;height:18px}
+.cb em{display:block;font-style:normal;font-size:12px;color:var(--muted);margin-top:2px}
+.rqlist{list-style:none;padding:0;margin:10px 0 0}
+.rq{padding:10px 0;border-bottom:1px dashed var(--line)}
+.rq label{display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:13.5px}
+.rq input{margin-top:3px;width:18px;height:18px}
+.rq em{display:block;font-style:normal;font-size:12.5px;color:var(--muted);margin-top:2px}
+.rq.done b{text-decoration:line-through;color:var(--muted)}
+</style>
+</body>
+</html>
