@@ -192,3 +192,45 @@ rebase 已共享主分支、或整体 revert 混合提交。改为补一份 prov
 （范例：App 仓库 `docs/operations/AUTH-M2-M3-provenance.md`），逐文件说明归属、
 给出精确的 AUTH-only diff 范围与逐路径回滚步骤，并**显式列出不得随之回滚的他方文件**。
 可追溯性从"提交信息"转移到"显式清单"，在工程上等价且更安全。
+
+---
+
+## R-10｜缺失作者 ≠ system author
+
+> 任何历史内容在身份主体消失后，如业务要求保留，应使用 tombstone / deleted identity 语义，
+> 而不是重新赋予一个虚构所有者。
+
+**来源**：2026-09-03 AUTH-M6。迁移中发现 2 条 `prayer_shares` 的作者账号已不存在。
+把它们挂到 `system`、super_admin、房间管理员或任何其他用户，都会**凭空制造一个
+从未写过这条内容的"作者"**——那不是保留历史，是伪造历史。
+
+### 正确语义
+
+```sql
+user_id      -> NULL                  -- 当前没有可登录的 owner
+author_state -> 'deleted_account'     -- 明确说明为什么没有
+```
+
+内容、`created_at`、room / audience / visibility 边界一律保持不变，
+**不得因迁移扩大可见范围**。
+
+### 配套要求
+
+1. **不建 fake system user** 来承接这类记录
+2. 前端显示「已注销用户」，**不显示「匿名用户」**——后者是作者主动选择匿名，
+   把系统状态显示成匿名等于冒充用户的主动选择
+3. 普通用户不得 claim 该内容；管理员不得把它重新绑定给其他人物
+4. 原身份 UUID 存入**受限的 migration/audit artifact**（供回滚与审计），
+   不进入普通前端读模型
+5. orphan 扫描应把经过明确 tombstone 处理的记录归类为 **resolved orphan**，
+   不再计为 migration blocker
+
+### 检查归属判断是否对 NULL 安全
+
+改成可空之前，先确认既有比较不会误判：
+`row.user_id === me.id` 在 NULL 时为 `false`（无人拥有，正确）；
+`row.user_id !== me.id` 在 NULL 时为 `true`（普通用户无法 claim，正确）。
+若代码里存在 `!row.user_id || ...` 之类的短路，则必须显式处理，否则会变成"人人可 claim"。
+
+> 本条只解决身份迁移中的归属问题。完整的 Account Deletion / Content Retention
+> 政策属另一件事，未经批准不得借此顺手制定。
