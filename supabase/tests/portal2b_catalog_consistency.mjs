@@ -77,11 +77,10 @@ rec("C07", "官网课程卡恰好 67 张", cards.length === 67, `count=${cards.l
 
 const appTitles = new Set(app.map(a => a.title));
 const siteOnly = cards.map(c => c.title).filter(t => !appTitles.has(t));
-// 已知并已上报的命名漂移：官网「世界观理解」↔ 权威源「世界观」（学习数据审计 §1 / D-2B-2）
-const KNOWN_DRIFT = new Set(["世界观理解"]);
-const unexpected = siteOnly.filter(t => !KNOWN_DRIFT.has(t));
-rec("C08", "官网课程与权威源无未申报的差异", unexpected.length === 0,
-  `unexpected=${unexpected.join(" / ")} known=${siteOnly.filter(t => KNOWN_DRIFT.has(t)).join(" / ") || "—"}`);
+// D-2B-2 已拍板：canonical 名称为「世界观」，官网的「世界观理解」是漂移、已修复。
+// 因此这里不再保留任何例外——今后官网与权威源的任何差异都直接失败。
+rec("C08", "官网课程名称与权威源完全一致（无例外）", siteOnly.length === 0,
+  `drift=${siteOnly.join(" / ") || "—"}`);
 
 // ---- 8. 分类计数 ----
 const catCount = (mirror || []).reduce((a, m) => (a[m.category] = (a[m.category] || 0) + 1, a), {});
