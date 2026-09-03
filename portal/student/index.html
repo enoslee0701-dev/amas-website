@@ -22,6 +22,10 @@
 .mod h3{font-size:15px;color:var(--navy);margin:0 0 8px}
 .mod .none{color:var(--muted);font-size:13.5px;line-height:1.7}
 .mod .none b{color:var(--navy2)}
+.act{padding:10px 0;border-bottom:1px solid var(--line)}
+.act:last-child{border-bottom:0;padding-bottom:0}
+.act>b{color:var(--navy);font-size:14px}
+.act .none{margin:4px 0 2px}
 @media(max-width:640px){.idcard{padding:18px}.idrow{gap:12px 20px}}
 </style>
 </head>
@@ -50,11 +54,15 @@
   };
 
   UI.loading(main, 4);
-  const [{ data: recRows, error }, { data: tl }, { data: pc }] = await Promise.all([
-    Api.rpc("my_student_record"),
-    Api.rpc("my_student_timeline"),
-    Api.select("program_catalog", { columns: "code,name_zh,short_label" }),
-  ]);
+  const [{ data: recRows, error }, { data: tl }, { data: pc }, { data: acts }, { data: cap }, { data: learn }] =
+    await Promise.all([
+      Api.rpc("my_student_record"),
+      Api.rpc("my_student_timeline"),
+      Api.select("program_catalog", { columns: "code,name_zh,short_label" }),
+      Api.rpc("my_action_items"),
+      Api.rpc("my_student_capabilities"),
+      Api.rpc("my_learning"),
+    ]);
   if (error) return UI.error(main, { message: error.message, onRetry: () => location.reload() });
 
   const rec = recRows && recRows[0];
@@ -74,11 +82,30 @@
 
   const s = ST[rec.status] || { t: rec.status, d: "" };
   const isActive = rec.status === "active";
+  const learnCount = (learn || []).length;
+  const learnOpen = (learn || []).filter(c => c.availability === "available").length;
 
-  // 当前提醒：完全由真实学籍状态推导，没有待办就说"没有"
-  const todo = isActive
-    ? '<p class="none">目前没有需要你处理的事项。课程注册与教务安排开通后会显示在这里。</p>'
-    : '<p class="none">等待教务完成<b>正式注册</b>。这一步由 AMAS 教务处执行，无需你操作；如长时间未更新，可联系教务同工。</p>';
+  // 当前行动（2B-6）：后台可以有很多推荐，首页最多 1 个学习 + 1 个实践 + 1 个反馈。
+  // 每条都来自 my_action_items() 的真实派生结果，带 source_type / reason / target_url，
+  // 不存在"你有 3 个任务"这种点进去什么都没有的假通知。
+  const SLOT = { christian_profile: "learning", student_record: "practice", profile: "feedback" };
+  const picked = {};
+  for (const a of (acts || [])) {
+    const slot = SLOT[a.source_type] || "feedback";
+    if (!picked[slot]) picked[slot] = a;
+  }
+  const actionItems = ["learning", "practice", "feedback"].map(k => picked[k]).filter(Boolean);
+  const STATUS = { open: "待处理", waiting: "等待教务" };
+  const todo = actionItems.length
+    ? actionItems.map(a =>
+        '<div class="act">' +
+          '<b>' + UI.esc(a.title) + '</b>' +
+          '<span class="badge">' + UI.esc(STATUS[a.status] || a.status) + '</span>' +
+          '<div class="none">' + UI.esc(a.reason) + '</div>' +
+          (a.status === "waiting" ? "" :
+            '<a class="link" href="' + A.ROOT + UI.esc(a.target_url) + '">去处理 →</a>') +
+        '</div>').join("")
+    : '<p class="none">目前没有需要你处理的事项。</p>';
 
   main.innerHTML =
     '<h1>学员中心</h1>' +
@@ -102,19 +129,28 @@
 
     // ---------- 模块区 ----------
     '<div class="mods">' +
-      '<div class="card mod"><h3>当前提醒</h3>' + todo + '</div>' +
+      '<div class="card mod"><h3>当前行动</h3>' + todo + '</div>' +
 
       '<div class="card mod"><h3>我的学习</h3>' +
-        '<p class="none">当前尚无已注册课程。课程注册与教务安排开通后将在这里显示。</p>' +
-        '<a class="link" href="' + A.ROOT + 'index.html#courses">浏览 67 门官方课程目录 →</a></div>' +
+        // 「正在学习」「已完成」只有存在真实数据源时才出现——当前门户读不到学习进度，
+        // 因此如实说明它在哪里，而不是渲染一个空的进度条。
+        '<p class="none">AMAS 正式课程共 <b>' + learnCount + '</b> 门，其中 <b>' + learnOpen +
+          '</b> 门已有线上学习内容。</p>' +
+        '<p class="none">课程学习与进度目前保存在「AMAS 神学院」App 中，门户暂未接入，' +
+          '因此这里不显示学习进度。</p>' +
+        '<a class="link" href="' + A.ROOT + 'portal/student/courses/">查看课程目录 →</a></div>' +
 
       '<div class="card mod"><h3>学习记录</h3>' +
-        '<p class="none">尚无学习记录。出勤、作业与成绩由教务系统在正式开课后写入。</p></div>' +
+        '<p class="none">门户尚未接入学习记录。出勤、作业与成绩等正式记录，' +
+          '须待相应教务规则批准后才会建立。</p></div>' +
 
       '<div class="card mod"><h3>信仰成长档案</h3>' +
-        '<p class="none">成长画像与评估结果保存在「AMAS 神学院」App 中。你可以先做 3 分钟快速探索，' +
-        '初步了解自己的学习起点（结果仅作参考，不构成评定）。</p>' +
-        '<a class="link" href="' + A.ROOT + 'discover.html">开始快速探索 →</a></div>' +
+        // 门户当前读不到 CP 数据（两套身份未打通），因此不显示 Top 3 / 倾向指数 /
+        // 证据强度——没有数据就不假装有，只给真实入口。
+        '<p class="none">你还没有建立信仰成长档案。完成评估后可以看到自己的成长画像与学习建议；' +
+        '评估在「AMAS 神学院」App 中进行。</p>' +
+        '<p class="none">也可以先做 3 分钟快速探索，初步了解学习起点（结果仅作参考，不构成评定）。</p>' +
+        '<a class="link" href="' + A.ROOT + 'discover.html">建立你的信仰成长档案 →</a></div>' +
     '</div>' +
 
     // ---------- 最近活动：真实的学籍状态历史 ----------

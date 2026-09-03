@@ -93,9 +93,9 @@ begin
 `is_assigned_teacher` / `is_enrolled_student` / `is_assigned_mentor` 在正式关系表
 建立前恒返回 `false`。**禁止**为了让某个页面"先能看到数据"而临时改成 `true`。
 
-同理，`student_number_has_irreversible_records`（`0015`）是纠错流程的安全闸门：
-**今后任何产生不可逆正式记录的表（成绩、学分认定、证书签发、收据）
-都必须在该函数内登记**，否则纠错流程会漏判，把已产生正式效力的学号错误释放。
+同理，`student_number_has_irreversible_records`（`0015`，`0018` 起改为遍历登记表）
+是纠错流程的安全闸门：任何产生不可逆正式记录的表都必须登记——
+具体强制流程见 **R-8**。
 
 ---
 
@@ -118,3 +118,37 @@ begin
 - `credits = null` 显示为"不显示学分信息"，**不显示 0、不推算、不生成进度百分比**
 - 无 enrollment 时显示空态，**不创建空 enrollment 记录**
 - 不建立点进去空无一物的页面；宁可先不放导航入口
+
+---
+
+## R-8｜新增正式业务记录必须回答"是否构成学号的不可逆记录"
+
+**这是 migration checklist 的强制项，不是建议。**
+
+凡新增以下任一类型的记录模型，migration 必须**同时**在
+`public.irreversible_record_sources` 中登记，并回答"它是否构成 student number 的
+irreversible record"：
+
+`grade` · `earned_credit` · `transcript` · `certificate` ·
+`financial_receipt` · `graduation_record` · `official enrollment record`
+
+- 答 **yes**：必须同时提供 `check_sql`（接受 normalized 学号、返回 boolean），
+  闸门 `student_number_has_irreversible_records()` 会自动把它纳入判断。
+- 答 **no**：也要登记，并写明理由。
+- 答 **pending_decision**：闸门**一律 fail closed**（返回 true），
+  宁可拒绝一次合法纠错，也不能把已产生正式效力的学号错误释放。
+
+**来源**：0015 的学号纠错闸门原本把检查逻辑写死在函数里，靠一句注释提醒后人来改。
+安全机制不能靠开发者记得——一旦有人新建 grades 表却忘了扩展闸门，纠错会静默漏判。
+`0018` 把它改为遍历登记表动态求值。
+
+### 自动化守卫
+
+`supabase/tests/portal2b_irreversible_guard.sql` 会扫描 public schema 中名字像正式
+业务记录的表（grade/credit/transcript/certificate/receipt/payment/graduation/enrollment），
+**任何一张未登记就直接失败**，并打印该建哪条登记。已验证该守卫确实会响
+（造一张未登记的 `student_grades` 表，守卫立即捕获）。
+
+每次新增 migration 后都要跑这条测试。
+
+---

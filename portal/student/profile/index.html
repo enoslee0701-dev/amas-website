@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>我的资料 | AMAS</title>
+<link rel="icon" href="../../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../../assets/css/portal.css">
+<style>
+.sec{margin-bottom:18px}
+.sec h2{font-size:16px;color:var(--navy);margin:0 0 4px}
+.sec .note{font-size:12.5px;color:var(--muted);margin:0 0 12px}
+.lock{display:inline-flex;align-items:center;gap:4px;background:var(--wash);border:1px solid var(--line);
+  border-radius:99px;padding:1px 9px;font-size:11px;color:var(--muted);margin-left:8px;white-space:nowrap}
+.ro{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+  padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
+.ro:last-child{border-bottom:0}
+.ro>span{color:var(--muted);font-size:13px;flex:0 0 auto}
+.ro>b{color:var(--navy);text-align:right;word-break:break-all;font-variant-numeric:tabular-nums}
+.fld{margin-bottom:14px}
+.fld label{display:block;font-size:13px;font-weight:700;color:var(--navy);margin-bottom:6px}
+.fld input{width:100%;min-height:46px;padding:11px 13px;border:1.5px solid var(--line);border-radius:10px;font:inherit}
+.fld input:focus{outline:none;border-color:var(--navy2);box-shadow:0 0 0 3px rgba(23,63,112,.12)}
+.fld .h{font-size:12px;color:var(--muted);margin-top:5px}
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../../assets/js/supabase-config.js"></script>
+<script src="../../../assets/js/portal/auth.js"></script>
+<script src="../../../assets/js/portal/api.js"></script>
+<script src="../../../assets/js/portal/ui.js"></script>
+<script src="../../../assets/js/portal/shell.js"></script>
+<script>
+/* PORTAL-2B 学生资料页（2B-1）
+   Single Person Model：人物主数据在 profiles，学籍数据在 student_records，
+   本页不复制第二份姓名/邮箱/生日。
+   本人可维护字段与教务维护字段严格分区，后者在 UI 上明确标注「由教务维护」；
+   真正的门禁在服务端——update_my_contact 的函数签名本身就是字段白名单。 */
+(async function(){
+  const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell;
+  const mounted = await Shell.mount({ space: "student", title: "我的资料", allow: ["student"] });
+  if (!mounted) return;
+  const { main } = mounted;
+
+  const ST = { pre_enrolled: "待正式注册", active: "在读" };
+  const PW = { bth: "正式 B.Th 学籍", common_learning: "共同学习", undecided: "未选择" };
+  const HQ = { approved: "总校已确认", pending: "待确认", rejected: "总校未通过" };
+
+  UI.loading(main, 4);
+  const [{ data: prof, error }, { data: pc }] = await Promise.all([
+    Api.rpc("my_student_profile"),
+    Api.select("program_catalog", { columns: "code,name_zh,short_label" }),
+  ]);
+  if (error) return UI.error(main, { message: error.message, onRetry: () => location.reload() });
+
+  const self = (prof && prof.self_editable) || {};
+  const reg = (prof && prof.registrar_managed) || {};
+  const pcMap = Object.fromEntries((pc || []).map(p => [p.code, p]));
+  const prog = reg.program_code ? pcMap[reg.program_code] : null;
+  const hq = reg.hq_approval;
+  const d = (v) => v ? new Date(v).toLocaleDateString("zh-CN") : "—";
+  const ro = (k, v) => `<div class="ro"><span>${UI.esc(k)}</span><b>${UI.esc(v || "—")}</b></div>`;
+
+  main.innerHTML =
+    '<h1>我的资料</h1>' +
+    '<p class="lead">联系方式可以自行维护；学号、学籍状态与修读项目由 AMAS 教务处维护，如有出入请联系教务同工。</p>' +
+
+    '<div class="card sec">' +
+      '<h2>我可以修改的资料</h2>' +
+      '<p class="note">这些信息用于教务与你联系，请保持可用。</p>' +
+      '<form id="f" novalidate>' +
+        '<div class="fld"><label for="nm">姓名</label>' +
+          '<input id="nm" value="' + UI.esc(self.display_name || "") + '" maxlength="60">' +
+          '<div class="h">用于门户显示。正式学籍姓名以入学申请与总校记录为准。</div></div>' +
+        '<div class="fld"><label for="ph">联系电话</label>' +
+          '<input id="ph" value="' + UI.esc(self.phone || "") + '" maxlength="40" inputmode="tel">' +
+          '<div class="h">教务需要时会通过这个号码联系你。</div></div>' +
+        '<div class="fld"><label for="ct">备用联系方式</label>' +
+          '<input id="ct" value="' + UI.esc(self.contact_note || "") + '" maxlength="120">' +
+          '<div class="h">微信 / Line / 备用邮箱等，可留空。</div></div>' +
+        '<button class="btn" id="save" type="submit" style="width:auto;padding:0 26px">保存</button>' +
+        '<div class="msg err" id="err" role="alert"></div>' +
+      '</form>' +
+    '</div>' +
+
+    '<div class="card sec">' +
+      '<h2>学籍资料<span class="lock">🔒 由教务维护</span></h2>' +
+      '<p class="note">以下内容由 AMAS 教务处按总校记录维护，学生无法自行修改。如发现错误，请联系教务同工更正。</p>' +
+      ro("登录邮箱", reg.email) +
+      ro("学号", reg.student_number || "待教务录入") +
+      ro("学籍状态", ST[reg.status] || (prof.has_student_record ? reg.status : "尚无学籍记录")) +
+      ro("修读项目", prog ? prog.name_zh + (prog.short_label ? "（" + prog.short_label + "）" : "") : "—") +
+      ro("学习路径", PW[reg.pathway] || "—") +
+      ro("学籍建立时间", d(reg.created_at)) +
+      (reg.activated_at ? ro("正式注册时间", d(reg.activated_at)) : "") +
+    '</div>' +
+
+    (hq ? '<div class="card sec">' +
+      '<h2>AMAS 总校审核<span class="lock">🔒 由教务维护</span></h2>' +
+      '<p class="note">学籍建立以总校审核确认为前提。这里只显示结论摘要。</p>' +
+      ro("审核结论", HQ[hq.status] || hq.status) +
+      ro("确认时间", d(hq.confirmed_at)) +
+      (hq.reference ? ro("批文编号", hq.reference) : "") +
+      (hq.note ? ro("说明", hq.note) : "") +
+    '</div>' : "");
+
+  const err = document.getElementById("err");
+  document.getElementById("f").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    err.classList.remove("show");
+    const btn = document.getElementById("save");
+    btn.disabled = true;
+    const { error: e2 } = await Api.rpc("update_my_contact", {
+      p_display_name: document.getElementById("nm").value.trim() || null,
+      p_phone: document.getElementById("ph").value.trim(),
+      p_contact_note: document.getElementById("ct").value.trim(),
+    });
+    btn.disabled = false;
+    if (e2) { err.textContent = e2.message; err.classList.add("show"); return; }
+    UI.toast("资料已保存");
+  });
+})();
+</script>
+</body>
+</html>

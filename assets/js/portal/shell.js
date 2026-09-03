@@ -14,10 +14,13 @@
       { href: "portal/applicant/profile/", icon: "👤", label: "个人资料" },
       { href: "help/", icon: "💬", label: "帮助" },
     ],
-    // PORTAL-2 V1 只上线学员首页：课程/记录/成长尚无已批准的业务规则与真实数据，
-    // 先不放导航项——宁可少一个入口，也不做点进去空无一物的假页面。
+    // 只放确实存在且有真实内容的页面。学习进度/成长档案尚无可读数据源
+    // （见 docs/operations/PORTAL-learning-data-audit.md），因此不设这两个入口——
+    // 宁可少一个入口，也不做点进去空无一物的假页面。
     student: [
       { href: "portal/student/", icon: "🏠", label: "首页" },
+      { href: "portal/student/courses/", icon: "📚", label: "课程目录" },
+      { href: "portal/student/profile/", icon: "👤", label: "我的资料" },
       { href: "help/", icon: "💬", label: "帮助" },
     ],
     teacher: [

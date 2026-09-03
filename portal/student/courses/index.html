@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>课程目录 | AMAS</title>
+<link rel="icon" href="../../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../../assets/css/portal.css">
+<style>
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
+.filters button{min-height:40px;padding:0 14px;border:1.5px solid var(--line);border-radius:999px;
+  background:#fff;font:inherit;font-size:13.5px;cursor:pointer;color:var(--ink)}
+.filters button[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700}
+.clist{display:grid;gap:10px}
+.citem{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;
+  background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.citem b{display:block;font-size:15px;color:var(--navy)}
+.citem .meta{font-size:12.5px;color:var(--muted);margin-top:3px}
+.citem .why{font-size:12.5px;color:#7a5a12;margin-top:6px;line-height:1.6}
+.tag{flex:0 0 auto;font-size:11.5px;font-weight:700;padding:3px 11px;border-radius:99px;white-space:nowrap}
+.tag.available{background:#e9f3ee;color:var(--ok)}
+.tag.in_development{background:#fdf4e3;color:#7a5a12}
+.counts{font-size:13px;color:var(--muted);margin:0 0 14px}
+@media(max-width:560px){.citem{flex-direction:column;gap:8px}.tag{align-self:flex-start}}
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../../assets/js/supabase-config.js"></script>
+<script src="../../../assets/js/portal/auth.js"></script>
+<script src="../../../assets/js/portal/api.js"></script>
+<script src="../../../assets/js/portal/ui.js"></script>
+<script src="../../../assets/js/portal/shell.js"></script>
+<script>
+/* PORTAL-2B 课程目录（2B-2 / 2B-4）
+   三个概念严格分离：
+     列入 67 门正式目录  ≠  学生已注册  ≠  课程内容当前可学
+   本页只表达第 1 与第 3 项；「已注册」在当前系统内没有任何数据源，因此不表达（审计 §4）。
+   credits 为 null 时显示"不显示学分信息"，绝不显示 0、不合计、不生成学分进度。
+   内容未开放的课程给出真实说明，不做空播放器、不做假课程页。 */
+(async function(){
+  const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell;
+  const mounted = await Shell.mount({ space: "student", title: "课程目录", allow: ["student"] });
+  if (!mounted) return;
+  const { main } = mounted;
+
+  const CAT = {
+    nt: "新约书卷", ot: "旧约书卷", bible_basics: "圣经基础与研经", theology: "神学与思想",
+    practical: "实践神学与牧养", history: "历史与文化", language: "语言与工具",
+  };
+  const LVL = { bth: "B.Th", mdiv: "M.Div", dmin: "D.Min" };
+
+  UI.loading(main, 5);
+  const [{ data: rows, error }, { data: cap }] = await Promise.all([
+    Api.rpc("my_learning"),
+    Api.rpc("my_student_capabilities"),
+  ]);
+  if (error) return UI.error(main, { message: error.message, onRetry: () => location.reload() });
+
+  const list = rows || [];
+  const open = list.filter(c => c.availability === "available").length;
+  const pending = list.length - open;
+  let filter = "all";
+
+  main.innerHTML =
+    '<h1>课程目录</h1>' +
+    '<p class="lead">AMAS 正式课程共 ' + list.length + ' 门，分七大类。' +
+      '列入目录表示这门课属于学院的正式课程，与「你是否已注册」「现在能否学习」是三件不同的事。</p>' +
+    '<p class="counts">当前 <b>' + open + '</b> 门已有线上学习内容，<b>' + pending + '</b> 门内容筹备中。</p>' +
+    '<div class="filters" id="ft"></div>' +
+    '<div id="list"></div>' +
+    '<div class="msg info show" style="margin-top:18px">' +
+      '<b>关于学分：</b>AMAS 正式学分表尚未提供，因此本页不显示任何课程的学分数值。' +
+      '系统不会根据课时或其他信息推算学分。' +
+    '</div>' +
+    (cap && cap.course_content_access === false ?
+      '<div class="msg info show" style="margin-top:10px">' +
+        '<b>关于学习入口：</b>课程学习目前在「AMAS 神学院」App 中进行；' +
+        '门户暂未接入学习记录，因此这里只显示课程目录，不显示学习进度。' +
+      '</div>' : "");
+
+  const ftBox = document.getElementById("ft");
+  const cats = ["all"].concat(Object.keys(CAT).filter(k => list.some(c => c.category === k)));
+  ftBox.innerHTML = cats.map(k =>
+    '<button data-f="' + k + '" aria-pressed="' + (k === "all") + '">' +
+    (k === "all" ? "全部 " + list.length : UI.esc(CAT[k]) + " " + list.filter(c => c.category === k).length) +
+    '</button>').join("");
+  ftBox.querySelectorAll("[data-f]").forEach(b => b.addEventListener("click", () => {
+    filter = b.dataset.f;
+    ftBox.querySelectorAll("[data-f]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    render();
+  }));
+
+  render();
+
+  function render(){
+    const box = document.getElementById("list");
+    const shown = filter === "all" ? list : list.filter(c => c.category === filter);
+    if (!shown.length) return box.innerHTML = UI.box("📚", "没有课程", "该分类下暂无课程。");
+    box.innerHTML = '<div class="clist">' + shown.map(c => {
+      const meta = [CAT[c.category] || c.category, LVL[c.level] || null,
+                    c.total_lessons ? c.total_lessons + " 讲" : null,
+                    c.credits == null ? "不显示学分信息" : c.credits + " 学分"]
+                   .filter(Boolean).join(" · ");
+      const pendingNote = c.availability === "in_development"
+        ? '<div class="why">课程已列入 AMAS 正式课程目录，当前线上学习内容尚未开放。</div>' : "";
+      return '<div class="citem"><div><b>' + UI.esc(c.title_zh) + '</b>' +
+        '<div class="meta">' + UI.esc(meta) + '</div>' + pendingNote + '</div>' +
+        '<span class="tag ' + c.availability + '">' +
+        (c.availability === "available" ? "内容已开放" : "内容筹备中") + '</span></div>';
+    }).join("") + '</div>';
+  }
+})();
+</script>
+</body>
+</html>

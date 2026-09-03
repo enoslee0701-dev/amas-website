@@ -40,6 +40,19 @@ python -m http.server 8090 --bind 127.0.0.1 &     # 探针访问 http://127.0.0.
 
 `0013` 改动了 PORTAL-1 与 PORTAL-2 共用的 RPC 上下文守卫，**改这块务必回归 PORTAL-1 两套用例**。
 
+## PORTAL-2B（学生体验与学习读模型）
+
+| 文件 | 层 | 断言数 | 运行方式 |
+|---|---|---|---|
+| `portal2b_acceptance.sql` | 数据库（课程目录 / 资料分区 / 学习读模型 / 能力门禁 / 待办派生） | 17 | `psql -f supabase/tests/portal2b_acceptance.sql`，结束自动回滚 |
+| `portal2b_irreversible_guard.sql` | **迁移清单强制项**（R-8）：正式记录表是否已登记 | 5 | `psql -f supabase/tests/portal2b_irreversible_guard.sql` |
+| `portal2b_http.mjs` | REST/RPC（2B-10 的 13 项攻击） | 31 | `node supabase/tests/portal2b_http.mjs` |
+| `portal2b_ui.mjs` | 浏览器（资料分区 / 真实空态 / 1+1+1 / 移动端） | 38 | 先起本地站点，再 `node supabase/tests/portal2b_ui.mjs` |
+| `portal2b_catalog_consistency.mjs` | 课程目录三方一致性 | 10 | `node supabase/tests/portal2b_catalog_consistency.mjs`（需 `AMAS_APP_DIR` 指向 App 仓库） |
+
+> **`portal2b_irreversible_guard.sql` 每次新增 migration 后都要跑**——
+> 它是 R-8 的自动化守卫，防止新增正式记录表时静默绕过学号纠错的安全闸门。
+
 ## 环境文件
 
 `staging.env` 放在运行目录，已在 `.gitignore` 中，**不得入库**。
