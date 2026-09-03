@@ -9,9 +9,25 @@
 
 ## 结论摘要
 
-迁移可行，且**现在是成本最低的时点**，但"数据全是 0 行"这个说法需要修正：
-学习与 CP 表确实是 0 行，但**另有 23 张表、268 行数据带用户外键**，
-以及 7 个账号（其中 1 个像是真实用户邮箱）。迁移安全设计不能省。
+> **结论修正（2026-09-03 甲方拍板）**
+>
+> 原表述「course_progress / growth_state 为 0，所以身份迁移近乎空数据迁移」正式修正为：
+>
+> **「Learning / CP 核心表当前为空，但 App 数据库已经存在用户关联历史数据，
+> 因此身份统一属于真实数据迁移，不是空库切换。」**
+>
+> 依据：7 个账号 · 23 张带用户关联的数据表 · 268 行相关记录 ·
+> 仅 5/31 张相关表存在数据库 FK 约束。
+>
+> 因此 **AUTH-M6 升级为正式阻断验收项**：任何 legacy user → Supabase `auth.users.id`
+> 的替换之前，都必须先完成完整的 orphan / mapping / collision audit。
+> 工具与报告见 App 仓库 `auth/supabase-unification` 分支：
+> `backend/scripts/identity-migration-dryrun.mjs` →
+> `docs/operations/AUTH-identity-migration-dry-run-report.md`。
+
+迁移可行，且**现在是成本最低的时点**。但这不等于"空库切换"：
+学习与 CP 表确实是 0 行，**另有 23 张表、268 行数据带用户外键**，
+以及 7 个账号（其中 1 个是真实用户邮箱）。迁移安全设计不能省。
 
 一个关键的有利事实：**App 的用户 ID 用 `crypto.randomUUID()` 生成，与 Supabase
 `auth.users.id` 同为 UUID**，且所有外键列都是 `TEXT`。因此迁移是**值替换**，

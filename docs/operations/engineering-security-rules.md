@@ -152,3 +152,43 @@ irreversible record"：
 每次新增 migration 后都要跑这条测试。
 
 ---
+
+---
+
+## R-9｜不同工作流不得共享同一个 Git working tree
+
+> 不同 Agent / 自动化工作流不得在同一个 Git working tree 中并发修改和提交。
+> 高风险或跨域任务必须使用独立 branch + worktree。
+> 共享主分支的最终集成必须经过明确 merge window 和全量回归。
+
+**来源**：2026-09-03。祷告室工作流与 Supabase Auth 迁移工作流在同一个工作区并发进行，
+祷告室侧 `git add -A` 把尚未提交的 AUTH 文件一并纳入 `376344d`，
+提交信息只描述了 Voice 侧工作。**两条工作流本身都没有错误，错在共享了工作区。**
+
+后果不是"历史不好看"，而是：身份迁移这类高风险改动失去了独立的回滚边界——
+想撤销 AUTH 就会连带撤销 Voice 的成果。
+
+### 做法
+
+- 高风险 / 跨域任务开独立 branch + `git worktree`（独立目录、独立 `node_modules`）
+- 两个工作流各自只动自己的工作区，互不越界
+- baseline 必须在自己的 worktree 中**重新取得**，不引用混合 commit 上的旧结果
+
+### 合并窗口
+
+一个可合并里程碑完成后，按顺序执行：
+
+1. 暂停其他工作流的自动提交
+2. fetch / rebase 或 merge 最新主分支
+3. 处理冲突
+4. **全量回归**（本分支 + 被合并方 + 前后端）
+5. merge
+6. 恢复并发工作流
+
+### 万一已经混合
+
+不要为了"漂亮的 Git 历史"增加工程风险——**禁止** force push、amend 已共享提交、
+rebase 已共享主分支、或整体 revert 混合提交。改为补一份 provenance / rollback manifest
+（范例：App 仓库 `docs/operations/AUTH-M2-M3-provenance.md`），逐文件说明归属、
+给出精确的 AUTH-only diff 范围与逐路径回滚步骤，并**显式列出不得随之回滚的他方文件**。
+可追溯性从"提交信息"转移到"显式清单"，在工程上等价且更安全。
