@@ -1124,13 +1124,17 @@ html[data-theme="night"] .footer{background:linear-gradient(180deg,#0a1220,#060b
   22%     {opacity:1;transform:translateX(0)}
   27%,100%{opacity:0;transform:translateX(-16px)}
 }
-/* <=760px：入口条已 flex-wrap，走马灯单独占一行居中，卡片按视口缩放 */
+/* <=760px：走马灯强制独占一行。
+   注意 .hab-text 是 flex:1;min-width:0，可被压缩到近乎为零；flex 容器只在
+   「子项压无可压」时才换行，所以若只给走马灯设宽度，浏览器会选择把文案压成
+   一字一行而不是换行。必须用 flex:0 0 100% 显式占满整行，并给文案兜底最小宽度。 */
 @media(max-width:760px){
+  .hab-text{min-width:56%}                      /* 防止被挤成竖排单字 */
   .hab-reel{
-    --card-w:clamp(84px,27vw,118px);
+    --card-w:clamp(84px,26vw,116px);
+    flex:0 0 100%;width:100%;                   /* 独占一行，组内图片自动居中 */
     order:3;                                    /* 文案之后、按钮之前 */
-    margin:2px auto 0;
-    width:calc(var(--card-w)*3 + var(--overlap)*2);
+    margin:6px 0 2px;
   }
   .hab-go{order:4}
 }
