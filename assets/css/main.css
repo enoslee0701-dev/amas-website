@@ -1090,4 +1090,11 @@ html[data-theme="night"] .footer{background:linear-gradient(180deg,#0a1220,#060b
 .hab-cards img:nth-child(3){transform:rotate(-3deg)}
 .hab-cards img:nth-child(4){transform:rotate(6deg)}
 .hab-more{font-style:normal;margin-left:8px;font-size:11.5px;font-weight:700;color:#f1d38a;border:1px solid rgba(233,196,106,.5);border-radius:999px;padding:3px 9px;background:rgba(233,196,106,.08);white-space:nowrap}
-@media(max-width:1000px){.hab-cards{display:none}}
+/* 中屏（761-1000px）：卡片缩小续存，保留十二角色的视觉暗示 */
+@media(max-width:1000px){
+  .hab-cards{margin:0 6px}
+  .hab-cards img{width:38px;height:57px;border-radius:5px;margin-left:-11px}
+  .hab-more{margin-left:6px;font-size:10.5px;padding:2px 7px}
+}
+/* ≤760px：入口条已换行为两行，再塞卡片会撑破布局，隐藏 */
+@media(max-width:760px){.hab-cards{display:none}}
