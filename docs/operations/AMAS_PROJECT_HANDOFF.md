@@ -28,6 +28,23 @@
 `UNKNOWN` = 尚未查证 · `DECISION_REQUIRED` = 需用户决定 · `BLOCKED` = 等待外部条件
 **不得用猜测填空。**
 
+## 关联协议
+
+| 文件 | 作用 |
+|---|---|
+| `docs/operations/AI_COLLABORATION_RULES.md` | **GPT × Claude 双模型协同开发协议 v1.0**：角色分工、主导范围、Stop Conditions、六步开发流程、标准 DEVELOPMENT REPORT 格式、状态语言规范、技术争议处理机制 |
+| `docs/operations/engineering-security-rules.md` | 工程安全规则 R-1 ～ R-10 全文 |
+
+> ⚠️ `AI_COLLABORATION_RULES.md` 在 `amas-website` 与 `AMAS-Seminary` 两个仓库各存一份**逐字节相同**的副本。
+> **哪一份是 Source of Truth 尚未指定（`DECISION_REQUIRED`）**，存在与 `discover.html` 同类的双向漂移风险。
+> 在指定之前，改动必须同步到两处。
+
+## 关于 Main HEAD 的记录口径
+
+§0 与 §24 的 `Main HEAD` 记录的是**刷新本文件时仓库的 HEAD**，因此它必然落后一个提交——
+落后的那个正是「更新本文件」这次提交本身。文档无法记录自己所在的哈希，**这是约定而非缺漏，不必追平**。
+核对时若只有这一个提交的差距且该提交就是本文件的更新，**不算不一致**。
+
 ---
 
 # 0. Document Control
@@ -36,12 +53,12 @@
 |---|---|
 | **Project** | AMAS 亚洲宣教神学院（Asia Missionary Association Seminary，泰国清迈） |
 | **Document** | `docs/operations/AMAS_PROJECT_HANDOFF.md` |
-| **Version** | 1.0（首版，按固定 24 章结构重建） |
+| **Version** | 1.1 |
 | **Last Updated** | 2026-09-04 |
 | **Updated By** | Claude（依据两仓库真实 Git 状态与已归档报告，非聊天记忆） |
 | **Main Repository** | `enoslee0701-dev/amas-website`（官网 + 门户 + Supabase） |
 | **Secondary Repository** | `enoslee0701-dev/AMAS-Seminary`（App；本地目录名 `Desktop/AMAS Seminar App`） |
-| **Main HEAD（website）** | `975e396` 修复 iOS 输入框聚焦时整页自动放大 |
+| **Main HEAD（website）** | `1388668` 重建 AMAS_PROJECT_HANDOFF 为跨对话长期记忆总档（v1.0） |
 | **Main HEAD（App）** | `8921c9b` docs: 补齐项目记忆的四块缺失 |
 | **Active Branches** | website: `master`（唯一）· App: `main`、`auth/supabase-unification`(`4af8307`) |
 | **Active Worktrees** | website: `C:\Users\enosl\Desktop\AMAS-website` · App: `C:\Users\enosl\Desktop\AMAS Seminar App` |
@@ -757,8 +774,8 @@ TEST_ONLY_NON_SECRET
 ## Website —— `amas-website`
 
 ```
-Main HEAD:          975e396  修复 iOS 输入框聚焦时整页自动放大
-Main Status:        clean，与 origin/master 完全同步（0 / 0）
+Main HEAD:          1388668  重建 AMAS_PROJECT_HANDOFF（v1.0）
+Main Status:        与 origin/master 完全同步（0 / 0）
 Active Branches:    master（唯一，本地与远端）
 Active Worktrees:   C:\Users\enosl\Desktop\AMAS-website
 Dirty Worktrees:    无
@@ -1081,7 +1098,8 @@ Do Not Start:       AUTH-M7
 ```
 Updated:                2026-09-04
 
-Main HEAD:              website  975e396  修复 iOS 输入框聚焦时整页自动放大
+Main HEAD:              website  1388668  重建 AMAS_PROJECT_HANDOFF（v1.0）
+                        （按 §0「Main HEAD 记录口径」，落后的一个提交为本文件自身的更新）
                         App      8921c9b  docs: 补齐项目记忆的四块缺失
 
 Active Branch:          website  master（唯一）
@@ -1094,7 +1112,8 @@ Environment:            Supabase staging amas-staging
                         ref sdrwyebizfdwldlfjyim · ap-southeast-1 · PG 17.6
                         Production: NOT ESTABLISHED
 
-Last Completed:         website  iOS 输入聚焦自动放大修复 · 首页 12 角色走马灯（含手机端）
+Last Completed:         website  建立 AI_COLLABORATION_RULES 协议副本并入库
+                        website  iOS 输入聚焦自动放大修复 · 首页 12 角色走马灯（含手机端）
                         website  AUTH-R6.1 Recovery Flow Liveness 13/13
                         App      P1-2 读经室共享阅读位置 44/44
 
