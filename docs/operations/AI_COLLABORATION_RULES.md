@@ -4,6 +4,27 @@
 > Version: 1.0  
 > Purpose: 明确 GPT 与 Claude 在软件开发项目中的角色、权限、协作边界、汇报方式与验收机制。
 
+## Source of Truth
+
+**本文件的权威版本位于 `amas-website/docs/operations/AI_COLLABORATION_RULES.md`。**
+
+`AMAS-Seminary/docs/project-memory/AI_COLLABORATION_RULES.md` 是它的**逐字节镜像**，
+与权威版本完全一致（包括本节），因此两处是否漂移可用一条命令检出：
+
+```bash
+diff -q "<amas-website>/docs/operations/AI_COLLABORATION_RULES.md"         "<AMAS-Seminary>/docs/project-memory/AI_COLLABORATION_RULES.md"
+```
+
+**修改流程**：先改权威版本 → 提交 → 再原样复制到镜像 → 提交。
+
+**禁止**只改镜像，也**禁止**给两份加不同的说明文字 —— 那会让上面的比对永久失效，
+漂移从此不可见。两份必须始终逐字节相同。
+
+**为什么选 amas-website 作权威**：其余治理文档（`engineering-security-rules.md`、
+`AMAS_PROJECT_HANDOFF.md`、`permissions/matrix.md`）均只存在于 `amas-website`，
+协议与它们同处一地，治理文档不分裂到两个仓库。此模式与 `discover.html`
+的既有约定一致，不引入新机制。
+
 ---
 
 # 1. 协作模式

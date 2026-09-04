@@ -35,9 +35,10 @@
 | `docs/operations/AI_COLLABORATION_RULES.md` | **GPT × Claude 双模型协同开发协议 v1.0**：角色分工、主导范围、Stop Conditions、六步开发流程、标准 DEVELOPMENT REPORT 格式、状态语言规范、技术争议处理机制 |
 | `docs/operations/engineering-security-rules.md` | 工程安全规则 R-1 ～ R-10 全文 |
 
-> ⚠️ `AI_COLLABORATION_RULES.md` 在 `amas-website` 与 `AMAS-Seminary` 两个仓库各存一份**逐字节相同**的副本。
-> **哪一份是 Source of Truth 尚未指定（`DECISION_REQUIRED`）**，存在与 `discover.html` 同类的双向漂移风险。
-> 在指定之前，改动必须同步到两处。
+> **`AI_COLLABORATION_RULES.md` 的 Source of Truth = `amas-website/docs/operations/AI_COLLABORATION_RULES.md`**（见 D-9）。
+> `AMAS-Seminary/docs/project-memory/AI_COLLABORATION_RULES.md` 是**逐字节镜像**。
+> 修改流程：先改权威版本 → 提交 → 原样复制到镜像 → 提交。漂移检测：
+> `diff -q <两份文件路径>`（两份必须始终逐字节相同，**禁止**给它们加不同的说明文字）。
 
 ## 关于 Main HEAD 的记录口径
 
@@ -276,6 +277,17 @@ auth.users.id
 **Status**：`APPROVED`
 **Decision**：信仰知识、灵修实践、事奉经验**永远不进入** 12 项事奉倾向的计算；倾向只由 C 类（Likert/频率）+ D 类（情境）题目决定。
 **Source**：同上
+
+### D-9｜治理文档的 Source of Truth 集中在 amas-website
+
+**Status**：`APPROVED`
+**Decision**：`AI_COLLABORATION_RULES.md` 的权威版本位于 **`amas-website/docs/operations/`**；
+`AMAS-Seminary/docs/project-memory/` 下为**逐字节镜像**。两份必须始终完全相同（含其内的 Source of Truth 一节）。
+**Reason**：其余治理文档（`engineering-security-rules.md`、`AMAS_PROJECT_HANDOFF.md`、`permissions/matrix.md`）
+均只存在于 `amas-website`。协议若另置他处，治理文档会分裂到两个仓库。
+沿用 `discover.html` 的既有约定，不引入新机制。
+**Do Not**：不得只改镜像；**不得给两份加不同的说明文字**——那会使 `diff -q` 漂移检测永久失效，漂移从此不可见。
+**Source**：website `2bc4d29` 起；App 镜像 `914bb7c`
 
 ### D-8｜Production 域名未确认时不得编造
 
