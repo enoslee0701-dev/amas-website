@@ -1159,3 +1159,18 @@ html[data-theme="night"] .footer{background:linear-gradient(180deg,#0a1220,#060b
   .hab-reel::-webkit-scrollbar{display:none}
   .hab-group{position:static;opacity:1;animation:none;flex-shrink:0;scroll-snap-align:start;padding:10px 0}
 }
+
+/* ===== iOS 输入聚焦自动放大的根治 =====
+   iOS Safari 在输入框字号 <16px 时，会于聚焦瞬间自动放大整个页面（Android 无此行为）。
+   放大后布局按视觉视口重排，看起来就是「点一下输入框，页面全变样」。
+   正解是把触屏设备的表单控件统一到 16px —— 而不是给 viewport 加 maximum-scale=1，
+   后者会连带禁掉用户主动缩放，属无障碍倒退。
+   选择器需与既有规则同等特异性，否则会被 .chat-input input 之类覆盖。 */
+@media (pointer:coarse){
+  input,textarea,select,
+  .chat-input input,
+  .contact-form input,.contact-form textarea,
+  .form-grid input,.form-grid textarea,.form-grid select,
+  .upload-box input,
+  .resource-search-wrap input{font-size:16px}
+}

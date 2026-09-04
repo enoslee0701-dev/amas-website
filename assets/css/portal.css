@@ -160,3 +160,15 @@ body::before{content:"";position:fixed;inset:0;background:rgba(250,247,240,.86);
   .ph-who b{max-width:32vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:bottom}
   .fgrid{grid-template-columns:1fr}
 }
+
+/* ===== iOS 输入聚焦自动放大的根治 =====
+   iOS Safari 在输入框字号 <16px 时，会于聚焦瞬间自动放大整个页面（Android 无此行为）。
+   放大后布局按视觉视口重排，看起来就是「点一下输入框，页面全变样」。
+   正解是把触屏设备的表单控件统一到 16px —— 而不是给 viewport 加 maximum-scale=1，
+   后者会连带禁掉用户主动缩放，属无障碍倒退。
+   选择器需与既有规则同等特异性，否则会被 .chat-input input 之类覆盖。 */
+@media (pointer:coarse){
+  input,textarea,select,
+  .field input,
+  .fgrid input,.fgrid select,.fgrid textarea{font-size:16px}
+}
