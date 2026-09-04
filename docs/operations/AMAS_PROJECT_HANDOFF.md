@@ -116,11 +116,21 @@ Claude
 
 # B. 当前实时状态 / Current Checkpoint
 
-> **本段每轮任务结束后更新。** 所有字段以 Git / Supabase / 实际部署核验为准。
+## B.0 更新约定
+
+1. **每轮任务开工时先刷新本段**，据 Git / Supabase / 实际部署重新核验，不沿用上轮字段。
+2. **`Main HEAD` 记录「刷新本段时仓库的 HEAD」**，因此它必然落后一个提交——落后的那个正是「更新 B 段」这次提交本身。文档无法记录自己所在的哈希，这是约定而非缺漏，不必追平。
+3. **刷新时若发现本文件与实际状态冲突**，以实际为准，在交付说明中报告差异，**并保留原记录的历史痕迹**（改 B 段，不改已归档的验收报告）。
+4. A 段不随本段更新；改 A 段需甲方拍板。
+
+---
+
+> 所有字段以 Git / Supabase / 实际部署核验为准。
 
 ```
 Date:               2026-09-04
-Main HEAD:          de2f730  锁定 .githooks 与 *.sh 行尾为 LF
+Main HEAD:          3ddbd88  新增项目交接与状态基准 AMAS_PROJECT_HANDOFF.md
+                    （按 B.0-2，本字段落后的一个提交为「更新 B 段」本身）
 Active branch:      master（本地与 origin 唯一分支；不存在 auth 分支）
 Working tree:       clean，与 origin/master 完全同步（0 / 0）
 Environment:        Supabase staging amas-staging
@@ -181,6 +191,21 @@ Edge Functions    7 个：login-by-identifier / create-teacher-invitation /
 | 2026-09-03 | **AUTH-M1 结论修正**（甲方拍板）：撤回「近乎空数据迁移」表述 | `AUTH-M1-identity-audit.md` |
 | 2026-09-03 | **R6.1 口径修正**：processing stale threshold 是运行策略，不是平台假设 | commit `f72aba2` |
 | 2026-09-04 | **pre-commit hook 修复并纳入版本控制**：原 hook 只暂存 5/13 个被 `bump.py` 戳记的文件，导致每次提交后 8 个文件残留为未提交改动 | commits `ef89d6e` `76fa538` `de2f730` |
+| 2026-09-04 | **建立本交接文件**，确立 GPT 拍板 / Claude 执行的闭环与「MD 提供上下文、Git 提供事实」的冲突处理原则 | commit `3ddbd88` |
+
+## B.6 待确认差异（核验发现，未自行处置）
+
+| # | 差异 | 事实 | 待谁决定 |
+|---|---|---|---|
+| 1 | **不存在 `auth` 分支** | 本地与 origin 唯一分支为 `master`；AUTH 工作（`64ab70f` `e13503e` `f72aba2`）直接提交在 master 上，与 **R-9**「高风险任务用独立 branch + worktree」不符 | 甲方 / GPT 确认是否为有意为之；若否，后续 AUTH 工作应开独立分支 |
+| 2 | **PORTAL-2 断言数口径不一** | 提交 `5f8bc09` 信息写 114/114，验收报告写 164/164；报告分项相加（DB 32 + 学号纠错 19 + HTTP 72 + UI 41）= 164。本文件按报告取 **164** | 确认提交信息为笔误后归档 |
+| 3 | **`mailer_autoconfirm` 无法从仓库核验** | 该值在托管项目 Auth 设置中；仓库 `supabase/config.toml` 的 `enable_confirmations = false` 是 CLI 本地配置，与之不是同一处 | 需登录 Supabase 控制台核实 staging 实际值 |
+
+## B.7 已知非缺陷（避免重复排查）
+
+| 现象 | 结论 |
+|---|---|
+| 首页测评入口条的 12 成长角色扇形卡「消失」 | **非缺陷**。`assets/css/main.css` 的 `@media(max-width:1000px){.hab-cards{display:none}}` 为 `baa43ae` 起的既定设计（提交信息已注明「≤1000px 隐藏」）。12 张图、标记与样式在本地及线上均完好，视口 >1000px 即显示 |
 
 ---
 
