@@ -192,6 +192,7 @@ Edge Functions    7 个：login-by-identifier / create-teacher-invitation /
 | 2026-09-03 | **R6.1 口径修正**：processing stale threshold 是运行策略，不是平台假设 | commit `f72aba2` |
 | 2026-09-04 | **pre-commit hook 修复并纳入版本控制**：原 hook 只暂存 5/13 个被 `bump.py` 戳记的文件，导致每次提交后 8 个文件残留为未提交改动 | commits `ef89d6e` `76fa538` `de2f730` |
 | 2026-09-04 | **建立本交接文件**，确立 GPT 拍板 / Claude 执行的闭环与「MD 提供上下文、Git 提供事实」的冲突处理原则 | commit `3ddbd88` |
+| 2026-09-04 | **首页 12 成长角色改为走马灯**：新增 `scripts/gen-archetype-thumbs.py` 生成裁剪缩略图（2551KB → 271KB），4 组 × 3 张分组淡入淡出。**属纯展示层调整，未触碰 A 段任何规则** | commit 见 B.0-2 |
 
 ## B.6 待确认差异（核验发现，未自行处置）
 
@@ -205,7 +206,8 @@ Edge Functions    7 个：login-by-identifier / create-teacher-invitation /
 
 | 现象 | 结论 |
 |---|---|
-| 首页测评入口条的 12 成长角色扇形卡「消失」 | **非缺陷，且已于 2026-09-04 调整断点**。原为 `baa43ae` 起的既定设计（`≤1000px` 一律隐藏，提交信息已注明）；12 张图、标记与样式始终完好，从未丢失。现改为分档：**>1000px** 原尺寸 52×78；**761–1000px** 缩小为 38×57 续存；**≤760px** 仍隐藏（该断点下入口条 `flex-wrap` 为两行，放不下）。仅改 CSS，HTML 与图片未动 |
+| 首页测评入口条的 12 成长角色卡「消失」 | **非缺陷**。原为 `baa43ae` 起的既定设计（`≤1000px` 一律隐藏）；图与样式始终完好，从未丢失。2026-09-04 已重做为走马灯，见下条 |
+| 首页走马灯 / 顶部横幅**在本机不动** | **非缺陷，是系统偏好**。实测 `SPI_GETCLIENTAREAANIMATION = False`，即 Windows「设置 → 辅助功能 → 视觉效果 → 动画效果」为关；Chromium 据此上报 `prefers-reduced-motion: reduce`，命中 `main.css:694` 的全局规则（`*{animation-duration:.01ms!important}`），**全站动画一律冻结**。访客侧默认开启，线上正常播放。排查此类「动画不动」先查该系统开关，不要改代码 |
 
 ---
 

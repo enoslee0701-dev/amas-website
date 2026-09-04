@@ -1082,19 +1082,54 @@ html[data-theme="night"] .footer{background:linear-gradient(180deg,#0a1220,#060b
 .thumb-c-pt01{background-image:url("../img/course-pas210.webp")}
 .thumb-c-pt09{background-image:url("../img/course-min301.webp")}
 
-/* 测评入口条：十二角色卡预览 */
-.hab-cards{display:flex;align-items:center;margin:0 10px;flex-shrink:0}
-.hab-cards img{width:52px;height:78px;object-fit:cover;border-radius:7px;border:1px solid rgba(233,196,106,.6);box-shadow:0 5px 14px rgba(3,10,24,.45);margin-left:-14px;background:#0a1d38}
-.hab-cards img:first-child{margin-left:0;transform:rotate(-6deg)}
-.hab-cards img:nth-child(2){transform:rotate(3deg)}
-.hab-cards img:nth-child(3){transform:rotate(-3deg)}
-.hab-cards img:nth-child(4){transform:rotate(6deg)}
-.hab-more{font-style:normal;margin-left:8px;font-size:11.5px;font-weight:700;color:#f1d38a;border:1px solid rgba(233,196,106,.5);border-radius:999px;padding:3px 9px;background:rgba(233,196,106,.08);white-space:nowrap}
-/* 中屏（761-1000px）：卡片缩小续存，保留十二角色的视觉暗示 */
-@media(max-width:1000px){
-  .hab-cards{margin:0 6px}
-  .hab-cards img{width:38px;height:57px;border-radius:5px;margin-left:-11px}
-  .hab-more{margin-left:6px;font-size:10.5px;padding:2px 7px}
+/* 测评入口条：十二角色 —— 4 组 x 3 张，每组独立扇形，组间淡入淡出 */
+.hab-reel{
+  --card-w:clamp(96px,10vw,132px);
+  --overlap:-18px;                              /* 组内叠压；编号在左上角，靠右压左保证不被盖 */
+  --aspect:1.076;                               /* 缩略图 384x357，由 gen-archetype-thumbs.py 决定 */
+  --card-h:calc(var(--card-w)/var(--aspect));
+  position:relative;
+  flex-shrink:0;
+  margin:0 16px;
+  width:calc(var(--card-w)*3 + var(--overlap)*2);
+  height:calc(var(--card-h) + 20px);            /* 20px 容纳旋转后翘起的卡角 */
 }
-/* ≤760px：入口条已换行为两行，再塞卡片会撑破布局，隐藏 */
-@media(max-width:760px){.hab-cards{display:none}}
+.hab-group{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;
+  animation:habGroup 7s ease-in-out infinite;   /* 7s 一轮，4 组各占 1/4 */
+}
+.hab-group:nth-child(2){animation-delay:1.75s}
+.hab-group:nth-child(3){animation-delay:3.5s}
+.hab-group:nth-child(4){animation-delay:5.25s}
+.hab-reel:hover .hab-group{animation-play-state:paused}
+.hab-group img{
+  flex-shrink:0;
+  width:var(--card-w);height:var(--card-h);
+  object-fit:cover;object-position:top;
+  border-radius:8px;
+  border:1px solid rgba(233,196,106,.6);
+  box-shadow:0 6px 18px rgba(3,10,24,.5);
+  background:#0a1d38;
+}
+/* 每组固定的对称扇形：左倾 / 居中略高 / 右倾。三张姿态每组一致，不再随位置漂移 */
+.hab-group img:nth-child(1){transform:rotate(-7deg) translateY(4px)}
+.hab-group img:nth-child(2){transform:translateY(-3px);margin-left:var(--overlap)}
+.hab-group img:nth-child(3){transform:rotate(7deg) translateY(4px);margin-left:var(--overlap)}
+/* DOM 顺序即层级：右压左，只盖住左邻的正文区，三个编号始终完整露出 */
+@keyframes habGroup{
+  0%      {opacity:0;transform:translateX(16px)}
+  5%      {opacity:1;transform:translateX(0)}
+  22%     {opacity:1;transform:translateX(0)}
+  27%,100%{opacity:0;transform:translateX(-16px)}
+}
+/* 系统开启「减少动态效果」时不自动切换（main.css:694 的全局规则会冻结动画），
+   改为四组平铺、可手动横向滚动，避免只看得到 12 个角色中的 3 个 */
+@media(prefers-reduced-motion:reduce){
+  .hab-reel{display:flex;height:auto;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none}
+  .hab-reel::-webkit-scrollbar{display:none}
+  .hab-group{position:static;opacity:1;animation:none;flex-shrink:0;scroll-snap-align:start;padding:10px 0}
+}
+/* <=760px：入口条已 flex-wrap 为两行，再放走马灯会撑破布局 */
+@media(max-width:760px){.hab-reel{display:none}}
