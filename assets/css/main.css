@@ -1124,12 +1124,21 @@ html[data-theme="night"] .footer{background:linear-gradient(180deg,#0a1220,#060b
   22%     {opacity:1;transform:translateX(0)}
   27%,100%{opacity:0;transform:translateX(-16px)}
 }
+/* <=760px：入口条已 flex-wrap，走马灯单独占一行居中，卡片按视口缩放 */
+@media(max-width:760px){
+  .hab-reel{
+    --card-w:clamp(84px,27vw,118px);
+    order:3;                                    /* 文案之后、按钮之前 */
+    margin:2px auto 0;
+    width:calc(var(--card-w)*3 + var(--overlap)*2);
+  }
+  .hab-go{order:4}
+}
 /* 系统开启「减少动态效果」时不自动切换（main.css:694 的全局规则会冻结动画），
-   改为四组平铺、可手动横向滚动，避免只看得到 12 个角色中的 3 个 */
+   改为四组平铺、可手动横向滚动，避免只看得到 12 个角色中的 3 个。
+   置于最后，使其在窄屏同样生效 */
 @media(prefers-reduced-motion:reduce){
-  .hab-reel{display:flex;height:auto;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none}
+  .hab-reel{display:flex;height:auto;width:100%;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none}
   .hab-reel::-webkit-scrollbar{display:none}
   .hab-group{position:static;opacity:1;animation:none;flex-shrink:0;scroll-snap-align:start;padding:10px 0}
 }
-/* <=760px：入口条已 flex-wrap 为两行，再放走马灯会撑破布局 */
-@media(max-width:760px){.hab-reel{display:none}}
