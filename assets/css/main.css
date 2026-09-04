@@ -48,9 +48,13 @@ img{display:block;max-width:100%}
    换个字体就会把按钮压窄导致文字折行。 */
 .header-inner{height:100%;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:20px;align-items:center}
 .brand{flex-shrink:0;display:flex;align-items:center;gap:13px}
-.brand-seal-btn{border:0;background:none;padding:0;cursor:zoom-in;border-radius:50%;line-height:0;transition:transform .2s}
+/* flex-shrink:0 是必须的：全局 img{max-width:100%} 会让校标随按钮一起被压窄，
+   而同排的 .brand-name small 在窄屏是 white-space:nowrap（压不动），
+   头部一旦放不下，压缩量就全落到校标上 —— 宽度塌向 0、高度不变，
+   再叠加 border-radius:50%，圆形校标会变成细长椭圆 */
+.brand-seal-btn{flex-shrink:0;border:0;background:none;padding:0;cursor:zoom-in;border-radius:50%;line-height:0;transition:transform .2s}
 .brand-seal-btn:hover{transform:scale(1.07)}
-.brand-seal{width:56px;height:56px;display:block;border-radius:50%}
+.brand-seal{flex-shrink:0;width:56px;height:56px;display:block;border-radius:50%}
 .brand-name{font-family:"Noto Serif SC",Georgia,serif;font-weight:600;font-size:25px;letter-spacing:.06em;color:var(--ink);line-height:1;transition:color var(--theme-ease)}
 .brand-name small{display:block;font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;font-size:10.5px;letter-spacing:.18em;color:var(--olive-dark);margin-top:5px;font-weight:600}
 .desktop-nav{display:flex;justify-content:center;gap:clamp(14px,2.1vw,40px);font-size:15px;white-space:nowrap;min-width:0}
@@ -1027,6 +1031,15 @@ html[data-theme="night"] .footer{background:linear-gradient(180deg,#0a1220,#060b
 @keyframes habPulse{0%,100%{box-shadow:0 8px 22px rgba(233,196,106,.35)}50%{box-shadow:0 8px 30px rgba(233,196,106,.65)}}
 @media(prefers-reduced-motion:reduce){.hab-go{animation:none}}
 @media(max-width:760px){.ai-strip-inner{flex-wrap:wrap;gap:12px;padding:16px 0}.hab-text b{font-size:16px}.hab-go{margin-left:0;width:100%;text-align:center}}
+
+/* <=380px：校标固定尺寸后头部余量吃紧，收紧字号与间距，避免头部横向溢出 */
+@media(max-width:380px){
+  .brand{gap:9px}
+  .brand-name{font-size:17px;min-width:0}          /* 允许收缩，把压缩量导向文字而非校标 */
+  .brand-name small{font-size:8.5px;overflow:hidden;text-overflow:ellipsis}
+  .header-actions{gap:9px}
+  .lang-btn{padding:0 8px;font-size:12px}
+}
 
 /* ===== 手机端排版微调（≤480px）：消除孤字换行 ===== */
 @media(max-width:480px){
