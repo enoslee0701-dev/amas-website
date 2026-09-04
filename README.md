@@ -41,3 +41,20 @@ python -m http.server 8080
 ```
 
 推送到 `master` 分支后 GitHub Pages 自动发布。
+
+## Git hooks（新克隆后需执行一次）
+
+仓库自带 `pre-commit` hook（在 `.githooks/`），提交时自动运行 `scripts/bump.py`
+给本地 css/js 引用打 `?v=<时间戳>` 做缓存刷新，并把被戳记的文件一并暂存。
+
+`core.hooksPath` 属于本地配置、不随仓库传递，所以**每次新克隆都要执行一次**：
+
+```bash
+git config core.hooksPath .githooks
+```
+
+未执行时 hook 不会生效：提交能正常完成，但资源版本号不会自动刷新，
+浏览器可能继续使用旧缓存。
+
+> hook 的暂存列表由 `bump.py` 的 `stamped <file>` 输出推导，
+> 因此在 `bump.py` 中增删页面无需同步修改 hook。

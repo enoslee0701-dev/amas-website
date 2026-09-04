@@ -1,0 +1,5 @@
+#!/bin/sh
+# auto cache-bust on every commit: stamp ?v=<ts> on local css/js refs,
+# then stage exactly the files bump.py reports as changed (no hardcoded list to drift).
+python scripts/bump.py 2>/dev/null | sed -n 's/^stamped //p' | tr '\n' '\0' | xargs -0 -r git add --
+exit 0
