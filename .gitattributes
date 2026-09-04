@@ -1,0 +1,4 @@
+# Shell 脚本必须保持 LF：CRLF 会让 #!/bin/sh 行尾多出 \r，
+# 在 Git for Windows 下报 "bad interpreter"，hook 静默失效。
+.githooks/* text eol=lf
+*.sh        text eol=lf
