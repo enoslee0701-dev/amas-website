@@ -54,8 +54,8 @@
 |---|---|
 | **Project** | AMAS 亚洲宣教神学院（Asia Missionary Association Seminary，泰国清迈） |
 | **Document** | `docs/operations/AMAS_PROJECT_HANDOFF.md` |
-| **Version** | 1.1 |
-| **Last Updated** | 2026-09-04 |
+| **Version** | 1.2 |
+| **Last Updated** | 2026-09-07 |
 | **Updated By** | Claude（依据两仓库真实 Git 状态与已归档报告，非聊天记忆） |
 | **Main Repository** | `enoslee0701-dev/amas-website`（官网 + 门户 + Supabase） |
 | **Secondary Repository** | `enoslee0701-dev/AMAS-Seminary`（App；本地目录名 `Desktop/AMAS Seminar App`） |
@@ -295,6 +295,19 @@ auth.users.id
 **Decision**：`PRODUCTION_DOMAIN = DECISION_REQUIRED`。**GitHub Pages URL 不作为 production 域名。**
 **Do Not**：不得在任何配置、文档或代码中填入猜测的正式域名。
 **Source**：App branch，`docs/operations/AUTH-production-auth-config.md`
+
+### D-10｜对外开放申请的项目范围收窄为四个学位项目
+
+**Status**：`APPROVED`（2026-09-04 甲方指示，2026-09-07 上线前端）
+**Decision**：官网申请入口与首页「培养项目」展示，均只保留四个学位项目：
+`bth`（神学学士 B.Th）、`gdip`（教牧学研究硕士）、`mdiv`（道学硕士）、`dmin`（**教牧学博士 D.Min**）。
+证书与装备类五项 —— 平信徒指导者课程、牧会训练课程、牧会者进修、讲道学校、宣教士训练 —— **暂时撤下**。
+`dmin` 对外只呈现「教牧学博士」，不再并列宣教学博士。
+**Reason**：甲方决定当前招生周期只开放学位项目报名。
+**机制**：用 `program_catalog.is_open_for_application = false`，**不删除 catalog 行** ——
+已提交申请通过 program code 外引这些行，删行会破坏历史记录；且这是暂时状态，翻回 `true` 即可恢复。
+**Do Not**：不得删除 `program_catalog` 中这五行；不得在咨询助手知识库中继续推荐已撤下的项目。
+**Source**：`supabase/migrations/0022_program_offering_scope.sql`、`index.html`、`assets/js/main.js`（四语言）
 
 ---
 
@@ -976,6 +989,30 @@ Owner:     用户
 **Required external action**：用户确定正式域名。**GitHub Pages URL 不作为 production 域名。**
 **Next engineering action**：域名确定后按 `AUTH-production-auth-config.md` §3 收敛为精确 URL。
 
+### BLOCKER-08｜0022 迁移未执行，前端与 program_catalog 暂时不一致
+
+```
+Severity:  P1
+Status:    BLOCKED
+Owner:     用户（需 staging 凭据执行迁移）
+```
+
+**Problem**：D-10 的前端改动已于 2026-09-07 上线，但 `0022_program_offering_scope.sql`
+**尚未在任何环境执行**。官网下拉只剩 4 项，而 `program_catalog` 中那 5 项仍标记
+`is_open_for_application = true`。
+
+**Why it blocks**：D-2 一致性守卫 `supabase/tests/program_catalog_consistency.mjs`
+断言「官网项目清单与 program_catalog 开放项目完全一致（含顺序）」，
+**在迁移执行前该测试必然 FAIL（D2-03）**。这是**已知的、有意接受的临时状态**，
+不是新缺陷 —— 甲方选择先上前端（方案 A），迁移随后补（方案 B）。
+
+**Required external action**：提供 staging 访问方式，或由持有凭据者执行迁移。
+
+**Next engineering action**：
+1. 在 staging 执行 `0022`（迁移内含自检：开放项目必须恰好为 `bth,gdip,mdiv,dmin`，否则报错）
+2. 重跑 `program_catalog_consistency.mjs`，确认 D2-03 恢复 PASS
+3. 迁移执行后**关闭本 blocker**，并从 §21 移除对应风险条目
+
 ---
 
 # 20. Production Acceptance Matrix
@@ -1108,9 +1145,9 @@ Do Not Start:       AUTH-M7
 > 新对话最优先读取本节。只看这一节也应知道项目当前在哪里。
 
 ```
-Updated:                2026-09-04
+Updated:                2026-09-07
 
-Main HEAD:              website  1388668  重建 AMAS_PROJECT_HANDOFF（v1.0）
+Main HEAD:              website  e1d4a52  D-9：治理文档 Source of Truth 集中在 amas-website
                         （按 §0「Main HEAD 记录口径」，落后的一个提交为本文件自身的更新）
                         App      8921c9b  docs: 补齐项目记忆的四块缺失
 
@@ -1124,7 +1161,9 @@ Environment:            Supabase staging amas-staging
                         ref sdrwyebizfdwldlfjyim · ap-southeast-1 · PG 17.6
                         Production: NOT ESTABLISHED
 
-Last Completed:         website  建立 AI_COLLABORATION_RULES 协议副本并入库
+Last Completed:         website  D-10 申请项目范围收窄为四个学位项目（前端已上线，
+                                 0022 迁移待执行 —— 见 BLOCKER-08）
+                        website  建立 AI_COLLABORATION_RULES 协议副本并入库
                         website  iOS 输入聚焦自动放大修复 · 首页 12 角色走马灯（含手机端）
                         website  AUTH-R6.1 Recovery Flow Liveness 13/13
                         App      P1-2 读经室共享阅读位置 44/44
@@ -1140,6 +1179,7 @@ Current Blockers:       P0  BLOCKER-01  Production Supabase 未建立
                         P1  BLOCKER-04  Phase 4B 实时语音（缺真机 + LiveKit）
                         P1  BLOCKER-06  App auth 分支未合入 main
                         P1  BLOCKER-07  PRODUCTION_DOMAIN 未确定
+                        P1  BLOCKER-08  0022 未执行，D-2 一致性测试暂时 FAIL（已知并有意接受）
                         P2  BLOCKER-05  website AUTH 直提 master 的 R-9 合规性
 
 Waiting External        production Supabase 项目 · SMTP 配置 · 正式域名
