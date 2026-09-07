@@ -406,10 +406,20 @@ Supervisor 给定的八项闭合条件，逐项对照：
 
 | 仓库 | commit | 内容 |
 |---|---|---|
-| website | *(本次提交)* | DB-3.5 报告 · 契约测试版本可移植化 · DB-3 报告更正标注 · HANDOFF |
-| App | *(本次提交)* | DBR-22 CLOSED · DBR-24 更正 · D-33 |
+| website | `caf8d04` | DB-3.5 报告 · 契约测试版本可移植化 · DB-3 报告更正标注 · HANDOFF v2.2 |
+| App | `02903a1` | DBR-22 CLOSED · DBR-24 更正 · D-33 |
 
 App 仓库**代码零改动**（仅 `docs/project-memory/`）。
+
+### 冻结世系未被触碰（实测）
+
+```
+release/post-legacy-gate         e35923b   ← 与 Supervisor 指定值一致
+safety/release/post-legacy-gate  e35923b
+```
+
+本轮对该分支**无** merge / rebase / cherry-pick / commit / checkout 覆盖。
+唯一 active implementation lineage 是 DB-3.5（D-16）。
 
 ---
 
