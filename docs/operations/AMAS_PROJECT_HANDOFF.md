@@ -34,6 +34,7 @@
 |---|---|
 | `docs/operations/AI_COLLABORATION_RULES.md` | **GPT × Claude 双模型协同开发协议 v1.0**：角色分工、主导范围、Stop Conditions、六步开发流程、标准 DEVELOPMENT REPORT 格式、状态语言规范、技术争议处理机制 |
 | `docs/operations/engineering-security-rules.md` | 工程安全规则 R-1 ～ R-10 全文 |
+| `docs/operations/RELEASE-READINESS-REPORT.md` | **上线就绪度审计（2026-09-07）**：部署现实、环境、Auth、DB、安全、E2E 矩阵、P0/P1 阻塞表。**当前总状态 `NOT READY`** |
 
 > **`AI_COLLABORATION_RULES.md` 的 Source of Truth = `amas-website/docs/operations/AI_COLLABORATION_RULES.md`**（见 D-9）。
 > `AMAS-Seminary/docs/project-memory/AI_COLLABORATION_RULES.md` 是**逐字节镜像**。
@@ -54,13 +55,13 @@
 |---|---|
 | **Project** | AMAS 亚洲宣教神学院（Asia Missionary Association Seminary，泰国清迈） |
 | **Document** | `docs/operations/AMAS_PROJECT_HANDOFF.md` |
-| **Version** | 1.3 |
+| **Version** | 1.4 |
 | **Last Updated** | 2026-09-07 |
 | **Updated By** | Claude（依据两仓库真实 Git 状态与已归档报告，非聊天记忆） |
 | **Main Repository** | `enoslee0701-dev/amas-website`（官网 + 门户 + Supabase） |
 | **Secondary Repository** | `enoslee0701-dev/AMAS-Seminary`（App；本地目录名 `Desktop/AMAS Seminar App`） |
 | **Main HEAD（website）** | `1388668` 重建 AMAS_PROJECT_HANDOFF 为跨对话长期记忆总档（v1.0） |
-| **Main HEAD（App）** | `8921c9b` docs: 补齐项目记忆的四块缺失 |
+| **Main HEAD（App）** | `95dc954` docs: 校准 CURRENT_STATE 至 03bb842 实测状态 |
 | **Active Branches** | website: `master`（唯一）· App: `main`、`auth/supabase-unification`(`4af8307`) |
 | **Active Worktrees** | website: `C:\Users\enosl\Desktop\AMAS-website` · App: `C:\Users\enosl\Desktop\AMAS Seminar App` |
 | **Current Environment** | Supabase **staging** `amas-staging`（ref `sdrwyebizfdwldlfjyim`，ap-southeast-1，PG 17.6） |
@@ -1216,7 +1217,9 @@ Do Not Do:              AUTH-M7
                         为 credits 填入任何非 null 值
                         force push / amend / rebase 已共享提交
 
-Production Status:      NOT READY —— 六项 Production Ready 条件（见 §1）全部未满足
+Production Status:      NOT READY —— 4 项 P0 未关闭（RELEASE-READINESS-REPORT §13）
+                        阶段已切换为 RELEASE READINESS，暂停新增产品功能
+                        最高允许状态：TESTED LOCALLY（未达 INTEGRATION VERIFIED）
 ```
 
 ---
