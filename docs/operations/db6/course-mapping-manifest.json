@@ -1,6 +1,6 @@
 {
   "summary": {
-    "generated_at": "2026-09-07T10:31:08.159Z",
+    "generated_at": "2026-09-07T11:55:46.306Z",
     "mode": "emit-sql",
     "sources": {
       "official_catalog": {
@@ -31,7 +31,7 @@
     },
     "status_counts": {
       "EXACT_CANONICAL_MATCH": 67,
-      "RETIRED_REFERENCE": 4
+      "RETIRED": 4
     },
     "action_counts": {
       "UPDATE_EXTENSION_FIELDS": 67,
@@ -688,7 +688,7 @@
       "canonical_title": null,
       "official_catalog_title": null,
       "title_identical": null,
-      "status": "RETIRED_REFERENCE",
+      "status": "RETIRED",
       "mapping_method": "retired_id_registry",
       "migration_action": "PRESERVE_AS_RETIRED_REFERENCE",
       "legacy_created_at_ms": null,
@@ -700,7 +700,7 @@
       "canonical_total_lessons": null,
       "course_progress_rows": 0,
       "course_files_rows": 0,
-      "note": "两侧正式目录均已移除；不设 canonical 替代（无正式裁定）"
+      "note": "两侧正式目录均已移除；无正式裁定的 canonical 替代"
     },
     {
       "legacy_course_id": "c_dr_jude",
@@ -793,7 +793,7 @@
       "canonical_title": null,
       "official_catalog_title": null,
       "title_identical": null,
-      "status": "RETIRED_REFERENCE",
+      "status": "RETIRED",
       "mapping_method": "retired_id_registry",
       "migration_action": "PRESERVE_AS_RETIRED_REFERENCE",
       "legacy_created_at_ms": null,
@@ -805,7 +805,7 @@
       "canonical_total_lessons": null,
       "course_progress_rows": 0,
       "course_files_rows": 0,
-      "note": "两侧正式目录均已移除；不设 canonical 替代（无正式裁定）"
+      "note": "两侧正式目录均已移除；无正式裁定的 canonical 替代"
     },
     {
       "legacy_course_id": "c_dr_peter",
@@ -814,7 +814,7 @@
       "canonical_title": null,
       "official_catalog_title": null,
       "title_identical": null,
-      "status": "RETIRED_REFERENCE",
+      "status": "RETIRED",
       "mapping_method": "retired_id_registry",
       "migration_action": "PRESERVE_AS_RETIRED_REFERENCE",
       "legacy_created_at_ms": null,
@@ -826,7 +826,7 @@
       "canonical_total_lessons": null,
       "course_progress_rows": 0,
       "course_files_rows": 0,
-      "note": "两侧正式目录均已移除；不设 canonical 替代（无正式裁定）"
+      "note": "两侧正式目录均已移除；无正式裁定的 canonical 替代"
     },
     {
       "legacy_course_id": "c_dr_philemon",
@@ -1003,7 +1003,7 @@
       "canonical_title": null,
       "official_catalog_title": null,
       "title_identical": null,
-      "status": "RETIRED_REFERENCE",
+      "status": "RETIRED",
       "mapping_method": "retired_id_registry",
       "migration_action": "PRESERVE_AS_RETIRED_REFERENCE",
       "legacy_created_at_ms": null,
@@ -1015,7 +1015,7 @@
       "canonical_total_lessons": null,
       "course_progress_rows": 0,
       "course_files_rows": 0,
-      "note": "两侧正式目录均已移除；不设 canonical 替代（无正式裁定）"
+      "note": "两侧正式目录均已移除；无正式裁定的 canonical 替代"
     },
     {
       "legacy_course_id": "c_healing_inner",
@@ -1541,6 +1541,56 @@
       "course_progress_rows": 0,
       "course_files_rows": 0,
       "note": ""
+    }
+  ],
+  "retired_manifest": [
+    {
+      "legacy_course_id": "c_dr_pastoral",
+      "status": "RETIRED",
+      "canonical_replacement": null,
+      "mapping_basis": "services/catalog.ts:117 RETIRED_COURSE_IDS 声明 + 同处注释「旧的合并课程 → 已按书卷/主题拆分，迁移后删除」；拆分为一对多，无单一 canonical 替代，且仓库全历史未记录过其课程标题",
+      "historical_progress_count": 0,
+      "historical_files_count": 0,
+      "migration_action": "PRESERVE_AS_RETIRED_REFERENCE",
+      "active_course_progress_policy": "NEVER_WRITE_TO_ACTIVE_COURSE_PROGRESS",
+      "on_encounter_in_future_dataset": "FAIL_CLOSED_AND_QUARANTINE_FOR_PRODUCT_OWNER",
+      "quarantine_state": "LEGACY_RETIRED / MIGRATION_REVIEW_REQUIRED"
+    },
+    {
+      "legacy_course_id": "c_dr_peter",
+      "status": "RETIRED",
+      "canonical_replacement": null,
+      "mapping_basis": "services/catalog.ts:117 RETIRED_COURSE_IDS 声明 + 同处注释「旧的合并课程 → 已按书卷/主题拆分，迁移后删除」；拆分为一对多，无单一 canonical 替代，且仓库全历史未记录过其课程标题",
+      "historical_progress_count": 0,
+      "historical_files_count": 0,
+      "migration_action": "PRESERVE_AS_RETIRED_REFERENCE",
+      "active_course_progress_policy": "NEVER_WRITE_TO_ACTIVE_COURSE_PROGRESS",
+      "on_encounter_in_future_dataset": "FAIL_CLOSED_AND_QUARANTINE_FOR_PRODUCT_OWNER",
+      "quarantine_state": "LEGACY_RETIRED / MIGRATION_REVIEW_REQUIRED"
+    },
+    {
+      "legacy_course_id": "c_dr_johannine",
+      "status": "RETIRED",
+      "canonical_replacement": null,
+      "mapping_basis": "services/catalog.ts:117 RETIRED_COURSE_IDS 声明 + 同处注释「旧的合并课程 → 已按书卷/主题拆分，迁移后删除」；拆分为一对多，无单一 canonical 替代，且仓库全历史未记录过其课程标题",
+      "historical_progress_count": 0,
+      "historical_files_count": 0,
+      "migration_action": "PRESERVE_AS_RETIRED_REFERENCE",
+      "active_course_progress_policy": "NEVER_WRITE_TO_ACTIVE_COURSE_PROGRESS",
+      "on_encounter_in_future_dataset": "FAIL_CLOSED_AND_QUARANTINE_FOR_PRODUCT_OWNER",
+      "quarantine_state": "LEGACY_RETIRED / MIGRATION_REVIEW_REQUIRED"
+    },
+    {
+      "legacy_course_id": "c_healing",
+      "status": "RETIRED",
+      "canonical_replacement": null,
+      "mapping_basis": "services/catalog.ts:117 RETIRED_COURSE_IDS 声明 + 同处注释「旧的合并课程 → 已按书卷/主题拆分，迁移后删除」；拆分为一对多，无单一 canonical 替代，且仓库全历史未记录过其课程标题",
+      "historical_progress_count": 0,
+      "historical_files_count": 0,
+      "migration_action": "PRESERVE_AS_RETIRED_REFERENCE",
+      "active_course_progress_policy": "NEVER_WRITE_TO_ACTIVE_COURSE_PROGRESS",
+      "on_encounter_in_future_dataset": "FAIL_CLOSED_AND_QUARANTINE_FOR_PRODUCT_OWNER",
+      "quarantine_state": "LEGACY_RETIRED / MIGRATION_REVIEW_REQUIRED"
     }
   ]
 }

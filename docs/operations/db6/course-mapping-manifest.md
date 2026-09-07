@@ -30,13 +30,13 @@
 | `c_dr_galatians` | `c_dr_galatians` | 加拉太书 | 加拉太书 | EXACT_CANONICAL_MATCH | exact_code_equality | UPDATE_EXTENSION_FIELDS |
 | `c_dr_genesis` | `c_dr_genesis` | 创世记 | 创世记 | EXACT_CANONICAL_MATCH | exact_code_equality | UPDATE_EXTENSION_FIELDS |
 | `c_dr_james` | `c_dr_james` | 雅各书 | 雅各书 | EXACT_CANONICAL_MATCH | exact_code_equality | UPDATE_EXTENSION_FIELDS |
-| `c_dr_johannine` | — | — | — | RETIRED_REFERENCE | retired_id_registry | PRESERVE_AS_RETIRED_REFERENCE |
+| `c_dr_johannine` | — | — | — | RETIRED | retired_id_registry | PRESERVE_AS_RETIRED_REFERENCE |
 | `c_dr_jude` | `c_dr_jude` | 犹大书 | 犹大书 | EXACT_CANONICAL_MATCH | exact_code_equality | UPDATE_EXTENSION_FIELDS |
 | `c_dr_luke` | `c_dr_luke` | 路加福音 | 路加福音 | EXACT_CANONICAL_MATCH | exact_code_equality | UPDATE_EXTENSION_FIELDS |
 | `c_dr_mark` | `c_dr_mark` | 马可福音 | 马可福音 | EXACT_CANONICAL_MATCH | exact_code_equality | UPDATE_EXTENSION_FIELDS |
 | `c_dr_marking` | `c_dr_marking` | 研经标记法 | 研经标记法 | EXACT_CANONICAL_MATCH | exact_code_equality | UPDATE_EXTENSION_FIELDS |
-| `c_dr_pastoral` | — | — | — | RETIRED_REFERENCE | retired_id_registry | PRESERVE_AS_RETIRED_REFERENCE |
-| `c_dr_peter` | — | — | — | RETIRED_REFERENCE | retired_id_registry | PRESERVE_AS_RETIRED_REFERENCE |
+| `c_dr_pastoral` | — | — | — | RETIRED | retired_id_registry | PRESERVE_AS_RETIRED_REFERENCE |
+| `c_dr_peter` | — | — | — | RETIRED | retired_id_registry | PRESERVE_AS_RETIRED_REFERENCE |
 | `c_dr_philemon` | `c_dr_philemon` | 腓利门书 | 腓利门书 | EXACT_CANONICAL_MATCH | exact_code_equality | UPDATE_EXTENSION_FIELDS |
 | `c_dr_philippians` | `c_dr_philippians` | 腓立比书 | 腓立比书 | EXACT_CANONICAL_MATCH | exact_code_equality | UPDATE_EXTENSION_FIELDS |
 | `c_dr_reformed` | `c_dr_reformed` | 改革宗（加尔文主义）与福音派神学 | 改革宗（加尔文主义）与福音派神学 | EXACT_CANONICAL_MATCH | exact_code_equality | UPDATE_EXTENSION_FIELDS |
@@ -45,7 +45,7 @@
 | `c_evangelical_core` | `c_evangelical_core` | 福音派神学核心要义 | 福音派神学核心要义 | EXACT_CANONICAL_MATCH | exact_code_equality | UPDATE_EXTENSION_FIELDS |
 | `c_evangelism` | `c_evangelism` | 传道法 | 传道法 | EXACT_CANONICAL_MATCH | exact_code_equality | UPDATE_EXTENSION_FIELDS |
 | `c_greek` | `c_greek` | 希腊语 | 希腊语 | EXACT_CANONICAL_MATCH | exact_code_equality | UPDATE_EXTENSION_FIELDS |
-| `c_healing` | — | — | — | RETIRED_REFERENCE | retired_id_registry | PRESERVE_AS_RETIRED_REFERENCE |
+| `c_healing` | — | — | — | RETIRED | retired_id_registry | PRESERVE_AS_RETIRED_REFERENCE |
 | `c_healing_inner` | `c_healing_inner` | 内在医治 | 内在医治 | EXACT_CANONICAL_MATCH | exact_code_equality | UPDATE_EXTENSION_FIELDS |
 | `c_healing_word` | `c_healing_word` | 神的话语医治 | 神的话语医治 | EXACT_CANONICAL_MATCH | exact_code_equality | UPDATE_EXTENSION_FIELDS |
 | `c_hebrew` | `c_hebrew` | 希伯来语 | 希伯来语 | EXACT_CANONICAL_MATCH | exact_code_equality | UPDATE_EXTENSION_FIELDS |

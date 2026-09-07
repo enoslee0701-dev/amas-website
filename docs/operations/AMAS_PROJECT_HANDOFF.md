@@ -34,6 +34,7 @@
 |---|---|
 | `docs/operations/AI_COLLABORATION_RULES.md` | **GPT × Claude 双模型协同开发协议 v1.0**：角色分工、主导范围、Stop Conditions、六步开发流程、标准 DEVELOPMENT REPORT 格式、状态语言规范、技术争议处理机制 |
 | `docs/operations/engineering-security-rules.md` | 工程安全规则 R-1 ～ R-10 全文 |
+| `docs/operations/DB-6.1-COURSE-INTEGRITY-AND-LINEAGE-CLOSURE-REPORT.md` | **RB-01 DB-6.1 课程引用完整性与世系收尾（2026-09-07）**：修掉唯一一处指向不存在课程的可导航引用（`CustomTheologyView.tsx:244` `c_healing`），active dangling reference = **0**；新增**通用**课程引用完整性闸门（6 断言，已注入坏引用变异验证会红）；retired manifest 按 D-37 定契约（4 条 `canonical_replacement = null`，不猜、不编标题）；全量回归 前端 187/187 · 后端 159/159 · build ✅ · DB-6 36/36 · DB-3 53/53（17.6 与 18.6 各一次），SKIP 0 / BLOCKED_BY_ENV 0；冻结候选 8/8 能力已在 main → `RELEASE CANDIDATE SUPERSEDED`（保留不删不合）。**DBR-25 / DBR-27 CLOSED**。状态 **DB-6.1 LOCALLY VERIFIED** |
 | `docs/operations/DB-6-COURSE-MIGRATION-REPORT.md` | **RB-01 DB-6 课程迁移（2026-09-07）**：67/67 EXACT_CANONICAL_MATCH（只用 code 精确相等）、CONFLICT 0 / BLOCKED 0；4 个 retired id 全部 `PRESERVE_AS_RETIRED_REFERENCE`（无正式替代，不猜）；provenance 35 system / 32 catalog-migration 无假用户；`created_at` 毫秒级无损；0 INSERT / 0 DELETE / 67 UPDATE；契约 36/36（17.6 gate + 18.6 对照）、幂等 3 次零漂移、回退已实测、Portal 自有列校验和与 0022 基线完全一致。状态 **DB-6 LOCALLY VERIFIED** |
 | `docs/operations/DB-3.5-POSTGRESQL-17.6-COMPATIBILITY-REPORT.md` | **RB-01 DB-3.5 目标版本兼容闸门（2026-09-07）**：在**真实 PostgreSQL 17.6**（Supabase 目标版本）上 `0001`~`0026` **26/26 APPLIED**、契约 **53/53 PASS**、回退与前滚均通过、Portal 逐名零增删。抓到一处真实版本差异（`ON DELETE RESTRICT` 的 SQLSTATE：17.6 是 `23503`，18 才是 `23001`），已更正 DB-3 的相反表述。**migrations 零改动**。**DBR-22 CLOSED** → 状态 **DB-3 LOCALLY VERIFIED / READY FOR DB-4 REVIEW** |
 | `docs/operations/DB-3-POSTGRESQL-SCHEMA-IMPLEMENTATION-REPORT.md` | **RB-01 DB-3 PostgreSQL schema 实现（2026-09-07）**：`0023`~`0026` 四个 migration（28 张 `app_*` 表、9 枚举、49 外键、31 索引）+ 52 条行为断言 + 已实测回退脚本。GATE 0 裁定 `app_user_profile_ext` **DO NOT CREATE**。在真实 PostgreSQL 18.6 上执行验证。状态 **LOCALLY VERIFIED / READY FOR DB-4 REVIEW**（硬前置 DBR-22：须在 PG 17.6 重跑） |
@@ -64,13 +65,13 @@
 |---|---|
 | **Project** | AMAS 亚洲宣教神学院（Asia Missionary Association Seminary，泰国清迈） |
 | **Document** | `docs/operations/AMAS_PROJECT_HANDOFF.md` |
-| **Version** | 2.3 |
+| **Version** | 2.4 |
 | **Last Updated** | 2026-09-07 |
 | **Updated By** | Claude（依据两仓库真实 Git 状态与已归档报告，非聊天记忆） |
 | **Main Repository** | `enoslee0701-dev/amas-website`（官网 + 门户 + Supabase） |
 | **Secondary Repository** | `enoslee0701-dev/AMAS-Seminary`（App；本地目录名 `Desktop/AMAS Seminar App`） |
-| **Main HEAD（website）** | `661e7af` DB-3.5 报告 §12 补实 commit 哈希与冻结世系实测确认 |
-| **Main HEAD（App）** | `02903a1` docs: DBR-22 CLOSED（PG17.6 实测）+ DBR-24 更正 + D-33 |
+| **Main HEAD（website）** | `fb0e444` DB-6 COURSE MIGRATION：LOCALLY VERIFIED |
+| **Main HEAD（App）** | `51bfd11` Merge 'origin/main'（DB-6 + 另一会话的 auth/CI 世系收敛） |
 | **Active Branches** | website: `master`（唯一）· App: `main`、`auth/supabase-unification`(`4af8307`) |
 | **Active Worktrees** | website: `C:\Users\enosl\Desktop\AMAS-website` · App: `C:\Users\enosl\Desktop\AMAS Seminar App` |
 | **Current Environment** | Supabase **staging** `amas-staging`（ref `sdrwyebizfdwldlfjyim`，ap-southeast-1，PG 17.6） |
@@ -433,6 +434,41 @@ DB-4 正式状态记为 **`DB-4 IMPLEMENTATION PREREQUISITE = STAGING SUPABASE R
 **Reason**：课程迁移不依赖 user identity，且 67↔67 canonical 映射已完全确认；
 让整条迁移链卡在一个外部环境依赖上没有收益。
 **How to apply**：这是**顺序调整**，仍然遵守 D-16 —— 同一时刻只有一条 active implementation lineage。
+
+---
+
+### D-37｜未映射的 retired 课程进度永不进入 active `course_progress`
+
+**Status**：`APPROVED`（2026-09-07，Supervisor 裁定，**修订 DB-1 §4.3**）
+**Decision**：active `course_progress` **只能**引用 canonical `course_catalog`。
+对「retired legacy course + 无正式批准的 canonical 替代」的进度行，
+**禁止**：猜一个最接近的课程 · 创建假 canonical course · 关闭 FK · 静默删除 progress。
+迁移状态定义为 `LEGACY_RETIRED` / `MIGRATION_REVIEW_REQUIRED`，
+保存在 **migration manifest 与 quarantine 证据**中，**不写入**业务表。
+**当前数据集**：`retired course_progress rows = 0`，故**本轮不新增任何 legacy-retired 业务表**
+—— 不为不存在的数据增加永久 schema。将来若出现，迁移必须 **fail closed / quarantine**
+并提交 Product Owner。
+**Reason**：把无法确定归属的学习历史塞进业务表，等于用一个猜测污染真实学籍数据；
+而直接删掉又会丢失实践证据。放进 quarantine 是唯一既不猜也不丢的做法。
+**副作用**：本决策直接关闭 DBR-27 —— DB-3 现有的严格 FK 是**正确**的，
+要改的是 DB-1 §4.3 的措辞，不是 schema。
+
+### D-38｜ONE CANONICAL WRITER PER REPOSITORY
+
+**Status**：`APPROVED`（2026-09-07，Supervisor 裁定，**D-16 的加强**）
+**Decision**：同一仓库在任一时刻只能有一个会话拥有 canonical write authority。
+其他会话可 `READ` / `AUDIT` / `REVIEW` / `ISOLATED EXPERIMENT`，
+**不得直接 push** `origin/main` / `origin/master`。
+**Reason**：D-16 管的是「同一 task 不能两条世系」。2026-09-07 出现的是**两个不同 task**
+（DB-6 与 AUTH 加固 / CI 闸门）同时写同一仓库的 canonical branch —— 严格说不违反 D-16，
+但一样造成了 project-memory 冲突、merge 风险、状态基线漂移、
+以及一方不知道另一方已经 push。
+**How to apply**：`AI_HANDOFF_RULES.md` 顶部维护
+`REPOSITORY / CANONICAL_WRITE_OWNER / ACTIVE_TASK / ACTIVE_BRANCH / BASE_COMMIT /
+STARTED_AT / STATUS` 表；写之前先读，已有 `ACTIVE` writer 则 `STOP CANONICAL WRITE`。
+**Main Drift Rule**：认领时记 `BASE_ORIGIN_MAIN`；push 前必须 `git fetch origin`；
+世系不符则**不得直接 push**，先做 LINEAGE RECONCILIATION（真实合并 + 逐项证明双方成果都在
++ 全量回归）。**注意：`CONFLICT = 0` 不构成证据**（本项目有过静默删除事故）。
 
 ---
 
