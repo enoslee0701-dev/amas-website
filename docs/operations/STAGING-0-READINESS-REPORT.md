@@ -744,6 +744,55 @@ Staging fixtures 默认**永不**成为 Production 身份。
 
 ---
 
+## 21.1 Commits 与本轮的第二次世系漂移
+
+| 仓库 | commit |
+|---|---|
+| website | `be8e2cd` STAGING-0 READINESS：NEEDS OWNER ACTION |
+| App | `f722061` docs: STAGING-0 决策 D-39/D-40 + RB-29 → 合并 `68c14a4` → **`3c0bd5b`** |
+
+### ⚠ D-38 刚立即再次触发
+
+push 前按 Main Drift Rule 执行 `git fetch origin`，发现 App `main` 已从
+`47bd23d` 漂到 `68c14a4` —— **另一会话在 20:03–20:17 推了 3 个提交**
+（CI clean-install 依赖修正 · iOS smoke build 需要 Node 22 · post-legacy 收尾文档）。
+
+按 D-38 处置，**未直接 push、未 force**：
+
+```
+真实合并  →  逐项证明双方成果都在  →  全量回归  →  再 push
+```
+
+验证结果：
+
+| 检查 | 结果 |
+|---|---|
+| 我方 6 项标记（D-39 / D-40 / RB-29 / STAGING-0 状态 / STAGING-1 / roadmap） | ✔ 全部存活 |
+| 对方的 `tsconfig.json` / `package.json` / `ci.yml` 改动 | ✔ **0 行差异**，完全采纳 |
+| `docs/project-memory` 相对 `origin/main` 的删除行 | 2 行 —— 均为我有意扩写替换的旧行，非丢失 |
+| 合并后前端测试 | 187/187 |
+| 合并后后端 `test:local` | 159/159 |
+| 合并后 typecheck ×2 | exit 0 / exit 0（对方改过 `tsconfig.json`，故必测） |
+| 合并后 build | ✅ 7.32s |
+| 冻结世系 | `e35923b` 未被并入，未被修改 |
+
+**这是 D-38 生效后的第一次实战，也证明了它的必要性**：
+两条世系在同一天内第二次并行写同一仓库的 canonical branch。
+所有权表当前为 `IDLE`，但显然还没有被另一个会话读取或遵守 ——
+**D-38 目前只是文档约定，缺少机制性强制**（见 §21.2）。
+
+### 21.2 建议：给 D-38 加一道机制
+
+纯文档约定挡不住并行写入。可选的最小机制（**本轮未实施，供 Supervisor 裁定**）：
+
+| 方案 | 做法 | 代价 |
+|---|---|---|
+| A | 分支保护 + PR：canonical branch 禁止直推，一律走 PR | 需要 Owner 在 GitHub 设置；两个会话都要改工作流 |
+| B | pre-push hook：push 前自动 `fetch` 并比对 `BASE_COMMIT`，不符则拒绝 | 本地即可实施，但 hook 不随 clone 分发（需 `core.hooksPath`，本项目已有先例） |
+| C | 维持现状 + 每次 push 前强制 drift 检查 | 零成本，但依赖执行纪律 —— **本轮两次漂移都是靠这条纪律接住的** |
+
+---
+
 ## 22. Recommended Next Step
 
 **不自动开始。** 建议顺序：
