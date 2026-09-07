@@ -34,6 +34,7 @@
 |---|---|
 | `docs/operations/AI_COLLABORATION_RULES.md` | **GPT × Claude 双模型协同开发协议 v1.0**：角色分工、主导范围、Stop Conditions、六步开发流程、标准 DEVELOPMENT REPORT 格式、状态语言规范、技术争议处理机制 |
 | `docs/operations/engineering-security-rules.md` | 工程安全规则 R-1 ～ R-10 全文 |
+| `docs/operations/DB-3.5-POSTGRESQL-17.6-COMPATIBILITY-REPORT.md` | **RB-01 DB-3.5 目标版本兼容闸门（2026-09-07）**：在**真实 PostgreSQL 17.6**（Supabase 目标版本）上 `0001`~`0026` **26/26 APPLIED**、契约 **53/53 PASS**、回退与前滚均通过、Portal 逐名零增删。抓到一处真实版本差异（`ON DELETE RESTRICT` 的 SQLSTATE：17.6 是 `23503`，18 才是 `23001`），已更正 DB-3 的相反表述。**migrations 零改动**。**DBR-22 CLOSED** → 状态 **DB-3 LOCALLY VERIFIED / READY FOR DB-4 REVIEW** |
 | `docs/operations/DB-3-POSTGRESQL-SCHEMA-IMPLEMENTATION-REPORT.md` | **RB-01 DB-3 PostgreSQL schema 实现（2026-09-07）**：`0023`~`0026` 四个 migration（28 张 `app_*` 表、9 枚举、49 外键、31 索引）+ 52 条行为断言 + 已实测回退脚本。GATE 0 裁定 `app_user_profile_ext` **DO NOT CREATE**。在真实 PostgreSQL 18.6 上执行验证。状态 **LOCALLY VERIFIED / READY FOR DB-4 REVIEW**（硬前置 DBR-22：须在 PG 17.6 重跑） |
 | `docs/operations/DB-2-DATA-PREFLIGHT-REPORT.md` | **RB-01 DB-2 数据预检（2026-09-07）**：真实 SQLite 只读审计。0 个 admin、0 条 CP 数据、0 条 email-only 映射；真实孤儿仅 2 行。**需 Product Owner 决定的事项：0 项**。状态 **DB-2 COMPLETE / READY FOR DB-3 REVIEW** |
 | `docs/operations/DB-1-TARGET-SCHEMA-AND-MIGRATION-CONTRACT.md` | **RB-01 DB-1 目标 schema 与迁移契约（2026-09-07）**：D-18~D-21 落实、32 表全部定性、身份/角色/课程/FK/哨兵/类型/事务/CP/manifest 十项契约、DB-2~DB-13 阶段计划。状态 **DB-1 COMPLETE / READY FOR DB-2 REVIEW** |
@@ -62,13 +63,13 @@
 |---|---|
 | **Project** | AMAS 亚洲宣教神学院（Asia Missionary Association Seminary，泰国清迈） |
 | **Document** | `docs/operations/AMAS_PROJECT_HANDOFF.md` |
-| **Version** | 2.1 |
+| **Version** | 2.2 |
 | **Last Updated** | 2026-09-07 |
 | **Updated By** | Claude（依据两仓库真实 Git 状态与已归档报告，非聊天记忆） |
 | **Main Repository** | `enoslee0701-dev/amas-website`（官网 + 门户 + Supabase） |
 | **Secondary Repository** | `enoslee0701-dev/AMAS-Seminary`（App；本地目录名 `Desktop/AMAS Seminar App`） |
-| **Main HEAD（website）** | `5b58123` DB-2 DATA PREFLIGHT REPORT：COMPLETE / READY FOR DB-3 REVIEW |
-| **Main HEAD（App）** | `5f08130` DB-2 数据预检 + D-22~D-26 |
+| **Main HEAD（website）** | `2e63ae6` DB-3 POSTGRESQL SCHEMA IMPLEMENTATION：LOCALLY VERIFIED / READY FOR DB-4 |
+| **Main HEAD（App）** | `3852384` docs: DB-3 决策 D-27~D-32 + DBR-20~DBR-24 |
 | **Active Branches** | website: `master`（唯一）· App: `main`、`auth/supabase-unification`(`4af8307`) |
 | **Active Worktrees** | website: `C:\Users\enosl\Desktop\AMAS-website` · App: `C:\Users\enosl\Desktop\AMAS Seminar App` |
 | **Current Environment** | Supabase **staging** `amas-staging`（ref `sdrwyebizfdwldlfjyim`，ap-southeast-1，PG 17.6） |
@@ -376,6 +377,21 @@ DB-3 契约测试实测证明：它会让**任何开过房间的用户永远无�
 `rooms`（7/7）、`courses`（67/67）的 id 根本不是 uuid，照字面执行会在类型转换处**整批失败**。
 **How to apply**：类型契约必须以**代码里的生成器 + 全表实测形态**为准，不能以列名或惯例推断。
 **Source**：`supabase/migrations/0025_app_rooms_prayer.sql` 文件头「主键类型说明」
+
+---
+
+### D-33｜目标版本验证不可用「理论兼容」替代
+
+**Status**：`APPROVED`（2026-09-07，RB-01 DB-3.5，Supervisor 裁定）
+**Decision**：schema / DDL 的验证必须在**目标部署版本**上真实执行。
+「所用特性在目标版本都支持」只能作为静态补充，**不能**作为通过依据。
+版本不一致时状态必须写成 `TARGET VERSION VERIFICATION REQUIRED`，**不得**写 `VERIFIED`。
+**Reason**：DB-3 在 PG 18.6 全绿，其「特性都支持 17.6」的判断本身也没错 ——
+但 DB-3.5 在 17.6 上仍抓到一处真实差异：`ON DELETE RESTRICT` 的 SQLSTATE
+（17.6 = `23503 foreign_key_violation`；`23001 restrict_violation` 是 PG 18 才引入的）。
+它不属于「特性支持与否」，而属于**行为细节**，静态推理看不见。
+**How to apply**：任何跨版本 / 跨引擎的结论，先问「在目标版本上跑过没有」；没跑过就标 `UNVERIFIED`。
+**Source**：`docs/operations/DB-3.5-POSTGRESQL-17.6-COMPATIBILITY-REPORT.md` §8
 
 ---
 

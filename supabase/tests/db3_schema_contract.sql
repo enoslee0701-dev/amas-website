@@ -437,16 +437,32 @@ do $$ begin
     'D-28: provenance 列刻意没有身份 FK');
 end $$;
 
--- 目录条目仍有学习进度时不得被删除
-do $$ declare ok boolean := false; begin
+-- 目录条目仍有学习进度时不得被删除。
+--
+-- ★ 版本可移植性（DB-3.5 实测）：RESTRICT 违反抛出的 SQLSTATE 随 PG 版本不同 ——
+--     PostgreSQL 17.6（Supabase 目标版本）：23503 foreign_key_violation
+--     PostgreSQL 18.6                    ：23001 restrict_violation（18 才引入的独立条件）
+--   两版的**行为完全一致**（删除都被挡住），只有错误码不同。
+--   因此这里断言的是「删除被阻止 + 行仍在」这一行为本身，
+--   同时把实际 SQLSTATE 记入 NOTICE 供 DB-12 的异常处理参考。
+--   —— 这不是放宽：多了一条「父行必须仍然存在」的断言，比原来更严。
+do $$
+declare blocked boolean := false; s text; survived boolean;
+begin
   insert into public.course_catalog (code, title_zh, category) values ('c_db3test','测试','bible_basics');
   insert into public.app_course_progress (user_id, course_code, progress, updated_at)
     values ('22222222-2222-2222-2222-222222222222','c_db3test',10,now());
   begin
     delete from public.course_catalog where code='c_db3test';
-  -- RESTRICT 抛的是 restrict_violation(23001)，与 foreign_key_violation(23503) 是不同条件。
-  exception when restrict_violation then ok := true; end;
-  perform pg_temp.ck(ok, '课程: RESTRICT 阻止删除仍有学习进度的目录条目');
+  exception when restrict_violation or foreign_key_violation then
+    blocked := true;
+    get stacked diagnostics s = returned_sqlstate;
+  end;
+  perform pg_temp.ck(blocked,
+    '课程: RESTRICT 阻止删除仍有学习进度的目录条目（sqlstate='||coalesce(s,'none')||'）');
+
+  select exists(select 1 from public.course_catalog where code='c_db3test') into survived;
+  perform pg_temp.ck(survived, '课程: 被 RESTRICT 拦下的目录条目确实仍然存在');
 end $$;
 
 

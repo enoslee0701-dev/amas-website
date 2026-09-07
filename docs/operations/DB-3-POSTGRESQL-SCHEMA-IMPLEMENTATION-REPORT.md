@@ -3,6 +3,17 @@
 **RB-01 · PHASE DB-3 —— PostgreSQL Schema 实现**
 日期：2026-09-07 · 执行：Claude · 依据：DB-0 / DB-1 契约 + DB-2 实测数据
 
+> ### ⚠ 本报告已被 DB-3.5 补充与部分更正（2026-09-07）
+>
+> 本报告的验证在 **PostgreSQL 18.6** 上完成。Supervisor 裁定「理论兼容」不能代替执行，
+> 遂有 **DB-3.5 PostgreSQL 17.6 COMPATIBILITY GATE**。结果：
+>
+> - `0001..0026` 在 **17.6** 上 **26/26 APPLIED**，契约测试 **53/53 PASS**，回退与前滚均通过 → **DBR-22 CLOSED**
+> - **§11 / §15 / DBR-24 中关于 `ON DELETE RESTRICT` SQLSTATE 的表述在目标版本上是错的**：
+>   17.6 抛 `foreign_key_violation` **23503**，`restrict_violation` **23001** 是 PostgreSQL **18** 才引入的。
+>   下文相关处已就地标注 `【DB-3.5 更正】`，**原文保留**，详见 `DB-3.5-POSTGRESQL-17.6-COMPATIBILITY-REPORT.md` §8。
+> - migrations 本身**未因版本做任何修改**；只有契约测试改为版本可移植（并新增 1 条更严的断言，52 → 53）。
+
 > **最终状态：`LOCALLY VERIFIED / READY FOR DB-4 REVIEW`**
 > 详见 §17 的验证边界声明 —— 「LOCALLY VERIFIED」指在**真实 PostgreSQL 引擎**上执行并断言通过，
 > **不是**在真实 Supabase 上。两者的差别在 §17 逐条列明，未夸大。
@@ -203,7 +214,8 @@ DB-2 实测：`courses.created_by` 的 **67/67 行全部是哨兵** —— `'sys
 - `course_catalog` 本轮只**加列**，未改既有列、未删数据。实测应用前后课程数恒为 67。
 
 `app_course_progress.course_code` 用 **`ON DELETE RESTRICT`**：仍有学习进度的目录条目不得被删除。
-实测通过（注意：RESTRICT 抛的是 `restrict_violation` 23001，与 `foreign_key_violation` 23503 是不同条件）。
+实测通过。
+> **【DB-3.5 更正】** 原文写「RESTRICT 抛 `restrict_violation` 23001」——那是 **PG 18** 的行为。**目标版本 17.6 抛 `foreign_key_violation` 23503**，且在 17.6 上 RESTRICT 与 NO ACTION 的 SQLSTATE **无法区分**。
 
 ---
 
@@ -541,9 +553,9 @@ SQLite 靠 `PRAGMA table_info` 运行期探测 schema 形态；Postgres 没有�
 |---|---|---|---|
 | **DBR-20** | Medium | `users.email` 的 `COLLATE NOCASE` 唯一性在迁移后由 Supabase Auth 承担；`profiles.email` 本身**没有**大小写不敏感唯一索引。需确认 Auth 侧规则足以防止大小写不同的重复账号 | DB-4 |
 | **DBR-21** | Medium | App `avatar` 混存三种形态（上传 URL / data URI / 前端生成图），Portal `avatar_path` 语义是 storage path。实测 7/7 全 NULL，**当前迁移成本为 0**，但 App 侧写入路径须先归一 | DB-12 |
-| **DBR-22** | **High** | 本轮在 **PG 18.6** 验证，Supabase staging 是 **PG 17.6**。所用特性在 17.6 均支持但**未实测**。DB-4 开始前必须在 17.6 上重跑 `0023..0026` + 契约测试 | DB-4 前置 |
+| **DBR-22** | ~~High~~ **CLOSED（DB-3.5）** | 本轮在 **PG 18.6** 验证，Supabase staging 是 **PG 17.6**。所用特性在 17.6 均支持但**未实测**。DB-4 开始前必须在 17.6 上重跑 `0023..0026` + 契约测试 | DB-4 前置 |
 | **DBR-23** | Low | DB-0 记录 Portal 有「36 条 RLS policy」，本轮由 `0001..0022` 复现得到 **33 条**（基线与 DB-3 后一致，非本轮回归）。差异来源需核对（可能 DB-0 统计口径含 `storage` 等其他 schema） | DB-4 |
-| **DBR-24** | Medium | DB-12 的 DAL 改造必须处理：部分唯一索引作 `ON CONFLICT` 目标时**必须重复 WHERE 谓词**，否则每次幂等重放变 500；`RESTRICT` 抛 `restrict_violation`(23001) 而非 `foreign_key_violation`(23503)，异常处理需区分 | DB-12 |
+| **DBR-24** | Medium | DB-12 的 DAL 改造必须处理：部分唯一索引作 `ON CONFLICT` 目标时**必须重复 WHERE 谓词**，否则每次幂等重放变 500；**【DB-3.5 更正】** `RESTRICT` 在**目标版本 17.6 抛 `foreign_key_violation`(23503)**；`restrict_violation`(23001) 是 PG 18 才引入的，DAL **不得**依赖它 | DB-12 |
 
 ---
 
