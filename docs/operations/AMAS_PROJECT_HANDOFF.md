@@ -34,6 +34,7 @@
 |---|---|
 | `docs/operations/AI_COLLABORATION_RULES.md` | **GPT × Claude 双模型协同开发协议 v1.0**：角色分工、主导范围、Stop Conditions、六步开发流程、标准 DEVELOPMENT REPORT 格式、状态语言规范、技术争议处理机制 |
 | `docs/operations/engineering-security-rules.md` | 工程安全规则 R-1 ～ R-10 全文 |
+| `docs/operations/STAGING-0-READINESS-REPORT.md` | **STAGING-0 Supabase staging 就绪度（2026-09-07）**：只设计不建资源。**迁移交付通道已实测跑通** —— `supabase db push --db-url` 无需 Docker、接受现有 `0001_` 命名、26/26 应用、幂等 `upToDate:true`、写入官方 `supabase_migrations.schema_migrations`、产出与 psql 通道 md5 完全一致且契约 53/53。含 staging 架构 / 数据政策 / Esther 身份验证计划 / DB-4 演练闭环 / AUTH 外部测试矩阵 / RLS 否定式矩阵 / 部署与 secret 模型 / 入场清单 / Owner 行动清单。清单：READY 7 · NEEDS_OWNER 5 · BLOCKED 2 · NOT_REQUIRED 4。状态 **STAGING-0 NEEDS OWNER ACTION** |
 | `docs/operations/DB-6.1-COURSE-INTEGRITY-AND-LINEAGE-CLOSURE-REPORT.md` | **RB-01 DB-6.1 课程引用完整性与世系收尾（2026-09-07）**：修掉唯一一处指向不存在课程的可导航引用（`CustomTheologyView.tsx:244` `c_healing`），active dangling reference = **0**；新增**通用**课程引用完整性闸门（6 断言，已注入坏引用变异验证会红）；retired manifest 按 D-37 定契约（4 条 `canonical_replacement = null`，不猜、不编标题）；全量回归 前端 187/187 · 后端 159/159 · build ✅ · DB-6 36/36 · DB-3 53/53（17.6 与 18.6 各一次），SKIP 0 / BLOCKED_BY_ENV 0；冻结候选 8/8 能力已在 main → `RELEASE CANDIDATE SUPERSEDED`（保留不删不合）。**DBR-25 / DBR-27 CLOSED**。状态 **DB-6.1 LOCALLY VERIFIED** |
 | `docs/operations/DB-6-COURSE-MIGRATION-REPORT.md` | **RB-01 DB-6 课程迁移（2026-09-07）**：67/67 EXACT_CANONICAL_MATCH（只用 code 精确相等）、CONFLICT 0 / BLOCKED 0；4 个 retired id 全部 `PRESERVE_AS_RETIRED_REFERENCE`（无正式替代，不猜）；provenance 35 system / 32 catalog-migration 无假用户；`created_at` 毫秒级无损；0 INSERT / 0 DELETE / 67 UPDATE；契约 36/36（17.6 gate + 18.6 对照）、幂等 3 次零漂移、回退已实测、Portal 自有列校验和与 0022 基线完全一致。状态 **DB-6 LOCALLY VERIFIED** |
 | `docs/operations/DB-3.5-POSTGRESQL-17.6-COMPATIBILITY-REPORT.md` | **RB-01 DB-3.5 目标版本兼容闸门（2026-09-07）**：在**真实 PostgreSQL 17.6**（Supabase 目标版本）上 `0001`~`0026` **26/26 APPLIED**、契约 **53/53 PASS**、回退与前滚均通过、Portal 逐名零增删。抓到一处真实版本差异（`ON DELETE RESTRICT` 的 SQLSTATE：17.6 是 `23503`，18 才是 `23001`），已更正 DB-3 的相反表述。**migrations 零改动**。**DBR-22 CLOSED** → 状态 **DB-3 LOCALLY VERIFIED / READY FOR DB-4 REVIEW** |
@@ -65,13 +66,13 @@
 |---|---|
 | **Project** | AMAS 亚洲宣教神学院（Asia Missionary Association Seminary，泰国清迈） |
 | **Document** | `docs/operations/AMAS_PROJECT_HANDOFF.md` |
-| **Version** | 2.4 |
+| **Version** | 2.5 |
 | **Last Updated** | 2026-09-07 |
 | **Updated By** | Claude（依据两仓库真实 Git 状态与已归档报告，非聊天记忆） |
 | **Main Repository** | `enoslee0701-dev/amas-website`（官网 + 门户 + Supabase） |
 | **Secondary Repository** | `enoslee0701-dev/AMAS-Seminary`（App；本地目录名 `Desktop/AMAS Seminar App`） |
-| **Main HEAD（website）** | `fb0e444` DB-6 COURSE MIGRATION：LOCALLY VERIFIED |
-| **Main HEAD（App）** | `51bfd11` Merge 'origin/main'（DB-6 + 另一会话的 auth/CI 世系收敛） |
+| **Main HEAD（website）** | `a12078b` DB-6.1 COURSE INTEGRITY & LINEAGE CLOSURE：LOCALLY VERIFIED |
+| **Main HEAD（App）** | `47bd23d` DB-6.1: 课程引用完整性闸门 + c_healing 修复 + D-37/D-38 |
 | **Active Branches** | website: `master`（唯一）· App: `main`、`auth/supabase-unification`(`4af8307`) |
 | **Active Worktrees** | website: `C:\Users\enosl\Desktop\AMAS-website` · App: `C:\Users\enosl\Desktop\AMAS Seminar App` |
 | **Current Environment** | Supabase **staging** `amas-staging`（ref `sdrwyebizfdwldlfjyim`，ap-southeast-1，PG 17.6） |
@@ -469,6 +470,35 @@ STARTED_AT / STATUS` 表；写之前先读，已有 `ACTIVE` writer 则 `STOP CA
 **Main Drift Rule**：认领时记 `BASE_ORIGIN_MAIN`；push 前必须 `git fetch origin`；
 世系不符则**不得直接 push**，先做 LINEAGE RECONCILIATION（真实合并 + 逐项证明双方成果都在
 + 全量回归）。**注意：`CONFLICT = 0` 不构成证据**（本项目有过静默删除事故）。
+
+---
+
+### D-39｜Docker 不是 Staging 的前置条件
+
+**Status**：`APPROVED`（2026-09-07，Supervisor 裁定）
+**Decision**：**不把安装 Docker 作为 AMAS Staging 的前置条件。**
+本地 PostgreSQL 17.6 已足以承担 schema development · migration replay · rollback testing · contract testing。
+真正的 staging migration 走
+`版本化 SQL migrations → 受控 migration runner / CI → Supabase Staging PostgreSQL`，
+或经批准的 `psql` 直连。**不得因为 `supabase start` 跑不起来就让项目停摆。**
+**Evidence（本轮实测，靶子是本地 PG 17.6 而非任何真 Supabase）**：
+`supabase db push --db-url` **不需要 Docker、不需要 link**；接受现有 `0001_` 命名；
+26/26 应用成功；写入官方 `supabase_migrations.schema_migrations`（26 行 version+name）；
+重放返回 `{"upToDate":true}`；`supabase migration list --db-url` 直接给出 local vs remote；
+产出的 schema 与 psql 通道 `information_schema.columns` 全表 md5 **完全一致**，
+且在该库上跑 DB-3 契约 **53/53 PASS**。
+**Source**：`docs/operations/STAGING-0-READINESS-REPORT.md` §4–§6
+
+### D-40｜Staging 与 Production 相互隔离
+
+**Status**：`APPROVED`（2026-09-07，Supervisor 裁定）
+**Decision**：Staging 与 Production 的**基础设施与数据群体相互隔离**。
+Staging fixtures **默认永不**成为 Production 身份。
+两者必须是不同的 Supabase project、不同的部署目标、不同的构建产物
+（`anonKey` 会进前端 bundle，一次构建复用两个环境等于让 staging 前端连 production 库）。
+**Reason**：与 D-34 同源 —— 测试装置一旦被当成「迁移成功人口」，
+就会在正式环境里产生没有真人对应的账号（R-7）。
+**Source**：`docs/operations/STAGING-0-READINESS-REPORT.md` §2 · §8
 
 ---
 
