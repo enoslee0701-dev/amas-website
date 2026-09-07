@@ -34,6 +34,7 @@
 |---|---|
 | `docs/operations/AI_COLLABORATION_RULES.md` | **GPT × Claude 双模型协同开发协议 v1.0**：角色分工、主导范围、Stop Conditions、六步开发流程、标准 DEVELOPMENT REPORT 格式、状态语言规范、技术争议处理机制 |
 | `docs/operations/engineering-security-rules.md` | 工程安全规则 R-1 ～ R-10 全文 |
+| `docs/operations/DB-3-POSTGRESQL-SCHEMA-IMPLEMENTATION-REPORT.md` | **RB-01 DB-3 PostgreSQL schema 实现（2026-09-07）**：`0023`~`0026` 四个 migration（28 张 `app_*` 表、9 枚举、49 外键、31 索引）+ 52 条行为断言 + 已实测回退脚本。GATE 0 裁定 `app_user_profile_ext` **DO NOT CREATE**。在真实 PostgreSQL 18.6 上执行验证。状态 **LOCALLY VERIFIED / READY FOR DB-4 REVIEW**（硬前置 DBR-22：须在 PG 17.6 重跑） |
 | `docs/operations/DB-2-DATA-PREFLIGHT-REPORT.md` | **RB-01 DB-2 数据预检（2026-09-07）**：真实 SQLite 只读审计。0 个 admin、0 条 CP 数据、0 条 email-only 映射；真实孤儿仅 2 行。**需 Product Owner 决定的事项：0 项**。状态 **DB-2 COMPLETE / READY FOR DB-3 REVIEW** |
 | `docs/operations/DB-1-TARGET-SCHEMA-AND-MIGRATION-CONTRACT.md` | **RB-01 DB-1 目标 schema 与迁移契约（2026-09-07）**：D-18~D-21 落实、32 表全部定性、身份/角色/课程/FK/哨兵/类型/事务/CP/manifest 十项契约、DB-2~DB-13 阶段计划。状态 **DB-1 COMPLETE / READY FOR DB-2 REVIEW** |
 | `docs/operations/DB-0-DATABASE-FACTS-AND-TARGET-DESIGN.md` | **RB-01 DB-0 数据库事实与目标设计（2026-09-07）**：SQLite 32 表 schema/SQL/身份/角色清点、Portal 重叠分析、Postgres 目标模型、16 项迁移风险。状态 **DB-0 NEEDS DECISION**（4 项待拍板） |
@@ -61,12 +62,12 @@
 |---|---|
 | **Project** | AMAS 亚洲宣教神学院（Asia Missionary Association Seminary，泰国清迈） |
 | **Document** | `docs/operations/AMAS_PROJECT_HANDOFF.md` |
-| **Version** | 2.0 |
+| **Version** | 2.1 |
 | **Last Updated** | 2026-09-07 |
 | **Updated By** | Claude（依据两仓库真实 Git 状态与已归档报告，非聊天记忆） |
 | **Main Repository** | `enoslee0701-dev/amas-website`（官网 + 门户 + Supabase） |
 | **Secondary Repository** | `enoslee0701-dev/AMAS-Seminary`（App；本地目录名 `Desktop/AMAS Seminar App`） |
-| **Main HEAD（website）** | `1388668` 重建 AMAS_PROJECT_HANDOFF 为跨对话长期记忆总档（v1.0） |
+| **Main HEAD（website）** | `5b58123` DB-2 DATA PREFLIGHT REPORT：COMPLETE / READY FOR DB-3 REVIEW |
 | **Main HEAD（App）** | `5f08130` DB-2 数据预检 + D-22~D-26 |
 | **Active Branches** | website: `master`（唯一）· App: `main`、`auth/supabase-unification`(`4af8307`) |
 | **Active Worktrees** | website: `C:\Users\enosl\Desktop\AMAS-website` · App: `C:\Users\enosl\Desktop\AMAS Seminar App` |
@@ -315,6 +316,66 @@ auth.users.id
 已提交申请通过 program code 外引这些行，删行会破坏历史记录；且这是暂时状态，翻回 `true` 即可恢复。
 **Do Not**：不得删除 `program_catalog` 中这五行；不得在咨询助手知识库中继续推荐已撤下的项目。
 **Source**：`supabase/migrations/0022_program_offering_scope.sql`、`index.html`、`assets/js/main.js`（四语言）
+
+---
+
+### D-27｜Migration 归属：website 仓库是唯一 source of truth
+
+**Status**：`APPROVED`（2026-09-07，RB-01 DB-3）
+**Decision**：`amas-website/supabase/migrations` 是 AMAS Supabase database 的**唯一** migration source of truth。
+App repo **不得**建立第二套 Supabase migrations，只保留离线迁移工具（读 SQLite、产出 manifest、写 Postgres），不含 DDL。
+**Reason**：Portal 与 App 迁移后共用同一个数据库；两套竞争的 migration 目录必然产生「谁先跑」「版本号撞车」「schema 漂移」三类问题。与 D-9 的治理文档归属一致。
+**Source**：`supabase/migrations/0023_app_foundation.sql` ～ `0026_app_community.sql`
+
+### D-28｜`courses.created_by` 是来源标记，不是身份
+
+**Status**：`APPROVED`（2026-09-07，RB-01 DB-3）
+**Decision**：承接为 `course_catalog.created_by_provenance text`，**刻意不设外键**。
+若将来出现真人创建的课程，须**另加**一列 `created_by uuid references profiles(id)`，不得复用本列。
+**Reason**：DB-2 实测 67/67 行全部是哨兵（`system` 35 / `catalog-migration` 32），无一指向真实用户。
+设成 uuid FK 就必须发明一个不存在的「system 用户」，违反 DB-1 §7 三禁令与 R-7。
+**Source**：`supabase/migrations/0024_app_learning.sql §1`
+
+### D-29｜DB-3 是 schema only
+
+**Status**：`APPROVED`（2026-09-07，RB-01 DB-3）
+**Decision**：DB-3 只创建结构，不迁移任何一行业务数据。数据迁移在 DB-4 ～ DB-11 分阶段进行，每阶段独立验收与回退。
+**Reason**：结构与数据同批推进会让失败无法归因 —— 分不清是 schema 错了还是转换错了，也无法单独回退。
+**实测**：本轮业务数据写入行数 = 0。
+
+### D-30｜`app_user_profile_ext` = DO NOT CREATE
+
+**Status**：`APPROVED`（2026-09-07，RB-01 DB-3 GATE 0）
+**Decision**：不创建 App 用户扩展表。`bio` 以一列扩展 canonical `profiles`；
+`degree` **不迁移**，App 的学位展示改读 `student_records.program_code`，未建档用户显示「未确定」而**不得回填默认值**。
+**Reason**：`degree` 实测 7/7 全 NULL、由用户注册时自选（`AuthView.tsx:55` 未选时硬编码回填 `'M.Div'`）、
+非权威学籍，迁移它会制造第二个学位真相源（R-2 展示 ≠ 权威）；
+`bio` 是通用档案属性，能放进 canonical schema，因此按 GATE 0 规则不得为它单开一张表。
+**How to apply**：新增 App 用户字段前先问「canonical schema 能否承载」；能承载就扩展 canonical，不能才考虑扩展表。
+**Source**：`supabase/migrations/0023_app_foundation.sql §2`
+
+### D-31｜`app_rooms` 三形态房主模型
+
+**Status**：`APPROVED`（2026-09-07，RB-01 DB-3）
+**Decision**：`host_type` × `host_user_id` × `host_orphaned_at` 三形态 ——
+`system`/NULL/NULL、`user`/NOT NULL/NULL、`user`/NULL/NOT NULL（房主已注销）。
+第三种由 `BEFORE UPDATE` 触发器在 `ON DELETE SET NULL` 生效时自动标记。
+**Reason**：DB-1 §6 的 `ON DELETE SET NULL` 与 §7 的 `NOT NULL` CHECK **不可能同时成立**。
+DB-3 契约测试实测证明：它会让**任何开过房间的用户永远无法注销**。
+三形态在保住 §7 全部验收要求（内置房间无需假用户、真人 host 必须有效、非法 orphan 写不进）的同时让注销路径可用。
+**How to apply**：凡「保留内容 + 置空作者」的表，若同时有形态 CHECK，**必须先验证注销路径能跑通**，
+不能只看约束本身是否合理 —— 约束正确与流程可用是两件事。
+**Source**：`supabase/migrations/0025_app_rooms_prayer.sql §1`
+
+### D-32｜主键类型跟随真实 id 生成器
+
+**Status**：`APPROVED`（2026-09-07，RB-01 DB-3）
+**Decision**：目标 PK 类型按每张表**实际的 id 生成器**逐表裁定，不一刀切成 uuid。
+`crypto.randomUUID()` 的表用 `uuid`；`crypto.randomBytes(9).toString('hex')`（18 位 hex）与人类可读码的表用 `text`。
+**Reason**：DB-1 §8 #9 字面写「TEXT uuid 主键 → uuid」，但实测 `prayer_shares`（12/12）、
+`rooms`（7/7）、`courses`（67/67）的 id 根本不是 uuid，照字面执行会在类型转换处**整批失败**。
+**How to apply**：类型契约必须以**代码里的生成器 + 全表实测形态**为准，不能以列名或惯例推断。
+**Source**：`supabase/migrations/0025_app_rooms_prayer.sql` 文件头「主键类型说明」
 
 ---
 
