@@ -54,7 +54,7 @@
 |---|---|
 | **Project** | AMAS 亚洲宣教神学院（Asia Missionary Association Seminary，泰国清迈） |
 | **Document** | `docs/operations/AMAS_PROJECT_HANDOFF.md` |
-| **Version** | 1.2 |
+| **Version** | 1.3 |
 | **Last Updated** | 2026-09-07 |
 | **Updated By** | Claude（依据两仓库真实 Git 状态与已归档报告，非聊天记忆） |
 | **Main Repository** | `enoslee0701-dev/amas-website`（官网 + 门户 + Supabase） |
@@ -989,29 +989,46 @@ Owner:     用户
 **Required external action**：用户确定正式域名。**GitHub Pages URL 不作为 production 域名。**
 **Next engineering action**：域名确定后按 `AUTH-production-auth-config.md` §3 收敛为精确 URL。
 
-### BLOCKER-08｜0022 迁移未执行，前端与 program_catalog 暂时不一致
+### BLOCKER-08｜0022 迁移未执行（潜伏项，当前无用户影响）
 
 ```
-Severity:  P1
+Severity:  P2  （2026-09-07 由 P1 下调，见下方「实际影响」）
 Status:    BLOCKED
-Owner:     用户（需 staging 凭据执行迁移）
+Owner:     用户（需 supabase login 或控制台执行）
 ```
 
-**Problem**：D-10 的前端改动已于 2026-09-07 上线，但 `0022_program_offering_scope.sql`
-**尚未在任何环境执行**。官网下拉只剩 4 项，而 `program_catalog` 中那 5 项仍标记
+**Problem**：D-10 的前端改动已于 2026-09-07 上线，但
+`supabase/migrations/0022_program_offering_scope.sql` **尚未在任何环境执行**。
+官网 Quick Apply 只剩 4 项，而 `program_catalog` 中那 5 项仍标记
 `is_open_for_application = true`。
 
-**Why it blocks**：D-2 一致性守卫 `supabase/tests/program_catalog_consistency.mjs`
-断言「官网项目清单与 program_catalog 开放项目完全一致（含顺序）」，
-**在迁移执行前该测试必然 FAIL（D2-03）**。这是**已知的、有意接受的临时状态**，
-不是新缺陷 —— 甲方选择先上前端（方案 A），迁移随后补（方案 B）。
+**实际影响：当前为零。** 三项已核实的事实：
 
-**Required external action**：提供 staging 访问方式，或由持有凭据者执行迁移。
+1. 线上 `assets/js/supabase-config.js` 为空配置（`url:""` / `anonKey:""`），
+   **线上 Portal 未接任何数据库**，申请表打不开 —— 无人能看到那 9 项，
+   更不可能提交已撤下项目的申请。
+2. `program_catalog_consistency.mjs` 需要 `AMAS_ENV=staging.env`，
+   而 `staging.env` 本地不存在 —— **该测试目前在任何地方都跑不起来**，
+   D2-03 是「将来会 FAIL」，不是「正在 FAIL」。
+3. Portal 申请表（`portal/applicant/application/index.html:47-50`）是
+   **从 `program_catalog` 读取并按 `is_open_for_application` 过滤**的，
+   因此 `0022` 一经执行，门户与官网自动一致，**无需再改任何前端代码**。
+
+**Why it still blocks**：接上真实数据库之前必须解决。否则门户一旦启用，
+申请人会在官网看到 4 项、进门户看到 9 项，并可能提交已撤下项目的申请。
+故它是 **Portal 启用的前置条件**，而非当前进行中的故障。
+
+**Required external action**（二选一）：
+- `supabase login`（浏览器授权一次），之后 CLI 可代为执行 —— **推荐**，
+  迁移会登记进 `supabase_migrations`
+- 或在 Supabase 控制台 SQL Editor 手工执行 `0022` —— 不登记迁移记录，
+  下次 `db push` 会重跑（该迁移幂等，重跑无害，但记录会失真）
 
 **Next engineering action**：
-1. 在 staging 执行 `0022`（迁移内含自检：开放项目必须恰好为 `bth,gdip,mdiv,dmin`，否则报错）
-2. 重跑 `program_catalog_consistency.mjs`，确认 D2-03 恢复 PASS
-3. 迁移执行后**关闭本 blocker**，并从 §21 移除对应风险条目
+1. 执行 `0022`（迁移末尾含自检：开放项目必须恰好为 `bth,gdip,mdiv,dmin`，
+   否则抛异常回滚，不会留下半对半错的状态）
+2. 重跑 `program_catalog_consistency.mjs`，确认 D2-03 PASS
+3. 关闭本 blocker
 
 ---
 
@@ -1179,7 +1196,7 @@ Current Blockers:       P0  BLOCKER-01  Production Supabase 未建立
                         P1  BLOCKER-04  Phase 4B 实时语音（缺真机 + LiveKit）
                         P1  BLOCKER-06  App auth 分支未合入 main
                         P1  BLOCKER-07  PRODUCTION_DOMAIN 未确定
-                        P1  BLOCKER-08  0022 未执行，D-2 一致性测试暂时 FAIL（已知并有意接受）
+                        P2  BLOCKER-08  0022 未执行（潜伏项：线上 Portal 未接数据库，当前零影响）
                         P2  BLOCKER-05  website AUTH 直提 master 的 R-9 合规性
 
 Waiting External        production Supabase 项目 · SMTP 配置 · 正式域名
