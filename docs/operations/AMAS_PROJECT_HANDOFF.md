@@ -34,6 +34,7 @@
 |---|---|
 | `docs/operations/AI_COLLABORATION_RULES.md` | **GPT × Claude 双模型协同开发协议 v1.0**：角色分工、主导范围、Stop Conditions、六步开发流程、标准 DEVELOPMENT REPORT 格式、状态语言规范、技术争议处理机制 |
 | `docs/operations/engineering-security-rules.md` | 工程安全规则 R-1 ～ R-10 全文 |
+| `docs/operations/AUTH-M7-COMPLETION-REPORT.md` | **AUTH-M7 完成（2026-09-07）**：legacy user authentication 已从生产代码删除（非默认关闭）。静态证明 7 个符号 0 引用、6 个端点 0 注册。状态 **IMPLEMENTED / LOCALLY VERIFIED**，App main = d564c4c |
 | `docs/operations/AUTH-CANONICALIZATION-REPORT.md` | **AUTH 权威世系收敛（2026-09-07）**：D-14/15/16、静默删除护栏、legacy 静态审计、分项测试计数。状态 **CANONICALIZED / PUSHED**，App main = 8d5b51b |
 | `docs/operations/ARCHITECTURE-PREMERGE-REVIEW.md` | **架构与合并前审计（2026-09-07）**：AUTH 分支实况、main↔auth 差异与合并安全性、SQLite→Postgres 迁移计划、部署方案、severity 校准。结论 **AUTH MIGRATION ≠ APPLICATION DATABASE MIGRATION**，合并判定 NEEDS MANUAL RECONCILIATION |
 | `docs/operations/RELEASE-READINESS-REPORT.md` | **上线就绪度审计（2026-09-07）**：部署现实、环境、Auth、DB、安全、E2E 矩阵、P0/P1 阻塞表。**当前总状态 `NOT READY`** |
@@ -57,13 +58,13 @@
 |---|---|
 | **Project** | AMAS 亚洲宣教神学院（Asia Missionary Association Seminary，泰国清迈） |
 | **Document** | `docs/operations/AMAS_PROJECT_HANDOFF.md` |
-| **Version** | 1.6 |
+| **Version** | 1.7 |
 | **Last Updated** | 2026-09-07 |
 | **Updated By** | Claude（依据两仓库真实 Git 状态与已归档报告，非聊天记忆） |
 | **Main Repository** | `enoslee0701-dev/amas-website`（官网 + 门户 + Supabase） |
 | **Secondary Repository** | `enoslee0701-dev/AMAS-Seminary`（App；本地目录名 `Desktop/AMAS Seminar App`） |
 | **Main HEAD（website）** | `1388668` 重建 AMAS_PROJECT_HANDOFF 为跨对话长期记忆总档（v1.0） |
-| **Main HEAD（App）** | `8d5b51b` AUTH canonicalization（D-14 权威世系已推送） |
+| **Main HEAD（App）** | `d564c4c` AUTH-M7：删除 legacy user authentication |
 | **Active Branches** | website: `master`（唯一）· App: `main`、`auth/supabase-unification`(`4af8307`) |
 | **Active Worktrees** | website: `C:\Users\enosl\Desktop\AMAS-website` · App: `C:\Users\enosl\Desktop\AMAS Seminar App` |
 | **Current Environment** | Supabase **staging** `amas-staging`（ref `sdrwyebizfdwldlfjyim`，ap-southeast-1，PG 17.6） |
