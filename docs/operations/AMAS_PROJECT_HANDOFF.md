@@ -34,6 +34,7 @@
 |---|---|
 | `docs/operations/AI_COLLABORATION_RULES.md` | **GPT × Claude 双模型协同开发协议 v1.0**：角色分工、主导范围、Stop Conditions、六步开发流程、标准 DEVELOPMENT REPORT 格式、状态语言规范、技术争议处理机制 |
 | `docs/operations/engineering-security-rules.md` | 工程安全规则 R-1 ～ R-10 全文 |
+| `docs/operations/DB-6-COURSE-MIGRATION-REPORT.md` | **RB-01 DB-6 课程迁移（2026-09-07）**：67/67 EXACT_CANONICAL_MATCH（只用 code 精确相等）、CONFLICT 0 / BLOCKED 0；4 个 retired id 全部 `PRESERVE_AS_RETIRED_REFERENCE`（无正式替代，不猜）；provenance 35 system / 32 catalog-migration 无假用户；`created_at` 毫秒级无损；0 INSERT / 0 DELETE / 67 UPDATE；契约 36/36（17.6 gate + 18.6 对照）、幂等 3 次零漂移、回退已实测、Portal 自有列校验和与 0022 基线完全一致。状态 **DB-6 LOCALLY VERIFIED** |
 | `docs/operations/DB-3.5-POSTGRESQL-17.6-COMPATIBILITY-REPORT.md` | **RB-01 DB-3.5 目标版本兼容闸门（2026-09-07）**：在**真实 PostgreSQL 17.6**（Supabase 目标版本）上 `0001`~`0026` **26/26 APPLIED**、契约 **53/53 PASS**、回退与前滚均通过、Portal 逐名零增删。抓到一处真实版本差异（`ON DELETE RESTRICT` 的 SQLSTATE：17.6 是 `23503`，18 才是 `23001`），已更正 DB-3 的相反表述。**migrations 零改动**。**DBR-22 CLOSED** → 状态 **DB-3 LOCALLY VERIFIED / READY FOR DB-4 REVIEW** |
 | `docs/operations/DB-3-POSTGRESQL-SCHEMA-IMPLEMENTATION-REPORT.md` | **RB-01 DB-3 PostgreSQL schema 实现（2026-09-07）**：`0023`~`0026` 四个 migration（28 张 `app_*` 表、9 枚举、49 外键、31 索引）+ 52 条行为断言 + 已实测回退脚本。GATE 0 裁定 `app_user_profile_ext` **DO NOT CREATE**。在真实 PostgreSQL 18.6 上执行验证。状态 **LOCALLY VERIFIED / READY FOR DB-4 REVIEW**（硬前置 DBR-22：须在 PG 17.6 重跑） |
 | `docs/operations/DB-2-DATA-PREFLIGHT-REPORT.md` | **RB-01 DB-2 数据预检（2026-09-07）**：真实 SQLite 只读审计。0 个 admin、0 条 CP 数据、0 条 email-only 映射；真实孤儿仅 2 行。**需 Product Owner 决定的事项：0 项**。状态 **DB-2 COMPLETE / READY FOR DB-3 REVIEW** |
@@ -63,13 +64,13 @@
 |---|---|
 | **Project** | AMAS 亚洲宣教神学院（Asia Missionary Association Seminary，泰国清迈） |
 | **Document** | `docs/operations/AMAS_PROJECT_HANDOFF.md` |
-| **Version** | 2.2 |
+| **Version** | 2.3 |
 | **Last Updated** | 2026-09-07 |
 | **Updated By** | Claude（依据两仓库真实 Git 状态与已归档报告，非聊天记忆） |
 | **Main Repository** | `enoslee0701-dev/amas-website`（官网 + 门户 + Supabase） |
 | **Secondary Repository** | `enoslee0701-dev/AMAS-Seminary`（App；本地目录名 `Desktop/AMAS Seminar App`） |
-| **Main HEAD（website）** | `2e63ae6` DB-3 POSTGRESQL SCHEMA IMPLEMENTATION：LOCALLY VERIFIED / READY FOR DB-4 |
-| **Main HEAD（App）** | `3852384` docs: DB-3 决策 D-27~D-32 + DBR-20~DBR-24 |
+| **Main HEAD（website）** | `661e7af` DB-3.5 报告 §12 补实 commit 哈希与冻结世系实测确认 |
+| **Main HEAD（App）** | `02903a1` docs: DBR-22 CLOSED（PG17.6 实测）+ DBR-24 更正 + D-33 |
 | **Active Branches** | website: `master`（唯一）· App: `main`、`auth/supabase-unification`(`4af8307`) |
 | **Active Worktrees** | website: `C:\Users\enosl\Desktop\AMAS-website` · App: `C:\Users\enosl\Desktop\AMAS Seminar App` |
 | **Current Environment** | Supabase **staging** `amas-staging`（ref `sdrwyebizfdwldlfjyim`，ap-southeast-1，PG 17.6） |
@@ -392,6 +393,46 @@ DB-3 契约测试实测证明：它会让**任何开过房间的用户永远无�
 它不属于「特性支持与否」，而属于**行为细节**，静态推理看不见。
 **How to apply**：任何跨版本 / 跨引擎的结论，先问「在目标版本上跑过没有」；没跑过就标 `UNVERIFIED`。
 **Source**：`docs/operations/DB-3.5-POSTGRESQL-17.6-COMPATIBILITY-REPORT.md` §8
+
+---
+
+### D-34｜Legacy 测试账号不进入 Production 身份群体
+
+**Status**：`APPROVED`（2026-09-07，Supervisor 裁定）
+**Decision**：6 个 legacy identity（3×`@amas.test` + 3×`@amas.local`）正式定义为
+**`TEST FIXTURE` / `DO NOT MIGRATE TO PRODUCTION`**。
+**禁止**为它们：创建 Production Supabase Auth 用户 · 创建 Production `profiles` ·
+写 Production `user_roles` · 迁移成正式 student/person ·
+**为了让 migration count 对齐而制造假用户**。
+它们在迁移账本中只保留 `SKIPPED_TEST_ACCOUNT` 作为 audit evidence。
+**Staging 测试身份政策**：staging 若需要测试身份，应**重新创建** `STAGING-ONLY TEST FIXTURES` ——
+明确 test 标识、与 Production population 分离、可重复创建/销毁、
+不继承旧 SQLite 测试账号的正式迁移身份、不进入 Production migration manifest。
+**Reason**：为不存在的人创建生产账号本身就是造假数据（R-7）；
+迁移计数对齐不是制造用户的理由。
+
+### D-35｜疑似真实身份必须确定性或人工验证
+
+**Status**：`APPROVED`（2026-09-07，Supervisor 裁定）
+**Decision**：`estherzh0528@gmail.com` 状态为 **`POTENTIAL_REAL_USER` / `IDENTITY_VERIFICATION_REQUIRED`**。
+**禁止 `same email → silently mapped`。** 必须在真实 staging Supabase 中检查五项：
+① 是否已有 Supabase Auth account ② 是否已有 canonical `profiles.id`
+③ 是否有 AUTH-M5/M6 确定性映射证据 ④ 是否存在冲突账号 ⑤ 能否确定与旧 SQLite 用户是同一个人。
+映射结论只允许四种：`VERIFIED_EXISTING_IDENTITY` · `PROVISIONED_NEW_IDENTITY` ·
+`MANUAL_REVIEW_REQUIRED` · `CONFLICT`。**仅邮箱相同 → `MANUAL_REVIEW_REQUIRED`，不得自动放行。**
+**Reason**：邮箱可复用、可转让、可被他人注册；仅凭邮箱相同就合并身份，
+错了就是把一个人的学习档案交给另一个人。
+
+### D-36｜DB-6 先于 DB-4 —— 顺序调整，不是并行开发
+
+**Status**：`APPROVED`（2026-09-07，Supervisor 批准）
+**Decision**：迁移执行顺序由 `DB-4 → DB-5 → DB-6` 调整为
+**`DB-6 → DB-4（待 staging Supabase）→ DB-5 及其余身份相关阶段`**。
+DB-4 正式状态记为 **`DB-4 IMPLEMENTATION PREREQUISITE = STAGING SUPABASE REQUIRED`**，
+性质是 **`BLOCKED_BY_EXTERNAL_ENV`，不是失败**。
+**Reason**：课程迁移不依赖 user identity，且 67↔67 canonical 映射已完全确认；
+让整条迁移链卡在一个外部环境依赖上没有收益。
+**How to apply**：这是**顺序调整**，仍然遵守 D-16 —— 同一时刻只有一条 active implementation lineage。
 
 ---
 
