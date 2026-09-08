@@ -408,7 +408,11 @@ with evo(final_migration, fname, discriminator) as (values
   ('0015','correct_student_number',                 'old_number_state'),
   ('0015','create_student_record',                  'assigned'),
   ('0018','student_number_has_irreversible_records','irreversible_record_sources'),
-  ('0019','my_action_items',                        'union all select'),
+  -- ★ 修正（Supervisor 实测为 PROBE FALSE NEGATIVE）：
+  --   原判别子串 'union all select' 在 pg_get_functiondef 的输出中被换行/空白拆开，
+  --   导致 position() 找不到 → 报 FALSE，但远端其实是 0019 版。
+  --   改用 0019 特有的角色门禁表达式，它在输出中是连续的一段。
+  ('0019','my_action_items',                        'has_active_role(p.id, ''student'')'),
   ('0019','my_learning',                            'has_active_role'),
   ('0019','my_student_capabilities',                'has_active_role'),
   ('0019','my_student_profile',                     'has_active_role'),
@@ -422,6 +426,8 @@ select
   e.final_migration,
   e.fname,
   (p.oid is not null)                                        as function_exists,
+  p.overload_count,
+  p.signatures,
   case when p.oid is null then null
        else position(e.discriminator in pg_get_functiondef(p.oid)) > 0 end
                                                              as has_final_version,
@@ -431,10 +437,16 @@ select
   p.proconfig                                                as search_path_config
 from evo e
 left join lateral (
-  select pp.oid, pp.prosecdef, pp.proconfig
+  -- ★ 加固：按 proname 聚合而不是 LIMIT 1 取一个。
+  --   当前这些函数没有重载，但一旦将来出现重载，LIMIT 1 会静默取到错误的那一个。
+  --   这里显式暴露重载数量；overload_count > 1 时该行结论不可信，须人工定签名。
+  select count(*)                              as overload_count,
+         min(pp.oid)                           as oid,
+         bool_and(pp.prosecdef)                as prosecdef,
+         min(array_to_string(pp.proconfig,',')) as proconfig,
+         string_agg(pg_get_function_identity_arguments(pp.oid), ' | ') as signatures
   from pg_proc pp join pg_namespace nn on nn.oid = pp.pronamespace
   where nn.nspname = 'public' and pp.proname = e.fname
-  limit 1
 ) p on true
 order by e.final_migration, e.fname;
 
@@ -517,13 +529,30 @@ select
 from auth.users;
 
 -- ★ 该账号是否产生过任何业务足迹 —— 判 fixture / 真人的关键补充证据。
---   全 0 = 从未被使用过，倾向 fixture；任一非 0 = 有真实活动，倾向真人。
-select 'applications' as t, count(*) as n from public.applications
-union all select 'student_records',  count(*) from public.student_records
-union all select 'submissions',      count(*) from public.submissions
-union all select 'audit_logs',       count(*) from public.audit_logs
-union all select 'security_events',  count(*) from public.security_events
-union all select 'recovery_flows',   count(*) from public.recovery_flows;
+--
+-- ⚠ 修正（Supervisor 指出的 P8 BUG）：v2 此处用的是**全局表计数**，
+--   而 audit_logs / security_events 是全库共享表（实测 497 / 4 行），
+--   把它们当成「该账号的足迹」是错的 —— 那些行可能与该账号毫无关系。
+--   必须**按 auth user 关联**计数。以下全部不输出 UUID / email / name。
+with u as (select id from auth.users)
+select 'applications_for_user'    as metric, count(*) as n from public.applications      a  join u on a.applicant_id = u.id
+union all
+select 'student_records_for_user',  count(*) from public.student_records   s  join u on s.user_id     = u.id
+union all
+select 'recovery_flows_for_user',   count(*) from public.recovery_flows    r  join u on r.user_id     = u.id
+union all
+select 'security_events_for_user',  count(*) from public.security_events   e  join u on e.user_id     = u.id
+union all
+select 'audit_logs_as_actor',       count(*) from public.audit_logs        l  join u on l.actor_id    = u.id;
+
+-- 与该账号关联的 audit 事件类型（仅类型与分类，不含任何标识信息）
+select l.event_type, l.category, count(*) as n
+from public.audit_logs l join auth.users u on l.actor_id = u.id
+group by 1, 2 order by 1, 2;
+
+-- 对照：全局总量（**仅供理解规模，不得用于判定该账号**）
+select 'GLOBAL_ONLY_do_not_use_for_classification' as note, 'audit_logs' as t, count(*) as n from public.audit_logs
+union all select '', 'security_events', count(*) from public.security_events;
 
 
 -- ══ P9. 备份能力（只读探测，不创建任何备份）══════════════════════════════
@@ -534,3 +563,52 @@ select
   (select count(*) from pg_extension where extname = 'pg_cron') as has_pg_cron,
   (select setting from pg_settings where name = 'wal_level')     as wal_level,
   (select setting from pg_settings where name = 'archive_mode')  as archive_mode;
+
+
+-- ══ P11. ★ 0022 数据态哨兵（DATA-STATE SENTINEL）════════════════════════
+--
+-- 为什么必须单列：`0022_program_offering_scope.sql` **不创建任何对象** ——
+-- 它只做 UPDATE。因此 P4 的对象存在性矩阵对它天然无效，
+-- P10 的函数版本指纹对它同样无效（它不定义函数）。
+-- 判断它是否执行过，**只能看数据态**。
+--
+-- canonical 0022 期望：
+--   开放申请的项目恰为   bth · gdip · mdiv · dmin
+--   关闭                 laycert · pdip · pastor · preaching · missionary
+--   并把 dmin 重命名为   教牧学博士 / Doctor of Ministry
+--
+-- Supervisor 实测远端：9 个项目全开放 · five_closed=0 · dmin_renamed=0
+--   →  0022 = NOT APPLIED
+
+-- 11.1 开放集合是否恰为四个学位项目
+select
+  (select array_agg(code order by code) from public.program_catalog where is_open_for_application)
+                                                      as open_codes,
+  (select count(*) from public.program_catalog where is_open_for_application)
+                                                      as open_count,
+  ((select array_agg(code order by code) from public.program_catalog where is_open_for_application)
+     = array['bth','dmin','gdip','mdiv']::text[])      as matches_canonical_0022;
+
+-- 11.2 五个应被关闭的项目，实际有几个已关闭（canonical 期望 5）
+select count(*) as five_closed
+from public.program_catalog
+where code in ('laycert','pdip','pastor','preaching','missionary')
+  and not is_open_for_application;
+
+-- 11.3 dmin 是否已改名（canonical 期望 1）
+select count(*) as dmin_renamed
+from public.program_catalog
+where code = 'dmin'
+  and name_zh = '教牧学博士'
+  and name_en = 'Doctor of Ministry';
+
+-- 11.4 综合判定
+select case
+         when (select count(*) from public.program_catalog
+                where code in ('laycert','pdip','pastor','preaching','missionary')
+                  and not is_open_for_application) = 5
+          and (select count(*) from public.program_catalog
+                where code='dmin' and name_zh='教牧学博士' and name_en='Doctor of Ministry') = 1
+         then '0022_APPLIED'
+         else '0022_NOT_APPLIED'
+       end as verdict_0022;

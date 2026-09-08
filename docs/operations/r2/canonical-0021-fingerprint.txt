@@ -1,0 +1,609 @@
+A_column|application_hq_approvals.applicant_visible_note|6 text null=true default=(none) generated=-
+A_column|application_hq_approvals.application_id|1 uuid null=false default=(none) generated=-
+A_column|application_hq_approvals.approval_reference|3 text null=true default=(none) generated=-
+A_column|application_hq_approvals.confirmed_at|4 timestamp with time zone null=true default=(none) generated=-
+A_column|application_hq_approvals.confirmed_by|5 uuid null=true default=(none) generated=-
+A_column|application_hq_approvals.created_at|7 timestamp with time zone null=false default=now() generated=-
+A_column|application_hq_approvals.status|2 hq_approval_status null=false default='pending'::hq_approval_status generated=-
+A_column|application_hq_approvals.updated_at|8 timestamp with time zone null=false default=now() generated=-
+A_column|application_internal.application_id|1 uuid null=false default=(none) generated=-
+A_column|application_internal.notes|2 text null=false default=''::text generated=-
+A_column|application_internal.updated_at|4 timestamp with time zone null=false default=now() generated=-
+A_column|application_internal.updated_by|3 uuid null=true default=(none) generated=-
+A_column|application_requirements.application_id|2 uuid null=false default=(none) generated=-
+A_column|application_requirements.created_at|7 timestamp with time zone null=false default=now() generated=-
+A_column|application_requirements.created_by|6 uuid null=true default=(none) generated=-
+A_column|application_requirements.detail|4 text null=true default=(none) generated=-
+A_column|application_requirements.field|9 text null=true default=(none) generated=-
+A_column|application_requirements.id|1 uuid null=false default=gen_random_uuid() generated=-
+A_column|application_requirements.label|3 text null=false default=(none) generated=-
+A_column|application_requirements.resolved_at|8 timestamp with time zone null=true default=(none) generated=-
+A_column|application_requirements.resolved|5 boolean null=false default=false generated=-
+A_column|application_status_history.actor_id|5 uuid null=true default=(none) generated=-
+A_column|application_status_history.actor_role|6 text null=true default=(none) generated=-
+A_column|application_status_history.applicant_visible_message|7 text null=true default=(none) generated=-
+A_column|application_status_history.application_id|2 uuid null=false default=(none) generated=-
+A_column|application_status_history.created_at|9 timestamp with time zone null=false default=now() generated=-
+A_column|application_status_history.from_status|3 application_status null=true default=(none) generated=-
+A_column|application_status_history.id|1 bigint null=false default=(none) generated=-
+A_column|application_status_history.internal_note|8 text null=true default=(none) generated=-
+A_column|application_status_history.to_status|4 application_status null=false default=(none) generated=-
+A_column|applications.applicant_id|2 uuid null=false default=(none) generated=-
+A_column|applications.applicant_visible_message|9 text null=true default=(none) generated=-
+A_column|applications.assigned_reviewer|8 uuid null=true default=(none) generated=-
+A_column|applications.created_at|12 timestamp with time zone null=false default=now() generated=-
+A_column|applications.decided_at|11 timestamp with time zone null=true default=(none) generated=-
+A_column|applications.form_data|5 jsonb null=false default='{}'::jsonb generated=-
+A_column|applications.form_version|6 text null=false default='v1'::text generated=-
+A_column|applications.id|1 uuid null=false default=gen_random_uuid() generated=-
+A_column|applications.locked_fields|7 text[] null=false default='{}'::text[] generated=-
+A_column|applications.pathway|3 application_pathway null=false default='undecided'::application_pathway generated=-
+A_column|applications.status|4 application_status null=false default='draft'::application_status generated=-
+A_column|applications.submitted_at|10 timestamp with time zone null=true default=(none) generated=-
+A_column|applications.updated_at|13 timestamp with time zone null=false default=now() generated=-
+A_column|audit_logs.actor_id|3 uuid null=true default=(none) generated=-
+A_column|audit_logs.actor_role|4 text null=true default=(none) generated=-
+A_column|audit_logs.category|13 text null=false default='system'::text generated=-
+A_column|audit_logs.created_at|2 timestamp with time zone null=false default=now() generated=-
+A_column|audit_logs.event_type|5 text null=false default=(none) generated=-
+A_column|audit_logs.id|1 bigint null=false default=(none) generated=-
+A_column|audit_logs.ip|11 text null=true default=(none) generated=-
+A_column|audit_logs.new_value|9 jsonb null=true default=(none) generated=-
+A_column|audit_logs.old_value|8 jsonb null=true default=(none) generated=-
+A_column|audit_logs.reason|10 text null=true default=(none) generated=-
+A_column|audit_logs.target_id|7 text null=true default=(none) generated=-
+A_column|audit_logs.target_type|6 text null=true default=(none) generated=-
+A_column|audit_logs.user_agent|12 text null=true default=(none) generated=-
+A_column|course_catalog.availability|7 course_availability null=false default='in_development'::course_availability generated=-
+A_column|course_catalog.category|3 course_category null=false default=(none) generated=-
+A_column|course_catalog.code|1 text null=false default=(none) generated=-
+A_column|course_catalog.credits|8 numeric null=true default=(none) generated=-
+A_column|course_catalog.instructor|5 text null=true default=(none) generated=-
+A_column|course_catalog.level|4 text null=true default=(none) generated=-
+A_column|course_catalog.sort_order|9 integer null=false default=0 generated=-
+A_column|course_catalog.title_zh|2 text null=false default=(none) generated=-
+A_column|course_catalog.total_lessons|6 integer null=false default=0 generated=-
+A_column|course_catalog.updated_at|10 timestamp with time zone null=false default=now() generated=-
+A_column|data_export_logs.actor_id|3 uuid null=false default=(none) generated=-
+A_column|data_export_logs.created_at|2 timestamp with time zone null=false default=now() generated=-
+A_column|data_export_logs.export_type|4 text null=false default=(none) generated=-
+A_column|data_export_logs.filters|5 jsonb null=true default=(none) generated=-
+A_column|data_export_logs.id|1 bigint null=false default=(none) generated=-
+A_column|data_export_logs.purpose|7 text null=true default=(none) generated=-
+A_column|data_export_logs.row_count|6 integer null=true default=(none) generated=-
+A_column|hq_approval_internal.application_id|1 uuid null=false default=(none) generated=-
+A_column|hq_approval_internal.notes|2 text null=false default=''::text generated=-
+A_column|hq_approval_internal.updated_at|4 timestamp with time zone null=false default=now() generated=-
+A_column|hq_approval_internal.updated_by|3 uuid null=true default=(none) generated=-
+A_column|irreversible_record_sources.check_sql|5 text null=true default=(none) generated=-
+A_column|irreversible_record_sources.is_irreversible|4 irreversible_verdict null=false default=(none) generated=-
+A_column|irreversible_record_sources.rationale|6 text null=false default=(none) generated=-
+A_column|irreversible_record_sources.record_kind|3 text null=false default=(none) generated=-
+A_column|irreversible_record_sources.registered_at|8 timestamp with time zone null=false default=now() generated=-
+A_column|irreversible_record_sources.registered_by|7 text null=false default=(none) generated=-
+A_column|irreversible_record_sources.source_key|1 text null=false default=(none) generated=-
+A_column|irreversible_record_sources.table_name|2 text null=true default=(none) generated=-
+A_column|login_aliases.alias_normalized|4 text null=false default=(none) generated=-
+A_column|login_aliases.alias_type|3 alias_type null=false default=(none) generated=-
+A_column|login_aliases.created_at|6 timestamp with time zone null=false default=now() generated=-
+A_column|login_aliases.created_by|5 uuid null=true default=(none) generated=-
+A_column|login_aliases.id|1 uuid null=false default=gen_random_uuid() generated=-
+A_column|login_aliases.revoked_at|7 timestamp with time zone null=true default=(none) generated=-
+A_column|login_aliases.user_id|2 uuid null=false default=(none) generated=-
+A_column|profiles.account_status|10 account_status null=false default='pending_email'::account_status generated=-
+A_column|profiles.avatar_path|9 text null=true default=(none) generated=-
+A_column|profiles.contact_note|13 text null=true default=(none) generated=-
+A_column|profiles.country_code|6 text null=true default=(none) generated=-
+A_column|profiles.created_at|11 timestamp with time zone null=false default=now() generated=-
+A_column|profiles.display_name|2 text null=false default=''::text generated=-
+A_column|profiles.email|4 text null=false default=(none) generated=-
+A_column|profiles.id|1 uuid null=false default=(none) generated=-
+A_column|profiles.legal_name|3 text null=true default=(none) generated=-
+A_column|profiles.locale|8 text null=false default='zh-CN'::text generated=-
+A_column|profiles.phone|5 text null=true default=(none) generated=-
+A_column|profiles.timezone|7 text null=false default='Asia/Bangkok'::text generated=-
+A_column|profiles.updated_at|12 timestamp with time zone null=false default=now() generated=-
+A_column|program_catalog.approved_at|9 date null=true default=(none) generated=-
+A_column|program_catalog.category|5 text null=false default=(none) generated=-
+A_column|program_catalog.code|1 text null=false default=(none) generated=-
+A_column|program_catalog.created_at|10 timestamp with time zone null=false default=now() generated=-
+A_column|program_catalog.intake_note_zh|8 text null=true default=(none) generated=-
+A_column|program_catalog.is_open_for_application|7 boolean null=false default=true generated=-
+A_column|program_catalog.name_en|3 text null=false default=(none) generated=-
+A_column|program_catalog.name_zh|2 text null=false default=(none) generated=-
+A_column|program_catalog.short_label|4 text null=true default=(none) generated=-
+A_column|program_catalog.sort_order|6 integer null=false default=100 generated=-
+A_column|program_catalog.updated_at|11 timestamp with time zone null=false default=now() generated=-
+A_column|recovery_flows.attempts|5 integer null=false default=0 generated=-
+A_column|recovery_flows.claimed_at|8 timestamp with time zone null=true default=(none) generated=-
+A_column|recovery_flows.completed_at|9 timestamp with time zone null=true default=(none) generated=-
+A_column|recovery_flows.created_at|7 timestamp with time zone null=false default=now() generated=-
+A_column|recovery_flows.expires_at|11 timestamp with time zone null=true default=(none) generated=-
+A_column|recovery_flows.id|1 uuid null=false default=gen_random_uuid() generated=-
+A_column|recovery_flows.last_error|6 text null=true default=(none) generated=-
+A_column|recovery_flows.reap_reason|13 text null=true default=(none) generated=-
+A_column|recovery_flows.reaped_at|12 timestamp with time zone null=true default=(none) generated=-
+A_column|recovery_flows.session_id|3 text null=true default=(none) generated=-
+A_column|recovery_flows.status|4 recovery_flow_status null=false default='pending'::recovery_flow_status generated=-
+A_column|recovery_flows.updated_at|10 timestamp with time zone null=false default=now() generated=-
+A_column|recovery_flows.user_id|2 uuid null=false default=(none) generated=-
+A_column|security_events.created_at|2 timestamp with time zone null=false default=now() generated=-
+A_column|security_events.detail|7 jsonb null=true default=(none) generated=-
+A_column|security_events.event_type|3 text null=false default=(none) generated=-
+A_column|security_events.identifier|4 text null=true default=(none) generated=-
+A_column|security_events.id|1 bigint null=false default=(none) generated=-
+A_column|security_events.ip|6 text null=true default=(none) generated=-
+A_column|security_events.user_id|5 uuid null=true default=(none) generated=-
+A_column|student_number_registry.first_assigned_at|4 timestamp with time zone null=false default=now() generated=-
+A_column|student_number_registry.first_assigned_to|3 uuid null=true default=(none) generated=-
+A_column|student_number_registry.id|7 uuid null=false default=gen_random_uuid() generated=-
+A_column|student_number_registry.normalized|1 text null=false default=(none) generated=-
+A_column|student_number_registry.original|2 text null=false default=(none) generated=-
+A_column|student_number_registry.replacement_normalized|15 text null=true default=(none) generated=-
+A_column|student_number_registry.retire_reason|10 text null=true default=(none) generated=-
+A_column|student_number_registry.retired_at|9 timestamp with time zone null=true default=(none) generated=-
+A_column|student_number_registry.state|8 student_number_state null=false default='assigned'::student_number_state generated=-
+A_column|student_number_registry.void_evidence_reference|14 text null=true default=(none) generated=-
+A_column|student_number_registry.void_reason|13 text null=true default=(none) generated=-
+A_column|student_number_registry.voided_at|11 timestamp with time zone null=true default=(none) generated=-
+A_column|student_number_registry.voided_by|12 uuid null=true default=(none) generated=-
+A_column|student_number_void_requests.decided_at|13 timestamp with time zone null=true default=(none) generated=-
+A_column|student_number_void_requests.decided_by|12 uuid null=true default=(none) generated=-
+A_column|student_number_void_requests.decision_note|14 text null=true default=(none) generated=-
+A_column|student_number_void_requests.evidence_reference|8 text null=false default=(none) generated=-
+A_column|student_number_void_requests.id|1 uuid null=false default=gen_random_uuid() generated=-
+A_column|student_number_void_requests.initiated_at|11 timestamp with time zone null=false default=now() generated=-
+A_column|student_number_void_requests.initiated_by|10 uuid null=true default=(none) generated=-
+A_column|student_number_void_requests.reason|7 text null=false default=(none) generated=-
+A_column|student_number_void_requests.replacement_normalized|6 text null=false default=(none) generated=-
+A_column|student_number_void_requests.replacement_original|5 text null=false default=(none) generated=-
+A_column|student_number_void_requests.status|9 number_void_status null=false default='pending'::number_void_status generated=-
+A_column|student_number_void_requests.student_id|2 uuid null=false default=(none) generated=-
+A_column|student_number_void_requests.wrong_normalized|4 text null=false default=(none) generated=-
+A_column|student_number_void_requests.wrong_original|3 text null=false default=(none) generated=-
+A_column|student_records.activated_at|10 timestamp with time zone null=true default=(none) generated=-
+A_column|student_records.application_id|3 uuid null=true default=(none) generated=-
+A_column|student_records.created_at|12 timestamp with time zone null=false default=now() generated=-
+A_column|student_records.created_by|11 uuid null=true default=(none) generated=-
+A_column|student_records.hq_approval_reference|9 text null=true default=(none) generated=-
+A_column|student_records.id|1 uuid null=false default=gen_random_uuid() generated=-
+A_column|student_records.pathway|8 application_pathway null=true default=(none) generated=-
+A_column|student_records.program_code|7 text null=true default=(none) generated=-
+A_column|student_records.status|4 student_status null=false default='pre_enrolled'::student_status generated=-
+A_column|student_records.student_number_normalized|6 text null=true default=(none) generated=-
+A_column|student_records.student_number|5 text null=true default=(none) generated=-
+A_column|student_records.updated_at|13 timestamp with time zone null=false default=now() generated=-
+A_column|student_records.user_id|2 uuid null=false default=(none) generated=-
+A_column|student_status_history.actor_id|5 uuid null=true default=(none) generated=-
+A_column|student_status_history.actor_role|6 text null=true default=(none) generated=-
+A_column|student_status_history.created_at|9 timestamp with time zone null=false default=now() generated=-
+A_column|student_status_history.from_status|3 student_status null=true default=(none) generated=-
+A_column|student_status_history.id|1 bigint null=false default=(none) generated=-
+A_column|student_status_history.internal_note|8 text null=true default=(none) generated=-
+A_column|student_status_history.student_id|2 uuid null=false default=(none) generated=-
+A_column|student_status_history.student_visible_message|7 text null=true default=(none) generated=-
+A_column|student_status_history.to_status|4 student_status null=false default=(none) generated=-
+A_column|submissions.contact|6 text null=false default=''::text generated=-
+A_column|submissions.created_at|2 timestamp with time zone null=false default=now() generated=-
+A_column|submissions.data|11 jsonb null=true default=(none) generated=-
+A_column|submissions.id|1 bigint null=false default=(none) generated=-
+A_column|submissions.lang|8 text null=false default=''::text generated=-
+A_column|submissions.name|5 text null=false default=''::text generated=-
+A_column|submissions.note|10 text null=false default=''::text generated=-
+A_column|submissions.program|7 text null=false default=''::text generated=-
+A_column|submissions.status|9 text null=false default='待处理'::text generated=-
+A_column|submissions.type|4 text null=false default=(none) generated=-
+A_column|submissions.updated_at|3 timestamp with time zone null=false default=now() generated=-
+A_column|teacher_invitations.created_at|11 timestamp with time zone null=false default=now() generated=-
+A_column|teacher_invitations.created_by|9 uuid null=true default=(none) generated=-
+A_column|teacher_invitations.email_normalized|2 text null=false default=(none) generated=-
+A_column|teacher_invitations.expected_name|3 text null=false default=''::text generated=-
+A_column|teacher_invitations.expires_at|6 timestamp with time zone null=false default=(none) generated=-
+A_column|teacher_invitations.id|1 uuid null=false default=gen_random_uuid() generated=-
+A_column|teacher_invitations.max_uses|7 integer null=false default=1 generated=-
+A_column|teacher_invitations.revoked_at|10 timestamp with time zone null=true default=(none) generated=-
+A_column|teacher_invitations.staff_number|4 text null=true default=(none) generated=-
+A_column|teacher_invitations.token_hash|5 text null=false default=(none) generated=-
+A_column|teacher_invitations.used_count|8 integer null=false default=0 generated=-
+A_column|teacher_profiles.created_at|8 timestamp with time zone null=false default=now() generated=-
+A_column|teacher_profiles.public_bio|4 text null=true default=(none) generated=-
+A_column|teacher_profiles.public_name|3 text null=false default=''::text generated=-
+A_column|teacher_profiles.staff_number|2 text null=true default=(none) generated=-
+A_column|teacher_profiles.status|5 teacher_profile_status null=false default='active'::teacher_profile_status generated=-
+A_column|teacher_profiles.updated_at|9 timestamp with time zone null=false default=now() generated=-
+A_column|teacher_profiles.user_id|1 uuid null=false default=(none) generated=-
+A_column|teacher_profiles.verification_expires_at|7 timestamp with time zone null=true default=(none) generated=-
+A_column|teacher_profiles.verified_at|6 timestamp with time zone null=false default=now() generated=-
+A_column|teacher_profiles_internal.notes|2 text null=false default=''::text generated=-
+A_column|teacher_profiles_internal.updated_at|4 timestamp with time zone null=false default=now() generated=-
+A_column|teacher_profiles_internal.updated_by|3 uuid null=true default=(none) generated=-
+A_column|teacher_profiles_internal.user_id|1 uuid null=false default=(none) generated=-
+A_column|teacher_verification_internal.notes|2 text null=false default=''::text generated=-
+A_column|teacher_verification_internal.request_id|1 uuid null=false default=(none) generated=-
+A_column|teacher_verification_internal.updated_at|4 timestamp with time zone null=false default=now() generated=-
+A_column|teacher_verification_internal.updated_by|3 uuid null=true default=(none) generated=-
+A_column|teacher_verification_requests.applicant_visible_message|10 text null=true default=(none) generated=-
+A_column|teacher_verification_requests.created_at|11 timestamp with time zone null=false default=now() generated=-
+A_column|teacher_verification_requests.id|1 uuid null=false default=gen_random_uuid() generated=-
+A_column|teacher_verification_requests.invitation_id|3 uuid null=true default=(none) generated=-
+A_column|teacher_verification_requests.public_profile_consent|6 boolean null=false default=false generated=-
+A_column|teacher_verification_requests.reviewed_at|9 timestamp with time zone null=true default=(none) generated=-
+A_column|teacher_verification_requests.reviewed_by|8 uuid null=true default=(none) generated=-
+A_column|teacher_verification_requests.status|4 teacher_verification_status null=false default='draft'::teacher_verification_status generated=-
+A_column|teacher_verification_requests.submitted_at|7 timestamp with time zone null=true default=(none) generated=-
+A_column|teacher_verification_requests.submitted_data|5 jsonb null=false default='{}'::jsonb generated=-
+A_column|teacher_verification_requests.updated_at|12 timestamp with time zone null=false default=now() generated=-
+A_column|teacher_verification_requests.user_id|2 uuid null=false default=(none) generated=-
+A_column|user_roles.expires_at|8 timestamp with time zone null=true default=(none) generated=-
+A_column|user_roles.granted_at|7 timestamp with time zone null=false default=now() generated=-
+A_column|user_roles.granted_by|6 uuid null=true default=(none) generated=-
+A_column|user_roles.id|1 uuid null=false default=gen_random_uuid() generated=-
+A_column|user_roles.revoked_at|9 timestamp with time zone null=true default=(none) generated=-
+A_column|user_roles.role|3 user_role null=false default=(none) generated=-
+A_column|user_roles.scope_id|5 uuid null=true default=(none) generated=-
+A_column|user_roles.scope_type|4 text null=true default=(none) generated=-
+A_column|user_roles.user_id|2 uuid null=false default=(none) generated=-
+B_constraint|application_hq_approvals.application_hq_approvals_application_id_fkey|f FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
+B_constraint|application_hq_approvals.application_hq_approvals_confirmed_by_fkey|f FOREIGN KEY (confirmed_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|application_hq_approvals.application_hq_approvals_pkey|p PRIMARY KEY (application_id)
+B_constraint|application_internal.application_internal_application_id_fkey|f FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
+B_constraint|application_internal.application_internal_pkey|p PRIMARY KEY (application_id)
+B_constraint|application_internal.application_internal_updated_by_fkey|f FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|application_requirements.application_requirements_application_id_fkey|f FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
+B_constraint|application_requirements.application_requirements_created_by_fkey|f FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|application_requirements.application_requirements_pkey|p PRIMARY KEY (id)
+B_constraint|application_status_history.application_status_history_actor_id_fkey|f FOREIGN KEY (actor_id) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|application_status_history.application_status_history_application_id_fkey|f FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
+B_constraint|application_status_history.application_status_history_pkey|p PRIMARY KEY (id)
+B_constraint|applications.applications_applicant_id_fkey|f FOREIGN KEY (applicant_id) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|applications.applications_assigned_reviewer_fkey|f FOREIGN KEY (assigned_reviewer) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|applications.applications_pkey|p PRIMARY KEY (id)
+B_constraint|audit_logs.audit_logs_pkey|p PRIMARY KEY (id)
+B_constraint|course_catalog.course_catalog_pkey|p PRIMARY KEY (code)
+B_constraint|data_export_logs.data_export_logs_pkey|p PRIMARY KEY (id)
+B_constraint|hq_approval_internal.hq_approval_internal_application_id_fkey|f FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
+B_constraint|hq_approval_internal.hq_approval_internal_pkey|p PRIMARY KEY (application_id)
+B_constraint|hq_approval_internal.hq_approval_internal_updated_by_fkey|f FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|irreversible_record_sources.irr_needs_check|c CHECK (((is_irreversible <> 'yes'::irreversible_verdict) OR ((check_sql IS NOT NULL) AND (table_name IS NOT NULL))))
+B_constraint|irreversible_record_sources.irreversible_record_sources_pkey|p PRIMARY KEY (source_key)
+B_constraint|login_aliases.login_aliases_alias_normalized_key|u UNIQUE (alias_normalized)
+B_constraint|login_aliases.login_aliases_created_by_fkey|f FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|login_aliases.login_aliases_pkey|p PRIMARY KEY (id)
+B_constraint|login_aliases.login_aliases_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|profiles.profiles_id_fkey|f FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
+B_constraint|profiles.profiles_pkey|p PRIMARY KEY (id)
+B_constraint|program_catalog.program_catalog_pkey|p PRIMARY KEY (code)
+B_constraint|recovery_flows.recovery_flows_pkey|p PRIMARY KEY (id)
+B_constraint|recovery_flows.recovery_flows_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|security_events.security_events_pkey|p PRIMARY KEY (id)
+B_constraint|student_number_registry.student_number_registry_first_assigned_to_fkey|f FOREIGN KEY (first_assigned_to) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|student_number_registry.student_number_registry_pkey|p PRIMARY KEY (id)
+B_constraint|student_number_registry.student_number_registry_voided_by_fkey|f FOREIGN KEY (voided_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|student_number_void_requests.student_number_void_requests_decided_by_fkey|f FOREIGN KEY (decided_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|student_number_void_requests.student_number_void_requests_initiated_by_fkey|f FOREIGN KEY (initiated_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|student_number_void_requests.student_number_void_requests_pkey|p PRIMARY KEY (id)
+B_constraint|student_number_void_requests.student_number_void_requests_student_id_fkey|f FOREIGN KEY (student_id) REFERENCES student_records(id) ON DELETE CASCADE
+B_constraint|student_records.student_records_application_id_fkey|f FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE SET NULL
+B_constraint|student_records.student_records_application_id_key|u UNIQUE (application_id)
+B_constraint|student_records.student_records_created_by_fkey|f FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|student_records.student_records_pkey|p PRIMARY KEY (id)
+B_constraint|student_records.student_records_program_code_fkey|f FOREIGN KEY (program_code) REFERENCES program_catalog(code)
+B_constraint|student_records.student_records_student_number_normalized_key|u UNIQUE (student_number_normalized)
+B_constraint|student_records.student_records_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|student_records.student_records_user_id_key|u UNIQUE (user_id)
+B_constraint|student_status_history.student_status_history_actor_id_fkey|f FOREIGN KEY (actor_id) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|student_status_history.student_status_history_pkey|p PRIMARY KEY (id)
+B_constraint|student_status_history.student_status_history_student_id_fkey|f FOREIGN KEY (student_id) REFERENCES student_records(id) ON DELETE CASCADE
+B_constraint|submissions.submissions_pkey|p PRIMARY KEY (id)
+B_constraint|teacher_invitations.teacher_invitations_created_by_fkey|f FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|teacher_invitations.teacher_invitations_pkey|p PRIMARY KEY (id)
+B_constraint|teacher_invitations.teacher_invitations_token_hash_key|u UNIQUE (token_hash)
+B_constraint|teacher_invitations.uses_within_limit|c CHECK ((used_count <= max_uses))
+B_constraint|teacher_profiles.teacher_profiles_pkey|p PRIMARY KEY (user_id)
+B_constraint|teacher_profiles.teacher_profiles_staff_number_key|u UNIQUE (staff_number)
+B_constraint|teacher_profiles.teacher_profiles_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|teacher_profiles_internal.teacher_profiles_internal_pkey|p PRIMARY KEY (user_id)
+B_constraint|teacher_profiles_internal.teacher_profiles_internal_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES teacher_profiles(user_id) ON DELETE CASCADE
+B_constraint|teacher_profiles_internal.tpi_updated_by_fkey|f FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|teacher_verification_internal.teacher_verification_internal_pkey|p PRIMARY KEY (request_id)
+B_constraint|teacher_verification_internal.teacher_verification_internal_request_id_fkey|f FOREIGN KEY (request_id) REFERENCES teacher_verification_requests(id) ON DELETE CASCADE
+B_constraint|teacher_verification_internal.tvi_updated_by_fkey|f FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|teacher_verification_requests.teacher_verification_requests_invitation_id_fkey|f FOREIGN KEY (invitation_id) REFERENCES teacher_invitations(id)
+B_constraint|teacher_verification_requests.teacher_verification_requests_pkey|p PRIMARY KEY (id)
+B_constraint|teacher_verification_requests.teacher_verification_requests_reviewed_by_fkey|f FOREIGN KEY (reviewed_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|teacher_verification_requests.teacher_verification_requests_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|user_roles.user_roles_granted_by_fkey|f FOREIGN KEY (granted_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|user_roles.user_roles_pkey|p PRIMARY KEY (id)
+B_constraint|user_roles.user_roles_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+C_index|application_hq_approvals.application_hq_approvals_pkey|CREATE UNIQUE INDEX application_hq_approvals_pkey ON public.application_hq_approvals USING btree (application_id)
+C_index|application_internal.application_internal_pkey|CREATE UNIQUE INDEX application_internal_pkey ON public.application_internal USING btree (application_id)
+C_index|application_requirements.application_requirements_pkey|CREATE UNIQUE INDEX application_requirements_pkey ON public.application_requirements USING btree (id)
+C_index|application_requirements.areq_by_app|CREATE INDEX areq_by_app ON public.application_requirements USING btree (application_id, resolved)
+C_index|application_status_history.application_status_history_pkey|CREATE UNIQUE INDEX application_status_history_pkey ON public.application_status_history USING btree (id)
+C_index|application_status_history.ash_by_app|CREATE INDEX ash_by_app ON public.application_status_history USING btree (application_id, created_at)
+C_index|applications.applications_one_active|CREATE UNIQUE INDEX applications_one_active ON public.applications USING btree (applicant_id) WHERE (status <> ALL (ARRAY['rejected'::application_status, 'withdrawn'::application_status]))
+C_index|applications.applications_pkey|CREATE UNIQUE INDEX applications_pkey ON public.applications USING btree (id)
+C_index|applications.applications_queue|CREATE INDEX applications_queue ON public.applications USING btree (status, submitted_at DESC NULLS LAST)
+C_index|applications.applications_reviewer|CREATE INDEX applications_reviewer ON public.applications USING btree (assigned_reviewer) WHERE (assigned_reviewer IS NOT NULL)
+C_index|audit_logs.audit_logs_actor|CREATE INDEX audit_logs_actor ON public.audit_logs USING btree (actor_id, event_type, created_at DESC)
+C_index|audit_logs.audit_logs_category|CREATE INDEX audit_logs_category ON public.audit_logs USING btree (category, created_at DESC)
+C_index|audit_logs.audit_logs_pkey|CREATE UNIQUE INDEX audit_logs_pkey ON public.audit_logs USING btree (id)
+C_index|audit_logs.audit_logs_target|CREATE INDEX audit_logs_target ON public.audit_logs USING btree (target_type, target_id, created_at DESC)
+C_index|course_catalog.course_catalog_cat|CREATE INDEX course_catalog_cat ON public.course_catalog USING btree (category, sort_order)
+C_index|course_catalog.course_catalog_pkey|CREATE UNIQUE INDEX course_catalog_pkey ON public.course_catalog USING btree (code)
+C_index|data_export_logs.data_export_logs_pkey|CREATE UNIQUE INDEX data_export_logs_pkey ON public.data_export_logs USING btree (id)
+C_index|hq_approval_internal.hq_approval_internal_pkey|CREATE UNIQUE INDEX hq_approval_internal_pkey ON public.hq_approval_internal USING btree (application_id)
+C_index|irreversible_record_sources.irreversible_record_sources_pkey|CREATE UNIQUE INDEX irreversible_record_sources_pkey ON public.irreversible_record_sources USING btree (source_key)
+C_index|login_aliases.login_aliases_alias_normalized_key|CREATE UNIQUE INDEX login_aliases_alias_normalized_key ON public.login_aliases USING btree (alias_normalized)
+C_index|login_aliases.login_aliases_pkey|CREATE UNIQUE INDEX login_aliases_pkey ON public.login_aliases USING btree (id)
+C_index|login_aliases.login_aliases_user|CREATE INDEX login_aliases_user ON public.login_aliases USING btree (user_id)
+C_index|profiles.profiles_pkey|CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)
+C_index|program_catalog.program_catalog_pkey|CREATE UNIQUE INDEX program_catalog_pkey ON public.program_catalog USING btree (code)
+C_index|recovery_flows.recovery_flows_lookup|CREATE INDEX recovery_flows_lookup ON public.recovery_flows USING btree (user_id, status, created_at DESC)
+C_index|recovery_flows.recovery_flows_one_active|CREATE UNIQUE INDEX recovery_flows_one_active ON public.recovery_flows USING btree (user_id) WHERE (status = ANY (ARRAY['pending'::recovery_flow_status, 'processing'::recovery_flow_status, 'failed_retryable'::recovery_flow_status]))
+C_index|recovery_flows.recovery_flows_pkey|CREATE UNIQUE INDEX recovery_flows_pkey ON public.recovery_flows USING btree (id)
+C_index|security_events.security_events_ip|CREATE INDEX security_events_ip ON public.security_events USING btree (event_type, ip, created_at DESC)
+C_index|security_events.security_events_pkey|CREATE UNIQUE INDEX security_events_pkey ON public.security_events USING btree (id)
+C_index|security_events.security_events_rate|CREATE INDEX security_events_rate ON public.security_events USING btree (event_type, identifier, created_at DESC)
+C_index|student_number_registry.student_number_by_normalized|CREATE INDEX student_number_by_normalized ON public.student_number_registry USING btree (normalized, state)
+C_index|student_number_registry.student_number_occupied_unique|CREATE UNIQUE INDEX student_number_occupied_unique ON public.student_number_registry USING btree (normalized) WHERE (state = ANY (ARRAY['reserved'::student_number_state, 'assigned'::student_number_state, 'retired'::student_number_state]))
+C_index|student_number_registry.student_number_registry_pkey|CREATE UNIQUE INDEX student_number_registry_pkey ON public.student_number_registry USING btree (id)
+C_index|student_number_void_requests.snvr_by_status|CREATE INDEX snvr_by_status ON public.student_number_void_requests USING btree (status, initiated_at DESC)
+C_index|student_number_void_requests.snvr_one_pending|CREATE UNIQUE INDEX snvr_one_pending ON public.student_number_void_requests USING btree (student_id) WHERE (status = 'pending'::number_void_status)
+C_index|student_number_void_requests.student_number_void_requests_pkey|CREATE UNIQUE INDEX student_number_void_requests_pkey ON public.student_number_void_requests USING btree (id)
+C_index|student_records.student_records_application_id_key|CREATE UNIQUE INDEX student_records_application_id_key ON public.student_records USING btree (application_id)
+C_index|student_records.student_records_pkey|CREATE UNIQUE INDEX student_records_pkey ON public.student_records USING btree (id)
+C_index|student_records.student_records_status|CREATE INDEX student_records_status ON public.student_records USING btree (status, created_at DESC)
+C_index|student_records.student_records_student_number_normalized_key|CREATE UNIQUE INDEX student_records_student_number_normalized_key ON public.student_records USING btree (student_number_normalized)
+C_index|student_records.student_records_user_id_key|CREATE UNIQUE INDEX student_records_user_id_key ON public.student_records USING btree (user_id)
+C_index|student_status_history.ssh_by_student|CREATE INDEX ssh_by_student ON public.student_status_history USING btree (student_id, created_at)
+C_index|student_status_history.student_status_history_pkey|CREATE UNIQUE INDEX student_status_history_pkey ON public.student_status_history USING btree (id)
+C_index|submissions.submissions_created_at_idx|CREATE INDEX submissions_created_at_idx ON public.submissions USING btree (created_at DESC)
+C_index|submissions.submissions_pkey|CREATE UNIQUE INDEX submissions_pkey ON public.submissions USING btree (id)
+C_index|submissions.submissions_status_idx|CREATE INDEX submissions_status_idx ON public.submissions USING btree (status)
+C_index|submissions.submissions_type_idx|CREATE INDEX submissions_type_idx ON public.submissions USING btree (type)
+C_index|teacher_invitations.teacher_invitations_email|CREATE INDEX teacher_invitations_email ON public.teacher_invitations USING btree (email_normalized)
+C_index|teacher_invitations.teacher_invitations_pkey|CREATE UNIQUE INDEX teacher_invitations_pkey ON public.teacher_invitations USING btree (id)
+C_index|teacher_invitations.teacher_invitations_token_hash_key|CREATE UNIQUE INDEX teacher_invitations_token_hash_key ON public.teacher_invitations USING btree (token_hash)
+C_index|teacher_profiles.teacher_profiles_pkey|CREATE UNIQUE INDEX teacher_profiles_pkey ON public.teacher_profiles USING btree (user_id)
+C_index|teacher_profiles.teacher_profiles_staff_number_key|CREATE UNIQUE INDEX teacher_profiles_staff_number_key ON public.teacher_profiles USING btree (staff_number)
+C_index|teacher_profiles_internal.teacher_profiles_internal_pkey|CREATE UNIQUE INDEX teacher_profiles_internal_pkey ON public.teacher_profiles_internal USING btree (user_id)
+C_index|teacher_verification_internal.teacher_verification_internal_pkey|CREATE UNIQUE INDEX teacher_verification_internal_pkey ON public.teacher_verification_internal USING btree (request_id)
+C_index|teacher_verification_requests.teacher_verification_requests_pkey|CREATE UNIQUE INDEX teacher_verification_requests_pkey ON public.teacher_verification_requests USING btree (id)
+C_index|teacher_verification_requests.tvr_one_active_per_user|CREATE UNIQUE INDEX tvr_one_active_per_user ON public.teacher_verification_requests USING btree (user_id) WHERE (status <> ALL (ARRAY['rejected'::teacher_verification_status, 'expired'::teacher_verification_status, 'revoked'::teacher_verification_status]))
+C_index|user_roles.user_roles_active_unique|CREATE UNIQUE INDEX user_roles_active_unique ON public.user_roles USING btree (user_id, role, COALESCE(scope_type, ''::text), COALESCE(scope_id, '00000000-0000-0000-0000-000000000000'::uuid)) WHERE (revoked_at IS NULL)
+C_index|user_roles.user_roles_lookup|CREATE INDEX user_roles_lookup ON public.user_roles USING btree (user_id, role, revoked_at)
+C_index|user_roles.user_roles_pkey|CREATE UNIQUE INDEX user_roles_pkey ON public.user_roles USING btree (id)
+D_trigger|application_hq_approvals.hq_approvals_set_updated_at|CREATE TRIGGER hq_approvals_set_updated_at BEFORE UPDATE ON public.application_hq_approvals FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+D_trigger|applications.applications_lock_guard|CREATE TRIGGER applications_lock_guard BEFORE UPDATE ON public.applications FOR EACH ROW EXECUTE FUNCTION application_protect_locked()
+D_trigger|applications.applications_set_updated_at|CREATE TRIGGER applications_set_updated_at BEFORE UPDATE ON public.applications FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+D_trigger|applications.applications_strip_forbidden|CREATE TRIGGER applications_strip_forbidden BEFORE INSERT OR UPDATE ON public.applications FOR EACH ROW EXECUTE FUNCTION application_strip_forbidden()
+D_trigger|applications.applications_transition_guard|CREATE TRIGGER applications_transition_guard BEFORE UPDATE ON public.applications FOR EACH ROW EXECUTE FUNCTION application_validate_transition()
+D_trigger|course_catalog.course_catalog_guard_t|CREATE TRIGGER course_catalog_guard_t BEFORE INSERT OR DELETE OR UPDATE ON public.course_catalog FOR EACH ROW EXECUTE FUNCTION course_catalog_guard()
+D_trigger|profiles.profiles_protect|CREATE TRIGGER profiles_protect BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION protect_profile_fields()
+D_trigger|profiles.profiles_set_updated_at|CREATE TRIGGER profiles_set_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+D_trigger|program_catalog.program_catalog_set_updated_at|CREATE TRIGGER program_catalog_set_updated_at BEFORE UPDATE ON public.program_catalog FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+D_trigger|recovery_flows.recovery_flows_set_updated_at|CREATE TRIGGER recovery_flows_set_updated_at BEFORE UPDATE ON public.recovery_flows FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+D_trigger|student_records.student_records_guard|CREATE TRIGGER student_records_guard BEFORE INSERT OR UPDATE ON public.student_records FOR EACH ROW EXECUTE FUNCTION student_guard()
+D_trigger|student_records.student_records_set_updated_at|CREATE TRIGGER student_records_set_updated_at BEFORE UPDATE ON public.student_records FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+D_trigger|student_status_history.ssh_append_only|CREATE TRIGGER ssh_append_only BEFORE UPDATE ON public.student_status_history FOR EACH ROW EXECUTE FUNCTION append_only_guard()
+D_trigger|submissions.submissions_set_updated_at|CREATE TRIGGER submissions_set_updated_at BEFORE UPDATE ON public.submissions FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+D_trigger|teacher_profiles.teacher_profiles_set_updated_at|CREATE TRIGGER teacher_profiles_set_updated_at BEFORE UPDATE ON public.teacher_profiles FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+D_trigger|teacher_verification_requests.tvr_set_updated_at|CREATE TRIGGER tvr_set_updated_at BEFORE UPDATE ON public.teacher_verification_requests FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+D_trigger|teacher_verification_requests.tvr_transition_guard|CREATE TRIGGER tvr_transition_guard BEFORE UPDATE ON public.teacher_verification_requests FOR EACH ROW EXECUTE FUNCTION tvr_validate_transition()
+D_trigger|user_roles.user_roles_alias_sync|CREATE TRIGGER user_roles_alias_sync AFTER UPDATE ON public.user_roles FOR EACH ROW EXECUTE FUNCTION sync_alias_on_role_revoke()
+E_policy|application_hq_approvals.hq_appr_select|SELECT permissive=PERMISSIVE roles=authenticated using=((EXISTS ( SELECT 1
+   FROM applications a
+  WHERE ((a.id = application_hq_approvals.application_id) AND (a.applicant_id = auth.uid())))) OR is_admin_any(auth.uid())) check=(none)
+E_policy|application_internal.appint_admin|SELECT permissive=PERMISSIVE roles=authenticated using=is_admin_any(auth.uid()) check=(none)
+E_policy|application_requirements.areq_select|SELECT permissive=PERMISSIVE roles=authenticated using=(EXISTS ( SELECT 1
+   FROM applications a
+  WHERE ((a.id = application_requirements.application_id) AND ((a.applicant_id = auth.uid()) OR is_admin_any(auth.uid()))))) check=(none)
+E_policy|application_status_history.ash_select|SELECT permissive=PERMISSIVE roles=authenticated using=(EXISTS ( SELECT 1
+   FROM applications a
+  WHERE ((a.id = application_status_history.application_id) AND ((a.applicant_id = auth.uid()) OR is_admin_any(auth.uid()))))) check=(none)
+E_policy|applications.app_self_insert|INSERT permissive=PERMISSIVE roles=authenticated using=(none) check=((applicant_id = auth.uid()) AND (status = 'draft'::application_status))
+E_policy|applications.app_self_select|SELECT permissive=PERMISSIVE roles=authenticated using=((applicant_id = auth.uid()) OR is_admin_any(auth.uid())) check=(none)
+E_policy|applications.app_self_update|UPDATE permissive=PERMISSIVE roles=authenticated using=(((applicant_id = auth.uid()) AND (status = ANY (ARRAY['draft'::application_status, 'needs_information'::application_status]))) OR is_admin_any(auth.uid())) check=((applicant_id = auth.uid()) OR is_admin_any(auth.uid()))
+E_policy|audit_logs.audit_academic_select|SELECT permissive=PERMISSIVE roles=authenticated using=((category = ANY (ARRAY['academic'::text, 'admissions'::text])) AND (current_user_has_role('academic_admin'::text) OR current_user_has_role('registrar'::text))) check=(none)
+E_policy|audit_logs.audit_finance_select|SELECT permissive=PERMISSIVE roles=authenticated using=((category = 'finance'::text) AND current_user_has_role('finance'::text) AND (actor_id = auth.uid())) check=(none)
+E_policy|audit_logs.audit_super_select|SELECT permissive=PERMISSIVE roles=authenticated using=current_user_has_role('super_admin'::text) check=(none)
+E_policy|course_catalog.course_catalog_read|SELECT permissive=PERMISSIVE roles=anon,authenticated using=true check=(none)
+E_policy|data_export_logs.export_logs_select|SELECT permissive=PERMISSIVE roles=authenticated using=current_user_has_role('super_admin'::text) check=(none)
+E_policy|hq_approval_internal.hq_internal_select|SELECT permissive=PERMISSIVE roles=authenticated using=is_admin_any(auth.uid()) check=(none)
+E_policy|profiles.profiles_self_select|SELECT permissive=PERMISSIVE roles=authenticated using=((id = auth.uid()) OR is_admin_any(auth.uid())) check=(none)
+E_policy|profiles.profiles_self_update|UPDATE permissive=PERMISSIVE roles=authenticated using=(id = auth.uid()) check=(id = auth.uid())
+E_policy|program_catalog.pc_public_read|SELECT permissive=PERMISSIVE roles=anon,authenticated using=true check=(none)
+E_policy|recovery_flows.recovery_flows_self_select|SELECT permissive=PERMISSIVE roles=authenticated using=(user_id = auth.uid()) check=(none)
+E_policy|security_events.security_events_select|SELECT permissive=PERMISSIVE roles=authenticated using=current_user_has_role('super_admin'::text) check=(none)
+E_policy|student_number_void_requests.snvr_admin_select|SELECT permissive=PERMISSIVE roles=authenticated using=is_admin_any(auth.uid()) check=(none)
+E_policy|student_records.student_admin_select|SELECT permissive=PERMISSIVE roles=authenticated using=is_admin_any(auth.uid()) check=(none)
+E_policy|student_records.student_self_select|SELECT permissive=PERMISSIVE roles=authenticated using=((user_id = auth.uid()) AND current_user_has_role('student'::text)) check=(none)
+E_policy|student_status_history.ssh_select|SELECT permissive=PERMISSIVE roles=authenticated using=(((EXISTS ( SELECT 1
+   FROM student_records s
+  WHERE ((s.id = student_status_history.student_id) AND (s.user_id = auth.uid())))) AND current_user_has_role('student'::text)) OR is_admin_any(auth.uid())) check=(none)
+E_policy|submissions.anon_insert|INSERT permissive=PERMISSIVE roles=anon using=(none) check=true
+E_policy|submissions.auth_select|SELECT permissive=PERMISSIVE roles=authenticated using=true check=(none)
+E_policy|submissions.auth_update|UPDATE permissive=PERMISSIVE roles=authenticated using=true check=true
+E_policy|teacher_invitations.ti_admin_select|SELECT permissive=PERMISSIVE roles=authenticated using=is_admin_any(auth.uid()) check=(none)
+E_policy|teacher_profiles.tp_select|SELECT permissive=PERMISSIVE roles=authenticated using=((user_id = auth.uid()) OR is_admin_any(auth.uid())) check=(none)
+E_policy|teacher_profiles_internal.tpi_admin|SELECT permissive=PERMISSIVE roles=authenticated using=is_admin_any(auth.uid()) check=(none)
+E_policy|teacher_verification_internal.tvi_admin_all|SELECT permissive=PERMISSIVE roles=authenticated using=is_admin_any(auth.uid()) check=(none)
+E_policy|teacher_verification_requests.tvr_self_insert|INSERT permissive=PERMISSIVE roles=authenticated using=(none) check=((user_id = auth.uid()) AND (status = 'draft'::teacher_verification_status))
+E_policy|teacher_verification_requests.tvr_self_select|SELECT permissive=PERMISSIVE roles=authenticated using=((user_id = auth.uid()) OR is_admin_any(auth.uid())) check=(none)
+E_policy|teacher_verification_requests.tvr_self_update|UPDATE permissive=PERMISSIVE roles=authenticated using=((user_id = auth.uid()) AND (status = ANY (ARRAY['draft'::teacher_verification_status, 'needs_information'::teacher_verification_status]))) check=(user_id = auth.uid())
+E_policy|user_roles.user_roles_select|SELECT permissive=PERMISSIVE roles=authenticated using=((user_id = auth.uid()) OR is_admin_any(auth.uid())) check=(none)
+E_rls_enabled|application_hq_approvals|true forced=false
+E_rls_enabled|application_internal|true forced=false
+E_rls_enabled|application_requirements|true forced=false
+E_rls_enabled|application_status_history|true forced=false
+E_rls_enabled|applications|true forced=false
+E_rls_enabled|audit_logs|true forced=false
+E_rls_enabled|course_catalog|true forced=false
+E_rls_enabled|data_export_logs|true forced=false
+E_rls_enabled|hq_approval_internal|true forced=false
+E_rls_enabled|irreversible_record_sources|true forced=false
+E_rls_enabled|login_aliases|true forced=false
+E_rls_enabled|profiles|true forced=false
+E_rls_enabled|program_catalog|true forced=false
+E_rls_enabled|recovery_flows|true forced=false
+E_rls_enabled|security_events|true forced=false
+E_rls_enabled|student_number_registry|true forced=false
+E_rls_enabled|student_number_void_requests|true forced=false
+E_rls_enabled|student_records|true forced=false
+E_rls_enabled|student_status_history|true forced=false
+E_rls_enabled|submissions|true forced=false
+E_rls_enabled|teacher_invitations|true forced=false
+E_rls_enabled|teacher_profiles_internal|true forced=false
+E_rls_enabled|teacher_profiles|true forced=false
+E_rls_enabled|teacher_verification_internal|true forced=false
+E_rls_enabled|teacher_verification_requests|true forced=false
+E_rls_enabled|user_roles|true forced=false
+F_function|activate_student(p_student uuid, p_actor uuid, p_message text, p_internal_note text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=34744a8d571aa1c939595a76b98f6e9b
+F_function|admissions_ready_for_enrollment()|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=6bc91c2cf36fa3caf824d3fe3cf4cc74
+F_function|append_only_guard()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" defmd5=8dec4d5d8f4da4df15f8e08e5001bf18
+F_function|application_protect_locked()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" defmd5=89bb70e9e0a738871eec0263c2e26f1f
+F_function|application_strip_forbidden()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" defmd5=3b27a32b071031ed7f69473399f3a759
+F_function|application_validate_form(p_form jsonb, p_pathway text)|lang=plpgsql vol=s secdef=false strict=false cfg=search_path="" defmd5=b4d72938b3b4863c16e1d90b24bf8a01
+F_function|application_validate_program(p_form jsonb)|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=b88f3b779599620a72a24f93a3a39cf2
+F_function|application_validate_transition()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" defmd5=362cd1191c836d0d55900bb89912ab2a
+F_function|approve_student_number_void(p_request uuid, p_actor uuid, p_note text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=33e087a5e19ceecf46e2502fcc906f4c
+F_function|auth_rate_check(p_identifier text, p_ip text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=e2052d298d60afd312ce613232691702
+F_function|auth_record_attempt(p_identifier text, p_ip text, p_ok boolean, p_user uuid)|lang=sql vol=v secdef=true strict=false cfg=search_path="" defmd5=8bf11d8f56237f97f8f06ea83c9c7b56
+F_function|claim_recovery_flow(p_flow uuid, p_user uuid)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=3fc52efac3f37852ecd93b19018aee72
+F_function|complete_recovery_flow(p_flow uuid, p_user uuid)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=225219a637e5d5191d2be82d7dddf9f6
+F_function|confirm_hq_approval(p_app uuid, p_actor uuid, p_status text, p_reference text, p_visible_note text, p_internal_note text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=5bb7c6a9e6be5a45f80e216e52f0a1f4
+F_function|consume_teacher_invitation(p_token_hash text, p_email text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=2963981efcf4f9e4c8e019d38a0b4959
+F_function|correct_student_number(p_student uuid, p_actor uuid, p_new_number text, p_reason text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=fad24defbf046966a68dfb4d9877e37c
+F_function|course_catalog_guard()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" defmd5=850cc5f4feeb26ed79b47a9cf6a96402
+F_function|create_student_record(p_app uuid, p_actor uuid, p_student_number text, p_program_code text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=8deba1193a9e0d5f89b2bf892291ce4b
+F_function|current_user_has_role(p_role text)|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=0cb3acd793ef8fd4851a4a59a74a5c7a
+F_function|fail_recovery_flow(p_flow uuid, p_user uuid, p_reason text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=8354a81e6a9952340c68b24fbc8b6494
+F_function|handle_new_user()|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=30f8278284b84e619596e5e6c7af77f6
+F_function|handle_user_email_changed()|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=18eeb71d19d0dffe964e1b91215c1732
+F_function|handle_user_email_confirmed()|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=f09e67fae5a04c39cddcb0039db637c6
+F_function|has_active_role(p_user uuid, p_role text)|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=4d9411d04f171a3be60f292d99f1e9cf
+F_function|heal_missing_profile(p_user uuid)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=83cb3c840c27f06644e61986bd9318ff
+F_function|is_admin_any(p_user uuid)|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=687400f0a6b9699cd775295743191c8f
+F_function|is_assigned_mentor(p_mentor uuid, p_student uuid)|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=f4c89086097cdb41bfca40668b80a070
+F_function|is_assigned_teacher(p_user uuid, p_offering uuid)|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=abc17945e522d99dfb86f4678ae604d5
+F_function|is_enrolled_student(p_user uuid, p_offering uuid)|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=a641d3c01ee509ccf7949184bf89732d
+F_function|my_action_items()|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=c7ed2e4f717b76dea60430167bfae5a2
+F_function|my_application()|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=d732bb31cc1bcf36969182eefd202282
+F_function|my_application_timeline(p_app uuid)|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=3e8ef1e4e08fe6dac2bdbcfec8f8bcb5
+F_function|my_learning()|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=719353c78ee4b39c39e79ffe4f6e06b2
+F_function|my_profile()|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=95e5080c8cbde702bfc506b95370e173
+F_function|my_recovery_flow()|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=8a0ebcb39cd48c73e2152a5087512845
+F_function|my_roles()|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=f0df48bae19c76d1aff276b14f134716
+F_function|my_student_capabilities()|lang=plpgsql vol=s secdef=true strict=false cfg=search_path="" defmd5=66d1f025eb057c586ff6cbfd3ae65a2a
+F_function|my_student_profile()|lang=plpgsql vol=s secdef=true strict=false cfg=search_path="" defmd5=6c4194e878d0c4ea81ea19ff2ad8c020
+F_function|my_student_record()|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=c3ec365ad55cad3c1be100837ff1a06c
+F_function|my_student_timeline()|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=5d0db8c5ea9da03c17404314ec4f6153
+F_function|my_teacher_verification()|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=72022c9735937ce79e0600928e9bcdd8
+F_function|normalize_student_number(p_raw text)|lang=sql vol=i secdef=false strict=false cfg=search_path="" defmd5=426402c2afed95e1021611d451940f7a
+F_function|pending_number_void_requests()|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=b21e33cb5e4fb175ab1ac495233d0d0a
+F_function|protect_profile_fields()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" defmd5=1d1ca6e051da923f876bd2f59cb7ae97
+F_function|reap_stale_recovery_flows(p_user uuid)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=e23a844b68e4c599eb7a390d24c0acac
+F_function|reject_student_number_void(p_request uuid, p_actor uuid, p_note text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=372d89ea546f8c3202f764a647f087d5
+F_function|request_student_number_void(p_student uuid, p_actor uuid, p_replacement_number text, p_reason text, p_evidence text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=22705baf3c0190c526cd104b7ff6587e
+F_function|resolve_requirement(p_req uuid)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=f61ed620db9407d1d640245b4ac962ca
+F_function|review_application(p_app uuid, p_reviewer uuid, p_action text, p_message text, p_requirements jsonb, p_internal_note text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=86c0ca23b0ed0feaf7810d2496bcc515
+F_function|review_teacher_verification(p_request uuid, p_reviewer uuid, p_action text, p_message text, p_staff_number text, p_grant_mentor boolean, p_internal_note text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=4a4a5bf6d52753bb5accb493a6dca91e
+F_function|set_updated_at()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" defmd5=f08d66d3c905d9224c38edab04360345
+F_function|start_recovery_flow()|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=b064593ce375f2224fb6f07501b2c5cd
+F_function|student_guard()|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=be44f8d470f8fa7de7ca9b7e4905cc1d
+F_function|student_number_has_irreversible_records(p_normalized text)|lang=plpgsql vol=s secdef=true strict=false cfg=search_path="" defmd5=d00e6c13578d7690be9d6c911769d507
+F_function|submit_application(p_app uuid)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=bb823c6bf0a292d34b0efff982831e76
+F_function|sync_alias_on_role_revoke()|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=f516cb64e3de743440b7bf07bd910de9
+F_function|tvr_validate_transition()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" defmd5=94e307fc14ebba960760120ef84e997a
+F_function|update_my_contact(p_display_name text, p_phone text, p_contact_note text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=7bb7385dde52d6d542c2a8d11e68766b
+F_function|withdraw_application(p_app uuid, p_reason text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=9a8052ec7c511fde90573513822e4c3d
+G_table_grant|user_roles.authenticated|SELECT
+G_func_grant|activate_student(p_student uuid, p_actor uuid, p_message text, p_internal_note text).service_role|EXECUTE
+G_func_grant|admissions_ready_for_enrollment().authenticated|EXECUTE
+G_func_grant|append_only_guard().PUBLIC|EXECUTE
+G_func_grant|application_protect_locked().PUBLIC|EXECUTE
+G_func_grant|application_strip_forbidden().PUBLIC|EXECUTE
+G_func_grant|application_validate_form(p_form jsonb, p_pathway text).PUBLIC|EXECUTE
+G_func_grant|application_validate_program(p_form jsonb).PUBLIC|EXECUTE
+G_func_grant|application_validate_program(p_form jsonb).authenticated|EXECUTE
+G_func_grant|application_validate_program(p_form jsonb).service_role|EXECUTE
+G_func_grant|application_validate_transition().PUBLIC|EXECUTE
+G_func_grant|approve_student_number_void(p_request uuid, p_actor uuid, p_note text).service_role|EXECUTE
+G_func_grant|auth_rate_check(p_identifier text, p_ip text).service_role|EXECUTE
+G_func_grant|auth_record_attempt(p_identifier text, p_ip text, p_ok boolean, p_user uuid).service_role|EXECUTE
+G_func_grant|claim_recovery_flow(p_flow uuid, p_user uuid).service_role|EXECUTE
+G_func_grant|complete_recovery_flow(p_flow uuid, p_user uuid).service_role|EXECUTE
+G_func_grant|confirm_hq_approval(p_app uuid, p_actor uuid, p_status text, p_reference text, p_visible_note text, p_internal_note text).service_role|EXECUTE
+G_func_grant|consume_teacher_invitation(p_token_hash text, p_email text).service_role|EXECUTE
+G_func_grant|correct_student_number(p_student uuid, p_actor uuid, p_new_number text, p_reason text).service_role|EXECUTE
+G_func_grant|course_catalog_guard().PUBLIC|EXECUTE
+G_func_grant|create_student_record(p_app uuid, p_actor uuid, p_student_number text, p_program_code text).service_role|EXECUTE
+G_func_grant|current_user_has_role(p_role text).authenticated|EXECUTE
+G_func_grant|current_user_has_role(p_role text).service_role|EXECUTE
+G_func_grant|fail_recovery_flow(p_flow uuid, p_user uuid, p_reason text).service_role|EXECUTE
+G_func_grant|has_active_role(p_user uuid, p_role text).authenticated|EXECUTE
+G_func_grant|has_active_role(p_user uuid, p_role text).service_role|EXECUTE
+G_func_grant|heal_missing_profile(p_user uuid).service_role|EXECUTE
+G_func_grant|is_admin_any(p_user uuid).authenticated|EXECUTE
+G_func_grant|is_admin_any(p_user uuid).service_role|EXECUTE
+G_func_grant|is_assigned_mentor(p_mentor uuid, p_student uuid).authenticated|EXECUTE
+G_func_grant|is_assigned_mentor(p_mentor uuid, p_student uuid).service_role|EXECUTE
+G_func_grant|is_assigned_teacher(p_user uuid, p_offering uuid).authenticated|EXECUTE
+G_func_grant|is_assigned_teacher(p_user uuid, p_offering uuid).service_role|EXECUTE
+G_func_grant|is_enrolled_student(p_user uuid, p_offering uuid).authenticated|EXECUTE
+G_func_grant|is_enrolled_student(p_user uuid, p_offering uuid).service_role|EXECUTE
+G_func_grant|my_action_items().authenticated|EXECUTE
+G_func_grant|my_application().authenticated|EXECUTE
+G_func_grant|my_application_timeline(p_app uuid).authenticated|EXECUTE
+G_func_grant|my_learning().authenticated|EXECUTE
+G_func_grant|my_profile().authenticated|EXECUTE
+G_func_grant|my_recovery_flow().authenticated|EXECUTE
+G_func_grant|my_roles().authenticated|EXECUTE
+G_func_grant|my_student_capabilities().authenticated|EXECUTE
+G_func_grant|my_student_profile().authenticated|EXECUTE
+G_func_grant|my_student_record().authenticated|EXECUTE
+G_func_grant|my_student_timeline().authenticated|EXECUTE
+G_func_grant|my_teacher_verification().authenticated|EXECUTE
+G_func_grant|normalize_student_number(p_raw text).PUBLIC|EXECUTE
+G_func_grant|pending_number_void_requests().authenticated|EXECUTE
+G_func_grant|reap_stale_recovery_flows(p_user uuid).service_role|EXECUTE
+G_func_grant|reject_student_number_void(p_request uuid, p_actor uuid, p_note text).service_role|EXECUTE
+G_func_grant|request_student_number_void(p_student uuid, p_actor uuid, p_replacement_number text, p_reason text, p_evidence text).service_role|EXECUTE
+G_func_grant|resolve_requirement(p_req uuid).authenticated|EXECUTE
+G_func_grant|review_application(p_app uuid, p_reviewer uuid, p_action text, p_message text, p_requirements jsonb, p_internal_note text).service_role|EXECUTE
+G_func_grant|review_teacher_verification(p_request uuid, p_reviewer uuid, p_action text, p_message text, p_staff_number text, p_grant_mentor boolean, p_internal_note text).service_role|EXECUTE
+G_func_grant|start_recovery_flow().authenticated|EXECUTE
+G_func_grant|student_guard().PUBLIC|EXECUTE
+G_func_grant|student_number_has_irreversible_records(p_normalized text).service_role|EXECUTE
+G_func_grant|submit_application(p_app uuid).authenticated|EXECUTE
+G_func_grant|sync_alias_on_role_revoke().PUBLIC|EXECUTE
+G_func_grant|tvr_validate_transition().PUBLIC|EXECUTE
+G_func_grant|update_my_contact(p_display_name text, p_phone text, p_contact_note text).authenticated|EXECUTE
+G_func_grant|withdraw_application(p_app uuid, p_reason text).authenticated|EXECUTE
+H_enum|account_status|pending_email,active,locked,suspended,disabled
+H_enum|alias_type|student_number,staff_number
+H_enum|application_pathway|bth,common_learning,undecided
+H_enum|application_status|draft,submitted,under_review,needs_information,accepted,rejected,withdrawn
+H_enum|course_availability|available,in_development
+H_enum|course_category|nt,ot,bible_basics,theology,practical,history,language
+H_enum|hq_approval_status|pending,approved,rejected
+H_enum|irreversible_verdict|yes,no,pending_decision
+H_enum|number_void_status|pending,approved,rejected,cancelled
+H_enum|recovery_flow_status|pending,processing,completed,failed_retryable,expired
+H_enum|student_number_state|reserved,assigned,retired,voided_clerical_error
+H_enum|student_status|pre_enrolled,active
+H_enum|teacher_profile_status|active,leave,suspended,departed
+H_enum|teacher_verification_status|invited,draft,email_verified,submitted,needs_information,approved,rejected,expired,suspended,revoked
+H_enum|user_role|applicant,student,teacher,mentor,registrar,finance,content_admin,academic_admin,super_admin
+G2_func_exec_open|append_only_guard|PUBLIC
+G2_func_exec_open|application_protect_locked|PUBLIC
+G2_func_exec_open|application_strip_forbidden|PUBLIC
+G2_func_exec_open|application_validate_form|PUBLIC
+G2_func_exec_open|application_validate_program|PUBLIC
+G2_func_exec_open|application_validate_transition|PUBLIC
+G2_func_exec_open|course_catalog_guard|PUBLIC
+G2_func_exec_open|normalize_student_number|PUBLIC
+G2_func_exec_open|student_guard|PUBLIC
+G2_func_exec_open|sync_alias_on_role_revoke|PUBLIC
+G2_func_exec_open|tvr_validate_transition|PUBLIC

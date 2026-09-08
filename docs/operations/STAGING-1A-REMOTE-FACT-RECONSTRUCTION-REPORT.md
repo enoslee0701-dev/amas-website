@@ -3,6 +3,20 @@
 **AMAS · STAGING-1A —— 远端事实重建**
 日期：2026-09-08 · canonical：website `b0c1c31` · App `0af8cc6`
 
+> ### ⚠ 本报告的多处结论已被 R2 实测更正（2026-09-08）
+>
+> Supervisor 已执行 P4 / P10 / P8，结果推翻本报告的四处表述。
+> **原文保留**，更正如下，详见
+> [`STAGING-1A-R2-CANONICAL-EQUIVALENCE-REPORT.md`](./STAGING-1A-R2-CANONICAL-EQUIVALENCE-REPORT.md) §1：
+>
+> | 本报告写的 | 实测更正 |
+> |---|---|
+> | §3.3「0012 确认 13 个 / 剩余 17 个未探测」 | **STALE** —— 实测 `0012 P4 OBJECT PRESENCE = 30/30`（但仍不等于 canonical equivalent） |
+> | §2.3「0014/0017/0019/0021 疑似执行、版本未定」 | 已定版：**P10 全部 TRUE**，`0011–0021` 均为 final 版 |
+> | §2.3 `my_action_items` 判别子串 `union all select` | **探针假阴性**（我的错）—— `pg_get_functiondef` 输出中被空白拆开；已改为 `has_active_role(p.id, 'student')` |
+> | §5 人口足迹判据 | **P8 用了全局表计数（我的错）** —— `audit_logs` 497 行是全库共享，与该账号无关。按用户关联后：`audit_logs_as_actor = 1`（`user_registered`），其余全 0 |
+> | 未覆盖 `0022` | 新增 **P11 数据态哨兵**：`0022 = NOT APPLIED`（0022 不创建对象，P4/P10 对它天然无效） |
+
 > # 最终状态：`STAGING-1A NEEDS RECONCILIATION`
 >
 > **REMOTE MUTATION = NONE。** 本会话**未连接远端** ——
