@@ -1,0 +1,59 @@
+F_function|activate_student(p_student uuid, p_actor uuid, p_message text, p_internal_note text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=34744a8d571aa1c939595a76b98f6e9b
+F_function|admissions_ready_for_enrollment()|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=6bc91c2cf36fa3caf824d3fe3cf4cc74
+F_function|append_only_guard()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" defmd5=8dec4d5d8f4da4df15f8e08e5001bf18
+F_function|application_protect_locked()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" defmd5=89bb70e9e0a738871eec0263c2e26f1f
+F_function|application_strip_forbidden()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" defmd5=3b27a32b071031ed7f69473399f3a759
+F_function|application_validate_form(p_form jsonb, p_pathway text)|lang=plpgsql vol=s secdef=false strict=false cfg=search_path="" defmd5=b4d72938b3b4863c16e1d90b24bf8a01
+F_function|application_validate_program(p_form jsonb)|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=b88f3b779599620a72a24f93a3a39cf2
+F_function|application_validate_transition()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" defmd5=362cd1191c836d0d55900bb89912ab2a
+F_function|approve_student_number_void(p_request uuid, p_actor uuid, p_note text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=33e087a5e19ceecf46e2502fcc906f4c
+F_function|auth_rate_check(p_identifier text, p_ip text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=e2052d298d60afd312ce613232691702
+F_function|auth_record_attempt(p_identifier text, p_ip text, p_ok boolean, p_user uuid)|lang=sql vol=v secdef=true strict=false cfg=search_path="" defmd5=8bf11d8f56237f97f8f06ea83c9c7b56
+F_function|claim_recovery_flow(p_flow uuid, p_user uuid)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=3fc52efac3f37852ecd93b19018aee72
+F_function|complete_recovery_flow(p_flow uuid, p_user uuid)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=225219a637e5d5191d2be82d7dddf9f6
+F_function|confirm_hq_approval(p_app uuid, p_actor uuid, p_status text, p_reference text, p_visible_note text, p_internal_note text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=5bb7c6a9e6be5a45f80e216e52f0a1f4
+F_function|consume_teacher_invitation(p_token_hash text, p_email text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=2963981efcf4f9e4c8e019d38a0b4959
+F_function|correct_student_number(p_student uuid, p_actor uuid, p_new_number text, p_reason text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=fad24defbf046966a68dfb4d9877e37c
+F_function|course_catalog_guard()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" defmd5=850cc5f4feeb26ed79b47a9cf6a96402
+F_function|create_student_record(p_app uuid, p_actor uuid, p_student_number text, p_program_code text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=8deba1193a9e0d5f89b2bf892291ce4b
+F_function|current_user_has_role(p_role text)|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=0cb3acd793ef8fd4851a4a59a74a5c7a
+F_function|fail_recovery_flow(p_flow uuid, p_user uuid, p_reason text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=8354a81e6a9952340c68b24fbc8b6494
+F_function|handle_new_user()|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=30f8278284b84e619596e5e6c7af77f6
+F_function|handle_user_email_changed()|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=18eeb71d19d0dffe964e1b91215c1732
+F_function|handle_user_email_confirmed()|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=f09e67fae5a04c39cddcb0039db637c6
+F_function|has_active_role(p_user uuid, p_role text)|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=4d9411d04f171a3be60f292d99f1e9cf
+F_function|heal_missing_profile(p_user uuid)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=83cb3c840c27f06644e61986bd9318ff
+F_function|is_admin_any(p_user uuid)|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=687400f0a6b9699cd775295743191c8f
+F_function|is_assigned_mentor(p_mentor uuid, p_student uuid)|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=f4c89086097cdb41bfca40668b80a070
+F_function|is_assigned_teacher(p_user uuid, p_offering uuid)|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=abc17945e522d99dfb86f4678ae604d5
+F_function|is_enrolled_student(p_user uuid, p_offering uuid)|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=a641d3c01ee509ccf7949184bf89732d
+F_function|my_action_items()|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=c7ed2e4f717b76dea60430167bfae5a2
+F_function|my_application()|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=d732bb31cc1bcf36969182eefd202282
+F_function|my_application_timeline(p_app uuid)|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=3e8ef1e4e08fe6dac2bdbcfec8f8bcb5
+F_function|my_learning()|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=719353c78ee4b39c39e79ffe4f6e06b2
+F_function|my_profile()|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=95e5080c8cbde702bfc506b95370e173
+F_function|my_recovery_flow()|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=8a0ebcb39cd48c73e2152a5087512845
+F_function|my_roles()|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=f0df48bae19c76d1aff276b14f134716
+F_function|my_student_capabilities()|lang=plpgsql vol=s secdef=true strict=false cfg=search_path="" defmd5=66d1f025eb057c586ff6cbfd3ae65a2a
+F_function|my_student_profile()|lang=plpgsql vol=s secdef=true strict=false cfg=search_path="" defmd5=6c4194e878d0c4ea81ea19ff2ad8c020
+F_function|my_student_record()|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=c3ec365ad55cad3c1be100837ff1a06c
+F_function|my_student_timeline()|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=5d0db8c5ea9da03c17404314ec4f6153
+F_function|my_teacher_verification()|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=72022c9735937ce79e0600928e9bcdd8
+F_function|normalize_student_number(p_raw text)|lang=sql vol=i secdef=false strict=false cfg=search_path="" defmd5=426402c2afed95e1021611d451940f7a
+F_function|pending_number_void_requests()|lang=sql vol=s secdef=true strict=false cfg=search_path="" defmd5=b21e33cb5e4fb175ab1ac495233d0d0a
+F_function|protect_profile_fields()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" defmd5=1d1ca6e051da923f876bd2f59cb7ae97
+F_function|reap_stale_recovery_flows(p_user uuid)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=e23a844b68e4c599eb7a390d24c0acac
+F_function|reject_student_number_void(p_request uuid, p_actor uuid, p_note text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=372d89ea546f8c3202f764a647f087d5
+F_function|request_student_number_void(p_student uuid, p_actor uuid, p_replacement_number text, p_reason text, p_evidence text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=22705baf3c0190c526cd104b7ff6587e
+F_function|resolve_requirement(p_req uuid)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=f61ed620db9407d1d640245b4ac962ca
+F_function|review_application(p_app uuid, p_reviewer uuid, p_action text, p_message text, p_requirements jsonb, p_internal_note text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=86c0ca23b0ed0feaf7810d2496bcc515
+F_function|review_teacher_verification(p_request uuid, p_reviewer uuid, p_action text, p_message text, p_staff_number text, p_grant_mentor boolean, p_internal_note text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=4a4a5bf6d52753bb5accb493a6dca91e
+F_function|set_updated_at()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" defmd5=f08d66d3c905d9224c38edab04360345
+F_function|start_recovery_flow()|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=b064593ce375f2224fb6f07501b2c5cd
+F_function|student_guard()|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=be44f8d470f8fa7de7ca9b7e4905cc1d
+F_function|student_number_has_irreversible_records(p_normalized text)|lang=plpgsql vol=s secdef=true strict=false cfg=search_path="" defmd5=d00e6c13578d7690be9d6c911769d507
+F_function|submit_application(p_app uuid)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=bb823c6bf0a292d34b0efff982831e76
+F_function|sync_alias_on_role_revoke()|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=f516cb64e3de743440b7bf07bd910de9
+F_function|tvr_validate_transition()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" defmd5=94e307fc14ebba960760120ef84e997a
+F_function|update_my_contact(p_display_name text, p_phone text, p_contact_note text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=7bb7385dde52d6d542c2a8d11e68766b
+F_function|withdraw_application(p_app uuid, p_reason text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" defmd5=9a8052ec7c511fde90573513822e4c3d

@@ -1,0 +1,59 @@
+activate_student(p_student uuid, p_actor uuid, p_message text, p_internal_note text)|6fb7bc02273145ea6b8b52686876c226
+admissions_ready_for_enrollment()|339a987d8d2a5a7d903c48a4ba221016
+append_only_guard()|561757b451c02c4728264453bb803589
+application_protect_locked()|9ddf437c4609bced99f6eb6da73105c3
+application_strip_forbidden()|19ad594a76207bd0830937f5031bfc7f
+application_validate_form(p_form jsonb, p_pathway text)|bf5202a821c540c70716da22c16acb0b
+application_validate_program(p_form jsonb)|f125ad247440405b7884de4b3f17ce1e
+application_validate_transition()|6d957d0df5d9805c5de6785ff0b65f3a
+approve_student_number_void(p_request uuid, p_actor uuid, p_note text)|4f450b5c740c544d0c0bb1ec30bad98e
+auth_rate_check(p_identifier text, p_ip text)|6e78b816a184ee1ed4bec807a7fe3cd9
+auth_record_attempt(p_identifier text, p_ip text, p_ok boolean, p_user uuid)|67345269660e9e0af22659ac3189dce9
+claim_recovery_flow(p_flow uuid, p_user uuid)|0ed48e19db250f8bd8768672959d7f41
+complete_recovery_flow(p_flow uuid, p_user uuid)|9137ea0cb5fffa9708813633ddf7bb38
+confirm_hq_approval(p_app uuid, p_actor uuid, p_status text, p_reference text, p_visible_note text, p_internal_note text)|9aad6b9f96ecb62ddad39d864be07009
+consume_teacher_invitation(p_token_hash text, p_email text)|c05c53042856b21ced5187285f800dd2
+correct_student_number(p_student uuid, p_actor uuid, p_new_number text, p_reason text)|6e3c0ee52863bd7142a69bb9674a5929
+course_catalog_guard()|979b470b69a84901949da1e8515c6cbb
+create_student_record(p_app uuid, p_actor uuid, p_student_number text, p_program_code text)|35de551c7a62293dcd6e4cd7a0e4f570
+current_user_has_role(p_role text)|a70efc50bea3ca9e668ac49c3d79d2f7
+fail_recovery_flow(p_flow uuid, p_user uuid, p_reason text)|a31652acc0092f38233ca4af59a0d20b
+handle_new_user()|8a19c6ab0b59dce7f7f5ac197f9edce0
+handle_user_email_changed()|27a913ac30f9cb4c3e9774ea96bc7b86
+handle_user_email_confirmed()|1fb61c22de7c075a225f311035ac26c8
+has_active_role(p_user uuid, p_role text)|47d57c3899cb932c7215744979c794f5
+heal_missing_profile(p_user uuid)|394ee24ab703aacbe5f298778854e2b3
+is_admin_any(p_user uuid)|dede49544291d2c751cec66b0cb564dd
+is_assigned_mentor(p_mentor uuid, p_student uuid)|2fbbcdfc9fbe6c30a4e850b16f0e0306
+is_assigned_teacher(p_user uuid, p_offering uuid)|a8a8bb3e3442068b8f08034ea78a7af5
+is_enrolled_student(p_user uuid, p_offering uuid)|2c6cbfc6269b7001f655946d7378566a
+my_action_items()|452dd7422ba5e2c2812303d5e0ce6b55
+my_application()|8b24c177f40efe51a3949b35159c2bda
+my_application_timeline(p_app uuid)|8c06b6b55abaccad99cfe5c06387ac1b
+my_learning()|ac1d6fda4acb200edfb74f94be14c10d
+my_profile()|891935304bc7f5a671b8fa226feed2d6
+my_recovery_flow()|e4d466a7ff617722879ff4065e266fe8
+my_roles()|5735a16a59ea6dccd751b8e96df9725e
+my_student_capabilities()|3617125d3900ec52ddb2e9ed3507ec52
+my_student_profile()|f285094328945db0229d2bed053594a2
+my_student_record()|6d9aa480c37f43c2f11da445a6adbc77
+my_student_timeline()|daa41b34a31182b012e79b407d762bb9
+my_teacher_verification()|df8de94e1931e8b9838e22e266e595a9
+normalize_student_number(p_raw text)|437295a501c59d41f1b8a28f5341ee51
+pending_number_void_requests()|0287f5dbe7d0abcbff98d218856a19b1
+protect_profile_fields()|9a612cd3d853e7ea025d626ba7010bf3
+reap_stale_recovery_flows(p_user uuid)|8baea18b84ec7fa448c6a0b5d9295798
+reject_student_number_void(p_request uuid, p_actor uuid, p_note text)|90e6025b094d9d1a3484d6078a4c20a3
+request_student_number_void(p_student uuid, p_actor uuid, p_replacement_number text, p_reason text, p_evidence text)|7649150c214faab9d2a90c482d060cc3
+resolve_requirement(p_req uuid)|299bf6a5f4790d55d64c58bb6e5e80d6
+review_application(p_app uuid, p_reviewer uuid, p_action text, p_message text, p_requirements jsonb, p_internal_note text)|3381dffafecf803d182eb8aed6bfd721
+review_teacher_verification(p_request uuid, p_reviewer uuid, p_action text, p_message text, p_staff_number text, p_grant_mentor boolean, p_internal_note text)|3e72c457c748a00178bfbc091c62c0ea
+set_updated_at()|4ae679bb5544f4117823690ff99c92b3
+start_recovery_flow()|2c19759953adaa978c2de1d21a1cc4ba
+student_guard()|20fccc549b27bfc38f91f58db9fae81d
+student_number_has_irreversible_records(p_normalized text)|f16e7018064de0921ebec8af67ffdf9f
+submit_application(p_app uuid)|4a6f264b21546dfca682e58ea7b481e1
+sync_alias_on_role_revoke()|cde2bd484750cdee43a504c5b2415f03
+tvr_validate_transition()|b23d67b3eb5874bfc2b3849f685c8ddc
+update_my_contact(p_display_name text, p_phone text, p_contact_note text)|700082c30396aecc19e80436a4491a26
+withdraw_application(p_app uuid, p_reason text)|55e180cb54eabe49a487d53cb723fa1f

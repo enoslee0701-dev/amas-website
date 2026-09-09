@@ -1,0 +1,33 @@
+E_policy|application_hq_approvals.hq_appr_select|SELECT permissive=PERMISSIVE roles=authenticated using=((EXISTS ( SELECT 1
+E_policy|application_internal.appint_admin|SELECT permissive=PERMISSIVE roles=authenticated using=is_admin_any(auth.uid()) check=(none)
+E_policy|application_requirements.areq_select|SELECT permissive=PERMISSIVE roles=authenticated using=(EXISTS ( SELECT 1
+E_policy|application_status_history.ash_select|SELECT permissive=PERMISSIVE roles=authenticated using=(EXISTS ( SELECT 1
+E_policy|applications.app_self_insert|INSERT permissive=PERMISSIVE roles=authenticated using=(none) check=((applicant_id = auth.uid()) AND (status = 'draft'::application_status))
+E_policy|applications.app_self_select|SELECT permissive=PERMISSIVE roles=authenticated using=((applicant_id = auth.uid()) OR is_admin_any(auth.uid())) check=(none)
+E_policy|applications.app_self_update|UPDATE permissive=PERMISSIVE roles=authenticated using=(((applicant_id = auth.uid()) AND (status = ANY (ARRAY['draft'::application_status, 'needs_information'::application_status]))) OR is_admin_any(auth.uid())) check=((applicant_id = auth.uid()) OR is_admin_any(auth.uid()))
+E_policy|audit_logs.audit_academic_select|SELECT permissive=PERMISSIVE roles=authenticated using=((category = ANY (ARRAY['academic'::text, 'admissions'::text])) AND (current_user_has_role('academic_admin'::text) OR current_user_has_role('registrar'::text))) check=(none)
+E_policy|audit_logs.audit_finance_select|SELECT permissive=PERMISSIVE roles=authenticated using=((category = 'finance'::text) AND current_user_has_role('finance'::text) AND (actor_id = auth.uid())) check=(none)
+E_policy|audit_logs.audit_super_select|SELECT permissive=PERMISSIVE roles=authenticated using=current_user_has_role('super_admin'::text) check=(none)
+E_policy|course_catalog.course_catalog_read|SELECT permissive=PERMISSIVE roles=anon,authenticated using=true check=(none)
+E_policy|data_export_logs.export_logs_select|SELECT permissive=PERMISSIVE roles=authenticated using=current_user_has_role('super_admin'::text) check=(none)
+E_policy|hq_approval_internal.hq_internal_select|SELECT permissive=PERMISSIVE roles=authenticated using=is_admin_any(auth.uid()) check=(none)
+E_policy|profiles.profiles_self_select|SELECT permissive=PERMISSIVE roles=authenticated using=((id = auth.uid()) OR is_admin_any(auth.uid())) check=(none)
+E_policy|profiles.profiles_self_update|UPDATE permissive=PERMISSIVE roles=authenticated using=(id = auth.uid()) check=(id = auth.uid())
+E_policy|program_catalog.pc_public_read|SELECT permissive=PERMISSIVE roles=anon,authenticated using=true check=(none)
+E_policy|recovery_flows.recovery_flows_self_select|SELECT permissive=PERMISSIVE roles=authenticated using=(user_id = auth.uid()) check=(none)
+E_policy|security_events.security_events_select|SELECT permissive=PERMISSIVE roles=authenticated using=current_user_has_role('super_admin'::text) check=(none)
+E_policy|student_number_void_requests.snvr_admin_select|SELECT permissive=PERMISSIVE roles=authenticated using=is_admin_any(auth.uid()) check=(none)
+E_policy|student_records.student_admin_select|SELECT permissive=PERMISSIVE roles=authenticated using=is_admin_any(auth.uid()) check=(none)
+E_policy|student_records.student_self_select|SELECT permissive=PERMISSIVE roles=authenticated using=((user_id = auth.uid()) AND current_user_has_role('student'::text)) check=(none)
+E_policy|student_status_history.ssh_select|SELECT permissive=PERMISSIVE roles=authenticated using=(((EXISTS ( SELECT 1
+E_policy|submissions.anon_insert|INSERT permissive=PERMISSIVE roles=anon using=(none) check=true
+E_policy|submissions.auth_select|SELECT permissive=PERMISSIVE roles=authenticated using=true check=(none)
+E_policy|submissions.auth_update|UPDATE permissive=PERMISSIVE roles=authenticated using=true check=true
+E_policy|teacher_invitations.ti_admin_select|SELECT permissive=PERMISSIVE roles=authenticated using=is_admin_any(auth.uid()) check=(none)
+E_policy|teacher_profiles.tp_select|SELECT permissive=PERMISSIVE roles=authenticated using=((user_id = auth.uid()) OR is_admin_any(auth.uid())) check=(none)
+E_policy|teacher_profiles_internal.tpi_admin|SELECT permissive=PERMISSIVE roles=authenticated using=is_admin_any(auth.uid()) check=(none)
+E_policy|teacher_verification_internal.tvi_admin_all|SELECT permissive=PERMISSIVE roles=authenticated using=is_admin_any(auth.uid()) check=(none)
+E_policy|teacher_verification_requests.tvr_self_insert|INSERT permissive=PERMISSIVE roles=authenticated using=(none) check=((user_id = auth.uid()) AND (status = 'draft'::teacher_verification_status))
+E_policy|teacher_verification_requests.tvr_self_select|SELECT permissive=PERMISSIVE roles=authenticated using=((user_id = auth.uid()) OR is_admin_any(auth.uid())) check=(none)
+E_policy|teacher_verification_requests.tvr_self_update|UPDATE permissive=PERMISSIVE roles=authenticated using=((user_id = auth.uid()) AND (status = ANY (ARRAY['draft'::teacher_verification_status, 'needs_information'::teacher_verification_status]))) check=(user_id = auth.uid())
+E_policy|user_roles.user_roles_select|SELECT permissive=PERMISSIVE roles=authenticated using=((user_id = auth.uid()) OR is_admin_any(auth.uid())) check=(none)
