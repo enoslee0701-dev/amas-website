@@ -5,20 +5,24 @@
 -- ★★ 这个文件会写数据库。它刻意**不**放在 supabase/tests/ 下，
 --    以免与那批纯 SELECT 探针混淆而被误运行。
 --
+-- ★★ 它是「已备妥且已证明」的，但**不是预授权的自动写入**。
+--    实际执行需要 Supervisor 的单独 rollback 授权。
+--
 -- 保险丝：不显式传 -v i_understand_this_writes=YES 就整体中止。
 --
 -- 用法：
 --   1) 先取快照（只读）：
---        pg_dump "$URL" --data-only --column-inserts -t public.program_catalog -f snap.sql
+--        pg_dump "$URL" --data-only --column-inserts
+--          -t public.program_catalog -f snap.sql
 --   2) 把快照改写到临时表（确定性文本替换，不改任何值）：
---        sed 's/INSERT INTO public\.program_catalog /INSERT INTO pg_temp.pc_restore /' \n--            snap.sql > snap_tmp.sql
+--        sed 's/INSERT INTO public\.program_catalog /INSERT INTO pg_temp.pc_restore /'
+--          snap.sql > snap_tmp.sql
 --        ★ 必须写成 pg_temp.pc_restore：pg_dump 的 data-only 输出开头有
 --          set_config('search_path','',false)，不加限定名会找不到临时表。
 --   3) 恢复：
---        psql "$URL" -v i_understand_this_writes=YES \
---             -v snap=snap_tmp.sql -v disable_trigger=NO -f 本文件
+--        psql "$URL" -v i_understand_this_writes=YES -v snap=snap_tmp.sql -f 本文件
 --
--- disable_trigger 的意义见文件尾部「updated_at 的不可还原性」。
+-- 恢复合同见文件尾部。本工具**只做 DML**，任何需要 DDL 的还原路径均被禁止。
 -- ══════════════════════════════════════════════════════════════════════
 
 \set ON_ERROR_STOP on
@@ -33,9 +37,14 @@
   \echo '拒绝执行：缺少 -v snap=<改写后的快照文件>'
   \quit
 \endif
+
+-- Supervisor FINAL GATE HARDENING：ROLLBACK DDL = FORBIDDEN。
+-- 早期版本曾提供 disable_trigger 开关，现已作废。传入即拒绝执行。
 \if :{?disable_trigger}
-\else
-  \set disable_trigger 'NO'
+  \echo '拒绝执行：disable_trigger 已作废。恢复合同禁止 ALTER TABLE、'
+  \echo '禁止 disable trigger、禁止 session_replication_role。'
+  \echo 'updated_at 前进到回滚时刻是被接受的审计元数据，不需要还原。'
+  \quit
 \endif
 
 begin;
@@ -80,11 +89,10 @@ begin
   end if;
 end $$;
 
--- ── 4. 触发器模式声明（仅报告，不在此文件内执行任何 DDL）─────────────
-select case when :'disable_trigger' = 'YES'
-            then 'DISABLE-TRIGGER MODE 需由调用方自行授权并执行，本文件不代劳'
-            else 'trigger 保持启用：updated_at 将被刷新为 now()，业务 9 列可精确还原'
-       end as trigger_mode;
+-- ── 4. 恢复模式声明（本文件永不执行任何 DDL）─────────────────────────
+select 'DML-ONLY：触发器保持启用。业务 9 列与 created_at 精确还原，'
+       || 'updated_at 前进到回滚时刻（按恢复合同，这是可接受的审计元数据）'
+       as recovery_mode;
 
 -- ── 5. 恢复：只更新「与快照有差异」的行 ───────────────────────────────
 --     IS DISTINCT FROM 守卫是必需的 —— 没有它，无差异的行也会被 UPDATE，
@@ -111,7 +119,9 @@ update public.program_catalog t
         r.is_open_for_application, r.intake_note_zh, r.approved_at,
         r.created_at, r.updated_at);
 
--- ── 6. 事后断言：业务字段必须与快照逐行相同 ───────────────────────────
+-- ── 6. 事后断言：业务 9 列 + created_at 必须与快照逐行相同 ────────────
+--     created_at 按恢复合同是 MUST REMAIN EXACT，故与业务列一同硬断言。
+--     updated_at 不在此列 —— 合同允许它前进到回滚时刻。
 do $$
 declare bad text;
 begin
@@ -123,26 +133,28 @@ begin
          (r.name_zh, r.name_en, r.short_label, r.category, r.sort_order,
           r.is_open_for_application, r.intake_note_zh, r.approved_at, r.created_at);
   if bad is not null then
-    raise exception '恢复后业务字段仍与快照不符：%', bad;
+    raise exception '恢复后业务列或 created_at 仍与快照不符：%', bad;
   end if;
 end $$;
 
 commit;
 
 -- ══════════════════════════════════════════════════════════════════════
--- updated_at 的不可还原性
+-- 恢复合同（Supervisor FINAL GATE HARDENING 裁定，STAGING-1A8 §1）
 --
--- program_catalog_set_updated_at 是 BEFORE UPDATE FOR EACH ROW，
--- 无条件执行 new.updated_at = now()。它会覆盖本工具第 5 步写入的旧值。
--- 因此在触发器启用时：
---   业务字段（9 列）  可以逐字段精确还原
---   updated_at        不可还原，恢复后为 now()
---   created_at        可以还原（触发器不碰它）
+--   业务 9 列   EXACTLY RESTORABLE       —— 已由破坏性沙箱行级对拍证明
+--   created_at  MUST REMAIN EXACT        —— 触发器不碰它，本工具原样写回
+--   updated_at  MAY ADVANCE TO ROLLBACK TIME
+--                                        —— 可接受的审计元数据，不需还原
 --
--- 要连 updated_at 一起还原，只有两条路，都需要额外授权：
---   ① alter table public.program_catalog disable trigger
---        program_catalog_set_updated_at;   —— 这是 DDL
---   ② set session_replication_role = 'replica';  —— 需要相应权限
--- 两者都不在 STAGING-1A8 的授权范围内，故本文件不内置执行，
--- 只把事实写清楚。
+-- 因此 no-hosted-backup 例外**仅限 DML**。以下路径一律 NOT AUTHORIZED：
+--   x  alter table public.program_catalog disable trigger ...   （DDL）
+--   x  任何其它 ALTER TABLE
+--   x  set session_replication_role = 'replica'
+-- 前两条在本地沙箱确实能让 updated_at 也精确还原，但按裁定不得使用。
+-- 第三条在 live 本就不可行（postgres 非 superuser，
+-- 且 pg_parameter_acl 中没有 session_replication_role 条目）。
+--
+-- 机理：program_catalog_set_updated_at 是 BEFORE UPDATE FOR EACH ROW，
+-- 函数体只有 new.updated_at = now()。它只影响同表同行，不写任何其它表。
 -- ══════════════════════════════════════════════════════════════════════

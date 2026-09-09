@@ -2,8 +2,12 @@
 
 日期：2026-09-09 · 目标：`amas-staging`（D-41）
 WRITER OWNER：**STAGING-DB-WRITER-A**（本 Claude 会话）
-**LIVE MUTATION = NONE** —— 本轮对 live 只有 `SELECT` 与 `pg_dump` 读取。
-0022 **未在 live 执行**，仍为 `NOT AUTHORIZED FOR EXECUTION`。
+**LIVE MUTATION BY THIS SESSION = NONE** —— 本会话对 live 只有 `SELECT`
+与 `pg_dump` 读取。
+
+> ⚠ **本报告 §1–§12 描述的是 0022 执行前的状态。**
+> 在本轮收尾核验时发现 0022 已被**本会话之外的写者**应用到 live。
+> 完整证据与定性见 **§13**。请先读 §13 再读其余章节。
 
 ---
 
@@ -119,7 +123,7 @@ ROWPROOF|无关行(bth,gdip,mdiv) 全列不符    = 0
   所以不会被触发器把 `updated_at` 刷掉。
 - `updated_at` 恰好 6 行不符 —— 就是被写过的那 6 行。
 
-### 3.E `updated_at` 为什么不可还原，以及唯一可行的补救
+### 3.E `updated_at` 为什么不可还原（补救路径已被裁定禁止，见本节末）
 
 `program_catalog_set_updated_at` 是 BEFORE UPDATE FOR EACH ROW，
 函数体只有 `new.updated_at = now(); return new;`。
@@ -134,10 +138,20 @@ ROWPROOF|无关行(bth,gdip,mdiv) 全列不符    = 0
 `digest_full` 完全回到 BEFORE 的 `f61a0f70…`（**全 11 列精确还原**），
 且触发器事后 `tgenabled='O'`（启用）。
 
-结论：`updated_at` **可以**完全还原，但需要一次 `ALTER TABLE`（DDL），
-不在 STAGING-1A8 授权内，故工具不内置，只把路径写清楚。
-若不做路径①，恢复后 `updated_at` = 恢复时刻 —— 这是审计元数据，
-不影响任何业务语义。
+【FINAL GATE HARDENING 更正】原文把路径①描述为「可用但需额外授权」。
+Supervisor 已裁定 **ROLLBACK DDL = FORBIDDEN**，路径①与路径②**一律不得使用**。
+生效的恢复合同是：
+
+```
+业务 9 列   EXACTLY RESTORABLE
+created_at  MUST REMAIN EXACT
+updated_at  MAY ADVANCE TO ROLLBACK TIME   （可接受的审计元数据）
+```
+
+因此 no-hosted-backup 例外**仅限 DML**。恢复工具已相应改造：
+传入 `disable_trigger` 直接拒绝执行；事后断言把 `created_at`
+与业务 9 列一同硬校验。沙箱已针对性验证：故意篡改三行的 `created_at`
+后恢复，`created_at` 指纹精确回到 `f9e5cbb6…`。
 
 工具归档为 `docs/operations/staging-1a8/RECOVERY-program_catalog-restore.sql`，
 带保险丝（缺 `-v i_understand_this_writes=YES` 直接中止）、
@@ -277,14 +291,14 @@ live 记录的  ：missing := missing || f;
 
 | # | 断言 | 沙箱实测 |
 |---|---|---|
-| 1 | ledger 恰为 0001–0022，行数 22，末位 0022 | PASS |
+| 1 | **硬断言** ledger 版本集合精确等于 `0001,…,0022`（不再用 LIKE） | PASS |
 | 2 | 0023–0027 全部缺席 | PASS |
 | 3 | 开放集合按 `sort_order` = `{bth,gdip,mdiv,dmin}` | PASS |
 | 4 | `dmin` = (`教牧学博士`, `Doctor of Ministry`) | PASS |
 | 5 | `program_catalog` 仍为 9 行（无增删） | PASS |
 | 6 | 业务指纹 all=`cd41beee…` · affected=`8cab50fa…` · **unrelated=`e99ab6d6…`（与执行前完全相同）** | PASS |
-| 7 | `created_at` 指纹（须与执行前记录比对） | 输出供比对 |
-| 8 | 无 0027 权限变更：开放 EXECUTE 函数 = 11、RLS 表 = 26 | PASS（与 live 现值相同） |
+| 7 | **硬断言** `created_at` 指纹 = `dca03a83aff3f0674241739444da006b`（live 实测值） | PASS |
+| 8 | **硬断言** 开放 EXECUTE 函数 = 11 **且** RLS 表 = 26 | PASS |
 
 第 6 项的 `unrelated` 分量就是「无关字段未被改动」的机械化断言。
 `business schema unchanged` 同样是库外比对项：0022 无任何 DDL，
@@ -308,8 +322,9 @@ A. 0022-SPECIFIC DATA RECOVERY IS PROVEN SUFFICIENT WITHOUT HOSTED BACKUP
 4. **失败根本不会留下脏状态** —— `db push` 单文件事务边界实测为
    all-or-nothing，且 0022 自带断言就在同一事务内。
    最可能的失败模式（断言不满足）连一行都写不进去。
-5. **唯一不可精确还原的字段是 `updated_at`**，属审计元数据，
-   且路径①（`disable trigger`）已证可把它也还原。
+5. **唯一不还原的字段是 `updated_at`**，按恢复合同它被允许前进到回滚时刻，
+   属审计元数据。`created_at` 则是硬要求且已证明可精确还原。
+   整条恢复路径**只用 DML**，不需要任何 DDL。
 
 边界（任一情形立即退回 **B**）：
 
@@ -337,11 +352,21 @@ Free Plan 无项目备份这一事实未改变。
         supabase db push --db-url "$URL"
 6. 门禁：psql -v ON_ERROR_STOP=1 -f supabase/tests/0022_postconditions.sql
 7. 库外：指纹复跑，必须仍 8/8
-失败处置：
-   push 报错   → 事务已回滚，什么都不用做，只需复跑 §6 门禁确认
-   push 成功但 §7 门禁不过 → ① 恢复工具回灌快照
-                              ② migration repair --status reverted 0022
-                              ③ 复跑 §6 门禁 + 指纹
+失败处置（FAILURE CONTRACT，Supervisor 裁定）：
+   A. push 自身报错
+        不得改动任何其它东西。立即只读核验四项：
+          ledger 仍恰为 0001–0021
+          ledger digest 仍为 ec46316fd12ce62d09b0290aece90684
+          program_catalog 业务指纹仍为 84e0ea68e07150cc67c5909f6abedcac
+          0022 仍缺席
+        然后 STOP。
+   B. push 成功但后置门禁不过
+        停止一切前进动作。
+        ★ 回滚步骤虽已备妥且已证明，但**不是预授权的自动写入**。
+          未取得 Supervisor 新的、明确的 rollback 授权之前，
+          不得执行恢复工具，也不得执行
+          `migration repair --status reverted 0022`。
+        只做只读取证，然后 STOP。
 ```
 
 第 5 步的工作区保险丝沿用 STAGING-1A7 §2：文件数必须为 22、
@@ -370,3 +395,205 @@ Free Plan 无项目备份这一事实未改变。
 未在 live 做任何 UPDATE / INSERT / DELETE / migration apply / 0022 /
 0027 / DB-4 / STAGING-1B / Production / GRANT / REVOKE / user mutation /
 ledger repair。本轮 live 访问 = `SELECT` 与 `pg_dump` 读取。
+
+---
+
+# §12 ADDENDUM — FINAL GATE HARDENING（2026-09-09）
+
+本节由 Supervisor 复核 `03cb170` 后追加。**LIVE MUTATION = NONE。**
+裁定：`0022 PREFLIGHT = CONDITIONALLY ACCEPTED` ·
+`BACKUP DECISION A = ACCEPTED FOR 0022 ONLY` ·
+`LIVE 0022 = NOT YET AUTHORIZED`。
+
+## 12.1 恢复策略更正 —— ROLLBACK DDL = FORBIDDEN
+
+```
+业务 9 列   EXACTLY RESTORABLE
+created_at  MUST REMAIN EXACT
+updated_at  MAY ADVANCE TO ROLLBACK TIME
+```
+
+禁止 `disable program_catalog_set_updated_at` · 禁止任何 `ALTER TABLE` ·
+禁止 `session_replication_role`。**no-hosted-backup 例外仅限 DML。**
+
+工具侧已落实：`RECOVERY-program_catalog-restore.sql` 传入 `disable_trigger`
+即拒绝执行；第 6 步事后断言把 `created_at` 与业务 9 列一同硬校验。
+沙箱针对性验证：故意把三行 `created_at` 改成 `2001-01-01`，
+指纹变为 `4b171228…`，恢复后精确回到 `f9e5cbb6…`。
+
+## 12.2 后置门禁三处硬化（已实现并逐项反向验证）
+
+| 项 | 硬化内容 | 反向验证 |
+|---|---|---|
+| POSTCOND-1 | 版本集合**精确全等** `0001,…,0022`，不再用 `LIKE` | 构造「行数仍为 22 但删 `0015`、插 `0099`」—— 旧 `LIKE` 检查会放行，新断言报 `POSTCOND-1 FAIL` |
+| POSTCOND-7 | `created_at` 指纹**硬失败**（不再只 `raise notice`） | 不传沙箱覆盖值即报 `POSTCOND-7 FAIL` |
+| POSTCOND-8 | `open_execute_funcs = 11` **且** `rls_tables = 26` 硬失败 | `revoke execute … from public` → 报「为 10 个」；`disable row level security` → 报「为 25 张」 |
+
+复原全部篡改后重跑 → `POSTCOND ALL PASS`。
+这三项**不替代**库外的 R2 8/8 指纹复核，两者都必须做。
+
+## 12.3 已核准的 live 前置基线（本会话已独立只读复算，全部一致）
+
+| 项 | 值 |
+|---|---|
+| ledger `0001–0021` digest | `ec46316fd12ce62d09b0290aece90684` |
+| `program_catalog` 行数 | 9 |
+| 业务指纹 | `84e0ea68e07150cc67c5909f6abedcac` |
+| `created_at` 指纹 | `dca03a83aff3f0674241739444da006b` |
+| 0022 数据态哨兵 | `open=9 · five_closed=0 · dmin_renamed=0` |
+
+## 12.4 隔离执行工作区要求
+
+未来 live 执行**必须**使用只含 `0001–0022` 的隔离工作区。
+push 前三项断言：
+
+```
+migration 文件数 = 22
+最大版本        = 0022
+0023–0027 文件数 = 0
+且 0022 文件 md5 必须等于仓库版本 dd62b7827970a1c10ecfd23ac116a2cd
+```
+
+**不得**从含 `0023`–`0026` 的 canonical 仓库目录直接 `db push`。
+本轮沙箱演练已按此执行（工作区 `ws22`，四项断言全 PASS）。
+
+## 12.5 FAILURE CONTRACT
+
+**A. `db push` 自身报错** —— 事务已整体回滚。不得改动任何其它东西，
+立即只读核验：ledger 仍恰为 `0001–0021` · digest 仍 `ec46316f…` ·
+业务指纹仍 `84e0ea68…` · `0022` 仍缺席。然后 **STOP**。
+
+**B. `db push` 成功但后置门禁不过** —— 停止一切前进动作。
+回滚步骤虽已备妥且已证明，但**不是预授权的自动写入**：
+未取得 Supervisor 新的、明确的 rollback 授权之前，
+**不得**执行恢复工具，**不得**执行 `migration repair --status reverted 0022`。
+只做只读取证，然后 **STOP**。
+
+## 12.6 本轮改动范围
+
+仅 `supabase/tests/0022_postconditions.sql`、
+`docs/operations/staging-1a8/RECOVERY-program_catalog-restore.sql`
+与本报告。`supabase/migrations/0022_program_offering_scope.sql`
+**未被修改**（md5 仍 `dd62b7827970a1c10ecfd23ac116a2cd`）。
+
+---
+
+# §13 ⚠ 0022 已在 live 生效 —— 由本会话之外的写者
+
+发现时刻：本轮收尾核验（`2026-09-09 07:50 UTC`）。
+**本会话未执行任何 live 写入。**
+
+## 13.1 怎么发现的
+
+硬化后的两个门禁刚改完，按惯例在 live 上只读复跑一遍以确认行为正确。
+预期是「后置门禁应当拒绝（live 仍是 0021 态）」，实际却是：
+
+```
+LIVE 后置门禁  → POSTCOND ALL PASS   ledger=0001..0022
+LIVE 前置门禁  → PRECOND-1 FAIL: ledger 行数为 22，期望 21
+```
+
+两个门禁的结论一致且互为反证：0022 已经生效。
+
+## 13.2 证据
+
+```
+LEDGER            = 0001 … 0021,0022        ROWCOUNT = 22
+DIGEST 0001–0021  = ec46316fd12ce62d09b0290aece90684   ← 与执行前完全相同
+DIGEST 0001–0022  = 86e29cdef6ef3990ef32d66cac96e407   ← 新终态
+0022 ledger 行     = name=program_offering_scope · statements=3
+                    · stmt_md5 = ca8225eaa2e00530d30fac5aeff88a94
+数据态哨兵         = open=4 · five_closed=5 · dmin_renamed=1
+```
+
+逐行 `updated_at`：
+
+| code | open | updated_at |
+|---|---|---|
+| `bth` `gdip` `mdiv` | true | `2026-09-03 04:13:31.663978+00`（**未被触碰**） |
+| `dmin` | true | `2026-09-09 07:47:12.518042+00` |
+| `laycert` `pdip` `pastor` `preaching` `missionary` | false | `2026-09-09 07:47:12.518042+00` |
+
+**6 行共享同一个到微秒的时间戳** → 单一事务写入。
+`bth`/`gdip`/`mdiv` 时间戳停留在 9 月 3 日 → §2.1 的范围结论得到 live 侧证实。
+全部 9 行 `created_at` 未变，`created_at` 指纹仍为 `dca03a83aff3f0674241739444da006b`。
+
+发生时刻 `07:47:12 UTC`，发现时距今 `00:02:49`。
+即：**发生在本轮我跑完 live 前置门禁（当时 PASS，ledger=21、哨兵 (9,0,0)）之后。**
+
+## 13.3 本会话未执行的证据
+
+本会话全部 `supabase db push` 调用的目标 URL 由
+`url () { echo "postgresql://postgres:postgres@127.0.0.1:5433/$1?sslmode=disable"; }`
+生成，三个目标库分别是 `amas_1a8_e2e` / `amas_1a8_fail` / `amas_1a8_g`，
+**无一指向 live**。对 live 的调用只有 `psql -f <纯 SELECT 文件>` 与
+`pg_dump`（读取）。
+
+## 13.4 定性（沿用既定表述，不做超出证据的归因）
+
+```
+LEDGER + DATA MUTATION PROVENANCE:
+UNKNOWN EXTERNAL WRITER
+
+CONSISTENT WITH A db push OF CANONICAL 0022
+BUT EXECUTOR NOT PROVEN
+```
+
+支持「canonical `db push`」的证据：live 的 0022 ledger 行
+`statements` 条数为 3、`stmt_md5 = ca8225ea…`，与本地沙箱推送
+canonical `0022_program_offering_scope.sql` 时记录的行**完全相同**。
+（对照 §6.1：0008 的两侧文本是**不同**的，所以这个相同是有判别力的。）
+
+但仍**不足以证明执行者**。不得写成「Supervisor 执行了它」「Claude 执行了它」。
+
+## 13.5 当前 live 终态的健康度（只读核验，全部通过）
+
+硬化后的后置门禁在 live 上**八项全过**：
+
+| 项 | 结果 |
+|---|---|
+| ledger 精确等于 `0001,…,0022` | PASS |
+| `0023–0027` 全缺席 | PASS |
+| 开放集合 = `{bth,gdip,mdiv,dmin}` | PASS |
+| `dmin` = (`教牧学博士`, `Doctor of Ministry`) | PASS |
+| `program_catalog` 9 行 | PASS |
+| 业务指纹 all/unrelated/affected 三项 | PASS |
+| `created_at` 指纹 = `dca03a83…` | PASS |
+| `open_execute_funcs=11` 且 `rls_tables=26` | PASS |
+
+即：**终态恰好等于本报告预测的 post-0022 期望态，且无附带损伤。**
+`0001–0021` 的 ledger digest 未变，说明既有行未被覆盖。
+
+## 13.6 处置
+
+按 FAILURE CONTRACT 与 fail-closed 原则：**STOP。**
+不回滚 · 不 repair · 不做任何 live 写入 · 不进入 `0027` / DB-4 / STAGING-1B。
+
+需要 Supervisor 裁定：
+
+1. 这次 0022 执行是否出自你方？若是，确认后本项关闭。
+   若否，则这是**继 `0011–0021` 之后第二次** UNKNOWN EXTERNAL WRITER 事件，
+   且这一次触及的是**业务数据**，不再只是 ledger。
+2. `DATABASE WRITER FREEZE` 与 `STAGING-DB-WRITER-A` 的唯一性显然未能生效，
+   机制需要重新设计（例如收回其它持有者的凭据）。
+3. 新终态 baseline 请裁定并固化：
+   `DIGEST 0001–0022 = 86e29cdef6ef3990ef32d66cac96e407`。
+4. 库外 R2 指纹复核已在 0022 之后**立即重跑**（纯 SELECT，属本阶段许可的只读）：
+
+   | domain | canon | live | verdict |
+   |---|---|---|---|
+   | `A_column` | 245 | 245 | EXACT MATCH |
+   | `B_constraint` | 72 | 72 | EXACT MATCH |
+   | `C_index` | 59 | 59 | EXACT MATCH |
+   | `D_trigger` | 18 | 18 | EXACT MATCH |
+   | `E_policy` | 33 | 33 | EXACT MATCH |
+   | `E_rls_enabled` | 26 | 26 | EXACT MATCH |
+   | `F_function` | 59 | 59 | EXACT MATCH |
+   | `H_enum` | 15 | 15 | EXACT MATCH |
+
+   ```
+   EXACT MATCH DOMAINS: 8 / 8
+   ```
+
+   0022 不含 DDL，故 schema 必须与 0021 基线完全相同 —— 实测确实如此。
+   business schema 未受任何影响。
