@@ -102,9 +102,11 @@ keyword conninfo（口令走 `PGPASSWORD`）复测 → exit=0。随后四种 URI
 `name` 全部正确。`repair --status applied` 会读取本地 migration 文件并写入
 statements，`db push` 亦然，故 statements 有值**不能**区分二者。
 
-但 `db push` 会真正执行 SQL。`0011`–`0021` 的对象在 R2 之前就已由带外
-`psql` 应用过，若此刻再 push 必然因对象重复而报错。结合业务 schema
-逐字节未变（见下），**provenance 指向 `migration repair`，而非 `db push`**。
+【SUPERVISOR 裁定更正】原文此处写有「provenance 指向 `migration repair`，
+而非 `db push`」。该表述超出证据所能支撑的范围，已按裁定作废。
+可陈述的事实止于：`0011`–`0021` 的对象在 R2 之前已由带外 `psql` 应用过，
+且业务 schema 逐字节未变。**执行者与方法无法仅凭 `schema_migrations` 证明。**
+canonical 表述见 §10。
 
 `0001`–`0010` 的 name 与 statements 长度与 R1 快照记录一致
 （`0001`=16 · `0002`=58 · `0003`=44），说明既有行未被覆盖。
@@ -212,3 +214,100 @@ REMOTE MUTATION BY THIS SESSION = NONE
 
 **STAGING-1A7 STOPPED AT §3. AWAITING SUPERVISOR RULING ON LEDGER PROVENANCE.**
 未进入 `0022` Gate，未进入 STAGING-1B。
+
+---
+
+# §10 ADDENDUM — SUPERVISOR RULING（2026-09-09）
+
+本节由 Supervisor 裁定后追加。**无任何数据库写操作。**
+
+## 10.1 PROVENANCE — 最终定性
+
+Supervisor 已独立确认：**Supervisor 未执行**该 repair；本 Claude 会话亦未执行。
+因此按裁定，采用以下**唯一 canonical 表述**：
+
+```
+LEDGER MUTATION PROVENANCE:
+UNKNOWN EXTERNAL WRITER
+
+LIKELY CONSISTENT WITH LEDGER-ONLY REPAIR
+BUT NOT PROVEN
+```
+
+明确禁止写成：Supervisor 执行了它 · Claude 执行了它 ·
+`db push` 确定做了它 · `migration repair` 确定做了它。
+**仅凭 `schema_migrations` 不足以做执行者归因。**
+
+§3 中我原先写的「provenance 指向 `migration repair`」已按此作废（见该节更正标注）。
+066b27f 的 commit message 中含同样表述，因不得 amend / rewrite history，
+以本节作为其 canonical 更正。
+
+## 10.2 STAGING-1A7 结论
+
+```
+STAGING-1A7 TECHNICAL STATE = ACCEPTED
+
+LEDGER RECONCILIATION STATE:
+COMPLETED / VERIFIED PRESENT
+
+EXECUTION PROVENANCE:
+UNRESOLVED
+```
+
+这是**基于状态的接受，不是对执行行为的归因**。
+
+## 10.3 CANONICAL LEDGER DIGEST ALGORITHM
+
+固化如下，供后续 baseline 本地独立复算，不再依赖聊天中的一次性值：
+
+```sql
+md5(
+  string_agg(
+    version || '|' ||
+    coalesce(name,'') || '|' ||
+    coalesce(md5(array_to_string(statements, E'\n')), ''),
+    E'\n'
+    order by version
+  )
+)
+```
+
+可执行版本已归档为 `supabase/tests/ledger_digest.sql`（纯 SELECT，无任何写语句）。
+
+| baseline | 范围 | row_count | digest |
+|---|---|---|---|
+| OLD（授权书 baseline） | `version between '0001' and '0010'` | 10 | `779baa849645081d9f8ba68b18ec7224` |
+| NEW（当前终态） | `version between '0001' and '0021'` | 21 | `ec46316fd12ce62d09b0290aece90684` |
+
+本会话已对 live 只读复算，**两个 digest 均逐字符复现**，与 Supervisor 独立复算一致。
+OLD digest 复现即证明 **`0001`–`0010` 的原始行完好未被覆盖**。
+
+## 10.4 当前 live 终态（已接受）
+
+```
+ledger            = 0001–0021
+row_count         = 21
+0022–0027         = ABSENT
+0022 data         = NOT APPLIED   (open=9 / five_closed=0 / dmin_renamed=0)
+business schema   = 8/8 EXACT MATCH
+G3 violation      = 0
+```
+
+裁定：**该状态即预期的安全终态。**
+禁止 repair retry · 禁止 reverted repair · 禁止手工改 ledger · 禁止 `db push`。
+
+## 10.5 DATABASE WRITER FREEZE
+
+在下一个 gate 被授权前：
+
+- 必须先声明**唯一一个** `STAGING DB MUTATION OWNER`。
+- **其余所有 Claude 会话 / 终端 / agent 对 `amas-staging` 一律只读。**
+
+本轮不得进入：`0022` Gate · `0027` · DB-4 · STAGING-1B · Production ·
+任何 DDL/DML · 任何 GRANT/REVOKE · 任何 user mutation。
+
+## 10.6 GITHUB CANONICAL
+
+`066b27f` 推送前三项前置全部 PASS —— `origin/master == a795003`、
+`parent(066b27f) == a795003`、工作区干净 —— 以 fast-forward 推送成功
+（`a795003..066b27f`）。未 amend、未 recreate、未 force push、未触发 cache-bust hook。
