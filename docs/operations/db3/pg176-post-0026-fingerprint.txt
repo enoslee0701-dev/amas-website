@@ -1,0 +1,1192 @@
+A_column|app_announcements.content|3 text null=false default=(none) generated=-
+A_column|app_announcements.id|1 uuid null=false default=(none) generated=-
+A_column|app_announcements.published_at|5 timestamp with time zone null=false default=(none) generated=-
+A_column|app_announcements.published_by|6 uuid null=true default=(none) generated=-
+A_column|app_announcements.title|2 text null=false default=(none) generated=-
+A_column|app_announcements.type|4 app_announcement_type null=false default='normal'::app_announcement_type generated=-
+A_column|app_christian_profile.canonical_semantic_hash|5 text null=true default=(none) generated=-
+A_column|app_christian_profile.source_raw_hash|4 text null=true default=(none) generated=-
+A_column|app_christian_profile.state|2 jsonb null=false default=(none) generated=-
+A_column|app_christian_profile.updated_at|3 timestamp with time zone null=false default=(none) generated=-
+A_column|app_christian_profile.user_id|1 uuid null=false default=(none) generated=-
+A_column|app_cooperation_submissions.email|3 text null=false default=(none) generated=-
+A_column|app_cooperation_submissions.id|1 uuid null=false default=(none) generated=-
+A_column|app_cooperation_submissions.message|5 text null=true default=(none) generated=-
+A_column|app_cooperation_submissions.name|2 text null=false default=(none) generated=-
+A_column|app_cooperation_submissions.organization|4 text null=true default=(none) generated=-
+A_column|app_cooperation_submissions.received_at|7 timestamp with time zone null=false default=(none) generated=-
+A_column|app_cooperation_submissions.type|6 text null=true default=(none) generated=-
+A_column|app_course_files.course_code|2 text null=false default=(none) generated=-
+A_column|app_course_files.filename|3 text null=false default=(none) generated=-
+A_column|app_course_files.id|1 uuid null=false default=(none) generated=-
+A_column|app_course_files.mime|5 text null=false default=(none) generated=-
+A_column|app_course_files.size_bytes|6 bigint null=false default=(none) generated=-
+A_column|app_course_files.stored_name|4 text null=false default=(none) generated=-
+A_column|app_course_files.uploaded_at|8 timestamp with time zone null=false default=(none) generated=-
+A_column|app_course_files.uploader_id|7 uuid null=true default=(none) generated=-
+A_column|app_course_progress.completed_lessons|4 integer null=false default=0 generated=-
+A_column|app_course_progress.course_code|2 text null=false default=(none) generated=-
+A_column|app_course_progress.progress|3 integer null=false default=0 generated=-
+A_column|app_course_progress.updated_at|5 timestamp with time zone null=false default=(none) generated=-
+A_column|app_course_progress.user_id|1 uuid null=false default=(none) generated=-
+A_column|app_friend_requests.created_at|4 timestamp with time zone null=false default=(none) generated=-
+A_column|app_friend_requests.from_user_id|2 uuid null=false default=(none) generated=-
+A_column|app_friend_requests.id|1 uuid null=false default=(none) generated=-
+A_column|app_friend_requests.to_user_id|3 uuid null=false default=(none) generated=-
+A_column|app_friendships.created_at|3 timestamp with time zone null=false default=(none) generated=-
+A_column|app_friendships.user_a|1 uuid null=false default=(none) generated=-
+A_column|app_friendships.user_b|2 uuid null=false default=(none) generated=-
+A_column|app_image_uploads.filename|2 text null=false default=(none) generated=-
+A_column|app_image_uploads.id|1 uuid null=false default=(none) generated=-
+A_column|app_image_uploads.mime|3 text null=false default=(none) generated=-
+A_column|app_image_uploads.purpose|5 text null=true default=(none) generated=-
+A_column|app_image_uploads.size_bytes|4 bigint null=false default=(none) generated=-
+A_column|app_image_uploads.uploaded_at|7 timestamp with time zone null=false default=(none) generated=-
+A_column|app_image_uploads.uploaded_by|6 uuid null=true default=(none) generated=-
+A_column|app_library_books.added_at|10 timestamp with time zone null=false default=(none) generated=-
+A_column|app_library_books.added_by|11 uuid null=true default=(none) generated=-
+A_column|app_library_books.author|3 text null=true default=(none) generated=-
+A_column|app_library_books.category|4 text null=true default=(none) generated=-
+A_column|app_library_books.cover_image_id|5 uuid null=true default=(none) generated=-
+A_column|app_library_books.cover_url|6 text null=true default=(none) generated=-
+A_column|app_library_books.description|9 text null=true default=(none) generated=-
+A_column|app_library_books.id|1 uuid null=false default=(none) generated=-
+A_column|app_library_books.publisher|7 text null=true default=(none) generated=-
+A_column|app_library_books.title|2 text null=false default=(none) generated=-
+A_column|app_library_books.year|8 integer null=true default=(none) generated=-
+A_column|app_library_favorites.book_id|2 uuid null=false default=(none) generated=-
+A_column|app_library_favorites.favorited_at|3 timestamp with time zone null=false default=(none) generated=-
+A_column|app_library_favorites.user_id|1 uuid null=false default=(none) generated=-
+A_column|app_post_comments.author_state|9 text null=true default=\\nCASE\\n    WHEN (user_id IS NULL) THEN 'deleted_account'::text\\n    ELSE 'active'::text\\nEND generated=s
+A_column|app_post_comments.content|7 text null=false default=(none) generated=-
+A_column|app_post_comments.created_at|8 timestamp with time zone null=false default=(none) generated=-
+A_column|app_post_comments.id|1 uuid null=false default=(none) generated=-
+A_column|app_post_comments.post_id|2 uuid null=false default=(none) generated=-
+A_column|app_post_comments.user_avatar|5 text null=true default=(none) generated=-
+A_column|app_post_comments.user_id|3 uuid null=true default=(none) generated=-
+A_column|app_post_comments.user_name|4 text null=false default=(none) generated=-
+A_column|app_post_comments.user_role|6 text null=true default=(none) generated=-
+A_column|app_post_likes.post_id|1 uuid null=false default=(none) generated=-
+A_column|app_post_likes.user_id|2 uuid null=false default=(none) generated=-
+A_column|app_posts.author_state|13 text null=true default=\\nCASE\\n    WHEN (user_id IS NULL) THEN 'deleted_account'::text\\n    ELSE 'active'::text\\nEND generated=s
+A_column|app_posts.category|8 text null=true default=(none) generated=-
+A_column|app_posts.content|6 text null=false default=(none) generated=-
+A_column|app_posts.created_at|12 timestamp with time zone null=false default=(none) generated=-
+A_column|app_posts.id|1 uuid null=false default=(none) generated=-
+A_column|app_posts.images_json|7 jsonb null=false default='[]'::jsonb generated=-
+A_column|app_posts.linked_course_id|10 text null=true default=(none) generated=-
+A_column|app_posts.posted_at|11 timestamp with time zone null=false default=(none) generated=-
+A_column|app_posts.shared_room_json|9 jsonb null=true default=(none) generated=-
+A_column|app_posts.user_avatar|4 text null=true default=(none) generated=-
+A_column|app_posts.user_id|2 uuid null=true default=(none) generated=-
+A_column|app_posts.user_name|3 text null=false default=(none) generated=-
+A_column|app_posts.user_role|5 text null=true default=(none) generated=-
+A_column|app_practice_training_state.state|2 jsonb null=false default=(none) generated=-
+A_column|app_practice_training_state.updated_at|3 timestamp with time zone null=false default=(none) generated=-
+A_column|app_practice_training_state.user_id|1 uuid null=false default=(none) generated=-
+A_column|app_prayer_intercessions.created_at|3 timestamp with time zone null=false default=(none) generated=-
+A_column|app_prayer_intercessions.share_id|1 text null=false default=(none) generated=-
+A_column|app_prayer_intercessions.user_id|2 uuid null=false default=(none) generated=-
+A_column|app_prayer_session_events.actor_user_id|3 uuid null=true default=(none) generated=-
+A_column|app_prayer_session_events.created_at|7 timestamp with time zone null=false default=(none) generated=-
+A_column|app_prayer_session_events.event_type|4 app_prayer_session_event_type null=false default=(none) generated=-
+A_column|app_prayer_session_events.from_item_id|5 text null=true default=(none) generated=-
+A_column|app_prayer_session_events.id|1 text null=false default=(none) generated=-
+A_column|app_prayer_session_events.session_id|2 text null=false default=(none) generated=-
+A_column|app_prayer_session_events.to_item_id|6 text null=true default=(none) generated=-
+A_column|app_prayer_session_items.created_at|8 timestamp with time zone null=false default=(none) generated=-
+A_column|app_prayer_session_items.description|5 text null=true default=(none) generated=-
+A_column|app_prayer_session_items.id|1 text null=false default=(none) generated=-
+A_column|app_prayer_session_items.position|3 integer null=false default=(none) generated=-
+A_column|app_prayer_session_items.scripture_ref|6 text null=true default=(none) generated=-
+A_column|app_prayer_session_items.scripture_text|7 text null=true default=(none) generated=-
+A_column|app_prayer_session_items.session_id|2 text null=false default=(none) generated=-
+A_column|app_prayer_session_items.title|4 text null=false default=(none) generated=-
+A_column|app_prayer_sessions.created_at|11 timestamp with time zone null=false default=(none) generated=-
+A_column|app_prayer_sessions.created_by|5 uuid null=true default=(none) generated=-
+A_column|app_prayer_sessions.current_item_id|9 text null=true default=(none) generated=-
+A_column|app_prayer_sessions.ended_at|8 timestamp with time zone null=true default=(none) generated=-
+A_column|app_prayer_sessions.facilitator_user_id|6 uuid null=true default=(none) generated=-
+A_column|app_prayer_sessions.id|1 text null=false default=(none) generated=-
+A_column|app_prayer_sessions.revision|10 integer null=false default=1 generated=-
+A_column|app_prayer_sessions.room_id|2 text null=false default=(none) generated=-
+A_column|app_prayer_sessions.started_at|7 timestamp with time zone null=true default=(none) generated=-
+A_column|app_prayer_sessions.status|4 app_prayer_session_status null=false default=(none) generated=-
+A_column|app_prayer_sessions.title|3 text null=true default=(none) generated=-
+A_column|app_prayer_sessions.updated_at|12 timestamp with time zone null=false default=(none) generated=-
+A_column|app_prayer_share_reports.created_at|6 timestamp with time zone null=false default=(none) generated=-
+A_column|app_prayer_share_reports.id|1 text null=false default=(none) generated=-
+A_column|app_prayer_share_reports.reason|4 app_prayer_report_reason null=false default=(none) generated=-
+A_column|app_prayer_share_reports.reporter_user_id|3 uuid null=true default=(none) generated=-
+A_column|app_prayer_share_reports.share_id|2 text null=false default=(none) generated=-
+A_column|app_prayer_share_reports.status|5 app_prayer_report_status null=false default='open'::app_prayer_report_status generated=-
+A_column|app_prayer_shares.author_state|12 text null=true default=\\nCASE\\n    WHEN (user_id IS NULL) THEN 'deleted_account'::text\\n    ELSE 'active'::text\\nEND generated=s
+A_column|app_prayer_shares.client_request_id|11 text null=true default=(none) generated=-
+A_column|app_prayer_shares.created_at|6 timestamp with time zone null=false default=(none) generated=-
+A_column|app_prayer_shares.deleted_at|7 timestamp with time zone null=true default=(none) generated=-
+A_column|app_prayer_shares.hidden_at|8 timestamp with time zone null=true default=(none) generated=-
+A_column|app_prayer_shares.hidden_by|9 uuid null=true default=(none) generated=-
+A_column|app_prayer_shares.hidden_reason|10 text null=true default=(none) generated=-
+A_column|app_prayer_shares.id|1 text null=false default=(none) generated=-
+A_column|app_prayer_shares.is_anonymous|5 boolean null=false default=false generated=-
+A_column|app_prayer_shares.room_id|2 text null=false default=(none) generated=-
+A_column|app_prayer_shares.text|4 text null=false default=(none) generated=-
+A_column|app_prayer_shares.user_id|3 uuid null=true default=(none) generated=-
+A_column|app_push_tokens.platform|3 app_push_platform null=false default=(none) generated=-
+A_column|app_push_tokens.registered_at|4 timestamp with time zone null=false default=(none) generated=-
+A_column|app_push_tokens.token|2 text null=false default=(none) generated=-
+A_column|app_push_tokens.user_id|1 uuid null=false default=(none) generated=-
+A_column|app_recordings.author_state|9 text null=true default=\\nCASE\\n    WHEN (user_id IS NULL) THEN 'deleted_account'::text\\n    ELSE 'active'::text\\nEND generated=s
+A_column|app_recordings.duration_ms|5 bigint null=false default=0 generated=-
+A_column|app_recordings.filename|2 text null=false default=(none) generated=-
+A_column|app_recordings.id|1 uuid null=false default=(none) generated=-
+A_column|app_recordings.mime|3 text null=false default=(none) generated=-
+A_column|app_recordings.room_id|6 text null=true default=(none) generated=-
+A_column|app_recordings.size_bytes|4 bigint null=false default=(none) generated=-
+A_column|app_recordings.uploaded_at|8 timestamp with time zone null=false default=(none) generated=-
+A_column|app_recordings.user_id|7 uuid null=true default=(none) generated=-
+A_column|app_room_members.joined_at|4 timestamp with time zone null=false default=(none) generated=-
+A_column|app_room_members.role|3 app_room_member_role null=false default='member'::app_room_member_role generated=-
+A_column|app_room_members.room_id|1 text null=false default=(none) generated=-
+A_column|app_room_members.updated_at|5 timestamp with time zone null=false default=(none) generated=-
+A_column|app_room_members.user_id|2 uuid null=false default=(none) generated=-
+A_column|app_room_prayer_topics.created_at|6 timestamp with time zone null=false default=(none) generated=-
+A_column|app_room_prayer_topics.created_by|5 uuid null=true default=(none) generated=-
+A_column|app_room_prayer_topics.id|1 text null=false default=(none) generated=-
+A_column|app_room_prayer_topics.room_id|2 text null=false default=(none) generated=-
+A_column|app_room_prayer_topics.seq|3 integer null=false default=(none) generated=-
+A_column|app_room_prayer_topics.text|4 text null=false default=(none) generated=-
+A_column|app_room_presence.avatar|4 text null=true default=(none) generated=-
+A_column|app_room_presence.last_seen_at|6 timestamp with time zone null=false default=(none) generated=-
+A_column|app_room_presence.name|3 text null=false default=(none) generated=-
+A_column|app_room_presence.role|5 text null=false default=(none) generated=-
+A_column|app_room_presence.room_id|1 text null=false default=(none) generated=-
+A_column|app_room_presence.user_id|2 uuid null=false default=(none) generated=-
+A_column|app_room_reading_state.book|2 text null=false default=(none) generated=-
+A_column|app_room_reading_state.chapter|3 integer null=false default=(none) generated=-
+A_column|app_room_reading_state.revision|5 integer null=false default=1 generated=-
+A_column|app_room_reading_state.room_id|1 text null=false default=(none) generated=-
+A_column|app_room_reading_state.updated_at|7 timestamp with time zone null=false default=(none) generated=-
+A_column|app_room_reading_state.updated_by|6 uuid null=true default=(none) generated=-
+A_column|app_room_reading_state.verse|4 integer null=true default=(none) generated=-
+A_column|app_room_realtime_events.created_at|6 timestamp with time zone null=false default=(none) generated=-
+A_column|app_room_realtime_events.entity_id|4 text null=true default=(none) generated=-
+A_column|app_room_realtime_events.entity_revision|5 integer null=true default=(none) generated=-
+A_column|app_room_realtime_events.event_type|3 app_room_event_type null=false default=(none) generated=-
+A_column|app_room_realtime_events.id|1 bigint null=false default=(none) generated=-
+A_column|app_room_realtime_events.room_id|2 text null=false default=(none) generated=-
+A_column|app_rooms.created_at|7 timestamp with time zone null=false default=(none) generated=-
+A_column|app_rooms.host_orphaned_at|4 timestamp with time zone null=true default=(none) generated=-
+A_column|app_rooms.host_type|2 app_room_host_type null=false default=(none) generated=-
+A_column|app_rooms.host_user_id|3 uuid null=true default=(none) generated=-
+A_column|app_rooms.id|1 text null=false default=(none) generated=-
+A_column|app_rooms.password_hash|5 text null=true default=(none) generated=-
+A_column|app_rooms.password_salt|6 text null=true default=(none) generated=-
+A_column|application_hq_approvals.applicant_visible_note|6 text null=true default=(none) generated=-
+A_column|application_hq_approvals.application_id|1 uuid null=false default=(none) generated=-
+A_column|application_hq_approvals.approval_reference|3 text null=true default=(none) generated=-
+A_column|application_hq_approvals.confirmed_at|4 timestamp with time zone null=true default=(none) generated=-
+A_column|application_hq_approvals.confirmed_by|5 uuid null=true default=(none) generated=-
+A_column|application_hq_approvals.created_at|7 timestamp with time zone null=false default=now() generated=-
+A_column|application_hq_approvals.status|2 hq_approval_status null=false default='pending'::hq_approval_status generated=-
+A_column|application_hq_approvals.updated_at|8 timestamp with time zone null=false default=now() generated=-
+A_column|application_internal.application_id|1 uuid null=false default=(none) generated=-
+A_column|application_internal.notes|2 text null=false default=''::text generated=-
+A_column|application_internal.updated_at|4 timestamp with time zone null=false default=now() generated=-
+A_column|application_internal.updated_by|3 uuid null=true default=(none) generated=-
+A_column|application_requirements.application_id|2 uuid null=false default=(none) generated=-
+A_column|application_requirements.created_at|7 timestamp with time zone null=false default=now() generated=-
+A_column|application_requirements.created_by|6 uuid null=true default=(none) generated=-
+A_column|application_requirements.detail|4 text null=true default=(none) generated=-
+A_column|application_requirements.field|9 text null=true default=(none) generated=-
+A_column|application_requirements.id|1 uuid null=false default=gen_random_uuid() generated=-
+A_column|application_requirements.label|3 text null=false default=(none) generated=-
+A_column|application_requirements.resolved_at|8 timestamp with time zone null=true default=(none) generated=-
+A_column|application_requirements.resolved|5 boolean null=false default=false generated=-
+A_column|application_status_history.actor_id|5 uuid null=true default=(none) generated=-
+A_column|application_status_history.actor_role|6 text null=true default=(none) generated=-
+A_column|application_status_history.applicant_visible_message|7 text null=true default=(none) generated=-
+A_column|application_status_history.application_id|2 uuid null=false default=(none) generated=-
+A_column|application_status_history.created_at|9 timestamp with time zone null=false default=now() generated=-
+A_column|application_status_history.from_status|3 application_status null=true default=(none) generated=-
+A_column|application_status_history.id|1 bigint null=false default=(none) generated=-
+A_column|application_status_history.internal_note|8 text null=true default=(none) generated=-
+A_column|application_status_history.to_status|4 application_status null=false default=(none) generated=-
+A_column|applications.applicant_id|2 uuid null=false default=(none) generated=-
+A_column|applications.applicant_visible_message|9 text null=true default=(none) generated=-
+A_column|applications.assigned_reviewer|8 uuid null=true default=(none) generated=-
+A_column|applications.created_at|12 timestamp with time zone null=false default=now() generated=-
+A_column|applications.decided_at|11 timestamp with time zone null=true default=(none) generated=-
+A_column|applications.form_data|5 jsonb null=false default='{}'::jsonb generated=-
+A_column|applications.form_version|6 text null=false default='v1'::text generated=-
+A_column|applications.id|1 uuid null=false default=gen_random_uuid() generated=-
+A_column|applications.locked_fields|7 text[] null=false default='{}'::text[] generated=-
+A_column|applications.pathway|3 application_pathway null=false default='undecided'::application_pathway generated=-
+A_column|applications.status|4 application_status null=false default='draft'::application_status generated=-
+A_column|applications.submitted_at|10 timestamp with time zone null=true default=(none) generated=-
+A_column|applications.updated_at|13 timestamp with time zone null=false default=now() generated=-
+A_column|audit_logs.actor_id|3 uuid null=true default=(none) generated=-
+A_column|audit_logs.actor_role|4 text null=true default=(none) generated=-
+A_column|audit_logs.category|13 text null=false default='system'::text generated=-
+A_column|audit_logs.created_at|2 timestamp with time zone null=false default=now() generated=-
+A_column|audit_logs.event_type|5 text null=false default=(none) generated=-
+A_column|audit_logs.id|1 bigint null=false default=(none) generated=-
+A_column|audit_logs.ip|11 text null=true default=(none) generated=-
+A_column|audit_logs.new_value|9 jsonb null=true default=(none) generated=-
+A_column|audit_logs.old_value|8 jsonb null=true default=(none) generated=-
+A_column|audit_logs.reason|10 text null=true default=(none) generated=-
+A_column|audit_logs.target_id|7 text null=true default=(none) generated=-
+A_column|audit_logs.target_type|6 text null=true default=(none) generated=-
+A_column|audit_logs.user_agent|12 text null=true default=(none) generated=-
+A_column|course_catalog.availability|7 course_availability null=false default='in_development'::course_availability generated=-
+A_column|course_catalog.category|3 course_category null=false default=(none) generated=-
+A_column|course_catalog.code|1 text null=false default=(none) generated=-
+A_column|course_catalog.created_at|13 timestamp with time zone null=true default=(none) generated=-
+A_column|course_catalog.created_by_provenance|14 text null=true default=(none) generated=-
+A_column|course_catalog.credits|8 numeric null=true default=(none) generated=-
+A_column|course_catalog.instructor|5 text null=true default=(none) generated=-
+A_column|course_catalog.level|4 text null=true default=(none) generated=-
+A_column|course_catalog.sort_order|9 integer null=false default=0 generated=-
+A_column|course_catalog.thumbnail_image_id|12 uuid null=true default=(none) generated=-
+A_column|course_catalog.thumbnail_path|11 text null=true default=(none) generated=-
+A_column|course_catalog.title_zh|2 text null=false default=(none) generated=-
+A_column|course_catalog.total_lessons|6 integer null=false default=0 generated=-
+A_column|course_catalog.updated_at|10 timestamp with time zone null=false default=now() generated=-
+A_column|data_export_logs.actor_id|3 uuid null=false default=(none) generated=-
+A_column|data_export_logs.created_at|2 timestamp with time zone null=false default=now() generated=-
+A_column|data_export_logs.export_type|4 text null=false default=(none) generated=-
+A_column|data_export_logs.filters|5 jsonb null=true default=(none) generated=-
+A_column|data_export_logs.id|1 bigint null=false default=(none) generated=-
+A_column|data_export_logs.purpose|7 text null=true default=(none) generated=-
+A_column|data_export_logs.row_count|6 integer null=true default=(none) generated=-
+A_column|hq_approval_internal.application_id|1 uuid null=false default=(none) generated=-
+A_column|hq_approval_internal.notes|2 text null=false default=''::text generated=-
+A_column|hq_approval_internal.updated_at|4 timestamp with time zone null=false default=now() generated=-
+A_column|hq_approval_internal.updated_by|3 uuid null=true default=(none) generated=-
+A_column|irreversible_record_sources.check_sql|5 text null=true default=(none) generated=-
+A_column|irreversible_record_sources.is_irreversible|4 irreversible_verdict null=false default=(none) generated=-
+A_column|irreversible_record_sources.rationale|6 text null=false default=(none) generated=-
+A_column|irreversible_record_sources.record_kind|3 text null=false default=(none) generated=-
+A_column|irreversible_record_sources.registered_at|8 timestamp with time zone null=false default=now() generated=-
+A_column|irreversible_record_sources.registered_by|7 text null=false default=(none) generated=-
+A_column|irreversible_record_sources.source_key|1 text null=false default=(none) generated=-
+A_column|irreversible_record_sources.table_name|2 text null=true default=(none) generated=-
+A_column|login_aliases.alias_normalized|4 text null=false default=(none) generated=-
+A_column|login_aliases.alias_type|3 alias_type null=false default=(none) generated=-
+A_column|login_aliases.created_at|6 timestamp with time zone null=false default=now() generated=-
+A_column|login_aliases.created_by|5 uuid null=true default=(none) generated=-
+A_column|login_aliases.id|1 uuid null=false default=gen_random_uuid() generated=-
+A_column|login_aliases.revoked_at|7 timestamp with time zone null=true default=(none) generated=-
+A_column|login_aliases.user_id|2 uuid null=false default=(none) generated=-
+A_column|profiles.account_status|10 account_status null=false default='pending_email'::account_status generated=-
+A_column|profiles.avatar_path|9 text null=true default=(none) generated=-
+A_column|profiles.bio|14 text null=true default=(none) generated=-
+A_column|profiles.contact_note|13 text null=true default=(none) generated=-
+A_column|profiles.country_code|6 text null=true default=(none) generated=-
+A_column|profiles.created_at|11 timestamp with time zone null=false default=now() generated=-
+A_column|profiles.display_name|2 text null=false default=''::text generated=-
+A_column|profiles.email|4 text null=false default=(none) generated=-
+A_column|profiles.id|1 uuid null=false default=(none) generated=-
+A_column|profiles.legal_name|3 text null=true default=(none) generated=-
+A_column|profiles.locale|8 text null=false default='zh-CN'::text generated=-
+A_column|profiles.phone|5 text null=true default=(none) generated=-
+A_column|profiles.timezone|7 text null=false default='Asia/Bangkok'::text generated=-
+A_column|profiles.updated_at|12 timestamp with time zone null=false default=now() generated=-
+A_column|program_catalog.approved_at|9 date null=true default=(none) generated=-
+A_column|program_catalog.category|5 text null=false default=(none) generated=-
+A_column|program_catalog.code|1 text null=false default=(none) generated=-
+A_column|program_catalog.created_at|10 timestamp with time zone null=false default=now() generated=-
+A_column|program_catalog.intake_note_zh|8 text null=true default=(none) generated=-
+A_column|program_catalog.is_open_for_application|7 boolean null=false default=true generated=-
+A_column|program_catalog.name_en|3 text null=false default=(none) generated=-
+A_column|program_catalog.name_zh|2 text null=false default=(none) generated=-
+A_column|program_catalog.short_label|4 text null=true default=(none) generated=-
+A_column|program_catalog.sort_order|6 integer null=false default=100 generated=-
+A_column|program_catalog.updated_at|11 timestamp with time zone null=false default=now() generated=-
+A_column|recovery_flows.attempts|5 integer null=false default=0 generated=-
+A_column|recovery_flows.claimed_at|8 timestamp with time zone null=true default=(none) generated=-
+A_column|recovery_flows.completed_at|9 timestamp with time zone null=true default=(none) generated=-
+A_column|recovery_flows.created_at|7 timestamp with time zone null=false default=now() generated=-
+A_column|recovery_flows.expires_at|11 timestamp with time zone null=true default=(none) generated=-
+A_column|recovery_flows.id|1 uuid null=false default=gen_random_uuid() generated=-
+A_column|recovery_flows.last_error|6 text null=true default=(none) generated=-
+A_column|recovery_flows.reap_reason|13 text null=true default=(none) generated=-
+A_column|recovery_flows.reaped_at|12 timestamp with time zone null=true default=(none) generated=-
+A_column|recovery_flows.session_id|3 text null=true default=(none) generated=-
+A_column|recovery_flows.status|4 recovery_flow_status null=false default='pending'::recovery_flow_status generated=-
+A_column|recovery_flows.updated_at|10 timestamp with time zone null=false default=now() generated=-
+A_column|recovery_flows.user_id|2 uuid null=false default=(none) generated=-
+A_column|security_events.created_at|2 timestamp with time zone null=false default=now() generated=-
+A_column|security_events.detail|7 jsonb null=true default=(none) generated=-
+A_column|security_events.event_type|3 text null=false default=(none) generated=-
+A_column|security_events.identifier|4 text null=true default=(none) generated=-
+A_column|security_events.id|1 bigint null=false default=(none) generated=-
+A_column|security_events.ip|6 text null=true default=(none) generated=-
+A_column|security_events.user_id|5 uuid null=true default=(none) generated=-
+A_column|student_number_registry.first_assigned_at|4 timestamp with time zone null=false default=now() generated=-
+A_column|student_number_registry.first_assigned_to|3 uuid null=true default=(none) generated=-
+A_column|student_number_registry.id|7 uuid null=false default=gen_random_uuid() generated=-
+A_column|student_number_registry.normalized|1 text null=false default=(none) generated=-
+A_column|student_number_registry.original|2 text null=false default=(none) generated=-
+A_column|student_number_registry.replacement_normalized|15 text null=true default=(none) generated=-
+A_column|student_number_registry.retire_reason|10 text null=true default=(none) generated=-
+A_column|student_number_registry.retired_at|9 timestamp with time zone null=true default=(none) generated=-
+A_column|student_number_registry.state|8 student_number_state null=false default='assigned'::student_number_state generated=-
+A_column|student_number_registry.void_evidence_reference|14 text null=true default=(none) generated=-
+A_column|student_number_registry.void_reason|13 text null=true default=(none) generated=-
+A_column|student_number_registry.voided_at|11 timestamp with time zone null=true default=(none) generated=-
+A_column|student_number_registry.voided_by|12 uuid null=true default=(none) generated=-
+A_column|student_number_void_requests.decided_at|13 timestamp with time zone null=true default=(none) generated=-
+A_column|student_number_void_requests.decided_by|12 uuid null=true default=(none) generated=-
+A_column|student_number_void_requests.decision_note|14 text null=true default=(none) generated=-
+A_column|student_number_void_requests.evidence_reference|8 text null=false default=(none) generated=-
+A_column|student_number_void_requests.id|1 uuid null=false default=gen_random_uuid() generated=-
+A_column|student_number_void_requests.initiated_at|11 timestamp with time zone null=false default=now() generated=-
+A_column|student_number_void_requests.initiated_by|10 uuid null=true default=(none) generated=-
+A_column|student_number_void_requests.reason|7 text null=false default=(none) generated=-
+A_column|student_number_void_requests.replacement_normalized|6 text null=false default=(none) generated=-
+A_column|student_number_void_requests.replacement_original|5 text null=false default=(none) generated=-
+A_column|student_number_void_requests.status|9 number_void_status null=false default='pending'::number_void_status generated=-
+A_column|student_number_void_requests.student_id|2 uuid null=false default=(none) generated=-
+A_column|student_number_void_requests.wrong_normalized|4 text null=false default=(none) generated=-
+A_column|student_number_void_requests.wrong_original|3 text null=false default=(none) generated=-
+A_column|student_records.activated_at|10 timestamp with time zone null=true default=(none) generated=-
+A_column|student_records.application_id|3 uuid null=true default=(none) generated=-
+A_column|student_records.created_at|12 timestamp with time zone null=false default=now() generated=-
+A_column|student_records.created_by|11 uuid null=true default=(none) generated=-
+A_column|student_records.hq_approval_reference|9 text null=true default=(none) generated=-
+A_column|student_records.id|1 uuid null=false default=gen_random_uuid() generated=-
+A_column|student_records.pathway|8 application_pathway null=true default=(none) generated=-
+A_column|student_records.program_code|7 text null=true default=(none) generated=-
+A_column|student_records.status|4 student_status null=false default='pre_enrolled'::student_status generated=-
+A_column|student_records.student_number_normalized|6 text null=true default=(none) generated=-
+A_column|student_records.student_number|5 text null=true default=(none) generated=-
+A_column|student_records.updated_at|13 timestamp with time zone null=false default=now() generated=-
+A_column|student_records.user_id|2 uuid null=false default=(none) generated=-
+A_column|student_status_history.actor_id|5 uuid null=true default=(none) generated=-
+A_column|student_status_history.actor_role|6 text null=true default=(none) generated=-
+A_column|student_status_history.created_at|9 timestamp with time zone null=false default=now() generated=-
+A_column|student_status_history.from_status|3 student_status null=true default=(none) generated=-
+A_column|student_status_history.id|1 bigint null=false default=(none) generated=-
+A_column|student_status_history.internal_note|8 text null=true default=(none) generated=-
+A_column|student_status_history.student_id|2 uuid null=false default=(none) generated=-
+A_column|student_status_history.student_visible_message|7 text null=true default=(none) generated=-
+A_column|student_status_history.to_status|4 student_status null=false default=(none) generated=-
+A_column|submissions.contact|6 text null=false default=''::text generated=-
+A_column|submissions.created_at|2 timestamp with time zone null=false default=now() generated=-
+A_column|submissions.data|11 jsonb null=true default=(none) generated=-
+A_column|submissions.id|1 bigint null=false default=(none) generated=-
+A_column|submissions.lang|8 text null=false default=''::text generated=-
+A_column|submissions.name|5 text null=false default=''::text generated=-
+A_column|submissions.note|10 text null=false default=''::text generated=-
+A_column|submissions.program|7 text null=false default=''::text generated=-
+A_column|submissions.status|9 text null=false default='待处理'::text generated=-
+A_column|submissions.type|4 text null=false default=(none) generated=-
+A_column|submissions.updated_at|3 timestamp with time zone null=false default=now() generated=-
+A_column|teacher_invitations.created_at|11 timestamp with time zone null=false default=now() generated=-
+A_column|teacher_invitations.created_by|9 uuid null=true default=(none) generated=-
+A_column|teacher_invitations.email_normalized|2 text null=false default=(none) generated=-
+A_column|teacher_invitations.expected_name|3 text null=false default=''::text generated=-
+A_column|teacher_invitations.expires_at|6 timestamp with time zone null=false default=(none) generated=-
+A_column|teacher_invitations.id|1 uuid null=false default=gen_random_uuid() generated=-
+A_column|teacher_invitations.max_uses|7 integer null=false default=1 generated=-
+A_column|teacher_invitations.revoked_at|10 timestamp with time zone null=true default=(none) generated=-
+A_column|teacher_invitations.staff_number|4 text null=true default=(none) generated=-
+A_column|teacher_invitations.token_hash|5 text null=false default=(none) generated=-
+A_column|teacher_invitations.used_count|8 integer null=false default=0 generated=-
+A_column|teacher_profiles.created_at|8 timestamp with time zone null=false default=now() generated=-
+A_column|teacher_profiles.public_bio|4 text null=true default=(none) generated=-
+A_column|teacher_profiles.public_name|3 text null=false default=''::text generated=-
+A_column|teacher_profiles.staff_number|2 text null=true default=(none) generated=-
+A_column|teacher_profiles.status|5 teacher_profile_status null=false default='active'::teacher_profile_status generated=-
+A_column|teacher_profiles.updated_at|9 timestamp with time zone null=false default=now() generated=-
+A_column|teacher_profiles.user_id|1 uuid null=false default=(none) generated=-
+A_column|teacher_profiles.verification_expires_at|7 timestamp with time zone null=true default=(none) generated=-
+A_column|teacher_profiles.verified_at|6 timestamp with time zone null=false default=now() generated=-
+A_column|teacher_profiles_internal.notes|2 text null=false default=''::text generated=-
+A_column|teacher_profiles_internal.updated_at|4 timestamp with time zone null=false default=now() generated=-
+A_column|teacher_profiles_internal.updated_by|3 uuid null=true default=(none) generated=-
+A_column|teacher_profiles_internal.user_id|1 uuid null=false default=(none) generated=-
+A_column|teacher_verification_internal.notes|2 text null=false default=''::text generated=-
+A_column|teacher_verification_internal.request_id|1 uuid null=false default=(none) generated=-
+A_column|teacher_verification_internal.updated_at|4 timestamp with time zone null=false default=now() generated=-
+A_column|teacher_verification_internal.updated_by|3 uuid null=true default=(none) generated=-
+A_column|teacher_verification_requests.applicant_visible_message|10 text null=true default=(none) generated=-
+A_column|teacher_verification_requests.created_at|11 timestamp with time zone null=false default=now() generated=-
+A_column|teacher_verification_requests.id|1 uuid null=false default=gen_random_uuid() generated=-
+A_column|teacher_verification_requests.invitation_id|3 uuid null=true default=(none) generated=-
+A_column|teacher_verification_requests.public_profile_consent|6 boolean null=false default=false generated=-
+A_column|teacher_verification_requests.reviewed_at|9 timestamp with time zone null=true default=(none) generated=-
+A_column|teacher_verification_requests.reviewed_by|8 uuid null=true default=(none) generated=-
+A_column|teacher_verification_requests.status|4 teacher_verification_status null=false default='draft'::teacher_verification_status generated=-
+A_column|teacher_verification_requests.submitted_at|7 timestamp with time zone null=true default=(none) generated=-
+A_column|teacher_verification_requests.submitted_data|5 jsonb null=false default='{}'::jsonb generated=-
+A_column|teacher_verification_requests.updated_at|12 timestamp with time zone null=false default=now() generated=-
+A_column|teacher_verification_requests.user_id|2 uuid null=false default=(none) generated=-
+A_column|user_roles.expires_at|8 timestamp with time zone null=true default=(none) generated=-
+A_column|user_roles.granted_at|7 timestamp with time zone null=false default=now() generated=-
+A_column|user_roles.granted_by|6 uuid null=true default=(none) generated=-
+A_column|user_roles.id|1 uuid null=false default=gen_random_uuid() generated=-
+A_column|user_roles.revoked_at|9 timestamp with time zone null=true default=(none) generated=-
+A_column|user_roles.role|3 user_role null=false default=(none) generated=-
+A_column|user_roles.scope_id|5 uuid null=true default=(none) generated=-
+A_column|user_roles.scope_type|4 text null=true default=(none) generated=-
+A_column|user_roles.user_id|2 uuid null=false default=(none) generated=-
+B_constraint|app_announcements.app_announcements_pkey|p PRIMARY KEY (id)
+B_constraint|app_announcements.app_announcements_published_by_fkey|f FOREIGN KEY (published_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|app_christian_profile.app_christian_profile_pkey|p PRIMARY KEY (user_id)
+B_constraint|app_christian_profile.app_christian_profile_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|app_cooperation_submissions.app_cooperation_submissions_pkey|p PRIMARY KEY (id)
+B_constraint|app_course_files.app_course_files_course_code_fkey|f FOREIGN KEY (course_code) REFERENCES course_catalog(code) ON DELETE CASCADE
+B_constraint|app_course_files.app_course_files_pkey|p PRIMARY KEY (id)
+B_constraint|app_course_files.app_course_files_size_bytes_check|c CHECK ((size_bytes >= 0))
+B_constraint|app_course_files.app_course_files_uploader_id_fkey|f FOREIGN KEY (uploader_id) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|app_course_progress.app_course_progress_completed_lessons_check|c CHECK ((completed_lessons >= 0))
+B_constraint|app_course_progress.app_course_progress_course_code_fkey|f FOREIGN KEY (course_code) REFERENCES course_catalog(code) ON DELETE RESTRICT
+B_constraint|app_course_progress.app_course_progress_pkey|p PRIMARY KEY (user_id, course_code)
+B_constraint|app_course_progress.app_course_progress_progress_check|c CHECK (((progress >= 0) AND (progress <= 100)))
+B_constraint|app_course_progress.app_course_progress_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|app_friend_requests.app_friend_requests_from_user_id_fkey|f FOREIGN KEY (from_user_id) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|app_friend_requests.app_friend_requests_from_user_id_to_user_id_key|u UNIQUE (from_user_id, to_user_id)
+B_constraint|app_friend_requests.app_friend_requests_not_self|c CHECK ((from_user_id <> to_user_id))
+B_constraint|app_friend_requests.app_friend_requests_pkey|p PRIMARY KEY (id)
+B_constraint|app_friend_requests.app_friend_requests_to_user_id_fkey|f FOREIGN KEY (to_user_id) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|app_friendships.app_friendships_not_self|c CHECK ((user_a <> user_b))
+B_constraint|app_friendships.app_friendships_pkey|p PRIMARY KEY (user_a, user_b)
+B_constraint|app_friendships.app_friendships_user_a_fkey|f FOREIGN KEY (user_a) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|app_friendships.app_friendships_user_b_fkey|f FOREIGN KEY (user_b) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|app_image_uploads.app_image_uploads_pkey|p PRIMARY KEY (id)
+B_constraint|app_image_uploads.app_image_uploads_size_bytes_check|c CHECK ((size_bytes >= 0))
+B_constraint|app_image_uploads.app_image_uploads_uploaded_by_fkey|f FOREIGN KEY (uploaded_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|app_library_books.app_library_books_added_by_fkey|f FOREIGN KEY (added_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|app_library_books.app_library_books_cover_image_id_fkey|f FOREIGN KEY (cover_image_id) REFERENCES app_image_uploads(id) ON DELETE SET NULL
+B_constraint|app_library_books.app_library_books_pkey|p PRIMARY KEY (id)
+B_constraint|app_library_favorites.app_library_favorites_book_id_fkey|f FOREIGN KEY (book_id) REFERENCES app_library_books(id) ON DELETE CASCADE
+B_constraint|app_library_favorites.app_library_favorites_pkey|p PRIMARY KEY (user_id, book_id)
+B_constraint|app_library_favorites.app_library_favorites_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|app_post_comments.app_post_comments_pkey|p PRIMARY KEY (id)
+B_constraint|app_post_comments.app_post_comments_post_id_fkey|f FOREIGN KEY (post_id) REFERENCES app_posts(id) ON DELETE CASCADE
+B_constraint|app_post_comments.app_post_comments_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|app_post_likes.app_post_likes_pkey|p PRIMARY KEY (post_id, user_id)
+B_constraint|app_post_likes.app_post_likes_post_id_fkey|f FOREIGN KEY (post_id) REFERENCES app_posts(id) ON DELETE CASCADE
+B_constraint|app_post_likes.app_post_likes_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|app_posts.app_posts_linked_course_id_fkey|f FOREIGN KEY (linked_course_id) REFERENCES course_catalog(code) ON DELETE SET NULL
+B_constraint|app_posts.app_posts_pkey|p PRIMARY KEY (id)
+B_constraint|app_posts.app_posts_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|app_practice_training_state.app_practice_training_state_pkey|p PRIMARY KEY (user_id)
+B_constraint|app_practice_training_state.app_practice_training_state_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|app_prayer_intercessions.app_prayer_intercessions_pkey|p PRIMARY KEY (share_id, user_id)
+B_constraint|app_prayer_intercessions.app_prayer_intercessions_share_id_fkey|f FOREIGN KEY (share_id) REFERENCES app_prayer_shares(id) ON DELETE CASCADE
+B_constraint|app_prayer_intercessions.app_prayer_intercessions_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|app_prayer_session_events.app_prayer_session_events_actor_user_id_fkey|f FOREIGN KEY (actor_user_id) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|app_prayer_session_events.app_prayer_session_events_pkey|p PRIMARY KEY (id)
+B_constraint|app_prayer_session_events.app_prayer_session_events_session_id_fkey|f FOREIGN KEY (session_id) REFERENCES app_prayer_sessions(id) ON DELETE CASCADE
+B_constraint|app_prayer_session_items.app_prayer_session_items_pkey|p PRIMARY KEY (id)
+B_constraint|app_prayer_session_items.app_prayer_session_items_session_id_fkey|f FOREIGN KEY (session_id) REFERENCES app_prayer_sessions(id) ON DELETE CASCADE
+B_constraint|app_prayer_session_items.app_prayer_session_items_session_id_position_key|u UNIQUE (session_id, "position")
+B_constraint|app_prayer_sessions.app_prayer_sessions_created_by_fkey|f FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|app_prayer_sessions.app_prayer_sessions_current_item_fk|f FOREIGN KEY (current_item_id) REFERENCES app_prayer_session_items(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED
+B_constraint|app_prayer_sessions.app_prayer_sessions_facilitator_user_id_fkey|f FOREIGN KEY (facilitator_user_id) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|app_prayer_sessions.app_prayer_sessions_lifecycle|c CHECK ((((status = 'scheduled'::app_prayer_session_status) AND (started_at IS NULL) AND (ended_at IS NULL)) OR ((status = 'active'::app_prayer_session_status) AND (started_at IS NOT NULL) AND (ended_at IS NULL)) OR ((status = 'ended'::app_prayer_session_status) AND (ended_at IS NOT NULL))))
+B_constraint|app_prayer_sessions.app_prayer_sessions_pkey|p PRIMARY KEY (id)
+B_constraint|app_prayer_sessions.app_prayer_sessions_room_id_fkey|f FOREIGN KEY (room_id) REFERENCES app_rooms(id) ON DELETE CASCADE
+B_constraint|app_prayer_share_reports.app_prayer_share_reports_pkey|p PRIMARY KEY (id)
+B_constraint|app_prayer_share_reports.app_prayer_share_reports_reporter_user_id_fkey|f FOREIGN KEY (reporter_user_id) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|app_prayer_share_reports.app_prayer_share_reports_share_id_fkey|f FOREIGN KEY (share_id) REFERENCES app_prayer_shares(id) ON DELETE CASCADE
+B_constraint|app_prayer_share_reports.app_prayer_share_reports_share_id_reporter_user_id_key|u UNIQUE (share_id, reporter_user_id)
+B_constraint|app_prayer_shares.app_prayer_shares_hidden_by_fkey|f FOREIGN KEY (hidden_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|app_prayer_shares.app_prayer_shares_hidden_shape|c CHECK ((((hidden_at IS NULL) AND (hidden_reason IS NULL)) OR (hidden_at IS NOT NULL)))
+B_constraint|app_prayer_shares.app_prayer_shares_pkey|p PRIMARY KEY (id)
+B_constraint|app_prayer_shares.app_prayer_shares_room_id_fkey|f FOREIGN KEY (room_id) REFERENCES app_rooms(id) ON DELETE CASCADE
+B_constraint|app_prayer_shares.app_prayer_shares_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|app_push_tokens.app_push_tokens_pkey|p PRIMARY KEY (user_id, token)
+B_constraint|app_push_tokens.app_push_tokens_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|app_recordings.app_recordings_duration_ms_check|c CHECK ((duration_ms >= 0))
+B_constraint|app_recordings.app_recordings_pkey|p PRIMARY KEY (id)
+B_constraint|app_recordings.app_recordings_room_id_fkey|f FOREIGN KEY (room_id) REFERENCES app_rooms(id) ON DELETE SET NULL
+B_constraint|app_recordings.app_recordings_size_bytes_check|c CHECK ((size_bytes >= 0))
+B_constraint|app_recordings.app_recordings_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|app_room_members.app_room_members_pkey|p PRIMARY KEY (room_id, user_id)
+B_constraint|app_room_members.app_room_members_room_id_fkey|f FOREIGN KEY (room_id) REFERENCES app_rooms(id) ON DELETE CASCADE
+B_constraint|app_room_members.app_room_members_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|app_room_prayer_topics.app_room_prayer_topics_created_by_fkey|f FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|app_room_prayer_topics.app_room_prayer_topics_pkey|p PRIMARY KEY (id)
+B_constraint|app_room_prayer_topics.app_room_prayer_topics_room_id_fkey|f FOREIGN KEY (room_id) REFERENCES app_rooms(id) ON DELETE CASCADE
+B_constraint|app_room_presence.app_room_presence_pkey|p PRIMARY KEY (room_id, user_id)
+B_constraint|app_room_presence.app_room_presence_room_id_fkey|f FOREIGN KEY (room_id) REFERENCES app_rooms(id) ON DELETE CASCADE
+B_constraint|app_room_presence.app_room_presence_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|app_room_reading_state.app_room_reading_state_pkey|p PRIMARY KEY (room_id)
+B_constraint|app_room_reading_state.app_room_reading_state_room_id_fkey|f FOREIGN KEY (room_id) REFERENCES app_rooms(id) ON DELETE CASCADE
+B_constraint|app_room_reading_state.app_room_reading_state_updated_by_fkey|f FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|app_room_realtime_events.app_room_realtime_events_pkey|p PRIMARY KEY (id)
+B_constraint|app_room_realtime_events.app_room_realtime_events_room_id_fkey|f FOREIGN KEY (room_id) REFERENCES app_rooms(id) ON DELETE CASCADE
+B_constraint|app_rooms.app_rooms_host_shape|c CHECK ((((host_type = 'system'::app_room_host_type) AND (host_user_id IS NULL) AND (host_orphaned_at IS NULL)) OR ((host_type = 'user'::app_room_host_type) AND (host_user_id IS NOT NULL) AND (host_orphaned_at IS NULL)) OR ((host_type = 'user'::app_room_host_type) AND (host_user_id IS NULL) AND (host_orphaned_at IS NOT NULL))))
+B_constraint|app_rooms.app_rooms_host_user_id_fkey|f FOREIGN KEY (host_user_id) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|app_rooms.app_rooms_password_shape|c CHECK ((((password_hash IS NULL) AND (password_salt IS NULL)) OR ((password_hash IS NOT NULL) AND (password_salt IS NOT NULL))))
+B_constraint|app_rooms.app_rooms_pkey|p PRIMARY KEY (id)
+B_constraint|application_hq_approvals.application_hq_approvals_application_id_fkey|f FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
+B_constraint|application_hq_approvals.application_hq_approvals_confirmed_by_fkey|f FOREIGN KEY (confirmed_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|application_hq_approvals.application_hq_approvals_pkey|p PRIMARY KEY (application_id)
+B_constraint|application_internal.application_internal_application_id_fkey|f FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
+B_constraint|application_internal.application_internal_pkey|p PRIMARY KEY (application_id)
+B_constraint|application_internal.application_internal_updated_by_fkey|f FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|application_requirements.application_requirements_application_id_fkey|f FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
+B_constraint|application_requirements.application_requirements_created_by_fkey|f FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|application_requirements.application_requirements_pkey|p PRIMARY KEY (id)
+B_constraint|application_status_history.application_status_history_actor_id_fkey|f FOREIGN KEY (actor_id) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|application_status_history.application_status_history_application_id_fkey|f FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
+B_constraint|application_status_history.application_status_history_pkey|p PRIMARY KEY (id)
+B_constraint|applications.applications_applicant_id_fkey|f FOREIGN KEY (applicant_id) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|applications.applications_assigned_reviewer_fkey|f FOREIGN KEY (assigned_reviewer) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|applications.applications_pkey|p PRIMARY KEY (id)
+B_constraint|audit_logs.audit_logs_pkey|p PRIMARY KEY (id)
+B_constraint|course_catalog.course_catalog_pkey|p PRIMARY KEY (code)
+B_constraint|course_catalog.course_catalog_thumbnail_image_fk|f FOREIGN KEY (thumbnail_image_id) REFERENCES app_image_uploads(id) ON DELETE SET NULL
+B_constraint|data_export_logs.data_export_logs_pkey|p PRIMARY KEY (id)
+B_constraint|hq_approval_internal.hq_approval_internal_application_id_fkey|f FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
+B_constraint|hq_approval_internal.hq_approval_internal_pkey|p PRIMARY KEY (application_id)
+B_constraint|hq_approval_internal.hq_approval_internal_updated_by_fkey|f FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|irreversible_record_sources.irr_needs_check|c CHECK (((is_irreversible <> 'yes'::irreversible_verdict) OR ((check_sql IS NOT NULL) AND (table_name IS NOT NULL))))
+B_constraint|irreversible_record_sources.irreversible_record_sources_pkey|p PRIMARY KEY (source_key)
+B_constraint|login_aliases.login_aliases_alias_normalized_key|u UNIQUE (alias_normalized)
+B_constraint|login_aliases.login_aliases_created_by_fkey|f FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|login_aliases.login_aliases_pkey|p PRIMARY KEY (id)
+B_constraint|login_aliases.login_aliases_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|profiles.profiles_bio_length|c CHECK (((bio IS NULL) OR (char_length(bio) <= 500)))
+B_constraint|profiles.profiles_id_fkey|f FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
+B_constraint|profiles.profiles_pkey|p PRIMARY KEY (id)
+B_constraint|program_catalog.program_catalog_pkey|p PRIMARY KEY (code)
+B_constraint|recovery_flows.recovery_flows_pkey|p PRIMARY KEY (id)
+B_constraint|recovery_flows.recovery_flows_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|security_events.security_events_pkey|p PRIMARY KEY (id)
+B_constraint|student_number_registry.student_number_registry_first_assigned_to_fkey|f FOREIGN KEY (first_assigned_to) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|student_number_registry.student_number_registry_pkey|p PRIMARY KEY (id)
+B_constraint|student_number_registry.student_number_registry_voided_by_fkey|f FOREIGN KEY (voided_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|student_number_void_requests.student_number_void_requests_decided_by_fkey|f FOREIGN KEY (decided_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|student_number_void_requests.student_number_void_requests_initiated_by_fkey|f FOREIGN KEY (initiated_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|student_number_void_requests.student_number_void_requests_pkey|p PRIMARY KEY (id)
+B_constraint|student_number_void_requests.student_number_void_requests_student_id_fkey|f FOREIGN KEY (student_id) REFERENCES student_records(id) ON DELETE CASCADE
+B_constraint|student_records.student_records_application_id_fkey|f FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE SET NULL
+B_constraint|student_records.student_records_application_id_key|u UNIQUE (application_id)
+B_constraint|student_records.student_records_created_by_fkey|f FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|student_records.student_records_pkey|p PRIMARY KEY (id)
+B_constraint|student_records.student_records_program_code_fkey|f FOREIGN KEY (program_code) REFERENCES program_catalog(code)
+B_constraint|student_records.student_records_student_number_normalized_key|u UNIQUE (student_number_normalized)
+B_constraint|student_records.student_records_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|student_records.student_records_user_id_key|u UNIQUE (user_id)
+B_constraint|student_status_history.student_status_history_actor_id_fkey|f FOREIGN KEY (actor_id) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|student_status_history.student_status_history_pkey|p PRIMARY KEY (id)
+B_constraint|student_status_history.student_status_history_student_id_fkey|f FOREIGN KEY (student_id) REFERENCES student_records(id) ON DELETE CASCADE
+B_constraint|submissions.submissions_pkey|p PRIMARY KEY (id)
+B_constraint|teacher_invitations.teacher_invitations_created_by_fkey|f FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|teacher_invitations.teacher_invitations_pkey|p PRIMARY KEY (id)
+B_constraint|teacher_invitations.teacher_invitations_token_hash_key|u UNIQUE (token_hash)
+B_constraint|teacher_invitations.uses_within_limit|c CHECK ((used_count <= max_uses))
+B_constraint|teacher_profiles.teacher_profiles_pkey|p PRIMARY KEY (user_id)
+B_constraint|teacher_profiles.teacher_profiles_staff_number_key|u UNIQUE (staff_number)
+B_constraint|teacher_profiles.teacher_profiles_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|teacher_profiles_internal.teacher_profiles_internal_pkey|p PRIMARY KEY (user_id)
+B_constraint|teacher_profiles_internal.teacher_profiles_internal_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES teacher_profiles(user_id) ON DELETE CASCADE
+B_constraint|teacher_profiles_internal.tpi_updated_by_fkey|f FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|teacher_verification_internal.teacher_verification_internal_pkey|p PRIMARY KEY (request_id)
+B_constraint|teacher_verification_internal.teacher_verification_internal_request_id_fkey|f FOREIGN KEY (request_id) REFERENCES teacher_verification_requests(id) ON DELETE CASCADE
+B_constraint|teacher_verification_internal.tvi_updated_by_fkey|f FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|teacher_verification_requests.teacher_verification_requests_invitation_id_fkey|f FOREIGN KEY (invitation_id) REFERENCES teacher_invitations(id)
+B_constraint|teacher_verification_requests.teacher_verification_requests_pkey|p PRIMARY KEY (id)
+B_constraint|teacher_verification_requests.teacher_verification_requests_reviewed_by_fkey|f FOREIGN KEY (reviewed_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|teacher_verification_requests.teacher_verification_requests_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+B_constraint|user_roles.user_roles_granted_by_fkey|f FOREIGN KEY (granted_by) REFERENCES profiles(id) ON DELETE SET NULL
+B_constraint|user_roles.user_roles_pkey|p PRIMARY KEY (id)
+B_constraint|user_roles.user_roles_user_id_fkey|f FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+C_index|app_announcements.app_announcements_pkey|CREATE UNIQUE INDEX app_announcements_pkey ON public.app_announcements USING btree (id)
+C_index|app_announcements.idx_app_announcements_published_at|CREATE INDEX idx_app_announcements_published_at ON public.app_announcements USING btree (published_at DESC)
+C_index|app_christian_profile.app_christian_profile_pkey|CREATE UNIQUE INDEX app_christian_profile_pkey ON public.app_christian_profile USING btree (user_id)
+C_index|app_cooperation_submissions.app_cooperation_submissions_pkey|CREATE UNIQUE INDEX app_cooperation_submissions_pkey ON public.app_cooperation_submissions USING btree (id)
+C_index|app_cooperation_submissions.idx_app_cooperation_received_at|CREATE INDEX idx_app_cooperation_received_at ON public.app_cooperation_submissions USING btree (received_at DESC)
+C_index|app_course_files.app_course_files_pkey|CREATE UNIQUE INDEX app_course_files_pkey ON public.app_course_files USING btree (id)
+C_index|app_course_files.idx_app_course_files_course|CREATE INDEX idx_app_course_files_course ON public.app_course_files USING btree (course_code, uploaded_at)
+C_index|app_course_files.idx_app_course_files_uploader|CREATE INDEX idx_app_course_files_uploader ON public.app_course_files USING btree (uploader_id)
+C_index|app_course_progress.app_course_progress_pkey|CREATE UNIQUE INDEX app_course_progress_pkey ON public.app_course_progress USING btree (user_id, course_code)
+C_index|app_course_progress.idx_app_course_progress_course|CREATE INDEX idx_app_course_progress_course ON public.app_course_progress USING btree (course_code)
+C_index|app_friend_requests.app_friend_requests_from_user_id_to_user_id_key|CREATE UNIQUE INDEX app_friend_requests_from_user_id_to_user_id_key ON public.app_friend_requests USING btree (from_user_id, to_user_id)
+C_index|app_friend_requests.app_friend_requests_pkey|CREATE UNIQUE INDEX app_friend_requests_pkey ON public.app_friend_requests USING btree (id)
+C_index|app_friend_requests.idx_app_friend_requests_to|CREATE INDEX idx_app_friend_requests_to ON public.app_friend_requests USING btree (to_user_id)
+C_index|app_friendships.app_friendships_pkey|CREATE UNIQUE INDEX app_friendships_pkey ON public.app_friendships USING btree (user_a, user_b)
+C_index|app_friendships.idx_app_friendships_user_b|CREATE INDEX idx_app_friendships_user_b ON public.app_friendships USING btree (user_b)
+C_index|app_image_uploads.app_image_uploads_pkey|CREATE UNIQUE INDEX app_image_uploads_pkey ON public.app_image_uploads USING btree (id)
+C_index|app_image_uploads.idx_app_image_uploads_uploader|CREATE INDEX idx_app_image_uploads_uploader ON public.app_image_uploads USING btree (uploaded_by, uploaded_at DESC)
+C_index|app_library_books.app_library_books_pkey|CREATE UNIQUE INDEX app_library_books_pkey ON public.app_library_books USING btree (id)
+C_index|app_library_books.idx_app_library_books_added_at|CREATE INDEX idx_app_library_books_added_at ON public.app_library_books USING btree (added_at DESC)
+C_index|app_library_books.idx_app_library_books_cover|CREATE INDEX idx_app_library_books_cover ON public.app_library_books USING btree (cover_image_id)
+C_index|app_library_favorites.app_library_favorites_pkey|CREATE UNIQUE INDEX app_library_favorites_pkey ON public.app_library_favorites USING btree (user_id, book_id)
+C_index|app_library_favorites.idx_app_library_favorites_book|CREATE INDEX idx_app_library_favorites_book ON public.app_library_favorites USING btree (book_id)
+C_index|app_post_comments.app_post_comments_pkey|CREATE UNIQUE INDEX app_post_comments_pkey ON public.app_post_comments USING btree (id)
+C_index|app_post_comments.idx_app_post_comments_post|CREATE INDEX idx_app_post_comments_post ON public.app_post_comments USING btree (post_id, created_at)
+C_index|app_post_comments.idx_app_post_comments_user|CREATE INDEX idx_app_post_comments_user ON public.app_post_comments USING btree (user_id)
+C_index|app_post_likes.app_post_likes_pkey|CREATE UNIQUE INDEX app_post_likes_pkey ON public.app_post_likes USING btree (post_id, user_id)
+C_index|app_post_likes.idx_app_post_likes_user|CREATE INDEX idx_app_post_likes_user ON public.app_post_likes USING btree (user_id)
+C_index|app_posts.app_posts_pkey|CREATE UNIQUE INDEX app_posts_pkey ON public.app_posts USING btree (id)
+C_index|app_posts.idx_app_posts_created_at|CREATE INDEX idx_app_posts_created_at ON public.app_posts USING btree (created_at DESC)
+C_index|app_posts.idx_app_posts_user|CREATE INDEX idx_app_posts_user ON public.app_posts USING btree (user_id)
+C_index|app_practice_training_state.app_practice_training_state_pkey|CREATE UNIQUE INDEX app_practice_training_state_pkey ON public.app_practice_training_state USING btree (user_id)
+C_index|app_prayer_intercessions.app_prayer_intercessions_pkey|CREATE UNIQUE INDEX app_prayer_intercessions_pkey ON public.app_prayer_intercessions USING btree (share_id, user_id)
+C_index|app_prayer_intercessions.idx_app_prayer_intercessions_user|CREATE INDEX idx_app_prayer_intercessions_user ON public.app_prayer_intercessions USING btree (user_id)
+C_index|app_prayer_session_events.app_prayer_session_events_pkey|CREATE UNIQUE INDEX app_prayer_session_events_pkey ON public.app_prayer_session_events USING btree (id)
+C_index|app_prayer_session_events.idx_app_prayer_session_events_actor|CREATE INDEX idx_app_prayer_session_events_actor ON public.app_prayer_session_events USING btree (actor_user_id)
+C_index|app_prayer_session_events.idx_app_prayer_session_events_session|CREATE INDEX idx_app_prayer_session_events_session ON public.app_prayer_session_events USING btree (session_id, created_at)
+C_index|app_prayer_session_items.app_prayer_session_items_pkey|CREATE UNIQUE INDEX app_prayer_session_items_pkey ON public.app_prayer_session_items USING btree (id)
+C_index|app_prayer_session_items.app_prayer_session_items_session_id_position_key|CREATE UNIQUE INDEX app_prayer_session_items_session_id_position_key ON public.app_prayer_session_items USING btree (session_id, "position")
+C_index|app_prayer_sessions.app_prayer_sessions_pkey|CREATE UNIQUE INDEX app_prayer_sessions_pkey ON public.app_prayer_sessions USING btree (id)
+C_index|app_prayer_sessions.idx_app_prayer_sessions_creator|CREATE INDEX idx_app_prayer_sessions_creator ON public.app_prayer_sessions USING btree (created_by)
+C_index|app_prayer_sessions.idx_app_prayer_sessions_room|CREATE INDEX idx_app_prayer_sessions_room ON public.app_prayer_sessions USING btree (room_id, status)
+C_index|app_prayer_sessions.uq_app_prayer_sessions_active_per_room|CREATE UNIQUE INDEX uq_app_prayer_sessions_active_per_room ON public.app_prayer_sessions USING btree (room_id) WHERE (status = 'active'::app_prayer_session_status)
+C_index|app_prayer_share_reports.app_prayer_share_reports_pkey|CREATE UNIQUE INDEX app_prayer_share_reports_pkey ON public.app_prayer_share_reports USING btree (id)
+C_index|app_prayer_share_reports.app_prayer_share_reports_share_id_reporter_user_id_key|CREATE UNIQUE INDEX app_prayer_share_reports_share_id_reporter_user_id_key ON public.app_prayer_share_reports USING btree (share_id, reporter_user_id)
+C_index|app_prayer_share_reports.idx_app_prayer_share_reports_open|CREATE INDEX idx_app_prayer_share_reports_open ON public.app_prayer_share_reports USING btree (status, created_at) WHERE (status = 'open'::app_prayer_report_status)
+C_index|app_prayer_shares.app_prayer_shares_pkey|CREATE UNIQUE INDEX app_prayer_shares_pkey ON public.app_prayer_shares USING btree (id)
+C_index|app_prayer_shares.idx_app_prayer_shares_room|CREATE INDEX idx_app_prayer_shares_room ON public.app_prayer_shares USING btree (room_id, created_at)
+C_index|app_prayer_shares.idx_app_prayer_shares_user|CREATE INDEX idx_app_prayer_shares_user ON public.app_prayer_shares USING btree (user_id)
+C_index|app_prayer_shares.uq_app_prayer_shares_idem|CREATE UNIQUE INDEX uq_app_prayer_shares_idem ON public.app_prayer_shares USING btree (room_id, user_id, client_request_id) WHERE (client_request_id IS NOT NULL)
+C_index|app_push_tokens.app_push_tokens_pkey|CREATE UNIQUE INDEX app_push_tokens_pkey ON public.app_push_tokens USING btree (user_id, token)
+C_index|app_recordings.app_recordings_pkey|CREATE UNIQUE INDEX app_recordings_pkey ON public.app_recordings USING btree (id)
+C_index|app_recordings.idx_app_recordings_room|CREATE INDEX idx_app_recordings_room ON public.app_recordings USING btree (room_id, uploaded_at DESC)
+C_index|app_recordings.idx_app_recordings_user|CREATE INDEX idx_app_recordings_user ON public.app_recordings USING btree (user_id)
+C_index|app_room_members.app_room_members_pkey|CREATE UNIQUE INDEX app_room_members_pkey ON public.app_room_members USING btree (room_id, user_id)
+C_index|app_room_members.idx_app_room_members_user|CREATE INDEX idx_app_room_members_user ON public.app_room_members USING btree (user_id)
+C_index|app_room_prayer_topics.app_room_prayer_topics_pkey|CREATE UNIQUE INDEX app_room_prayer_topics_pkey ON public.app_room_prayer_topics USING btree (id)
+C_index|app_room_prayer_topics.idx_app_room_prayer_topics_room|CREATE INDEX idx_app_room_prayer_topics_room ON public.app_room_prayer_topics USING btree (room_id, seq)
+C_index|app_room_presence.app_room_presence_pkey|CREATE UNIQUE INDEX app_room_presence_pkey ON public.app_room_presence USING btree (room_id, user_id)
+C_index|app_room_presence.idx_app_room_presence_seen|CREATE INDEX idx_app_room_presence_seen ON public.app_room_presence USING btree (room_id, last_seen_at)
+C_index|app_room_reading_state.app_room_reading_state_pkey|CREATE UNIQUE INDEX app_room_reading_state_pkey ON public.app_room_reading_state USING btree (room_id)
+C_index|app_room_realtime_events.app_room_realtime_events_pkey|CREATE UNIQUE INDEX app_room_realtime_events_pkey ON public.app_room_realtime_events USING btree (id)
+C_index|app_room_realtime_events.idx_app_room_realtime_events_room|CREATE INDEX idx_app_room_realtime_events_room ON public.app_room_realtime_events USING btree (room_id, id)
+C_index|app_rooms.app_rooms_pkey|CREATE UNIQUE INDEX app_rooms_pkey ON public.app_rooms USING btree (id)
+C_index|app_rooms.idx_app_rooms_host|CREATE INDEX idx_app_rooms_host ON public.app_rooms USING btree (host_user_id) WHERE (host_user_id IS NOT NULL)
+C_index|application_hq_approvals.application_hq_approvals_pkey|CREATE UNIQUE INDEX application_hq_approvals_pkey ON public.application_hq_approvals USING btree (application_id)
+C_index|application_internal.application_internal_pkey|CREATE UNIQUE INDEX application_internal_pkey ON public.application_internal USING btree (application_id)
+C_index|application_requirements.application_requirements_pkey|CREATE UNIQUE INDEX application_requirements_pkey ON public.application_requirements USING btree (id)
+C_index|application_requirements.areq_by_app|CREATE INDEX areq_by_app ON public.application_requirements USING btree (application_id, resolved)
+C_index|application_status_history.application_status_history_pkey|CREATE UNIQUE INDEX application_status_history_pkey ON public.application_status_history USING btree (id)
+C_index|application_status_history.ash_by_app|CREATE INDEX ash_by_app ON public.application_status_history USING btree (application_id, created_at)
+C_index|applications.applications_one_active|CREATE UNIQUE INDEX applications_one_active ON public.applications USING btree (applicant_id) WHERE (status <> ALL (ARRAY['rejected'::application_status, 'withdrawn'::application_status]))
+C_index|applications.applications_pkey|CREATE UNIQUE INDEX applications_pkey ON public.applications USING btree (id)
+C_index|applications.applications_queue|CREATE INDEX applications_queue ON public.applications USING btree (status, submitted_at DESC NULLS LAST)
+C_index|applications.applications_reviewer|CREATE INDEX applications_reviewer ON public.applications USING btree (assigned_reviewer) WHERE (assigned_reviewer IS NOT NULL)
+C_index|audit_logs.audit_logs_actor|CREATE INDEX audit_logs_actor ON public.audit_logs USING btree (actor_id, event_type, created_at DESC)
+C_index|audit_logs.audit_logs_category|CREATE INDEX audit_logs_category ON public.audit_logs USING btree (category, created_at DESC)
+C_index|audit_logs.audit_logs_pkey|CREATE UNIQUE INDEX audit_logs_pkey ON public.audit_logs USING btree (id)
+C_index|audit_logs.audit_logs_target|CREATE INDEX audit_logs_target ON public.audit_logs USING btree (target_type, target_id, created_at DESC)
+C_index|course_catalog.course_catalog_cat|CREATE INDEX course_catalog_cat ON public.course_catalog USING btree (category, sort_order)
+C_index|course_catalog.course_catalog_pkey|CREATE UNIQUE INDEX course_catalog_pkey ON public.course_catalog USING btree (code)
+C_index|data_export_logs.data_export_logs_pkey|CREATE UNIQUE INDEX data_export_logs_pkey ON public.data_export_logs USING btree (id)
+C_index|hq_approval_internal.hq_approval_internal_pkey|CREATE UNIQUE INDEX hq_approval_internal_pkey ON public.hq_approval_internal USING btree (application_id)
+C_index|irreversible_record_sources.irreversible_record_sources_pkey|CREATE UNIQUE INDEX irreversible_record_sources_pkey ON public.irreversible_record_sources USING btree (source_key)
+C_index|login_aliases.login_aliases_alias_normalized_key|CREATE UNIQUE INDEX login_aliases_alias_normalized_key ON public.login_aliases USING btree (alias_normalized)
+C_index|login_aliases.login_aliases_pkey|CREATE UNIQUE INDEX login_aliases_pkey ON public.login_aliases USING btree (id)
+C_index|login_aliases.login_aliases_user|CREATE INDEX login_aliases_user ON public.login_aliases USING btree (user_id)
+C_index|profiles.profiles_pkey|CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)
+C_index|program_catalog.program_catalog_pkey|CREATE UNIQUE INDEX program_catalog_pkey ON public.program_catalog USING btree (code)
+C_index|recovery_flows.recovery_flows_lookup|CREATE INDEX recovery_flows_lookup ON public.recovery_flows USING btree (user_id, status, created_at DESC)
+C_index|recovery_flows.recovery_flows_one_active|CREATE UNIQUE INDEX recovery_flows_one_active ON public.recovery_flows USING btree (user_id) WHERE (status = ANY (ARRAY['pending'::recovery_flow_status, 'processing'::recovery_flow_status, 'failed_retryable'::recovery_flow_status]))
+C_index|recovery_flows.recovery_flows_pkey|CREATE UNIQUE INDEX recovery_flows_pkey ON public.recovery_flows USING btree (id)
+C_index|security_events.security_events_ip|CREATE INDEX security_events_ip ON public.security_events USING btree (event_type, ip, created_at DESC)
+C_index|security_events.security_events_pkey|CREATE UNIQUE INDEX security_events_pkey ON public.security_events USING btree (id)
+C_index|security_events.security_events_rate|CREATE INDEX security_events_rate ON public.security_events USING btree (event_type, identifier, created_at DESC)
+C_index|student_number_registry.student_number_by_normalized|CREATE INDEX student_number_by_normalized ON public.student_number_registry USING btree (normalized, state)
+C_index|student_number_registry.student_number_occupied_unique|CREATE UNIQUE INDEX student_number_occupied_unique ON public.student_number_registry USING btree (normalized) WHERE (state = ANY (ARRAY['reserved'::student_number_state, 'assigned'::student_number_state, 'retired'::student_number_state]))
+C_index|student_number_registry.student_number_registry_pkey|CREATE UNIQUE INDEX student_number_registry_pkey ON public.student_number_registry USING btree (id)
+C_index|student_number_void_requests.snvr_by_status|CREATE INDEX snvr_by_status ON public.student_number_void_requests USING btree (status, initiated_at DESC)
+C_index|student_number_void_requests.snvr_one_pending|CREATE UNIQUE INDEX snvr_one_pending ON public.student_number_void_requests USING btree (student_id) WHERE (status = 'pending'::number_void_status)
+C_index|student_number_void_requests.student_number_void_requests_pkey|CREATE UNIQUE INDEX student_number_void_requests_pkey ON public.student_number_void_requests USING btree (id)
+C_index|student_records.student_records_application_id_key|CREATE UNIQUE INDEX student_records_application_id_key ON public.student_records USING btree (application_id)
+C_index|student_records.student_records_pkey|CREATE UNIQUE INDEX student_records_pkey ON public.student_records USING btree (id)
+C_index|student_records.student_records_status|CREATE INDEX student_records_status ON public.student_records USING btree (status, created_at DESC)
+C_index|student_records.student_records_student_number_normalized_key|CREATE UNIQUE INDEX student_records_student_number_normalized_key ON public.student_records USING btree (student_number_normalized)
+C_index|student_records.student_records_user_id_key|CREATE UNIQUE INDEX student_records_user_id_key ON public.student_records USING btree (user_id)
+C_index|student_status_history.ssh_by_student|CREATE INDEX ssh_by_student ON public.student_status_history USING btree (student_id, created_at)
+C_index|student_status_history.student_status_history_pkey|CREATE UNIQUE INDEX student_status_history_pkey ON public.student_status_history USING btree (id)
+C_index|submissions.submissions_created_at_idx|CREATE INDEX submissions_created_at_idx ON public.submissions USING btree (created_at DESC)
+C_index|submissions.submissions_pkey|CREATE UNIQUE INDEX submissions_pkey ON public.submissions USING btree (id)
+C_index|submissions.submissions_status_idx|CREATE INDEX submissions_status_idx ON public.submissions USING btree (status)
+C_index|submissions.submissions_type_idx|CREATE INDEX submissions_type_idx ON public.submissions USING btree (type)
+C_index|teacher_invitations.teacher_invitations_email|CREATE INDEX teacher_invitations_email ON public.teacher_invitations USING btree (email_normalized)
+C_index|teacher_invitations.teacher_invitations_pkey|CREATE UNIQUE INDEX teacher_invitations_pkey ON public.teacher_invitations USING btree (id)
+C_index|teacher_invitations.teacher_invitations_token_hash_key|CREATE UNIQUE INDEX teacher_invitations_token_hash_key ON public.teacher_invitations USING btree (token_hash)
+C_index|teacher_profiles.teacher_profiles_pkey|CREATE UNIQUE INDEX teacher_profiles_pkey ON public.teacher_profiles USING btree (user_id)
+C_index|teacher_profiles.teacher_profiles_staff_number_key|CREATE UNIQUE INDEX teacher_profiles_staff_number_key ON public.teacher_profiles USING btree (staff_number)
+C_index|teacher_profiles_internal.teacher_profiles_internal_pkey|CREATE UNIQUE INDEX teacher_profiles_internal_pkey ON public.teacher_profiles_internal USING btree (user_id)
+C_index|teacher_verification_internal.teacher_verification_internal_pkey|CREATE UNIQUE INDEX teacher_verification_internal_pkey ON public.teacher_verification_internal USING btree (request_id)
+C_index|teacher_verification_requests.teacher_verification_requests_pkey|CREATE UNIQUE INDEX teacher_verification_requests_pkey ON public.teacher_verification_requests USING btree (id)
+C_index|teacher_verification_requests.tvr_one_active_per_user|CREATE UNIQUE INDEX tvr_one_active_per_user ON public.teacher_verification_requests USING btree (user_id) WHERE (status <> ALL (ARRAY['rejected'::teacher_verification_status, 'expired'::teacher_verification_status, 'revoked'::teacher_verification_status]))
+C_index|user_roles.user_roles_active_unique|CREATE UNIQUE INDEX user_roles_active_unique ON public.user_roles USING btree (user_id, role, COALESCE(scope_type, ''::text), COALESCE(scope_id, '00000000-0000-0000-0000-000000000000'::uuid)) WHERE (revoked_at IS NULL)
+C_index|user_roles.user_roles_lookup|CREATE INDEX user_roles_lookup ON public.user_roles USING btree (user_id, role, revoked_at)
+C_index|user_roles.user_roles_pkey|CREATE UNIQUE INDEX user_roles_pkey ON public.user_roles USING btree (id)
+D_trigger|app_rooms.app_rooms_host_orphaned|CREATE TRIGGER app_rooms_host_orphaned BEFORE UPDATE ON public.app_rooms FOR EACH ROW EXECUTE FUNCTION app_rooms_mark_host_orphaned()
+D_trigger|application_hq_approvals.hq_approvals_set_updated_at|CREATE TRIGGER hq_approvals_set_updated_at BEFORE UPDATE ON public.application_hq_approvals FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+D_trigger|applications.applications_lock_guard|CREATE TRIGGER applications_lock_guard BEFORE UPDATE ON public.applications FOR EACH ROW EXECUTE FUNCTION application_protect_locked()
+D_trigger|applications.applications_set_updated_at|CREATE TRIGGER applications_set_updated_at BEFORE UPDATE ON public.applications FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+D_trigger|applications.applications_strip_forbidden|CREATE TRIGGER applications_strip_forbidden BEFORE INSERT OR UPDATE ON public.applications FOR EACH ROW EXECUTE FUNCTION application_strip_forbidden()
+D_trigger|applications.applications_transition_guard|CREATE TRIGGER applications_transition_guard BEFORE UPDATE ON public.applications FOR EACH ROW EXECUTE FUNCTION application_validate_transition()
+D_trigger|course_catalog.course_catalog_guard_t|CREATE TRIGGER course_catalog_guard_t BEFORE INSERT OR DELETE OR UPDATE ON public.course_catalog FOR EACH ROW EXECUTE FUNCTION course_catalog_guard()
+D_trigger|profiles.profiles_protect|CREATE TRIGGER profiles_protect BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION protect_profile_fields()
+D_trigger|profiles.profiles_set_updated_at|CREATE TRIGGER profiles_set_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+D_trigger|program_catalog.program_catalog_set_updated_at|CREATE TRIGGER program_catalog_set_updated_at BEFORE UPDATE ON public.program_catalog FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+D_trigger|recovery_flows.recovery_flows_set_updated_at|CREATE TRIGGER recovery_flows_set_updated_at BEFORE UPDATE ON public.recovery_flows FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+D_trigger|student_records.student_records_guard|CREATE TRIGGER student_records_guard BEFORE INSERT OR UPDATE ON public.student_records FOR EACH ROW EXECUTE FUNCTION student_guard()
+D_trigger|student_records.student_records_set_updated_at|CREATE TRIGGER student_records_set_updated_at BEFORE UPDATE ON public.student_records FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+D_trigger|student_status_history.ssh_append_only|CREATE TRIGGER ssh_append_only BEFORE UPDATE ON public.student_status_history FOR EACH ROW EXECUTE FUNCTION append_only_guard()
+D_trigger|submissions.submissions_set_updated_at|CREATE TRIGGER submissions_set_updated_at BEFORE UPDATE ON public.submissions FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+D_trigger|teacher_profiles.teacher_profiles_set_updated_at|CREATE TRIGGER teacher_profiles_set_updated_at BEFORE UPDATE ON public.teacher_profiles FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+D_trigger|teacher_verification_requests.tvr_set_updated_at|CREATE TRIGGER tvr_set_updated_at BEFORE UPDATE ON public.teacher_verification_requests FOR EACH ROW EXECUTE FUNCTION set_updated_at()
+D_trigger|teacher_verification_requests.tvr_transition_guard|CREATE TRIGGER tvr_transition_guard BEFORE UPDATE ON public.teacher_verification_requests FOR EACH ROW EXECUTE FUNCTION tvr_validate_transition()
+D_trigger|user_roles.user_roles_alias_sync|CREATE TRIGGER user_roles_alias_sync AFTER UPDATE ON public.user_roles FOR EACH ROW EXECUTE FUNCTION sync_alias_on_role_revoke()
+E_policy|application_hq_approvals.hq_appr_select|SELECT permissive=PERMISSIVE roles=authenticated using=((EXISTS ( SELECT 1\\n   FROM applications a\\n  WHERE ((a.id = application_hq_approvals.application_id) AND (a.applicant_id = auth.uid())))) OR is_admin_any(auth.uid())) check=(none)
+E_policy|application_internal.appint_admin|SELECT permissive=PERMISSIVE roles=authenticated using=is_admin_any(auth.uid()) check=(none)
+E_policy|application_requirements.areq_select|SELECT permissive=PERMISSIVE roles=authenticated using=(EXISTS ( SELECT 1\\n   FROM applications a\\n  WHERE ((a.id = application_requirements.application_id) AND ((a.applicant_id = auth.uid()) OR is_admin_any(auth.uid()))))) check=(none)
+E_policy|application_status_history.ash_select|SELECT permissive=PERMISSIVE roles=authenticated using=(EXISTS ( SELECT 1\\n   FROM applications a\\n  WHERE ((a.id = application_status_history.application_id) AND ((a.applicant_id = auth.uid()) OR is_admin_any(auth.uid()))))) check=(none)
+E_policy|applications.app_self_insert|INSERT permissive=PERMISSIVE roles=authenticated using=(none) check=((applicant_id = auth.uid()) AND (status = 'draft'::application_status))
+E_policy|applications.app_self_select|SELECT permissive=PERMISSIVE roles=authenticated using=((applicant_id = auth.uid()) OR is_admin_any(auth.uid())) check=(none)
+E_policy|applications.app_self_update|UPDATE permissive=PERMISSIVE roles=authenticated using=(((applicant_id = auth.uid()) AND (status = ANY (ARRAY['draft'::application_status, 'needs_information'::application_status]))) OR is_admin_any(auth.uid())) check=((applicant_id = auth.uid()) OR is_admin_any(auth.uid()))
+E_policy|audit_logs.audit_academic_select|SELECT permissive=PERMISSIVE roles=authenticated using=((category = ANY (ARRAY['academic'::text, 'admissions'::text])) AND (current_user_has_role('academic_admin'::text) OR current_user_has_role('registrar'::text))) check=(none)
+E_policy|audit_logs.audit_finance_select|SELECT permissive=PERMISSIVE roles=authenticated using=((category = 'finance'::text) AND current_user_has_role('finance'::text) AND (actor_id = auth.uid())) check=(none)
+E_policy|audit_logs.audit_super_select|SELECT permissive=PERMISSIVE roles=authenticated using=current_user_has_role('super_admin'::text) check=(none)
+E_policy|course_catalog.course_catalog_read|SELECT permissive=PERMISSIVE roles=anon,authenticated using=true check=(none)
+E_policy|data_export_logs.export_logs_select|SELECT permissive=PERMISSIVE roles=authenticated using=current_user_has_role('super_admin'::text) check=(none)
+E_policy|hq_approval_internal.hq_internal_select|SELECT permissive=PERMISSIVE roles=authenticated using=is_admin_any(auth.uid()) check=(none)
+E_policy|profiles.profiles_self_select|SELECT permissive=PERMISSIVE roles=authenticated using=((id = auth.uid()) OR is_admin_any(auth.uid())) check=(none)
+E_policy|profiles.profiles_self_update|UPDATE permissive=PERMISSIVE roles=authenticated using=(id = auth.uid()) check=(id = auth.uid())
+E_policy|program_catalog.pc_public_read|SELECT permissive=PERMISSIVE roles=anon,authenticated using=true check=(none)
+E_policy|recovery_flows.recovery_flows_self_select|SELECT permissive=PERMISSIVE roles=authenticated using=(user_id = auth.uid()) check=(none)
+E_policy|security_events.security_events_select|SELECT permissive=PERMISSIVE roles=authenticated using=current_user_has_role('super_admin'::text) check=(none)
+E_policy|student_number_void_requests.snvr_admin_select|SELECT permissive=PERMISSIVE roles=authenticated using=is_admin_any(auth.uid()) check=(none)
+E_policy|student_records.student_admin_select|SELECT permissive=PERMISSIVE roles=authenticated using=is_admin_any(auth.uid()) check=(none)
+E_policy|student_records.student_self_select|SELECT permissive=PERMISSIVE roles=authenticated using=((user_id = auth.uid()) AND current_user_has_role('student'::text)) check=(none)
+E_policy|student_status_history.ssh_select|SELECT permissive=PERMISSIVE roles=authenticated using=(((EXISTS ( SELECT 1\\n   FROM student_records s\\n  WHERE ((s.id = student_status_history.student_id) AND (s.user_id = auth.uid())))) AND current_user_has_role('student'::text)) OR is_admin_any(auth.uid())) check=(none)
+E_policy|submissions.anon_insert|INSERT permissive=PERMISSIVE roles=anon using=(none) check=true
+E_policy|submissions.auth_select|SELECT permissive=PERMISSIVE roles=authenticated using=true check=(none)
+E_policy|submissions.auth_update|UPDATE permissive=PERMISSIVE roles=authenticated using=true check=true
+E_policy|teacher_invitations.ti_admin_select|SELECT permissive=PERMISSIVE roles=authenticated using=is_admin_any(auth.uid()) check=(none)
+E_policy|teacher_profiles.tp_select|SELECT permissive=PERMISSIVE roles=authenticated using=((user_id = auth.uid()) OR is_admin_any(auth.uid())) check=(none)
+E_policy|teacher_profiles_internal.tpi_admin|SELECT permissive=PERMISSIVE roles=authenticated using=is_admin_any(auth.uid()) check=(none)
+E_policy|teacher_verification_internal.tvi_admin_all|SELECT permissive=PERMISSIVE roles=authenticated using=is_admin_any(auth.uid()) check=(none)
+E_policy|teacher_verification_requests.tvr_self_insert|INSERT permissive=PERMISSIVE roles=authenticated using=(none) check=((user_id = auth.uid()) AND (status = 'draft'::teacher_verification_status))
+E_policy|teacher_verification_requests.tvr_self_select|SELECT permissive=PERMISSIVE roles=authenticated using=((user_id = auth.uid()) OR is_admin_any(auth.uid())) check=(none)
+E_policy|teacher_verification_requests.tvr_self_update|UPDATE permissive=PERMISSIVE roles=authenticated using=((user_id = auth.uid()) AND (status = ANY (ARRAY['draft'::teacher_verification_status, 'needs_information'::teacher_verification_status]))) check=(user_id = auth.uid())
+E_policy|user_roles.user_roles_select|SELECT permissive=PERMISSIVE roles=authenticated using=((user_id = auth.uid()) OR is_admin_any(auth.uid())) check=(none)
+E_rls_enabled|app_announcements|true forced=false
+E_rls_enabled|app_christian_profile|true forced=false
+E_rls_enabled|app_cooperation_submissions|true forced=false
+E_rls_enabled|app_course_files|true forced=false
+E_rls_enabled|app_course_progress|true forced=false
+E_rls_enabled|app_friend_requests|true forced=false
+E_rls_enabled|app_friendships|true forced=false
+E_rls_enabled|app_image_uploads|true forced=false
+E_rls_enabled|app_library_books|true forced=false
+E_rls_enabled|app_library_favorites|true forced=false
+E_rls_enabled|app_post_comments|true forced=false
+E_rls_enabled|app_post_likes|true forced=false
+E_rls_enabled|app_posts|true forced=false
+E_rls_enabled|app_practice_training_state|true forced=false
+E_rls_enabled|app_prayer_intercessions|true forced=false
+E_rls_enabled|app_prayer_session_events|true forced=false
+E_rls_enabled|app_prayer_session_items|true forced=false
+E_rls_enabled|app_prayer_sessions|true forced=false
+E_rls_enabled|app_prayer_share_reports|true forced=false
+E_rls_enabled|app_prayer_shares|true forced=false
+E_rls_enabled|app_push_tokens|true forced=false
+E_rls_enabled|app_recordings|true forced=false
+E_rls_enabled|app_room_members|true forced=false
+E_rls_enabled|app_room_prayer_topics|true forced=false
+E_rls_enabled|app_room_presence|true forced=false
+E_rls_enabled|app_room_reading_state|true forced=false
+E_rls_enabled|app_room_realtime_events|true forced=false
+E_rls_enabled|app_rooms|true forced=false
+E_rls_enabled|application_hq_approvals|true forced=false
+E_rls_enabled|application_internal|true forced=false
+E_rls_enabled|application_requirements|true forced=false
+E_rls_enabled|application_status_history|true forced=false
+E_rls_enabled|applications|true forced=false
+E_rls_enabled|audit_logs|true forced=false
+E_rls_enabled|course_catalog|true forced=false
+E_rls_enabled|data_export_logs|true forced=false
+E_rls_enabled|hq_approval_internal|true forced=false
+E_rls_enabled|irreversible_record_sources|true forced=false
+E_rls_enabled|login_aliases|true forced=false
+E_rls_enabled|profiles|true forced=false
+E_rls_enabled|program_catalog|true forced=false
+E_rls_enabled|recovery_flows|true forced=false
+E_rls_enabled|security_events|true forced=false
+E_rls_enabled|student_number_registry|true forced=false
+E_rls_enabled|student_number_void_requests|true forced=false
+E_rls_enabled|student_records|true forced=false
+E_rls_enabled|student_status_history|true forced=false
+E_rls_enabled|submissions|true forced=false
+E_rls_enabled|teacher_invitations|true forced=false
+E_rls_enabled|teacher_profiles_internal|true forced=false
+E_rls_enabled|teacher_profiles|true forced=false
+E_rls_enabled|teacher_verification_internal|true forced=false
+E_rls_enabled|teacher_verification_requests|true forced=false
+E_rls_enabled|user_roles|true forced=false
+F_function|activate_student(p_student uuid, p_actor uuid, p_message text, p_internal_note text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=jsonb srcmd5=fc9c60cf6750cd6ce3912b1e456ac024
+F_function|admissions_ready_for_enrollment()|lang=sql vol=s secdef=true strict=false cfg=search_path="" ret=TABLE(application_id uuid, applicant_id uuid, display_name text, email text, program_code text, pathway text, approval_reference text, confirmed_at timestamp with time zone) srcmd5=a1ace134a2cd73f303766b4c192c4d73
+F_function|app_rooms_mark_host_orphaned()|lang=plpgsql vol=v secdef=false strict=false cfg=(none) ret=trigger srcmd5=e669c7e7ec246cb0fff8ea5523fc02c5
+F_function|append_only_guard()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" ret=trigger srcmd5=d58eead980948aee2b5ebc4c35b501d9
+F_function|application_protect_locked()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" ret=trigger srcmd5=11193cc55f46f92e112ed99e76fa37bc
+F_function|application_strip_forbidden()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" ret=trigger srcmd5=ecb845962026bcda1a617c572554414c
+F_function|application_validate_form(p_form jsonb, p_pathway text)|lang=plpgsql vol=s secdef=false strict=false cfg=search_path="" ret=text[] srcmd5=d6533466749e95ebcc6be2e3f50673f8
+F_function|application_validate_program(p_form jsonb)|lang=sql vol=s secdef=true strict=false cfg=search_path="" ret=boolean srcmd5=88ad13ee1e6f8fcf10a621b1082c17fb
+F_function|application_validate_transition()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" ret=trigger srcmd5=737175ab748cae144361094ac66dab28
+F_function|approve_student_number_void(p_request uuid, p_actor uuid, p_note text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=jsonb srcmd5=6889f6f882b03171f2094344c5fdd531
+F_function|auth_rate_check(p_identifier text, p_ip text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=jsonb srcmd5=67272219fc7fe876f612f21e136a1697
+F_function|auth_record_attempt(p_identifier text, p_ip text, p_ok boolean, p_user uuid)|lang=sql vol=v secdef=true strict=false cfg=search_path="" ret=void srcmd5=7a4ff404df18b5b6867fb5b6763d623f
+F_function|claim_recovery_flow(p_flow uuid, p_user uuid)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=jsonb srcmd5=c0f8d32737ba5b5e8acb9412283da174
+F_function|complete_recovery_flow(p_flow uuid, p_user uuid)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=jsonb srcmd5=95d5983725931782dbedaa4ee2305c61
+F_function|confirm_hq_approval(p_app uuid, p_actor uuid, p_status text, p_reference text, p_visible_note text, p_internal_note text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=jsonb srcmd5=8b1a81c1e496afefeac550df1419d89c
+F_function|consume_teacher_invitation(p_token_hash text, p_email text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=uuid srcmd5=39b8422a4e8a49a8be9207d245532328
+F_function|correct_student_number(p_student uuid, p_actor uuid, p_new_number text, p_reason text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=jsonb srcmd5=6fc0a430cd427294e140be3f3daf4f72
+F_function|course_catalog_guard()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" ret=trigger srcmd5=73ddf638e23680945b5bde04c67ca38a
+F_function|create_student_record(p_app uuid, p_actor uuid, p_student_number text, p_program_code text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=jsonb srcmd5=a4a67e91aebd202c20ddcf673d08bcfa
+F_function|current_user_has_role(p_role text)|lang=sql vol=s secdef=true strict=false cfg=search_path="" ret=boolean srcmd5=4c1b7eabe434a8c25bcce6453bdfb9bf
+F_function|fail_recovery_flow(p_flow uuid, p_user uuid, p_reason text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=jsonb srcmd5=4703a0e677bb8c82e96dbde53d75c5a8
+F_function|handle_new_user()|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=trigger srcmd5=e876580df2d872f63ee92349912715b7
+F_function|handle_user_email_changed()|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=trigger srcmd5=0646f765f8c5a4dab955ec02c895287e
+F_function|handle_user_email_confirmed()|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=trigger srcmd5=86a18d01627e972d805702abbd817416
+F_function|has_active_role(p_user uuid, p_role text)|lang=sql vol=s secdef=true strict=false cfg=search_path="" ret=boolean srcmd5=21c98b0890884ff80e8cc9837a35d39b
+F_function|heal_missing_profile(p_user uuid)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=jsonb srcmd5=7f908814800bf3b4c983212fa70c6c5b
+F_function|is_admin_any(p_user uuid)|lang=sql vol=s secdef=true strict=false cfg=search_path="" ret=boolean srcmd5=3d1b6fd01fb2424c016d544daf410902
+F_function|is_assigned_mentor(p_mentor uuid, p_student uuid)|lang=sql vol=s secdef=true strict=false cfg=search_path="" ret=boolean srcmd5=3ab0d7f01cf01c94c66d65befa4bd505
+F_function|is_assigned_teacher(p_user uuid, p_offering uuid)|lang=sql vol=s secdef=true strict=false cfg=search_path="" ret=boolean srcmd5=3ab0d7f01cf01c94c66d65befa4bd505
+F_function|is_enrolled_student(p_user uuid, p_offering uuid)|lang=sql vol=s secdef=true strict=false cfg=search_path="" ret=boolean srcmd5=3ab0d7f01cf01c94c66d65befa4bd505
+F_function|my_action_items()|lang=sql vol=s secdef=true strict=false cfg=search_path="" ret=TABLE(source_type text, source_id text, title text, reason text, target_url text, status text, priority integer) srcmd5=ca8e60b9bfb7116c0f2df8375b5ee8c4
+F_function|my_application()|lang=sql vol=s secdef=true strict=false cfg=search_path="" ret=TABLE(id uuid, pathway text, status text, form_data jsonb, form_version text, locked_fields text[], applicant_visible_message text, submitted_at timestamp with time zone, decided_at timestamp with time zone, updated_at timestamp with time zone) srcmd5=ef8cbe9828419ec3db75fb424054657e
+F_function|my_application_timeline(p_app uuid)|lang=sql vol=s secdef=true strict=false cfg=search_path="" ret=TABLE(to_status text, applicant_visible_message text, created_at timestamp with time zone) srcmd5=ceb41b1bb11c5310738c4b9dee5e2e0a
+F_function|my_learning()|lang=sql vol=s secdef=true strict=false cfg=search_path="" ret=TABLE(code text, title_zh text, category text, level text, total_lessons integer, availability text, credits numeric, learning_state text) srcmd5=0907756993492d824fa25881f87ad628
+F_function|my_profile()|lang=sql vol=s secdef=true strict=false cfg=search_path="" ret=profiles srcmd5=3da19f2f7935e06cef79ef301a3b69c8
+F_function|my_recovery_flow()|lang=sql vol=s secdef=true strict=false cfg=search_path="" ret=TABLE(id uuid, status text, attempts integer, created_at timestamp with time zone, expires_at timestamp with time zone, completed_at timestamp with time zone, reap_reason text) srcmd5=97d5035578f549ea7b3d5129f2016b4f
+F_function|my_roles()|lang=sql vol=s secdef=true strict=false cfg=search_path="" ret=TABLE(role text, scope_type text, scope_id uuid) srcmd5=6ed715135b9ee243eb04e64eadb44271
+F_function|my_student_capabilities()|lang=plpgsql vol=s secdef=true strict=false cfg=search_path="" ret=jsonb srcmd5=9552b4b95db2d6587ec7bdef6d91e37c
+F_function|my_student_profile()|lang=plpgsql vol=s secdef=true strict=false cfg=search_path="" ret=jsonb srcmd5=ede0ea594bc5bfb01e6ae1ceea940252
+F_function|my_student_record()|lang=sql vol=s secdef=true strict=false cfg=search_path="" ret=TABLE(id uuid, status text, student_number text, program_code text, pathway text, activated_at timestamp with time zone, created_at timestamp with time zone) srcmd5=1cc34efd4dd9e0699a5c253fb36ac7c9
+F_function|my_student_timeline()|lang=sql vol=s secdef=true strict=false cfg=search_path="" ret=TABLE(to_status text, student_visible_message text, created_at timestamp with time zone) srcmd5=e7db2efcf4bae67c99bb0414f3a986e0
+F_function|my_teacher_verification()|lang=sql vol=s secdef=true strict=false cfg=search_path="" ret=TABLE(id uuid, status text, submitted_at timestamp with time zone, reviewed_at timestamp with time zone, applicant_visible_message text, updated_at timestamp with time zone) srcmd5=cf0c44d0bd2877041151f8ea116d1bcc
+F_function|normalize_student_number(p_raw text)|lang=sql vol=i secdef=false strict=false cfg=search_path="" ret=text srcmd5=9fcffe978384b3e692fdc99b23c97046
+F_function|pending_number_void_requests()|lang=sql vol=s secdef=true strict=false cfg=search_path="" ret=TABLE(id uuid, student_id uuid, display_name text, wrong_original text, replacement_original text, reason text, evidence_reference text, initiated_by uuid, initiator_name text, initiated_at timestamp with time zone, can_i_approve boolean) srcmd5=56bce1327cbeaf4207e4af70200b70ed
+F_function|protect_profile_fields()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" ret=trigger srcmd5=29264e784dc2ace3dc8d80b8b1947b81
+F_function|reap_stale_recovery_flows(p_user uuid)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=jsonb srcmd5=84df6d408d1ad2ac076500079a6763ce
+F_function|reject_student_number_void(p_request uuid, p_actor uuid, p_note text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=jsonb srcmd5=ea89268bdce351fd530fa6e807648f13
+F_function|request_student_number_void(p_student uuid, p_actor uuid, p_replacement_number text, p_reason text, p_evidence text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=jsonb srcmd5=594f37f4ea72e016bee79db61387452c
+F_function|resolve_requirement(p_req uuid)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=jsonb srcmd5=e5f1f8d151b63ca8cc5238c5cefe04bd
+F_function|review_application(p_app uuid, p_reviewer uuid, p_action text, p_message text, p_requirements jsonb, p_internal_note text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=jsonb srcmd5=5a64a3cdecc6a368bdd67321c06430a2
+F_function|review_teacher_verification(p_request uuid, p_reviewer uuid, p_action text, p_message text, p_staff_number text, p_grant_mentor boolean, p_internal_note text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=jsonb srcmd5=2ea9714be93c8ee097ccd3a003162b06
+F_function|set_updated_at()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" ret=trigger srcmd5=98689d408f8591b037abaabe28945dfe
+F_function|start_recovery_flow()|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=jsonb srcmd5=b7651339a8d469fb32b96550ebab16b2
+F_function|student_guard()|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=trigger srcmd5=4cf5263ab9113240029c0dd08efd3246
+F_function|student_number_has_irreversible_records(p_normalized text)|lang=plpgsql vol=s secdef=true strict=false cfg=search_path="" ret=boolean srcmd5=ced9526c4f74cdbf07ffcf16cfcadba4
+F_function|submit_application(p_app uuid)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=jsonb srcmd5=ac65a6cab901ff89ca18dac0a992764a
+F_function|sync_alias_on_role_revoke()|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=trigger srcmd5=9aec0ba97802e8680ed7573296963e5a
+F_function|tvr_validate_transition()|lang=plpgsql vol=v secdef=false strict=false cfg=search_path="" ret=trigger srcmd5=f7a916aadcd9276552df777717adf655
+F_function|update_my_contact(p_display_name text, p_phone text, p_contact_note text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=jsonb srcmd5=0940211e2f2c11eb42443b1f638fd805
+F_function|withdraw_application(p_app uuid, p_reason text)|lang=plpgsql vol=v secdef=true strict=false cfg=search_path="" ret=jsonb srcmd5=1f4ad2b337bbc2882ae92bca84b62f4b
+G_table_grant|app_announcements.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_christian_profile.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_cooperation_submissions.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_course_files.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_course_progress.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_friend_requests.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_friendships.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_image_uploads.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_library_books.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_library_favorites.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_post_comments.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_post_likes.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_posts.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_practice_training_state.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_prayer_intercessions.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_prayer_session_events.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_prayer_session_items.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_prayer_sessions.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_prayer_share_reports.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_prayer_shares.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_push_tokens.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_recordings.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_room_members.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_room_prayer_topics.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_room_presence.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_room_reading_state.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_room_realtime_events.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|app_rooms.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|application_hq_approvals.anon|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|application_hq_approvals.authenticated|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|application_hq_approvals.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|application_internal.anon|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|application_internal.authenticated|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|application_internal.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|application_requirements.anon|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|application_requirements.authenticated|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|application_requirements.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|application_status_history.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|applications.anon|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|applications.authenticated|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|applications.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|audit_logs.anon|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|audit_logs.authenticated|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|audit_logs.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|course_catalog.anon|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|course_catalog.authenticated|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|course_catalog.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|data_export_logs.anon|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|data_export_logs.authenticated|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|data_export_logs.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|hq_approval_internal.anon|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|hq_approval_internal.authenticated|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|hq_approval_internal.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|irreversible_record_sources.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|login_aliases.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|profiles.anon|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|profiles.authenticated|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|profiles.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|program_catalog.anon|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|program_catalog.authenticated|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|program_catalog.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|recovery_flows.anon|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|recovery_flows.authenticated|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|recovery_flows.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|security_events.anon|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|security_events.authenticated|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|security_events.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|student_number_registry.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|student_number_void_requests.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|student_records.anon|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|student_records.authenticated|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|student_records.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|student_status_history.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|submissions.anon|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|submissions.authenticated|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|submissions.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|teacher_invitations.anon|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|teacher_invitations.authenticated|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|teacher_invitations.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|teacher_profiles.anon|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|teacher_profiles.authenticated|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|teacher_profiles.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|teacher_profiles_internal.anon|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|teacher_profiles_internal.authenticated|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|teacher_profiles_internal.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|teacher_verification_internal.anon|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|teacher_verification_internal.authenticated|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|teacher_verification_internal.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|teacher_verification_requests.anon|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|teacher_verification_requests.authenticated|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|teacher_verification_requests.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_table_grant|user_roles.anon|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|user_roles.authenticated|MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE
+G_table_grant|user_roles.service_role|DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE
+G_func_grant|activate_student(p_student uuid, p_actor uuid, p_message text, p_internal_note text).service_role|EXECUTE
+G_func_grant|admissions_ready_for_enrollment().authenticated|EXECUTE
+G_func_grant|admissions_ready_for_enrollment().service_role|EXECUTE
+G_func_grant|app_rooms_mark_host_orphaned().PUBLIC|EXECUTE
+G_func_grant|app_rooms_mark_host_orphaned().anon|EXECUTE
+G_func_grant|app_rooms_mark_host_orphaned().authenticated|EXECUTE
+G_func_grant|app_rooms_mark_host_orphaned().service_role|EXECUTE
+G_func_grant|append_only_guard().PUBLIC|EXECUTE
+G_func_grant|append_only_guard().anon|EXECUTE
+G_func_grant|append_only_guard().authenticated|EXECUTE
+G_func_grant|append_only_guard().service_role|EXECUTE
+G_func_grant|application_protect_locked().PUBLIC|EXECUTE
+G_func_grant|application_protect_locked().anon|EXECUTE
+G_func_grant|application_protect_locked().authenticated|EXECUTE
+G_func_grant|application_protect_locked().service_role|EXECUTE
+G_func_grant|application_strip_forbidden().PUBLIC|EXECUTE
+G_func_grant|application_strip_forbidden().anon|EXECUTE
+G_func_grant|application_strip_forbidden().authenticated|EXECUTE
+G_func_grant|application_strip_forbidden().service_role|EXECUTE
+G_func_grant|application_validate_form(p_form jsonb, p_pathway text).PUBLIC|EXECUTE
+G_func_grant|application_validate_form(p_form jsonb, p_pathway text).anon|EXECUTE
+G_func_grant|application_validate_form(p_form jsonb, p_pathway text).authenticated|EXECUTE
+G_func_grant|application_validate_form(p_form jsonb, p_pathway text).service_role|EXECUTE
+G_func_grant|application_validate_program(p_form jsonb).PUBLIC|EXECUTE
+G_func_grant|application_validate_program(p_form jsonb).anon|EXECUTE
+G_func_grant|application_validate_program(p_form jsonb).authenticated|EXECUTE
+G_func_grant|application_validate_program(p_form jsonb).service_role|EXECUTE
+G_func_grant|application_validate_transition().PUBLIC|EXECUTE
+G_func_grant|application_validate_transition().anon|EXECUTE
+G_func_grant|application_validate_transition().authenticated|EXECUTE
+G_func_grant|application_validate_transition().service_role|EXECUTE
+G_func_grant|approve_student_number_void(p_request uuid, p_actor uuid, p_note text).service_role|EXECUTE
+G_func_grant|auth_rate_check(p_identifier text, p_ip text).service_role|EXECUTE
+G_func_grant|auth_record_attempt(p_identifier text, p_ip text, p_ok boolean, p_user uuid).service_role|EXECUTE
+G_func_grant|claim_recovery_flow(p_flow uuid, p_user uuid).service_role|EXECUTE
+G_func_grant|complete_recovery_flow(p_flow uuid, p_user uuid).service_role|EXECUTE
+G_func_grant|confirm_hq_approval(p_app uuid, p_actor uuid, p_status text, p_reference text, p_visible_note text, p_internal_note text).service_role|EXECUTE
+G_func_grant|consume_teacher_invitation(p_token_hash text, p_email text).service_role|EXECUTE
+G_func_grant|correct_student_number(p_student uuid, p_actor uuid, p_new_number text, p_reason text).service_role|EXECUTE
+G_func_grant|course_catalog_guard().PUBLIC|EXECUTE
+G_func_grant|course_catalog_guard().anon|EXECUTE
+G_func_grant|course_catalog_guard().authenticated|EXECUTE
+G_func_grant|course_catalog_guard().service_role|EXECUTE
+G_func_grant|create_student_record(p_app uuid, p_actor uuid, p_student_number text, p_program_code text).service_role|EXECUTE
+G_func_grant|current_user_has_role(p_role text).authenticated|EXECUTE
+G_func_grant|current_user_has_role(p_role text).service_role|EXECUTE
+G_func_grant|fail_recovery_flow(p_flow uuid, p_user uuid, p_reason text).service_role|EXECUTE
+G_func_grant|handle_new_user().authenticated|EXECUTE
+G_func_grant|handle_new_user().service_role|EXECUTE
+G_func_grant|handle_user_email_changed().authenticated|EXECUTE
+G_func_grant|handle_user_email_changed().service_role|EXECUTE
+G_func_grant|handle_user_email_confirmed().authenticated|EXECUTE
+G_func_grant|handle_user_email_confirmed().service_role|EXECUTE
+G_func_grant|has_active_role(p_user uuid, p_role text).authenticated|EXECUTE
+G_func_grant|has_active_role(p_user uuid, p_role text).service_role|EXECUTE
+G_func_grant|heal_missing_profile(p_user uuid).service_role|EXECUTE
+G_func_grant|is_admin_any(p_user uuid).authenticated|EXECUTE
+G_func_grant|is_admin_any(p_user uuid).service_role|EXECUTE
+G_func_grant|is_assigned_mentor(p_mentor uuid, p_student uuid).authenticated|EXECUTE
+G_func_grant|is_assigned_mentor(p_mentor uuid, p_student uuid).service_role|EXECUTE
+G_func_grant|is_assigned_teacher(p_user uuid, p_offering uuid).authenticated|EXECUTE
+G_func_grant|is_assigned_teacher(p_user uuid, p_offering uuid).service_role|EXECUTE
+G_func_grant|is_enrolled_student(p_user uuid, p_offering uuid).authenticated|EXECUTE
+G_func_grant|is_enrolled_student(p_user uuid, p_offering uuid).service_role|EXECUTE
+G_func_grant|my_action_items().authenticated|EXECUTE
+G_func_grant|my_action_items().service_role|EXECUTE
+G_func_grant|my_application().authenticated|EXECUTE
+G_func_grant|my_application().service_role|EXECUTE
+G_func_grant|my_application_timeline(p_app uuid).authenticated|EXECUTE
+G_func_grant|my_application_timeline(p_app uuid).service_role|EXECUTE
+G_func_grant|my_learning().authenticated|EXECUTE
+G_func_grant|my_learning().service_role|EXECUTE
+G_func_grant|my_profile().authenticated|EXECUTE
+G_func_grant|my_profile().service_role|EXECUTE
+G_func_grant|my_recovery_flow().authenticated|EXECUTE
+G_func_grant|my_recovery_flow().service_role|EXECUTE
+G_func_grant|my_roles().authenticated|EXECUTE
+G_func_grant|my_roles().service_role|EXECUTE
+G_func_grant|my_student_capabilities().authenticated|EXECUTE
+G_func_grant|my_student_capabilities().service_role|EXECUTE
+G_func_grant|my_student_profile().authenticated|EXECUTE
+G_func_grant|my_student_profile().service_role|EXECUTE
+G_func_grant|my_student_record().authenticated|EXECUTE
+G_func_grant|my_student_record().service_role|EXECUTE
+G_func_grant|my_student_timeline().authenticated|EXECUTE
+G_func_grant|my_student_timeline().service_role|EXECUTE
+G_func_grant|my_teacher_verification().authenticated|EXECUTE
+G_func_grant|my_teacher_verification().service_role|EXECUTE
+G_func_grant|normalize_student_number(p_raw text).PUBLIC|EXECUTE
+G_func_grant|normalize_student_number(p_raw text).anon|EXECUTE
+G_func_grant|normalize_student_number(p_raw text).authenticated|EXECUTE
+G_func_grant|normalize_student_number(p_raw text).service_role|EXECUTE
+G_func_grant|pending_number_void_requests().authenticated|EXECUTE
+G_func_grant|pending_number_void_requests().service_role|EXECUTE
+G_func_grant|protect_profile_fields().authenticated|EXECUTE
+G_func_grant|protect_profile_fields().service_role|EXECUTE
+G_func_grant|reap_stale_recovery_flows(p_user uuid).service_role|EXECUTE
+G_func_grant|reject_student_number_void(p_request uuid, p_actor uuid, p_note text).service_role|EXECUTE
+G_func_grant|request_student_number_void(p_student uuid, p_actor uuid, p_replacement_number text, p_reason text, p_evidence text).service_role|EXECUTE
+G_func_grant|resolve_requirement(p_req uuid).authenticated|EXECUTE
+G_func_grant|resolve_requirement(p_req uuid).service_role|EXECUTE
+G_func_grant|review_application(p_app uuid, p_reviewer uuid, p_action text, p_message text, p_requirements jsonb, p_internal_note text).service_role|EXECUTE
+G_func_grant|review_teacher_verification(p_request uuid, p_reviewer uuid, p_action text, p_message text, p_staff_number text, p_grant_mentor boolean, p_internal_note text).service_role|EXECUTE
+G_func_grant|set_updated_at().authenticated|EXECUTE
+G_func_grant|set_updated_at().service_role|EXECUTE
+G_func_grant|start_recovery_flow().authenticated|EXECUTE
+G_func_grant|start_recovery_flow().service_role|EXECUTE
+G_func_grant|student_guard().PUBLIC|EXECUTE
+G_func_grant|student_guard().anon|EXECUTE
+G_func_grant|student_guard().authenticated|EXECUTE
+G_func_grant|student_guard().service_role|EXECUTE
+G_func_grant|student_number_has_irreversible_records(p_normalized text).service_role|EXECUTE
+G_func_grant|submit_application(p_app uuid).authenticated|EXECUTE
+G_func_grant|submit_application(p_app uuid).service_role|EXECUTE
+G_func_grant|sync_alias_on_role_revoke().PUBLIC|EXECUTE
+G_func_grant|sync_alias_on_role_revoke().anon|EXECUTE
+G_func_grant|sync_alias_on_role_revoke().authenticated|EXECUTE
+G_func_grant|sync_alias_on_role_revoke().service_role|EXECUTE
+G_func_grant|tvr_validate_transition().PUBLIC|EXECUTE
+G_func_grant|tvr_validate_transition().anon|EXECUTE
+G_func_grant|tvr_validate_transition().authenticated|EXECUTE
+G_func_grant|tvr_validate_transition().service_role|EXECUTE
+G_func_grant|update_my_contact(p_display_name text, p_phone text, p_contact_note text).authenticated|EXECUTE
+G_func_grant|update_my_contact(p_display_name text, p_phone text, p_contact_note text).service_role|EXECUTE
+G_func_grant|withdraw_application(p_app uuid, p_reason text).authenticated|EXECUTE
+G_func_grant|withdraw_application(p_app uuid, p_reason text).service_role|EXECUTE
+G2_privilege_surface|application_hq_approvals.anon|TRUNCATE
+G2_privilege_surface|application_hq_approvals.authenticated|TRUNCATE
+G2_privilege_surface|application_internal.anon|TRUNCATE
+G2_privilege_surface|application_internal.authenticated|TRUNCATE
+G2_privilege_surface|application_requirements.anon|TRUNCATE
+G2_privilege_surface|application_requirements.authenticated|TRUNCATE
+G2_privilege_surface|applications.anon|DELETE,INSERT,TRUNCATE,UPDATE
+G2_privilege_surface|applications.authenticated|DELETE,INSERT,TRUNCATE,UPDATE
+G2_privilege_surface|audit_logs.anon|DELETE,INSERT,TRUNCATE,UPDATE
+G2_privilege_surface|audit_logs.authenticated|DELETE,INSERT,TRUNCATE,UPDATE
+G2_privilege_surface|course_catalog.anon|TRUNCATE
+G2_privilege_surface|course_catalog.authenticated|TRUNCATE
+G2_privilege_surface|data_export_logs.anon|DELETE,INSERT,TRUNCATE,UPDATE
+G2_privilege_surface|data_export_logs.authenticated|DELETE,INSERT,TRUNCATE,UPDATE
+G2_privilege_surface|hq_approval_internal.anon|TRUNCATE
+G2_privilege_surface|hq_approval_internal.authenticated|TRUNCATE
+G2_privilege_surface|profiles.anon|DELETE,INSERT,TRUNCATE,UPDATE
+G2_privilege_surface|profiles.authenticated|DELETE,INSERT,TRUNCATE,UPDATE
+G2_privilege_surface|program_catalog.anon|TRUNCATE
+G2_privilege_surface|program_catalog.authenticated|TRUNCATE
+G2_privilege_surface|recovery_flows.anon|TRUNCATE
+G2_privilege_surface|recovery_flows.authenticated|TRUNCATE
+G2_privilege_surface|security_events.anon|DELETE,INSERT,TRUNCATE,UPDATE
+G2_privilege_surface|security_events.authenticated|DELETE,INSERT,TRUNCATE,UPDATE
+G2_privilege_surface|student_records.anon|TRUNCATE
+G2_privilege_surface|student_records.authenticated|TRUNCATE
+G2_privilege_surface|submissions.anon|DELETE,INSERT,TRUNCATE,UPDATE
+G2_privilege_surface|submissions.authenticated|DELETE,INSERT,TRUNCATE,UPDATE
+G2_privilege_surface|teacher_invitations.anon|TRUNCATE
+G2_privilege_surface|teacher_invitations.authenticated|TRUNCATE
+G2_privilege_surface|teacher_profiles.anon|TRUNCATE
+G2_privilege_surface|teacher_profiles.authenticated|TRUNCATE
+G2_privilege_surface|teacher_profiles_internal.anon|TRUNCATE
+G2_privilege_surface|teacher_profiles_internal.authenticated|TRUNCATE
+G2_privilege_surface|teacher_verification_internal.anon|TRUNCATE
+G2_privilege_surface|teacher_verification_internal.authenticated|TRUNCATE
+G2_privilege_surface|teacher_verification_requests.anon|DELETE,INSERT,TRUNCATE,UPDATE
+G2_privilege_surface|teacher_verification_requests.authenticated|DELETE,INSERT,TRUNCATE,UPDATE
+G2_privilege_surface|user_roles.anon|TRUNCATE
+G2_privilege_surface|user_roles.authenticated|TRUNCATE
+G2_func_exec_open|app_rooms_mark_host_orphaned|PUBLIC,anon
+G2_func_exec_open|append_only_guard|PUBLIC,anon
+G2_func_exec_open|application_protect_locked|PUBLIC,anon
+G2_func_exec_open|application_strip_forbidden|PUBLIC,anon
+G2_func_exec_open|application_validate_form|PUBLIC,anon
+G2_func_exec_open|application_validate_program|PUBLIC,anon
+G2_func_exec_open|application_validate_transition|PUBLIC,anon
+G2_func_exec_open|course_catalog_guard|PUBLIC,anon
+G2_func_exec_open|normalize_student_number|PUBLIC,anon
+G2_func_exec_open|student_guard|PUBLIC,anon
+G2_func_exec_open|sync_alias_on_role_revoke|PUBLIC,anon
+G2_func_exec_open|tvr_validate_transition|PUBLIC,anon
+G3_write_policy|applications.app_self_insert|rls=true cmd=INSERT roles=authenticated using=(none) check=((applicant_id = auth.uid()) AND (status = 'draft'::application_status))
+G3_write_policy|applications.app_self_update|rls=true cmd=UPDATE roles=authenticated using=(((applicant_id = auth.uid()) AND (status = ANY (ARRAY['draft'::application_status, 'needs_information'::application_status]))) OR is_admin_any(auth.uid())) check=((applicant_id = auth.uid()) OR is_admin_any(auth.uid()))
+G3_write_policy|profiles.profiles_self_update|rls=true cmd=UPDATE roles=authenticated using=(id = auth.uid()) check=(id = auth.uid())
+G3_write_policy|submissions.anon_insert|rls=true cmd=INSERT roles=anon using=(none) check=true
+G3_write_policy|submissions.auth_update|rls=true cmd=UPDATE roles=authenticated using=true check=true
+G3_write_policy|teacher_verification_requests.tvr_self_insert|rls=true cmd=INSERT roles=authenticated using=(none) check=((user_id = auth.uid()) AND (status = 'draft'::teacher_verification_status))
+G3_write_policy|teacher_verification_requests.tvr_self_update|rls=true cmd=UPDATE roles=authenticated using=((user_id = auth.uid()) AND (status = ANY (ARRAY['draft'::teacher_verification_status, 'needs_information'::teacher_verification_status]))) check=(user_id = auth.uid())
+H_enum|account_status|pending_email,active,locked,suspended,disabled
+H_enum|alias_type|student_number,staff_number
+H_enum|app_announcement_type|important,normal
+H_enum|app_prayer_report_reason|privacy,harassment,spam,unsafe,other
+H_enum|app_prayer_report_status|open,reviewed,dismissed
+H_enum|app_prayer_session_event_type|created,started,item_changed,facilitator_changed,ended
+H_enum|app_prayer_session_status|scheduled,active,ended
+H_enum|app_push_platform|ios,android,web
+H_enum|app_room_event_type|session.changed,prayer.changed,theme.changed,moderation.changed
+H_enum|app_room_host_type|system,user
+H_enum|app_room_member_role|member,moderator
+H_enum|application_pathway|bth,common_learning,undecided
+H_enum|application_status|draft,submitted,under_review,needs_information,accepted,rejected,withdrawn
+H_enum|course_availability|available,in_development
+H_enum|course_category|nt,ot,bible_basics,theology,practical,history,language
+H_enum|hq_approval_status|pending,approved,rejected
+H_enum|irreversible_verdict|yes,no,pending_decision
+H_enum|number_void_status|pending,approved,rejected,cancelled
+H_enum|recovery_flow_status|pending,processing,completed,failed_retryable,expired
+H_enum|student_number_state|reserved,assigned,retired,voided_clerical_error
+H_enum|student_status|pre_enrolled,active
+H_enum|teacher_profile_status|active,leave,suspended,departed
+H_enum|teacher_verification_status|invited,draft,email_verified,submitted,needs_information,approved,rejected,expired,suspended,revoked
+H_enum|user_role|applicant,student,teacher,mentor,registrar,finance,content_admin,academic_admin,super_admin

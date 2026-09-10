@@ -26,12 +26,35 @@ end $$;
 
 
 -- ── 固定装置：两个真实身份 ────────────────────────────────────────────────
+--
+-- ★ 这里必须用 upsert，不能用裸 insert。原因是 auth.users 上挂着
+--   on_auth_user_created → handle_new_user，它的段 1 会
+--   `insert into public.profiles ... on conflict (id) do nothing`。
+--   那一段引用了 new.email_confirmed_at 与 new.raw_user_meta_data。
+--
+--   两种环境的行为因此不同：
+--     真实 Supabase（auth.users 35 列，两列都在）
+--         → 段 1 成功，profiles 行已由触发器建好
+--         → 裸 insert 撞 profiles_pkey，整个合约测试在第一步就炸
+--     最小 shim（auth.users 缺 email_confirmed_at）
+--         → 段 1 运行时报错，被 handle_new_user 自己的
+--           `exception when others` 吞掉并记入 security_events
+--         → 不建 profiles 行，裸 insert 侥幸成功
+--
+--   也就是说：裸 insert 在沙箱上"通过"是假象，在 live 上必然失败。
+--   STAGING-1A8 §5 已在 PG 17.6 上双向实测复现了这两种结果。
+--
+--   upsert 让本装置对触发器是否生效保持中立：触发器建了就改写，
+--   没建就插入。两种形态下 display_name 都确定为 'A' / 'B'。
 insert into auth.users (id, email) values
   ('11111111-1111-1111-1111-111111111111', 'db3a@test.invalid'),
   ('22222222-2222-2222-2222-222222222222', 'db3b@test.invalid');
 insert into public.profiles (id, email, display_name) values
   ('11111111-1111-1111-1111-111111111111', 'db3a@test.invalid', 'A'),
-  ('22222222-2222-2222-2222-222222222222', 'db3b@test.invalid', 'B');
+  ('22222222-2222-2222-2222-222222222222', 'db3b@test.invalid', 'B')
+on conflict (id) do update
+  set email        = excluded.email,
+      display_name = excluded.display_name;
 
 
 -- ══ 1. GATE 0 —— 不得存在 app_user_profile_ext；bio 落在 canonical profiles ══

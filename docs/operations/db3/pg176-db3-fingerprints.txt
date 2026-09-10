@@ -1,0 +1,57 @@
+# PG 17.6 CANONICAL FINGERPRINT — DB-3 STAGES
+# 生成于 2026-09-10，本地 PG 17.6 沙箱 amas_db3
+# 起点：post-0022，与 live 已接受基线逐项吻合（表26/RLS26/策略33/函数59/pc业务指纹 cd41beee…）
+# 方法：supabase/tests/r2_schema_fingerprint.sql（public schema，A-F/H 域）
+#       每域 = md5( 该域行按字典序排序、LF 连接 )
+# ⚠ 不得使用任何 PG 18.6 来源的 digest 作为硬门禁。
+
+## post-0022
+A_column|245|e910a2bb9c9aa67d6550509e719dd6bf
+B_constraint|72|9e38564adeb9358da98d2e7ae325c79f
+C_index|59|955c56a27c339f1f5cce1697bc6e5ede
+D_trigger|18|d9b321ec390108ac712db55f02fa781f
+E_policy|33|d06a9b7f90dd2697420ed043350a5d5f
+E_rls_enabled|26|6461fb5e99bd036f95525635b1fadbdc
+F_function|59|6fe5410b84f57ca13c55cfc65f66601b
+H_enum|15|22575b34ed9950448fc8157070cdeee8
+
+## post-0023
+A_column|253|79cca8d2b0555ece8dcabb66ea47fbf1
+B_constraint|76|6285f11d87de863a8451e63a9a40f1ae
+C_index|61|c2c9ef3ca718cab2262a2bf442207694
+D_trigger|18|d9b321ec390108ac712db55f02fa781f
+E_policy|33|d06a9b7f90dd2697420ed043350a5d5f
+E_rls_enabled|27|3cbac10af0fe8c731ecafc30f0ba4da3
+F_function|59|6fe5410b84f57ca13c55cfc65f66601b
+H_enum|24|681c5f7d761305047d22212cb8e242ed
+
+## post-0024
+A_column|278|b35bdfb7a2453a79f9a6043537d8173e
+B_constraint|90|5c6b779536110608b0019a29e86c81d0
+C_index|68|46b410a2df999d9ae7a00df3cbeeb665
+D_trigger|18|d9b321ec390108ac712db55f02fa781f
+E_policy|33|d06a9b7f90dd2697420ed043350a5d5f
+E_rls_enabled|31|89beedc88bfb6e265406e48410187b27
+F_function|59|6fe5410b84f57ca13c55cfc65f66601b
+H_enum|24|681c5f7d761305047d22212cb8e242ed
+
+## post-0025
+A_column|363|a3a7e81f2aca86ff37ac8c88721d3f16
+B_constraint|132|770654dc2fd95bd66faa2deb2281b9db
+C_index|97|32770dc2e72e070fee281888fe3d9e6b
+D_trigger|19|38695e309ed38faadc75976b33babbc7
+E_policy|33|d06a9b7f90dd2697420ed043350a5d5f
+E_rls_enabled|43|714b753052ea86f5674f8796cba74d90
+F_function|60|dd89f4e9027b7e2050ae2d91031dc21c
+H_enum|24|681c5f7d761305047d22212cb8e242ed
+
+## post-0026
+A_column|434|e655f5d26c430d6f76ecc6e439eed699
+B_constraint|166|032a9c98a2e3df4b7fc04de5f761809d
+C_index|123|8956d7006a4fcc20aa93a65c421ecc81
+D_trigger|19|38695e309ed38faadc75976b33babbc7
+E_policy|33|d06a9b7f90dd2697420ed043350a5d5f
+E_rls_enabled|54|02f74bc9c984907645ec6ab432029bb4
+F_function|60|dd89f4e9027b7e2050ae2d91031dc21c
+H_enum|24|681c5f7d761305047d22212cb8e242ed
+
