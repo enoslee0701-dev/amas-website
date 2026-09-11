@@ -19,7 +19,9 @@
   .card { background: #fff; border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 1px 2px rgba(16,24,40,.04), 0 2px 8px rgba(16,24,40,.04); }
   .gold-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 46px; padding: 0 22px; border: none; border-radius: 999px; cursor: pointer; background: linear-gradient(180deg, #F4D796 0%, #E1B75F 100%); color: #123061; font-size: 14px; font-weight: 800; letter-spacing: .4px; box-shadow: 0 8px 18px rgba(160,116,38,.28), inset 0 1px 0 rgba(255,255,255,.55); }
   .gold-btn:active { transform: scale(.98); }
-  .ghost-btn { width: 100%; height: 42px; border-radius: 999px; border: 1px solid #E2E5EB; background: #fff; color: #475467; font-size: 13px; font-weight: 700; cursor: pointer; }
+  /* 42 → 44：与全站触控判据统一。这条只在结果页出现（重新探索、浏览倾向说明），
+     前几轮的全页巡检扫的是首屏视图，结果页是 hidden 的，所以一直没被量到。 */
+  .ghost-btn { width: 100%; min-height: 44px; border-radius: 999px; border: 1px solid #E2E5EB; background: #fff; color: #475467; font-size: 13px; font-weight: 700; cursor: pointer; }
   .hidden { display: none !important; }
   .fade { animation: fade .3s ease; }
   @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
@@ -159,7 +161,14 @@
   .dswitch { margin-top: 12px; padding: 12px 12px 10px; border-radius: 16px; background: #fff; border: 1px solid var(--line); }
   .dnav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
   .dnav span { font-size: 11px; font-weight: 800; color: #667085; }
-  .dnav button { border: 1px solid #E2E5EB; background: #F8FAFF; color: var(--navy); font-size: 11px; font-weight: 800; border-radius: 999px; padding: 5px 11px; cursor: pointer; }
+  /* 原本 padding:5px 11px + font-size:11px，实测高度约 25px —— 手指点不准。
+     抬到 44 的同时字号与配色不变，只是把命中区撑开。 */
+  .dnav button { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-height: 44px; border: 1px solid #E2E5EB; background: #F8FAFF; color: var(--navy); font-size: 11px; font-weight: 800; border-radius: 999px; padding: 0 14px; cursor: pointer; }
+  /* 结果页上的「浏览倾向说明」入口 */
+  .arch-entry { margin-top: 14px; padding: 14px 15px; border: 1px solid #E7EAF0; border-radius: 14px; background: #FAFBFD; }
+  .arch-entry b { display: block; font-size: 13.5px; color: var(--navy); }
+  .arch-entry p { margin: 5px 0 10px; font-size: 11.5px; line-height: 1.8; color: #667085; }
+  .arch-entry .ghost-btn { width: 100%; margin-top: 0; }
   .dgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
   .dgrid button { border: 1px solid #ECEEF2; border-radius: 10px; padding: 0 0 3px; background: #fff; overflow: hidden; cursor: pointer; text-align: center; }
   .dgrid button img { width: 100%; display: block; }
@@ -288,6 +297,17 @@
       <p class="disclaimer" style="margin:2px 0 4px">状态等级描述的是“当前实践与认识的状态”，不是属灵价值的评价。</p>
       <div class="advice"><b id="adviceT"></b><p id="advice"></p></div>
 
+      <!-- 进入倾向说明的入口。
+           措辞必须中性：本页测验评的是 5 个维度（读经/教义/灵修/事奉/门训），
+           与这 12 项事奉倾向是两套互不相交的东西，测验**不产出**任何「你的倾向」。
+           页面自己在上方结论与下方解锁区都写明了这一点，入口不能跟它们打架，
+           所以写成「了解这 12 项分别是什么」，而不是「查看你对应的倾向」。 -->
+      <div class="arch-entry">
+        <b>想先了解 12 项事奉倾向分别是什么？</b>
+        <p>这 12 项不由本次快速探索得出（本次评的是上面五个维度）。你可以先浏览它们各自的说明。</p>
+        <button class="ghost-btn" id="toArchetypes" onclick="openArchetypes()">浏览 12 项事奉倾向说明</button>
+      </div>
+
       <div class="unlock">
         <b>在 AMAS App 的「定制化神学」成长画像中，你会看到</b>
         <ul>
@@ -299,7 +319,7 @@
         <button class="gold-btn" style="width:100%" onclick="goApp('unlock')">完成完整信仰成长档案</button>
       </div>
 
-      <button class="ghost-btn" style="margin-top:12px" onclick="restart()">重新探索一次</button>
+      <button class="ghost-btn" id="restartQuiz" style="margin-top:12px" onclick="restart()">重新探索一次</button>
       <p class="disclaimer" style="margin-top:12px">这是基于少量问题形成的初步探索结果，不代表完整信仰成长档案。完成标准评估后，系统将使用更多行为、情境和实践信息生成更稳定的成长档案。</p>
       <p class="disclaimer" style="margin-top:6px" id="disc1"></p>
     </div>
@@ -323,7 +343,7 @@
       <div class="dl">
         <img class="rimg" id="dImg" alt="" />
         <div class="dswitch">
-          <div class="dnav"><button onclick="stepDetail(-1)">‹ 上一个</button><span>切换查看其他倾向</span><button onclick="stepDetail(1)">下一个 ›</button></div>
+          <div class="dnav"><button type="button" id="dPrev" onclick="stepDetail(-1)">‹ 上一个</button><span>切换查看其他倾向</span><button type="button" id="dNext" onclick="stepDetail(1)">下一个 ›</button></div>
           <div class="dgrid" id="dGrid"></div>
         </div>
       </div>
@@ -540,6 +560,11 @@ function renderDetailGrid(){
   Array.prototype.forEach.call(g.children, function(b){ b.className = b.getAttribute('data-k') === currentDetail ? 'on' : ''; });
 }
 function stepDetail(dir){ var i = ARCH.map(function(a){ return a.k; }).indexOf(currentDetail); openDetail(ARCH[(i + dir + ARCH.length) % ARCH.length].k); }
+// 结果页的浏览入口。刻意**不**根据答题结果挑原型 —— 本页测验评的是 5 个维度，
+// 与这 12 项倾向互不相交，挑任何一个当作「你的」都是在编造评分没算过的结论。
+// 所以固定从第一项进，再靠已有的 #dGrid 与上一个/下一个自由浏览。
+// 不新增任何评分逻辑，只是复用 openDetail。
+function openArchetypes(){ openDetail(ARCH[0].k); }
 function closeDetail(){
   show(detailFrom);
   // 返回来处之后同样要交出焦点：回首屏交给「开始快速探索」，回结果页交给结论标题 ——
