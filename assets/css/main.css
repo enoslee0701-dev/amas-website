@@ -1058,7 +1058,11 @@ html[data-theme="night"] .digital-section::after{background:
 .digital-section .digital-note b{color:#d5b46b}
 
 /* ===== 页脚：深蓝多栏 ===== */
-.footer{background:linear-gradient(180deg,#0c1526,#070d19);color:#b9c2d2;padding:62px 0 24px}
+/* 底部内边距里额外留出 84px：客服圆钮是 position:fixed 且不可关闭，滚到页面最底时
+   它正好压在页脚最后一行的右侧 ——「↑ 顶部」实测就被它盖住（遮挡者=#chatFab）。
+   84 = 圆钮离视口底 80px 再加 4px 余量，桌面与手机都够。这是给常驻浮动控件留位，
+   不是装饰性留白。 */
+.footer{background:linear-gradient(180deg,#0c1526,#070d19);color:#b9c2d2;padding:62px 0 calc(24px + 84px + env(safe-area-inset-bottom))}
 html[data-theme="night"] .footer{background:linear-gradient(180deg,#0a1220,#060b15)}
 .footer-top{display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr;gap:54px;align-items:start}
 .footer-id{display:flex;align-items:center;gap:14px;margin-bottom:18px}
@@ -1069,8 +1073,21 @@ html[data-theme="night"] .footer{background:linear-gradient(180deg,#0a1220,#060b
 .footer-col h4{font-size:14.5px;color:#e9c46a;margin:2px 0 18px;font-weight:700;font-family:"Noto Serif SC",Georgia,serif}
 .footer-col a{display:block;font-size:13px;color:#b9c2d2;margin-bottom:13px;transition:color .15s}
 .footer-col a:hover{color:#e9c46a}
-.footer-bottom{margin-top:44px;padding-top:18px;border-top:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;font-size:11px;color:#7e8da3}
-.footer-bottom button{border:0;background:transparent;color:#d5b46b;cursor:pointer}
+.footer-bottom{margin-top:44px;padding-top:18px;border-top:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#7e8da3}
+/* 「↑ 顶部」实测 47x18，低于 44px 触控下限；撑到 44x44，文字仍居中。 */
+.footer-bottom button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;min-width:44px;padding:0 12px;margin-right:-12px;border:0;background:transparent;color:#d5b46b;cursor:pointer}
+/* 转化终点与全局导航的触控目标（只在手机断点；44 这个数是给手指定的，
+   桌面同一批链接由鼠标操作，本轮不动它们的视觉尺寸）。
+   375px 实测：联系方式链接 210x24、「复制」42x25、页脚每条导航 347x19 且行距只有 33px。
+   页脚那十几条上下紧挨，加高之后必须确认相邻两条的命中区不重叠 —— 「点 A 触发 B」
+   比小目标更糟，回归里 F*b 专门盯这件事。
+   把 margin-bottom 换成命中区高度，而不是在 13px 间距之上再加高：
+   前者行距 33 -> 44，后者会变成 57，页脚白白长出一大截。 */
+@media(max-width:580px){
+  #contactMeta a,#contactMeta .copy-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px}
+  #contactMeta .copy-btn{min-width:44px;padding:0 12px}
+  .footer-col a{display:flex;align-items:center;min-height:44px;margin-bottom:0}
+}
 @media(max-width:960px){.footer-top{grid-template-columns:1fr 1fr;gap:36px}}
 @media(max-width:560px){.footer-top{grid-template-columns:1fr}}
 

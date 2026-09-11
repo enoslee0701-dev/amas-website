@@ -1968,3 +1968,79 @@ WCAG 2.5.5 / 2.5.8 量的是目标的外接盒，外加「有没有被别的目�
 统一后三套结论不变：`test-touch-targets` 18/18、`test-promo-tab` 20/20、
 `test-header-touch` 14/14。**结论不变正是这次重构要的结果** —— 它证明
 之前那两份脚本的绿不是靠宽松判据换来的。
+
+---
+
+# 第十四轮：联系方式与页脚导航的触控目标
+
+## 95. 为什么是这两组
+
+联系方式是访客真正要点的**转化终点**；页脚导航在手机上是抽屉之外唯一的**整站入口**。
+375px 实测（修复前）：
+
+| 控件 | 尺寸 | 备注 |
+|---|---|---|
+| 联系方式链接（邮箱） | **210x24** | 高度不足 |
+| `.copy-btn` 复制 | **42x25** | 宽高都不足 |
+| `.footer-col a` 每条导航 | **347x19** | 高度不足，且行距只有 33px |
+| `#backToTop` ↑ 顶部 | **47x18** | 不足，**且在页面末尾被固定客服圆钮压住** |
+
+最后一条是这一轮真正的发现：滚到页面最底时，`position:fixed` 的客服圆钮正好压在
+页脚最后一行的右侧，实测 `遮挡者=#chatFab`。**「回到顶部」在它该出现的唯一场景里点不到。**
+
+## 96. 修法
+
+```css
+/* 页面末尾给常驻浮动控件留位（不是装饰性留白） */
+.footer{padding:62px 0 calc(24px + 84px + env(safe-area-inset-bottom))}
+.footer-bottom button{display:inline-flex;align-items:center;justify-content:center;
+  min-height:44px;min-width:44px;padding:0 12px;margin-right:-12px;...}
+
+@media(max-width:580px){
+  #contactMeta a,#contactMeta .copy-btn{display:inline-flex;align-items:center;
+    justify-content:center;min-height:44px}
+  #contactMeta .copy-btn{min-width:44px;padding:0 12px}
+  .footer-col a{display:flex;align-items:center;min-height:44px;margin-bottom:0}
+}
+```
+
+84px = 客服圆钮离视口底 80px 再加 4px 余量，桌面与手机都够。
+
+页脚那条**把 `margin-bottom` 换成命中区高度，而不是在 13px 间距之上再加高**：
+前者行距 33 → 44，后者会变成 57，页脚白白长出一大截。
+
+十几条链接上下紧挨，加高后必须确认**相邻两条的命中区不重叠** —— 「点 A 触发 B」
+比小目标更糟。回归里 F*b 专门盯这件事（逐对相邻比对，320/375/桌面全过）。
+
+## 97. 一个建模上的区分：可关闭的浮层 vs 不可关闭的浮层
+
+页面末尾同时压着两个浮层：招生卡片和客服圆钮。本轮只为后者留位，因为：
+
+- 招生卡片有 × 可以关掉，关掉当天不再出现 —— 用户可自行消除；
+- 客服圆钮不可关闭，永远在右下角 —— 只能由版面让位。
+
+所以回归在加载前把卡片置为「当天已关闭」。**这不是为了让测试好看**：把两类浮层
+当成一回事，要么得为可关闭的卡片白留 200px 版面，要么就得对不可关闭的圆钮视而不见。
+卡片能盖住页面最底端这件事记录在此，属于「可由用户消除」的一类。
+
+## 98. 前后对照与回归
+
+| 控件 | 320 前 → 后 | 375 前 → 后 |
+|---|---|---|
+| 联系方式链接 | 210x24 → **210x44** | 210x24 → **210x44** |
+| 页脚每条导航 | 292x19 → **292x44** | 347x19 → **347x44** |
+| 页脚导航行距 | 33px → **44px** | 33px → **44px** |
+| ↑ 顶部 | 47x18，被 `#chatFab` 压住 → **59x44，无人压住** | 同左 |
+| 相邻链接命中区重叠 | 无 | 无 |
+| 横向溢出 | 无 | 无 |
+
+桌面维持原视觉尺寸（44 是给手指定的），但 `#backToTop` 与页脚底部留位在所有断点生效
+——「点不到回到顶部」跟指针类型无关。桌面实测它现在也是 59x44、无人压住。
+
+截图：`work/shots/cf-before-{320,375,1280}.png` · `cf-after-{320,375,1280}.png`。
+375px 那一对最直观：修复前页脚底栏被招生胶囊和客服圆钮压住，「↑ 顶部」整个看不见。
+
+`scripts/test-contact-footer.mjs` **12/12 PASS**。
+**附带回归无回归**：`test-touch-targets` 18/18、`test-promo-tab` 20/20、
+`test-header-touch` 14/14、`test-header-layout` 19/19、`test-announce-a11y` 22/22、
+`test-drawer-a11y` 14/14、`test-discover-back-link` 30/30、`check-cache-bust` 5/5。
