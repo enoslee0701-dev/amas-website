@@ -180,13 +180,18 @@ window.__square = (el, size) => {
   const offs = [];
   for (let d = 0.5; d < size; d += 4) offs.push(d);
   if (offs[offs.length - 1] < size - 0.5) offs.push(size - 0.5);
+  // 再把采样坐标夹进视口内。贴着视口边缘的元素在 x = 视口宽-0.5 上 elementFromPoint
+  // 返回 null —— Chrome 把小数坐标 round 到设备像素后落到了视口外（实测 1279.5 -> null，
+  // 1279 -> 命中）。曾经改成「最后一个采样点整体内缩 1.5px」，那等于把 44 的判据偷偷
+  // 放宽成 42.5，负向控制当场变绿：灵敏度被自己调没了。所以精度保持 0.5，只夹坐标。
+  const clamp = (x, hi) => Math.min(x, hi - 1);
   for (let ox = 0; ox <= r.width - size + 1e-6; ox += 1) {
     for (let oy = 0; oy <= r.height - size + 1e-6; oy += 1) {
       const x0 = r.left + ox, y0 = r.top + oy;
       let ok = true;
       for (let i = 0; i < offs.length && ok; i++)
         for (let j = 0; j < offs.length && ok; j++)
-          if (!owns(x0 + offs[i], y0 + offs[j])) ok = false;
+          if (!owns(clamp(x0 + offs[i], vw), clamp(y0 + offs[j], vh))) ok = false;
       if (ok) return { ok: true, x: Math.round(x0), y: Math.round(y0) };
     }
   }

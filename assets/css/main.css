@@ -817,10 +817,14 @@ html[data-theme="night"] :focus-visible{outline-color:#b7be63}
 
 
 /* ===== 招生浮标 ===== */
-.promo-tab{position:fixed;right:0;top:46%;z-index:93;writing-mode:vertical-rl;text-orientation:mixed;display:flex;align-items:center;gap:10px;padding:16px 11px 16px 10px;border:0;border-radius:12px 0 0 12px;background:linear-gradient(160deg,#c9963d,#e9c46a 55%,#c9963d);color:#10305a;font-size:13px;font-weight:800;letter-spacing:.14em;cursor:pointer;box-shadow:-6px 8px 26px rgba(120,90,20,.35);animation:promoGlow 2.6s ease-in-out infinite;transition:transform .2s}
+/* 内边距 13/12 而不是原来的 11/10：标签自身原本只有 40px 宽，低于 44px 触控下限。
+   补到 44 之后仍完整落在 44px 的页面外边距里，不侵入内容列。 */
+.promo-tab{position:fixed;right:0;top:46%;z-index:93;writing-mode:vertical-rl;text-orientation:mixed;display:flex;align-items:center;gap:10px;padding:16px 13px 16px 12px;border:0;border-radius:12px 0 0 12px;background:linear-gradient(160deg,#c9963d,#e9c46a 55%,#c9963d);color:#10305a;font-size:13px;font-weight:800;letter-spacing:.14em;cursor:pointer;box-shadow:-6px 8px 26px rgba(120,90,20,.35);animation:promoGlow 2.6s ease-in-out infinite;transition:transform .2s}
 .promo-tab:hover{transform:translateX(-4px)}
 .promo-tab-dot{width:8px;height:8px;border-radius:50%;background:#b32020;box-shadow:0 0 0 0 rgba(179,32,32,.6);animation:promoPulse 1.6s ease-out infinite}
 @keyframes promoGlow{0%,100%{box-shadow:-6px 8px 26px rgba(120,90,20,.35)}50%{box-shadow:-6px 8px 34px rgba(233,196,106,.7)}}
+/* 底部横向胶囊用的对称光晕：原来那条阴影朝左偏，是为贴右缘的竖条设计的 */
+@keyframes promoGlowFlat{0%,100%{box-shadow:0 8px 26px rgba(120,90,20,.35)}50%{box-shadow:0 10px 34px rgba(233,196,106,.7)}}
 @keyframes promoPulse{0%{box-shadow:0 0 0 0 rgba(179,32,32,.6)}100%{box-shadow:0 0 0 9px rgba(179,32,32,0)}}
 .promo-card{position:fixed;left:22px;bottom:22px;z-index:93;width:min(340px,calc(100vw - 44px));padding:22px 22px 20px;border-radius:16px;background:linear-gradient(160deg,#10305a,#0a1d38);color:#f4ecd8;border:1px solid rgba(213,180,107,.45);box-shadow:0 22px 60px rgba(8,26,56,.45);animation:promoIn .6s cubic-bezier(.22,1,.36,1)}
 .promo-card[hidden]{display:none}
@@ -839,7 +843,27 @@ html[data-theme="night"] :focus-visible{outline-color:#b7be63}
 .promo-actions .btn.secondary:hover{background:rgba(255,255,255,.08)}
 html[data-theme="night"] .promo-actions .btn.primary{background:linear-gradient(135deg,#e9c46a,#c9963d);color:#10305a}
 @media(max-width:860px){
-  .promo-tab{top:auto;bottom:96px;font-size:12px;padding:13px 9px 13px 8px}
+  /* 招生侧边标签：桌面上它 40px 宽，正好落在 44px 的页面外边距里，与内容列重叠 0px ——
+     那是它本来的设计。手机上外边距只剩 14px，而它仍有 34px 宽，于是啃进内容列 20px，
+     在视口中部切出一条 166px 高的竖带。实测（滚动全程、320 与 375）：
+     资源行的「下载 ↓」「查看 →」「填写 →」「上传 ↑」滚到这条带子里时，
+     右侧被吃掉 28px，放不下完整的 44x44 落点。
+
+     所以手机上把它移进页面本来就有的底部浮动区（客服圆钮所在的那 66px），
+     改成横向胶囊：竖向占位从 262px 降到 58px，且靠左排布，不与右对齐的行内按钮同列。
+     文案、配色、红点与点击行为都不变，只改位置、朝向和尺寸。 */
+  .promo-tab{top:auto;right:auto;left:14px;bottom:14px;
+    writing-mode:horizontal-tb;height:44px;gap:9px;padding:0 16px;border-radius:999px;
+    font-size:12px;letter-spacing:.06em;
+    /* 右下角 52px 的客服圆钮 + 14px 边距 + 12px 间隙，给它让开 */
+    max-width:calc(100vw - 106px);
+    box-shadow:0 8px 26px rgba(120,90,20,.35);animation-name:promoGlowFlat}
+  .promo-tab>span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .promo-tab:hover{transform:none}
+  /* 卡片展开时正好盖住这枚胶囊。与其留一个看不见却仍可聚焦的控件，不如显式收起，
+     卡片关闭后再出现；焦点交接在 main.js 的招生浮标模块里做，不会把焦点丢在空处。
+     :has() 不支持的旧浏览器退回到「被盖住」，也就是这次改动之前的样子。 */
+  body:has(#promoCard:not([hidden])) .promo-tab{visibility:hidden}
   .promo-card{left:12px;right:12px;bottom:12px;width:auto;padding:18px 16px 16px}
   .promo-title{font-size:16px}
 }

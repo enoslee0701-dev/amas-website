@@ -1213,11 +1213,26 @@ document.addEventListener("click", e => {
   let dismissed = false;
   try{ dismissed = localStorage.getItem(KEY) === today; }catch(e){}
   let shown = false;
-  function showCard(){ if(shown || dismissed) return; shown = true; card.classList.remove("out"); card.hidden = false; }
+  // 手机上卡片展开时，侧边胶囊会被它盖住并由 CSS 显式收起。
+  // 焦点必须跟着走，否则键盘访客会停在一个看不见的控件上 —— 这正是本轮在
+  // 资源中心修掉的那类问题，不能在这里再造一个。
+  function handOver(from, to){
+    if(document.activeElement === from || (from.contains && from.contains(document.activeElement))){
+      try{ to.focus(); }catch(e){}
+    }
+  }
+  function showCard(){
+    if(shown || dismissed) return;
+    shown = true; card.classList.remove("out"); card.hidden = false;
+    handOver(tab, $("#promoClose"));
+  }
   function hideCard(remember){
     // 先播放向左滑出动画，再真正隐藏
     card.classList.add("out");
-    setTimeout(() => { card.hidden = true; card.classList.remove("out"); }, 340);
+    setTimeout(() => {
+      card.hidden = true; card.classList.remove("out");
+      handOver(card, tab);          // 卡片隐藏之后胶囊才重新可见，焦点这时才能交回去
+    }, 340);
     if(remember){ dismissed = true; try{ localStorage.setItem(KEY, today); }catch(e){} }
   }
   // 8 秒后自动弹出；或滚过首屏 60% 时弹出
