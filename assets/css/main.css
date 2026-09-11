@@ -484,6 +484,20 @@ html[data-theme="night"] .icon-chip{background:rgba(255,255,255,.06)}
    那条会直接变红，靠的是那条断言而不是这个常数本身。 */
 .resource-row button,.resource-dl{scroll-margin-bottom:calc(100px + env(safe-area-inset-bottom))}
 @media(max-width:580px){.resource-row button,.resource-dl{scroll-margin-bottom:calc(280px + env(safe-area-inset-bottom))}}.resource-row.resource-hidden{display:none}
+/* 资源取不到时显示的状态条。原先是彻底静默 —— 点了没文件、没提示、页面不动，
+   访客只会以为网站坏了。这里如实说明并给出已有的两个出口，不编造任何内容。
+   role="status" + tabindex="-1"：读屏会念出来，键盘焦点也会带过来。 */
+.resource-row.has-status{flex-wrap:wrap}
+.resource-status{flex:0 0 100%;margin:10px 0 0;padding:12px 14px;border:1px solid #e6d6b4;border-left:3px solid var(--gold,#c99a45);border-radius:10px;background:#fffaf0;color:#5f4a21;font-size:13.5px;line-height:1.8;outline:none}
+.resource-status b{display:block;font-weight:700}
+.resource-status span{display:block;font-size:12.5px;color:#6b5a37}
+.resource-status-acts{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+/* 这两个出口是真人要点的控件，照全站 44px 判据 */
+.resource-status-acts a,.resource-status-acts button{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:44px;padding:0 16px;border-radius:999px;border:1px solid #d8c398;background:#fff;color:#5f4a21;font:inherit;font-size:13px;cursor:pointer;text-decoration:none}
+.resource-status-acts a:hover,.resource-status-acts button:hover{border-color:var(--gold,#c99a45)}
+.resource-status-acts a:focus-visible,.resource-status-acts button:focus-visible{outline:2px solid var(--olive-dark,#4a5a3a);outline-offset:2px}
+/* 探测文件是否存在的那一下，按钮给个忙态，避免连点 */
+.resource-row button.is-busy,.resource-dl.is-busy{opacity:.6;pointer-events:none}
 
 /* faq */
 .faq-section{background:#fff}.faq-grid{display:grid;grid-template-columns:.45fr 1fr;gap:80px}

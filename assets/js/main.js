@@ -119,7 +119,7 @@ const i18n = {
   "nav.home":"首页","nav.about":"关于我们","nav.courses":"课程设置","nav.admissions":"招生信息","nav.tuition":"学费与支持","nav.life":"学院生活","nav.resources":"资源中心","nav.contact":"联系我们",
   "actions.apply":"申请入学","actions.login":"登录","actions.video":"观看介绍视频","actions.applyNow":"立即申请","actions.download":"下载 ↓","actions.view":"查看 →","actions.fill":"填写 →","actions.skip":"跳到主要内容","actions.backToTop":"↑ 顶部","actions.close":"关闭","actions.sending":"提交中…",
   "a11y.themeToNight":"切换到夜晚模式","a11y.themeToDay":"切换到白日模式","a11y.themeNight":"夜晚模式","a11y.themeDay":"白日模式","a11y.langSwitch":"切换语言（当前中文）","a11y.announcePause":"暂停公告滚动","a11y.announceResume":"继续公告滚动","a11y.openMenu":"打开菜单","a11y.closeMenu":"关闭菜单",
-  "toast.themeNight":"已切换为夜晚模式","toast.themeDay":"已切换为白日模式","toast.applied":"申请资料已送出","toast.appliedDemo":"申请资料已提交（演示）","toast.inquiry":"咨询已送出","toast.inquiryDemo":"咨询已提交（演示）","toast.failed":"提交失败，请稍后再试","toast.downloaded":"已下载占位文件",
+  "toast.themeNight":"已切换为夜晚模式","toast.themeDay":"已切换为白日模式","toast.applied":"申请资料已送出","toast.appliedDemo":"申请资料已提交（演示）","toast.inquiry":"咨询已送出","toast.inquiryDemo":"咨询已提交（演示）","toast.failed":"提交失败，请稍后再试","toast.downloaded":"已下载占位文件","resources.unavailable":"「{name}」暂时无法下载","resources.notReady":"「{name}」尚未提供可下载的正式文件","resources.unavailableHint":"你可以直接联系招生同工索取，或先提交在线申请，我们会与你联络。","resources.contactLink":"联系招生同工","resources.applyLink":"在线申请",
   "meta.credits":"{n} 学分","hero.title":"亚洲宣教神学院","hero.sub":"ASIA MISSIONARY ASSOCIATION SEMINARY","hero.verse":"你们要去，使万民作我的门徒。","hero.verseRef":"— 马太福音 28:19",
   "hero.ai.title":"定制化神学 · 3 分钟看见你的信仰成长状态","hero.ai.sub":"10 道题 · 5 项初步状态 · 一条下一步建议 · 完整档案在「AMAS 神学院」App","hero.ai.go":"立即探索 →",
   "herometa.program":"项目","herometa.programVal":"神学学士 B.Th","herometa.startVal":"2026 年 9 月","herometa.start":"2026 届开学","herometa.mode":"学习","herometa.modeVal":"线上 + 线下",
@@ -240,7 +240,7 @@ const i18n = {
   "nav.home":"Home","nav.about":"About","nav.courses":"Courses","nav.admissions":"Admissions","nav.tuition":"Tuition","nav.life":"Student Life","nav.resources":"Resources","nav.contact":"Contact",
   "actions.apply":"Apply","actions.login":"Log In","actions.video":"Watch Introduction","actions.applyNow":"Apply Now","actions.download":"Download ↓","actions.view":"View →","actions.fill":"Fill in →","actions.skip":"Skip to main content","actions.backToTop":"↑ TOP","actions.close":"Close","actions.sending":"Sending…",
   "a11y.themeToNight":"Switch to night mode","a11y.themeToDay":"Switch to day mode","a11y.themeNight":"Night mode","a11y.themeDay":"Day mode","a11y.langSwitch":"Switch language (currently English)","a11y.announcePause":"Pause the announcement ticker","a11y.announceResume":"Resume the announcement ticker","a11y.openMenu":"Open menu","a11y.closeMenu":"Close menu",
-  "toast.themeNight":"Night mode on","toast.themeDay":"Day mode on","toast.applied":"Application sent","toast.appliedDemo":"Application submitted (demo)","toast.inquiry":"Inquiry sent","toast.inquiryDemo":"Inquiry submitted (demo)","toast.failed":"Submission failed, please try again","toast.downloaded":"Placeholder file downloaded",
+  "toast.themeNight":"Night mode on","toast.themeDay":"Day mode on","toast.applied":"Application sent","toast.appliedDemo":"Application submitted (demo)","toast.inquiry":"Inquiry sent","toast.inquiryDemo":"Inquiry submitted (demo)","toast.failed":"Submission failed, please try again","toast.downloaded":"Placeholder file downloaded","resources.unavailable":"\u201c{name}\u201d cannot be downloaded right now","resources.notReady":"No official file is available yet for \u201c{name}\u201d","resources.unavailableHint":"You can ask the admissions team for it directly, or submit the online application and we will get in touch.","resources.contactLink":"Contact admissions","resources.applyLink":"Apply online",
   "meta.credits":"{n} Credits","hero.title":"Asia Missionary Association Seminary","hero.sub":"亚洲宣教神学院 · CHIANG MAI, THAILAND","hero.verse":"Go therefore and make disciples of all nations.","hero.verseRef":"— Matthew 28:19",
   "hero.ai.title":"Personalized Theology · See your faith-growth status in 3 minutes","hero.ai.sub":"10 questions · 5 quick indicators · one next step · full profile in the AMAS Seminary app","hero.ai.go":"Start exploring →",
   "herometa.program":"Program","herometa.programVal":"B.Th — Bachelor of Theology","herometa.startVal":"September 2026","herometa.start":"Class of 2026 starts","herometa.mode":"Format","herometa.modeVal":"Online + On-site",
@@ -361,7 +361,7 @@ const i18n = {
   "nav.home":"홈","nav.about":"학교 소개","nav.courses":"교육 과정","nav.admissions":"입학 안내","nav.tuition":"등록금·지원","nav.life":"학교 생활","nav.resources":"자료실","nav.contact":"문의하기",
   "actions.apply":"입학 지원","actions.login":"로그인","actions.video":"소개 영상 보기","actions.applyNow":"바로 지원하기","actions.download":"다운로드 ↓","actions.view":"보기 →","actions.fill":"작성 →","actions.skip":"본문 바로가기","actions.backToTop":"↑ 맨 위로","actions.close":"닫기","actions.sending":"제출 중…",
   "a11y.themeToNight":"야간 모드로 전환","a11y.themeToDay":"주간 모드로 전환","a11y.themeNight":"야간 모드","a11y.themeDay":"주간 모드","a11y.langSwitch":"언어 전환(현재 한국어)","a11y.announcePause":"공지 스크롤 일시정지","a11y.announceResume":"공지 스크롤 재생","a11y.openMenu":"메뉴 열기","a11y.closeMenu":"메뉴 닫기",
-  "toast.themeNight":"야간 모드로 전환되었습니다","toast.themeDay":"주간 모드로 전환되었습니다","toast.applied":"지원서가 전송되었습니다","toast.appliedDemo":"지원서가 제출되었습니다(데모)","toast.inquiry":"문의가 전송되었습니다","toast.inquiryDemo":"문의가 제출되었습니다(데모)","toast.failed":"제출 실패. 잠시 후 다시 시도해 주세요","toast.downloaded":"샘플 파일이 다운로드되었습니다",
+  "toast.themeNight":"야간 모드로 전환되었습니다","toast.themeDay":"주간 모드로 전환되었습니다","toast.applied":"지원서가 전송되었습니다","toast.appliedDemo":"지원서가 제출되었습니다(데모)","toast.inquiry":"문의가 전송되었습니다","toast.inquiryDemo":"문의가 제출되었습니다(데모)","toast.failed":"제출 실패. 잠시 후 다시 시도해 주세요","toast.downloaded":"샘플 파일이 다운로드되었습니다","resources.unavailable":"「{name}」은(는) 지금 내려받을 수 없습니다","resources.notReady":"「{name}」의 정식 파일이 아직 준비되지 않았습니다","resources.unavailableHint":"입학 담당자에게 직접 요청하시거나, 온라인 지원을 먼저 제출해 주시면 연락드리겠습니다.","resources.contactLink":"입학 담당자 문의","resources.applyLink":"온라인 지원",
   "meta.credits":"{n}학점","hero.title":"아시아선교신학교","hero.sub":"ASIA MISSIONARY ASSOCIATION SEMINARY","hero.verse":"그러므로 너희는 가서 모든 민족을 제자로 삼으라.","hero.verseRef":"— 마태복음 28:19",
   "hero.ai.title":"맞춤 신학 · 3분 만에 나의 신앙 성장 상태 보기","hero.ai.sub":"10문항 · 5가지 초기 지표 · 다음 한 걸음 · 전체 프로필은 「AMAS 신학교」 앱에서","hero.ai.go":"바로 탐색 →",
   "herometa.program":"과정","herometa.programVal":"신학사 B.Th","herometa.startVal":"2026년 9월","herometa.start":"2026학년도 개강","herometa.mode":"학습","herometa.modeVal":"온라인 + 오프라인",
@@ -482,7 +482,7 @@ const i18n = {
   "nav.home":"หน้าแรก","nav.about":"เกี่ยวกับเรา","nav.courses":"รายวิชา","nav.admissions":"การรับสมัคร","nav.tuition":"ค่าเล่าเรียน","nav.life":"ชีวิตในวิทยาลัย","nav.resources":"ศูนย์ทรัพยากร","nav.contact":"ติดต่อเรา",
   "actions.apply":"สมัครเข้าเรียน","actions.login":"เข้าสู่ระบบ","actions.video":"ชมวิดีโอแนะนำ","actions.applyNow":"สมัครเลย","actions.download":"ดาวน์โหลด ↓","actions.view":"ดู →","actions.fill":"กรอก →","actions.skip":"ข้ามไปเนื้อหาหลัก","actions.backToTop":"↑ ขึ้นบน","actions.close":"ปิด","actions.sending":"กำลังส่ง…",
   "a11y.themeToNight":"สลับเป็นโหมดกลางคืน","a11y.themeToDay":"สลับเป็นโหมดกลางวัน","a11y.themeNight":"โหมดกลางคืน","a11y.themeDay":"โหมดกลางวัน","a11y.langSwitch":"เปลี่ยนภาษา (ปัจจุบันภาษาไทย)","a11y.announcePause":"หยุดข้อความประกาศชั่วคราว","a11y.announceResume":"เล่นข้อความประกาศต่อ","a11y.openMenu":"เปิดเมนู","a11y.closeMenu":"ปิดเมนู",
-  "toast.themeNight":"สลับเป็นโหมดกลางคืนแล้ว","toast.themeDay":"สลับเป็นโหมดกลางวันแล้ว","toast.applied":"ส่งใบสมัครแล้ว","toast.appliedDemo":"ส่งใบสมัครแล้ว (สาธิต)","toast.inquiry":"ส่งคำถามแล้ว","toast.inquiryDemo":"ส่งคำถามแล้ว (สาธิต)","toast.failed":"ส่งไม่สำเร็จ โปรดลองใหม่ภายหลัง","toast.downloaded":"ดาวน์โหลดไฟล์ตัวอย่างแล้ว",
+  "toast.themeNight":"สลับเป็นโหมดกลางคืนแล้ว","toast.themeDay":"สลับเป็นโหมดกลางวันแล้ว","toast.applied":"ส่งใบสมัครแล้ว","toast.appliedDemo":"ส่งใบสมัครแล้ว (สาธิต)","toast.inquiry":"ส่งคำถามแล้ว","toast.inquiryDemo":"ส่งคำถามแล้ว (สาธิต)","toast.failed":"ส่งไม่สำเร็จ โปรดลองใหม่ภายหลัง","toast.downloaded":"ดาวน์โหลดไฟล์ตัวอย่างแล้ว","resources.unavailable":"ขณะนี้ยังดาวน์โหลด \u201c{name}\u201d ไม่ได้","resources.notReady":"ยังไม่มีไฟล์ฉบับทางการของ \u201c{name}\u201d","resources.unavailableHint":"คุณสามารถติดต่อฝ่ายรับสมัครเพื่อขอไฟล์ หรือส่งใบสมัครออนไลน์ไว้ก่อน แล้วเราจะติดต่อกลับ","resources.contactLink":"ติดต่อฝ่ายรับสมัคร","resources.applyLink":"สมัครออนไลน์",
   "meta.credits":"{n} หน่วยกิต","hero.title":"วิทยาลัยพระคริสตธรรมเอเชียมิชชัน","hero.sub":"ASIA MISSIONARY ASSOCIATION SEMINARY","hero.verse":"เหตุฉะนั้น ท่านทั้งหลายจงออกไปและนำชนทุกชาติมาเป็นสาวก","hero.verseRef":"— มัทธิว 28:19",
   "hero.ai.title":"ศาสนศาสตร์เฉพาะบุคคล · ดูสถานะการเติบโตแห่งความเชื่อใน 3 นาที","hero.ai.sub":"10 ข้อ · 5 ตัวชี้วัด · หนึ่งก้าวถัดไป · โปรไฟล์ฉบับเต็มในแอป AMAS","hero.ai.go":"เริ่มสำรวจ →",
   "herometa.program":"หลักสูตร","herometa.programVal":"ศาสนศาสตรบัณฑิต B.Th","herometa.startVal":"กันยายน 2026","herometa.start":"รุ่นปี 2026 เปิดเรียน","herometa.mode":"การเรียน","herometa.modeVal":"ออนไลน์ + ออนไซต์",
@@ -826,35 +826,122 @@ function toast(msg){
   toastTimer = setTimeout(() => el.classList.remove("show"), 2800);
 }
 
-/* ===== 占位资源下载 =====
-   正式上线请把这里换成真实 PDF 的链接（或 <a href="...pdf" download>）。 */
-const downloadable = {
-  "student-handbook": { title:"AMAS 亚洲宣教神学院｜新生入学手册", content:"这是网站前端演示生成的占位文档。正式上线前请替换为学校官方 PDF 文件。" },
-  "curriculum":       { title:"AMAS 亚洲宣教神学院｜B.Th 课程目录", content:"这是网站前端演示生成的占位文档。正式上线前请替换为学校正式课程目录 PDF。" }
-};
-$$("[data-download]").forEach(btn => btn.addEventListener("click", () => {
+/* ===== 资源中心：真实文件交付 =====
+   这里此前有两个坑，都会让访客白点一次：
+
+   一、**静默失败**。原实现是 a.href=真实路径 + a.click()。文件若 404（还没上传、
+       路径写错、被 CDN 拦掉），浏览器什么都不做 —— 没有文件、没有提示、页面纹丝不动。
+       实测确认：点「下载 ↓」后落盘 0 个文件、页面 0 条提示。访客只会以为网站坏了。
+
+   二、**拿文本冒充 PDF**。原实现在 CONFIG.resources 没配时，会即时生成一个 .txt
+       占位文档递给用户，而那一行的标签明晃晃写着「PDF」。实测：落盘
+       student-handbook.txt，行标签仍是 PDF。这条兜底整个删掉 ——
+       没有正式文件就如实说没有，不能发个假的糊弄过去。
+
+   现在的做法：先 HEAD 探一下文件在不在，再决定是下载还是显示明确的不可用状态，
+   并把访客引到已有的出口（联系招生同工 / 在线申请）。不编造任何课程、收费或认证内容。 */
+
+/** 在资源行下方显示一条状态，并把焦点带过去（键盘访客也要知道发生了什么）。
+    kind: "missing" 文件取不到 | "notready" 尚无正式文件 */
+function showResourceStatus(row, kind, name){
+  if(!row) return;
+  let box = row.querySelector(".resource-status");
+  if(!box){
+    box = document.createElement("p");
+    box.className = "resource-status";
+    box.setAttribute("role", "status");
+    box.setAttribute("tabindex", "-1");
+    row.appendChild(box);
+  }
+  const msg = kind === "notready"
+    ? t("resources.notReady", { name })
+    : t("resources.unavailable", { name });
+  // 出口用已有的锚点与既有的申请入口，不新造流程
+  box.innerHTML = "";
+  const strong = document.createElement("b");
+  strong.textContent = msg;
+  box.appendChild(strong);
+  const hint = document.createElement("span");
+  hint.textContent = t("resources.unavailableHint");
+  box.appendChild(hint);
+  const acts = document.createElement("span");
+  acts.className = "resource-status-acts";
+  const a1 = document.createElement("a");
+  a1.href = "#contact";
+  a1.textContent = t("resources.contactLink");
+  const b1 = document.createElement("button");
+  b1.type = "button";
+  b1.setAttribute("data-open-application", "");
+  b1.textContent = t("resources.applyLink");
+  b1.addEventListener("click", () => openApplication());
+  acts.appendChild(a1); acts.appendChild(b1);
+  box.appendChild(acts);
+  row.classList.add("has-status");
+  try{ box.focus({ preventScroll: true }); }catch(e){ box.focus(); }
+  revealStatus(box);
+}
+function clearResourceStatus(row){
+  const box = row && row.querySelector(".resource-status");
+  if(box) box.remove();
+  if(row) row.classList.remove("has-status");
+}
+
+/** 文件在不在。同源静态站，HEAD 足够；任何非 2xx 或网络错误都算取不到。 */
+async function resourceReachable(url){
+  try{
+    const r = await fetch(url, { method:"HEAD", cache:"no-store" });
+    return r.ok;
+  }catch(e){ return false; }
+}
+
+/** 真正把文件递给用户。取不到就显示不可用状态，绝不静默。 */
+async function deliverResource(url, row, name, trigger){
+  clearResourceStatus(row);
+  if(trigger){ trigger.setAttribute("aria-busy", "true"); trigger.classList.add("is-busy"); }
+  const okFile = await resourceReachable(url);
+  if(trigger){ trigger.removeAttribute("aria-busy"); trigger.classList.remove("is-busy"); }
+  if(!okFile){ showResourceStatus(row, "missing", name); return false; }
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "";
+  a.rel = "noopener";
+  a.style.display = "none";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  return true;
+}
+
+function resourceName(row){
+  const h = row && row.querySelector("h3");
+  return h ? h.textContent.trim() : "";
+}
+
+$$("[data-download]").forEach(btn => btn.addEventListener("click", async () => {
   const key = btn.dataset.download;
+  const row = btn.closest(".resource-row");
+  const name = resourceName(row);
   let real = CONFIG.resources?.[key];
   if(real && typeof real === "object") real = real[currentLang] || real.zh;
-  if(real){                                        // 配了真实文件就直接下载它
-    const a = document.createElement("a");
-    a.href = real;
-    a.download = "";
-    a.target = "_blank";
-    a.rel = "noopener";
-    a.click();
-    return;
-  }
-  const d = downloadable[key];
-  if(!d) return;
-  const blob = new Blob([d.title + "\n\n" + d.content], { type:"text/plain;charset=utf-8" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = key + ".txt";
-  a.click();
-  URL.revokeObjectURL(a.href);
-  toast(t("toast.downloaded"));
+  // 没配正式文件就如实说没有 —— 不再生成 .txt 占位文档冒充 PDF
+  if(!real){ showResourceStatus(row, "notready", name); return; }
+  await deliverResource(real, row, name, btn);
 }));
+
+/* Word 版申请表是一个静态 <a download>。静态锚点同样会在 404 时一声不吭，
+   所以这里接管它的点击，走与上面同一条交付路径。 */
+(function(){
+  const fd = $("#formDl");
+  if(!fd) return;
+  fd.addEventListener("click", async (e) => {
+    e.preventDefault();
+    const row = fd.closest(".resource-row");
+    const name = resourceName(row);
+    const url = fd.getAttribute("href");
+    if(!url){ showResourceStatus(row, "notready", name); return; }
+    await deliverResource(url, row, name, fd);
+  });
+})();
 
 /* ===== 介绍视频弹窗 ===== */
 const videoModal = $("#videoModal");
