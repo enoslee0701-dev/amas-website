@@ -1035,6 +1035,7 @@ appForm.addEventListener("submit", async e => {
     const r = await sendPayload("application", data);
     status.dataset.state = "ok";
     status.textContent = t(r.demo ? "application.okDemo" : "application.ok");
+    revealStatus(status);
     toast(t(r.demo ? "toast.appliedDemo" : "toast.applied"));
     setTimeout(() => {
       closeApplication();
@@ -1044,12 +1045,32 @@ appForm.addEventListener("submit", async e => {
   }catch(err){
     status.dataset.state = "error";
     status.textContent = t("application.error");
+    revealStatus(status);
     toast(t("toast.failed"));
   }finally{
     setBusy(btn, false, label);
   }
 });
 
+
+/* ===== 提交结果提示：看得见、且不过期 ===== */
+// 弹窗卡片自己带滚动条（max-height:90vh;overflow:auto）。实测最坏但真实的情形 ——
+// 用户刚把「提交申请」滚出来就点 —— 38px 的错误提示整条落在卡片可视区之外：
+//   按钮在可视区内=true  状态区整体在可视区下方=true  被裁掉=38px
+// 也就是提交失败后用户什么反馈都看不到，多半会反复再点。
+// block:"nearest" 只做最小滚动，把提示带进最近的那个滚动容器，不打扰已经可见的情形。
+function revealStatus(el){ el?.scrollIntoView?.({ block: "nearest" }); }
+
+// 结果提示只描述「刚刚那一次提交」。用户一旦开始改表单，它就过期了 ——
+// 还挂在那里会把上一次的结果贴在这一次的输入旁边（实测：咨询提交成功后重新输入姓名，
+// 「已收到」仍然挂着）。所以一有输入就清掉，让状态区要么是空的、要么是当前这次的。
+function freshenStatusOnEdit(form, status){
+  form.addEventListener("input", () => {
+    if(!status.dataset.state) return;
+    status.textContent = "";
+    status.removeAttribute("data-state");
+  });
+}
 
 /* ===== 咨询表单 ===== */
 $("#contactForm").addEventListener("submit", async e => {
@@ -1073,17 +1094,23 @@ $("#contactForm").addEventListener("submit", async e => {
     const r = await sendPayload("contact", data);
     status.dataset.state = "ok";
     status.textContent = t(r.demo ? "form.okDemo" : "form.ok");
+    revealStatus(status);
     toast(t(r.demo ? "toast.inquiryDemo" : "toast.inquiry"));
     form.reset();
   }catch(err){
     status.dataset.state = "error";
     status.textContent = t("form.error");
+    revealStatus(status);
     toast(t("toast.failed"));
   }finally{
     setBusy(btn, false, label);
   }
 });
 
+
+// 两个表单都挂上：一旦开始改动，上一次的结果提示就清掉。
+freshenStatusOnEdit(appForm, $("#applicationStatus"));
+freshenStatusOnEdit($("#contactForm"), $("#contactStatus"));
 
 /* ===== 联系方式：按 CONFIG.contact 渲染，留空的不出现 ===== */
 function renderContactMeta(){

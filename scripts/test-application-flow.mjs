@@ -310,6 +310,51 @@ try {
     "A10 提交后自动关闭、表单清空、回到第 1 步（提交成功才清，和 A5 的保留互不矛盾）",
     `aria-hidden=${after.hidden} 当前步=${after.step} 姓名="${after.name}" 关闭后焦点=${after.focus}`);
 
+  // A12 提交失败：提示必须出现在看得见的地方。
+  // 复现方式是把端点指向 127.0.0.1:1（本机必然拒绝连接），不碰任何真实服务；
+  // 点击前先把「提交申请」滚到卡片可视区**底边**——这是真人最常见的做法：
+  // 刚把按钮滚出来就点。修复前实测此时 38px 的提示整条落在卡片可视区之外。
+  await load(cdp);
+  await cdp.ev(`CONFIG.formEndpoint = "http://127.0.0.1:1/"`);
+  await openByKeyboard(cdp);
+  await cdp.ev(FILL_STEP1);
+  await cdp.ev(`document.querySelector('#nextStep').click()`); await sleep(300);
+  await cdp.ev(FILL_REST);
+  await cdp.ev(`document.querySelector('#nextStep').click()`); await sleep(300);
+  await cdp.ev(`document.querySelector('#nextStep').click()`); await sleep(400);
+  await cdp.ev(`document.querySelector('[name=consent]').checked = true`);
+  await cdp.ev(`document.querySelector('#submitApplication').scrollIntoView({ block: 'end' })`);
+  await sleep(400);
+  await cdp.ev(`document.querySelector('#submitApplication').click()`);
+  await sleep(2600);
+  const failView = await cdp.ev(`(() => {
+    const card = document.querySelector('.application-card');
+    const st = document.querySelector('#applicationStatus');
+    const c = card.getBoundingClientRect(), s = st.getBoundingClientRect();
+    return { state: st.dataset.state || '', text: (st.textContent || '').trim().slice(0, 20),
+             inView: s.top >= c.top - 0.5 && s.bottom <= c.bottom + 0.5,
+             clipped: Math.max(0, Math.round(s.bottom - c.bottom)),
+             modalOpen: document.querySelector('#applicationModal').getAttribute('aria-hidden') === 'false',
+             canRetry: !document.querySelector('#submitApplication').disabled };
+  })()`);
+  check(failView.state === "error" && failView.inView && failView.clipped === 0 &&
+        failView.modalOpen && failView.canRetry,
+    "A12 提交失败：错误提示被带进卡片可视区，弹窗不关、可以重试",
+    `state=${failView.state} 文案="${failView.text}…" 在卡片可视区内=${failView.inView} ` +
+    `被裁掉=${failView.clipped}px 弹窗仍开=${failView.modalOpen} 可重试=${failView.canRetry}`);
+
+  // A13 结果提示不过期：改动表单后，上一次的结果就该消失
+  const stale = await cdp.ev(`(() => {
+    const st = document.querySelector('#applicationStatus');
+    const before = st.dataset.state || '';
+    const f = document.querySelector('[name=fullName]');
+    f.value = f.value + '改'; f.dispatchEvent(new Event('input', { bubbles: true }));
+    return { before, after: st.dataset.state || '', text: (st.textContent || '').trim() };
+  })()`);
+  check(stale.before === "error" && stale.after === "" && stale.text === "",
+    "A13 结果提示不过期：一改表单，上一次的提交结果立刻清掉",
+    `改动前 state=${stale.before} 改动后 state="${stale.after}" 残留文字="${stale.text}"`);
+
   // A11 负向控制：把本轮两处改动还原，缺陷必须精确复现。
   // 还原方式是直接改回站点自己的行为（换步不移焦点 / 打开一律回第 1 步），
   // 而不是换一套断言 —— 不会变红的负向控制等于没有控制。
@@ -335,6 +380,31 @@ try {
   check(revFocus.step === "2" && !revFocus.inStep && revStep === "1",
     "A11 负向控制：还原后两个缺陷精确复现（焦点留在按钮上、重开回到第 1 步）",
     `换步后焦点=${revFocus.who}（在当前步内=${revFocus.inStep}）；还原后重开落在第 ${revStep} 步`);
+
+  // A14 负向控制之二：把 revealStatus 变成空操作，失败提示必须重新落到可视区之外。
+  // 直接改站点自己的函数，而不是换一套宽松断言 —— 不会变红的负向控制等于没有控制。
+  await load(cdp);
+  await cdp.ev(`CONFIG.formEndpoint = "http://127.0.0.1:1/"; window.revealStatus = () => {};`);
+  await cdp.ev(`openApplication()`);
+  await sleep(400);
+  await cdp.ev(FILL_STEP1); await cdp.ev(FILL_REST);
+  await cdp.ev(`document.querySelector('[name=consent]').checked = true`);
+  await cdp.ev(`showAppStep(4)`); await sleep(300);
+  await cdp.ev(`document.querySelector('#submitApplication').scrollIntoView({ block: 'end' })`);
+  await sleep(400);
+  await cdp.ev(`document.querySelector('#submitApplication').click()`);
+  await sleep(2600);
+  const revView = await cdp.ev(`(() => {
+    const card = document.querySelector('.application-card');
+    const st = document.querySelector('#applicationStatus');
+    const c = card.getBoundingClientRect(), s = st.getBoundingClientRect();
+    return { state: st.dataset.state || '',
+             inView: s.top >= c.top - 0.5 && s.bottom <= c.bottom + 0.5,
+             clipped: Math.max(0, Math.round(s.bottom - c.bottom)) };
+  })()`);
+  check(revView.state === "error" && !revView.inView && revView.clipped > 0,
+    "A14 负向控制：把提示滚动还原成空操作后，错误提示重新落到卡片可视区之外",
+    `state=${revView.state} 在卡片可视区内=${revView.inView} 被裁掉=${revView.clipped}px`);
 
   cdp.ws.close();
 } finally {
