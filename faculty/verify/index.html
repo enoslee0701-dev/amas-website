@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>教师验证 | AMAS 亚洲宣教神学院</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609112036">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609112100">
 <style>
 .steps-mini{display:flex;gap:6px;margin:0 0 18px}
 .steps-mini i{flex:1;height:4px;border-radius:99px;background:var(--line)}
@@ -27,6 +27,10 @@
     <h2>教职工身份核验</h2>
     <p class="sub">流程：院方邀请 → 登录/注册（邮箱须与邀请一致）→ 填写资料 → 管理员审核 → 激活教师工作台（规范 §6）。教师账号不能自助开通。</p>
     <div id="disabledNotice" class="notice" hidden><b>门户系统尚未启用。</b>系统部署完成前本页暂不能提交验证；请先联系教务同工（amasthai2026@gmail.com）。</div>
+    <!-- 配置齐全、只是外部组件没加载下来；刷新或换网络就能好，不是「尚未启用」。 -->
+    <div id="offlineNotice" class="notice" hidden><b>组件没能加载。</b>门户本身已就绪，是当前网络取不到本页所需的外部组件；换个网络或重新载入通常即可。若持续如此请联系教务同工（amasthai2026@gmail.com）。
+      <div><button type="button" class="notice-act" id="btnReload">重新载入</button></div>
+    </div>
     <form id="codeForm" novalidate>
       <div class="field">
         <label for="fCode">邀请码</label>
@@ -71,8 +75,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609112036"></script>
-<script src="../../assets/js/portal/auth.js?v=202609112036"></script>
+<script src="../../assets/js/supabase-config.js?v=202609112100"></script>
+<script src="../../assets/js/portal/auth.js?v=202609112100"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
@@ -116,8 +120,10 @@
   }
 
   if (!A.CONFIGURED) {
-    document.getElementById("disabledNotice").hidden = false;
+    const offline = A.CONFIG_STATE === "sdk-unavailable";
+    document.getElementById(offline ? "offlineNotice" : "disabledNotice").hidden = false;
     document.getElementById("btnCode").disabled = true;
+    if (offline) document.getElementById("btnReload").addEventListener("click", () => location.reload());
   } else {
     // 已登录且已有验证记录 → 直接显示状态页
     const session = await A.getSession();

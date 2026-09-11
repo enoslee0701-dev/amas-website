@@ -49,6 +49,12 @@ p .link,li .link{display:inline;min-height:0;padding:0}
 .msg.info{background:#edf4fb;border:1px solid #cfdeee;color:#294764}
 .msg.warn{background:#fdf4e3;border:1px solid #ecd7a8;color:#7a5a12}
 .notice{margin:0 0 18px;padding:13px 16px;border:1px solid #ead9b6;border-left:4px solid var(--gold);border-radius:10px;background:#fffaf0;color:#5f4a21;font-size:13px}
+/* 提示框里的「动作」按钮（目前只有断网降级时的「重新载入」）。
+   不能复用 .notice .link —— 上面那条 44px 规则特意把 .notice 内的 .link 排除在外，
+   因为那些是嵌在句子里的行内链接。这一个是独立成行、真人要点的按钮，照常吃 44 的下限。 */
+.notice-act{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:44px;margin-top:10px;padding:0 18px;border:1px solid #d8c398;border-radius:999px;background:#fff;color:#5f4a21;font:inherit;font-size:13px;cursor:pointer}
+.notice-act:hover{border-color:var(--gold)}
+.notice-act:focus-visible{outline:2px solid var(--navy2);outline-offset:2px}
 .quick{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}
 .quick a{display:block;text-align:center;padding:12px 8px;border:1px solid var(--line);border-radius:11px;background:#fff;text-decoration:none;color:var(--ink)}
 .quick b{display:block;font-size:13.5px;color:var(--navy)}

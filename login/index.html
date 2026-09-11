@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>登录 | AMAS 亚洲宣教神学院</title>
 <link rel="icon" href="../assets/img/favicon.png">
-<link rel="stylesheet" href="../assets/css/portal.css?v=202609112036">
+<link rel="stylesheet" href="../assets/css/portal.css?v=202609112100">
 </head>
 <body>
 <div class="wrap">
@@ -19,6 +19,12 @@
   <div class="card">
     <div id="disabledNotice" class="notice" hidden>
       <b>门户系统尚未启用。</b>账号与学习系统正在部署中，目前暂不可登录；如需咨询请<a class="link" href="../index.html#contact">联系招生同工</a>。
+    </div>
+    <!-- 与上面那条是两回事：配置齐全、只是登录组件没加载下来（境内网络／离线／拦截插件）。
+         对这种情况说「正在部署中」是假话，而且会把唯一有效的自救动作——重试——藏起来。 -->
+    <div id="offlineNotice" class="notice" hidden>
+      <b>登录组件没能加载。</b>门户本身已就绪，是当前网络取不到登录所需的外部组件；换个网络或重新载入通常即可。若持续如此请<a class="link" href="../index.html#contact">联系招生同工</a>。
+      <div><button type="button" class="notice-act" id="btnReload">重新载入</button></div>
     </div>
 
     <h2>登录</h2>
@@ -55,8 +61,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../assets/js/supabase-config.js?v=202609112036"></script>
-<script src="../assets/js/portal/auth.js?v=202609112036"></script>
+<script src="../assets/js/supabase-config.js?v=202609112100"></script>
+<script src="../assets/js/portal/auth.js?v=202609112100"></script>
 <script>
 (function(){
   const A = window.AmasAuth;
@@ -72,8 +78,10 @@
   function showErr(code){ err.textContent = ERR[code] || ERR.bad_credentials; err.classList.add("show"); }
 
   if (!A.CONFIGURED) {
-    document.getElementById("disabledNotice").hidden = false;
+    const offline = A.CONFIG_STATE === "sdk-unavailable";
+    document.getElementById(offline ? "offlineNotice" : "disabledNotice").hidden = false;
     document.getElementById("btnLogin").disabled = true;
+    if (offline) document.getElementById("btnReload").addEventListener("click", () => location.reload());
   } else {
     // 已登录直接进入工作空间
     A.getSession().then(async s => { if (s) location.replace(A.homeForRoles(await A.getRoles())); });

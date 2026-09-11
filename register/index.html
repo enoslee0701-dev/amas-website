@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>注册 | AMAS 亚洲宣教神学院</title>
 <link rel="icon" href="../assets/img/favicon.png">
-<link rel="stylesheet" href="../assets/css/portal.css?v=202609112036">
+<link rel="stylesheet" href="../assets/css/portal.css?v=202609112100">
 </head>
 <body>
 <div class="wrap">
@@ -19,6 +19,11 @@
   <div class="card">
     <div id="disabledNotice" class="notice" hidden>
       <b>门户系统尚未启用。</b>暂时无法自助注册；想提前报名咨询，可直接<a class="link" href="../index.html#contact">联系招生同工</a>或使用官网「申请入学」。
+    </div>
+    <!-- 配置齐全、只是注册所需的外部组件没加载下来，和「尚未启用」不是同一回事。 -->
+    <div id="offlineNotice" class="notice" hidden>
+      <b>注册组件没能加载。</b>门户本身已就绪，是当前网络取不到所需的外部组件；换个网络或重新载入通常即可。也可以直接<a class="link" href="../index.html#contact">联系招生同工</a>或使用官网「申请入学」。
+      <div><button type="button" class="notice-act" id="btnReload">重新载入</button></div>
     </div>
 
     <h2>注册账号</h2>
@@ -48,15 +53,17 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../assets/js/supabase-config.js?v=202609112036"></script>
-<script src="../assets/js/portal/auth.js?v=202609112036"></script>
+<script src="../assets/js/supabase-config.js?v=202609112100"></script>
+<script src="../assets/js/portal/auth.js?v=202609112100"></script>
 <script>
 (function(){
   const A = window.AmasAuth;
   const err = document.getElementById("err"), ok = document.getElementById("ok");
   if (!A.CONFIGURED) {
-    document.getElementById("disabledNotice").hidden = false;
+    const offline = A.CONFIG_STATE === "sdk-unavailable";
+    document.getElementById(offline ? "offlineNotice" : "disabledNotice").hidden = false;
     document.getElementById("btnReg").disabled = true;
+    if (offline) document.getElementById("btnReload").addEventListener("click", () => location.reload());
   }
   const ERR = {
     not_configured: "系统尚未启用，暂不可注册。",

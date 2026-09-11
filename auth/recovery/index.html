@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>重设密码 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609112036">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609112100">
 </head>
 <body>
 <div class="wrap">
@@ -56,9 +56,9 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609112036"></script>
-<script src="../../assets/js/portal/auth.js?v=202609112036"></script>
-<script src="../../assets/js/portal/api.js?v=202609112036"></script>
+<script src="../../assets/js/supabase-config.js?v=202609112100"></script>
+<script src="../../assets/js/portal/auth.js?v=202609112100"></script>
+<script src="../../assets/js/portal/api.js?v=202609112100"></script>
 <script>
 /* AMAS canonical recovery route（D-AUTH-R2）：/auth/recovery
  *
@@ -90,7 +90,13 @@
     try { history.replaceState(null, "", location.pathname); } catch (e) { /* 忽略 */ }
   }
 
-  if (!A || !A.CONFIGURED) { bail("门户系统尚未启用，无法处理密码重设。"); return; }
+  // 两种不可用要分开说：没开通只能等，组件没加载下来则刷新／换网络就能好。
+  if (!A || !A.CONFIGURED) {
+    bail(A && A.CONFIG_STATE === "sdk-unavailable"
+      ? "本页所需的外部组件没能加载，多半是当前网络取不到；换个网络或重新载入后再打开邮件里的重设链接。"
+      : "门户系统尚未启用，无法处理密码重设。");
+    return;
+  }
 
   let flowId = null;
 
