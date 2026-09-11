@@ -237,6 +237,68 @@ try {
   })();
   ok("第二轮能再次答到结果页", steps2 === 10, "实际 " + steps2 + " 题");
 
+  // ════ H 隐藏视图里的控件 ════
+  // 全页触控巡检扫的是首屏视图，#quiz / #detail / #result 在加载时是 hidden 的，
+  // elementFromPoint 对它们返回不了任何东西 —— 于是这几个视图里的控件从来没被量过。
+  // 本轮 .ghost-btn 42px 就是这么漏掉的。这一组把量具伸进隐藏视图。
+  console.log("\n=== H 隐藏视图里的控件（此前巡检的结构性盲区）===");
+  await load();
+  await cdp.ev(`startQuiz()`); await sleep(400);
+  const quizX = await measure("#quiz .topbar .x");
+  ok("测验关闭键 ≥44x44（退出测验的唯一出口）", quizX.ok === true, `${quizX.w}x${quizX.h} ${quizX.why}`);
+
+  await load();
+  await cdp.ev(`openDetail('teacher')`); await sleep(400);
+  const detX = await measure("#detail .topbar .x");
+  ok("详情返回键 ≥44x44（退出详情的唯一出口）", detX.ok === true, `${detX.w}x${detX.h} ${detX.why}`);
+  const veil = await measure("#detail .veil .gold-btn");
+  ok("遮罩内 App 按钮 ≥44x44", veil.ok === true, `${veil.w}x${veil.h} ${veil.why}`);
+
+  // 结果页四个按钮与固定底栏 #stickyCta 的关系。
+  // 固定底栏必然会盖住滚到它下面的东西，对任何常驻固定元素都如此，
+  // 所以判据不是「永不被盖」，而是「用户总能滚到一个位置把它完整露出来」。
+  // 这一条同时是防呆：它记录了「被 stickyCta 盖住」本身不是缺陷，
+  // 避免以后有人照着量具的假红去改本来没问题的布局。
+  console.log("\n--- H2 结果页按钮与固定底栏：能否靠滚动完整露出 ---");
+  await load();
+  await answerAllByKeyboard();
+  await cdp.ev(TOUCH_PROBE);   // 这一组直接用 __target，不走 measure()，得自己注入量具
+  const clear = await cdp.ev(`(()=>{
+    const max = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+    const sels = ['#toArchetypes','#restartQuiz','.unlock .gold-btn','.cta-deep .gold-btn'];
+    const out = {};
+    sels.forEach(function(sel){
+      const el = document.querySelector(sel); if(!el){ out[sel]=false; return; }
+      let found = false;
+      for (let y = 0; y <= max && !found; y += 20) {
+        window.scrollTo(0, y);
+        if (window.__target(el, 44).ok) found = true;
+      }
+      out[sel] = found;
+    });
+    window.scrollTo(0,0);
+    return out;})()`);
+  for (const [sel, v] of Object.entries(clear)) {
+    ok(`${sel} 存在能完整露出的滚动位置`, v === true, "滚遍全程都被固定底栏压住");
+  }
+
+  // 同意复选框：input 本身只有 13x13，但它被 <label> 包住，点文字也能勾选，
+  // 真实命中区是整个 label。量 input 会得到假红 —— 这一条钉住正确的量法。
+  console.log("\n--- H3 faculty 同意复选框：真实命中区是 label 而非 input ---");
+  await cdp.send("Page.navigate", { url: `${BASE}/faculty/verify/index.html` }); await sleep(2200);
+  await cdp.ev(TOUCH_PROBE);
+  await cdp.ev(`(()=>{document.getElementById('cardIntro').hidden=true;
+    document.getElementById('cardForm').hidden=false;})()`); await sleep(400);
+  const cb = await cdp.ev(`(()=>{const inp=document.getElementById('tConsent');
+    const lab=inp.closest('label'); inp.scrollIntoView({block:'center'});
+    const rl=lab.getBoundingClientRect();
+    const sp=lab.querySelector('span'); const rs=sp.getBoundingClientRect();
+    const hit=document.elementFromPoint(rs.left+10, rs.top+8);
+    return {包住:lab.contains(inp), 高:Math.round(rl.height), 宽:Math.round(rl.width),
+      点文字属于label: !!(hit&&lab.contains(hit))};})()`);
+  ok("复选框被 label 包住（点文字即可勾选）", cb.包住 === true && cb.点文字属于label === true);
+  ok("label 命中区 ≥44 高", cb.高 >= 44, `实际 ${cb.宽}x${cb.高}`);
+
   // ════ G 负向控制 ════
   console.log("\n=== G 负向控制：绿必须能转红 ===");
   await load();
@@ -261,6 +323,17 @@ try {
 
   const g4 = await measure("#这个不存在");
   ok("G4 选择器打空时量具报 missing 而非假绿", g4.missing === true, JSON.stringify(g4));
+
+  // G5：把详情返回键还原成改前的尺寸（padding:4px、无 min-*），H 组必须转红。
+  // 不还原就无从证明 H 组的绿是页面给的，而不是量具在隐藏视图里一律放行。
+  await load();
+  await cdp.ev(`openDetail('teacher')`); await sleep(400);
+  await cdp.ev(`(()=>{const b=document.querySelector('#detail .topbar .x');
+    b.style.minWidth='0'; b.style.minHeight='0'; b.style.display='inline';
+    b.style.padding='4px'; b.style.margin='0';})()`);
+  const g5 = await measure("#detail .topbar .x");
+  ok("G5 详情返回键还原成改前尺寸时判红", g5.ok === false,
+     `还原后仍判 ok，说明量具在隐藏视图里没真正生效：${g5.w}x${g5.h}`);
 
   cdp.ws.close();
 } catch (e) {
