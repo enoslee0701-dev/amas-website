@@ -1,38 +1,47 @@
 #!/bin/sh
-# auto cache-bust on every commit: stamp ?v=<ts> on local css/js refs,
-# then stage exactly the files bump.py reports as changed (no hardcoded list to drift),
-# then verify the cache-bust contract and abort the commit if it is violated.
+# auto cache-bust on every commit:
+#   1. bump.py 先 GUARD（写入前）：候选 HTML 若有未暂存改动或未跟踪，整体拒绝并列出路径
+#   2. 安全则打戳，并只暂存 bump.py 自己报告改动过的那些文件
+#   3. 用 --from-index 校验**进入提交的内容**是否满足缓存戳契约，不满足即中止提交
 #
-# 对「不得损坏无关已暂存内容」的处理：
-#   本 hook 只做三件事 —— 改戳记、暂存它自己报告的那些文件、跑校验。
-#   它**不执行** reset / checkout / stash / clean / add -A，
-#   因此失败时既有的暂存区除上述戳记文件外原样保留，作者可以直接修完再提交。
-#   戳记文件被暂存后即便提交中止也留在暂存区，那是它们本就该有的更新，不是损坏。
+# ── 为什么 GUARD 必须在 bump.py 内部、且在写入之前 ──────────────────
+# 本 hook 会把打戳后的文件自动暂存。若某个 HTML 处于「部分暂存」状态
+# （已 add 意图变更，之后又写了未暂存的私稿），对整文件暂存会把私稿一并提交。
+# 未跟踪的 HTML 同理：打戳后被暂存，等于把作者没打算提交的新文件带进提交。
+# 所以检查必须发生在任何写入之前，而不是事后补救。
+#
+# ── 对「不得损坏无关内容」的处理 ─────────────────────────────────────
+# 本 hook 只做上面三件事，**不执行** reset / checkout / stash / clean / add -A。
+# 拒绝时不动工作区、不动暂存区，只打印确切路径，由作者自行处置。
+# 打戳成功后被暂存的那些文件，是它们本就该有的更新，不是损坏。
+#
+# ── 输出为什么是英文 ─────────────────────────────────────────────────
+# hook 的 stderr 会流经 git、Windows 控制台代码页与外部采集脚本；
+# 非 ASCII 在 GBK 环境下会让整条流解码失败，拿不到确切路径就等于没报。
 
 set -u
 
-# ── 1. 打戳 ──────────────────────────────────────────────────────────
-# 原版把 bump.py 的 stderr 丢进 /dev/null 并无条件 exit 0：
-# stamper 崩溃时管道静默产出空集，提交照常通过，等于闸门失效。改为失败即中止。
+# ── 1+2. GUARD 与打戳（bump.py 内部保证顺序）─────────────────────────
 if ! STAMPED=$(python scripts/bump.py 2>&1); then
-  echo "pre-commit: scripts/bump.py 执行失败，已中止提交。" >&2
+  echo "pre-commit: aborted." >&2
   printf '%s\n' "$STAMPED" >&2
   exit 1
 fi
 
-# ── 2. 精确暂存 stamper 报告的文件（不使用 add -A）──────────────────
 if ! printf '%s\n' "$STAMPED" | sed -n 's/^stamped //p' | tr '\n' '\0' | xargs -0 -r git add --; then
-  echo "pre-commit: 暂存打戳文件失败，已中止提交。" >&2
+  echo "pre-commit: failed to stage stamped files; aborted." >&2
   exit 1
 fi
 
-# ── 3. 校验契约 ─────────────────────────────────────────────────────
-if ! python scripts/check-cache-bust.py; then
+# ── 3. 校验进入提交的内容 ───────────────────────────────────────────
+if ! python scripts/check-cache-bust.py --from-index; then
   echo "" >&2
-  echo "pre-commit: 缓存戳契约未通过，已中止提交。" >&2
-  echo "  修复后重新提交即可；本 hook 未改动任何无关的已暂存内容。" >&2
-  echo "  单独复跑：python scripts/check-cache-bust.py" >&2
-  echo "  契约用例：python scripts/test-cache-bust-contract.py" >&2
+  echo "pre-commit: cache-bust contract failed; commit aborted." >&2
+  echo "  The verdict above is about the INDEX, i.e. what would actually be committed." >&2
+  echo "  This hook performed no undo-style operation." >&2
+  echo "  Recheck:        python scripts/check-cache-bust.py --from-index" >&2
+  echo "  Contract cases: python scripts/test-cache-bust-contract.py" >&2
+  echo "  Gate cases:     python scripts/test-hook-gate.py" >&2
   exit 1
 fi
 

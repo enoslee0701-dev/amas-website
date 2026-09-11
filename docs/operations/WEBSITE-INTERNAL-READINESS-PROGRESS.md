@@ -386,3 +386,175 @@ git 用的是**主检出**的 `.githooks/pre-commit`（仍是旧版），
 附带一个可复用的判断：任何「改 hook 本身」的工作都无法在 worktree 内自证，
 因为 `core.hooksPath` 指向主检出。以后遇到同类任务，
 直接用一次性 fixture 仓库验证 hook 内容，不要试图用本分支的提交去证明它。
+
+---
+
+# 第三轮 —— Codex 复核发现的暂存污染：修复与证明
+
+日期：2026-09-11 · 依据：Codex 对 `d91c596` 的独立复核
+复现脚本：`Codex/2026-09-11/bang/work/review-hook-partial-stage.py`
+基线：`d91c596` · 同一隔离分支 · **仍未推 master**
+
+Codex 的复现结论是 `COMMIT_EXIT 0` / `UNSTAGED_DRAFT_ENTERED_COMMIT True` ——
+**缺陷成立，而且其中一条是我第一轮引入的。**
+
+---
+
+## 17. 缺陷：hook 的自动暂存把未暂存内容送进了提交
+
+### 17.1 路径一 —— 同文件部分暂存（Codex 复现的场景）
+
+```
+index.html 已 add（意图变更 A），随后又被改出一段未暂存的私稿 B
+→ bump.py 读工作区（A+B）打戳并写回
+→ hook 对整文件暂存
+→ 私稿 B 进入提交                    ← 污染
+```
+
+要害在于 hook 把「打戳」与「暂存整个文件」绑在一起：
+**打戳这个动作本身，成了把工作区未暂存内容送进提交的载体。**
+
+### 17.2 路径二 —— 未跟踪 HTML（这条是我第一轮引入的）
+
+第一轮把覆盖从硬编码 13 项改为全量扫描时，**同时把 `git add` 的作用面扩大到了未跟踪 HTML**。
+硬编码清单时代不存在这条路径：清单里只有既有页面。
+带本地资产引用的未跟踪页面会被打戳，随后被 hook 暂存 ——
+等于把作者没打算提交的新文件带进提交。
+
+扩大覆盖是对的，但我没有同时评估它对自动暂存面的影响。
+
+### 17.3 为什么第二轮的 A3 没抓到
+
+A3 用的是一个**未被打戳的无关文件**（`unrelated.txt`）。
+它证明了「hook 不会去动它没碰过的东西」，但没有覆盖
+「hook 碰过的那个文件里，有作者不想提交的部分」。
+前者是旁观者，后者才是载体。**测试选错了对象。**
+
+---
+
+## 18. 修复：写入前 GUARD，失败即拒绝并报确切路径
+
+### 18.1 保护放在 `bump.py` 内部，而不是另起一个脚本
+
+两个理由：
+
+1. **保护属于「会发生变更的那个工具」。** 任何调用者（hook、人手、将来的 CI）都自动受益，
+   不依赖调用方记得先跑一个守卫脚本。
+2. **Codex 的复现脚本只拷贝 `bump.py` / `check-cache-bust.py` / `pre-commit` 三个文件。**
+   若保护放在第四个脚本里，他们的复现会因「文件缺失」而中止 ——
+   得到正确的结果，却是错误的原因。这种"通过"没有价值。
+
+### 18.2 GUARD 的判据与行为
+
+在**写入任何文件之前**，对候选 HTML 逐一检查：
+
+```
+untracked  = ls-files --others --exclude-standard -- <候选>
+unstaged   = diff --name-only -- <候选>        # index 与工作区的差异，含部分暂存
+```
+
+两者任一非空即整体拒绝，退出码 2，**不写入任何文件**，并按路径逐行列出：
+
+```
+BLOCKED unstaged  index.html
+BLOCKED untracked scratch.html
+```
+
+**刻意不做**：`stash` / `reset` / `checkout` / 丢弃工作区 / 整目录暂存。
+那些都会替作者做他没要求的决定。拒绝 + 报路径，由作者自行处置。
+
+新增 `--list`（只列候选）与 `--guard-only`（只检查不写入），
+使这套判断可以独立于提交流程被调用与测试。
+
+### 18.3 校验器改读暂存区
+
+新增 `--from-index`：读 `git ls-files` + `git show :<path>`，
+校验**真正会被提交的那份内容**，而不是磁盘上当下的内容 ——
+在部分暂存场景里两者并不相同。hook 已改用 `--from-index`。
+
+### 18.4 运行时输出改为 ASCII
+
+Codex 那次复现除了报出缺陷，还暴露了第二个问题：
+我的中文 stderr 让他们的采集器抛 `UnicodeDecodeError: 'gbk' codec can't decode byte 0x80`。
+
+要求是「fail closed **with precise path list**」，而**路径列表若解不出来就等于没给**。
+这个仓库的历史里 psql 中文输出被 GBK 打乱过多次，是同一类问题。
+故三个脚本与 hook 的**运行时输出**统一改为 ASCII；注释与文档保持中文。
+修复后 Codex 的脚本输出干净，无异常。
+
+---
+
+## 19. 第三轮验证证据
+
+### 19.1 Codex 自己的复现脚本（最直接的验收）
+
+```
+修复前：COMMIT_EXIT 0   UNSTAGED_DRAFT_ENTERED_COMMIT True    + UnicodeDecodeError
+修复后：COMMIT_EXIT 1   UNSTAGED_DRAFT_ENTERED_COMMIT False   无异常
+```
+
+### 19.2 闸门用例扩充到 16 项（`scripts/test-hook-gate.py`）
+
+```
+PASS A1   合法状态提交成功（闸门不误杀）
+PASS A2   畸形戳导致提交被中止            PASS A2b  中止原因可见
+PASS A3   无关已暂存内容原样保留
+PASS A4   stamper 崩溃时提交被中止
+PASS A5   同文件部分暂存 → 提交被拒        exit=1，HEAD 未前进
+PASS A5b  私稿未进入任何提交               HEAD:index.html 不含私稿
+PASS A5c  暂存区未被改动（连戳都没打）        index 一致
+PASS A5d  工作区未被改动                  worktree 一致
+PASS A5e  拒绝原因含确切路径               输出含 index.html
+PASS A6   未跟踪 HTML → 提交被拒
+PASS A6b  该文件仍未跟踪、未被暂存           ls-files='' others='scratch.html'
+PASS A6c  未跟踪文件未被改动（未打戳）
+PASS A6d  拒绝原因含确切路径               输出含 scratch.html
+PASS A7   无关已跟踪 HTML 有未暂存改动 → 提交被拒
+PASS A7b  拒绝原因含确切路径               输出含 other.html
+
+=== HOOK 闸门: 16/16 PASSED ===
+```
+
+**A5c / A5d / A6c 是「写入前拒绝」的直接证据**：
+不只是提交被拦，连戳都没打 —— 暂存区与工作区逐字节未变。
+
+A7 是顺带覆盖的第三条路径：无关的已跟踪 HTML 若有未暂存改动，
+旧 hook 会把它一并提交（这条在硬编码清单时代就存在，只是从没被测过）。
+
+### 19.3 其余套件
+
+```
+真实仓库契约校验（工作区）  5/5 PASSED   pages=23 refs=82 invalid=0
+契约用例                 15/15 PASSED  14 负向 + 1 正向 + B1 实测
+```
+
+---
+
+## 20. 第三轮改动清单
+
+```
+M  scripts/bump.py                  写入前 GUARD + --list / --guard-only + 输出 ASCII 化
+M  scripts/check-cache-bust.py      新增 --from-index（校验暂存区）+ 输出 ASCII 化
+M  .githooks/pre-commit             改用 --from-index + 输出 ASCII 化
+M  scripts/test-hook-gate.py        闸门用例 5 → 16，补 A5/A6/A7 三条污染路径
+M  docs/operations/WEBSITE-INTERNAL-READINESS-PROGRESS.md   追加本轮（前两轮未改写）
+```
+
+**边界**：未改 App 仓库 · 对 live 零访问 · 无 schema 变更 · 未应用 0027 ·
+未创建 persona · 未部署或公开暴露 staging · 未改权限或密钥 · 未引入 CI ·
+未推 master · 历史报告原样保留。
+
+§16 的限制仍然成立：**hook 闸门在本分支上无法自证**，
+唯一有效证明仍是 `scripts/test-hook-gate.py` 的一次性 fixture 仓库。
+
+---
+
+## 21. 一条值得记下的方法论
+
+第二轮我写了 A3 并认为「无附带损害」已被证明。它确实证明了一件事，
+只是不是最要紧的那件 —— 它测的是 hook **没碰过**的文件，
+而污染发生在 hook **碰过**的文件里。
+
+教训不是「测试写少了」，而是：**当一个机制会自动修改并暂存文件时，
+第一个该问的问题是「它修改的那个文件里，有没有作者不想提交的部分」**，
+而不是「它会不会误伤别的文件」。前者是载体，后者只是旁观者。
