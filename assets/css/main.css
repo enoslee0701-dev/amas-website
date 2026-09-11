@@ -575,7 +575,15 @@ html[data-theme="night"] .chat-chips button:hover{color:#0a0c10}
 }
 @media(max-width:580px){
  .announce-bar{font-size:11px}.announce-item::after{margin:0 18px}
- .shell{width:calc(100% - 28px)}.brand-seal{width:44px;height:44px}.brand-name{font-size:19px}.brand-name small{letter-spacing:.1em;font-size:9.5px}.lang-btn{height:34px;padding:0 10px;font-size:12.5px}
+ .shell{width:calc(100% - 28px)}.brand-seal{width:44px;height:44px}.brand-name{font-size:19px}.brand-name small{letter-spacing:.1em;font-size:9.5px}
+ /* 顶栏触控目标：375px 实测 品牌首页链接 133x31、语言键 57x34、主题键 34x34，
+    三个都低于 44px。顶栏在手机上高 72px，44px 的控件放得下，上下各余 14px。
+    品牌链接用上下内边距把盒子撑到 45，不改 display —— 改成 flex 会牵动第十轮
+    那条 minmax(0,1fr) + 省略号的收缩路径，没必要为 14px 去动它。
+    语言键与主题键各加高到 44；主题键同时从 34 加宽到 44，顶栏这一行因此多占 10px，
+    由第十轮的 minmax(0,1fr) 吸收到品牌列（副标题多截一点，DOM 文本一字不少）。 */
+ .brand-name{padding-block:7px}
+ .lang-btn{height:44px;padding:0 10px;font-size:12.5px}
  .hero{min-height:600px}.hero-inner{min-height:600px}.hero-bg{object-position:73% 45%}.hero-seal{width:88px;height:88px}.hero-cnname{font-size:30px;letter-spacing:.08em}.hero-enname{font-size:12.5px;letter-spacing:.16em}.hero-actions{flex-direction:column;width:220px;align-self:center}.hero-actions .btn{width:220px}
  .hero-meta{width:100%}.hero-meta-item{padding:10px 12px;flex:1}.hero-meta-item b{font-size:14px}
  .accred-card-side{padding:34px 22px}.accred-card-main{padding:26px 18px 12px}
@@ -736,7 +744,8 @@ html[data-theme="night"] .btn.primary{background:#c9a85c;color:#0a0c10}
   .hero-bg,.sunset-glow,.hero-mist{transition-duration:.01ms!important}
 }
 @media(max-width:580px){
-  .theme-toggle{width:34px;height:34px}
+  /* 34x34 低于 44px 触控下限；圆钮直径加到 44，视觉仍是同一枚圆钮 */
+  .theme-toggle{width:44px;height:44px}
 }
 
 /* ===== 无障碍基础 ===== */
