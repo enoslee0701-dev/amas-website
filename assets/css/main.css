@@ -74,6 +74,9 @@ img{display:block;max-width:100%}
 .header-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-shrink:0}
 /* nowrap + 不参与压缩：无论字体多宽，按钮里的字都不折行 */
 .lang-btn,.apply-btn,.login-btn{height:36px;border-radius:9px;border:1px solid var(--line);padding:0 14px;background:#fffdf9;color:var(--ink);white-space:nowrap;flex-shrink:0;line-height:1;font-size:13px}
+/* 抽屉里的「申请入学」实测 282x36。它是抽屉里最主要的转化按钮，抬到 44；
+   顶栏那两个同族按钮各自有自己的断点规则，不受这一行影响。 */
+.apply-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px}
 .login-btn{display:inline-flex;align-items:center;justify-content:center;border-color:var(--olive-dark);color:var(--olive-dark);font-weight:650;text-decoration:none}
 .login-btn:hover{background:linear-gradient(135deg,#10305a,#0a1d38);color:#fff}
 /* 语言切换：只显示当前语言的国旗，点击切换 */
@@ -491,7 +494,9 @@ html[data-theme="night"] .icon-chip{background:rgba(255,255,255,.06)}
 .footer{background:#0e0e0c;color:#c6c0b1;padding:45px 0 20px}.footer-top{display:flex;justify-content:space-between;gap:40px;align-items:flex-end}.footer-brand{font-family:Georgia,serif;color:#fff;font-size:42px;letter-spacing:.08em}.footer-top p{font-size:10px;letter-spacing:.18em}.footer-links{display:flex;gap:28px;font-size:13px}.footer-bottom{margin-top:35px;padding-top:18px;border-top:1px solid rgba(255,255,255,.1);display:flex;justify-content:space-between;font-size:11px}.footer-bottom button{border:0;background:transparent;color:#c8bd70}
 
 /* Drawer */
-.mobile-drawer{position:fixed;inset:0;z-index:80;pointer-events:none;opacity:0;visibility:hidden;transition:opacity .2s,visibility 0s linear .2s}.mobile-drawer.open{pointer-events:auto;opacity:1;visibility:visible;transition:opacity .2s,visibility 0s}.drawer-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.42)}.drawer-panel{position:absolute;top:0;right:0;height:100%;width:min(390px,88vw);background:var(--paper);padding:24px;transform:translateX(100%);transition:.25s;overflow-y:auto;-webkit-overflow-scrolling:touch}.mobile-drawer.open .drawer-panel{transform:none}.drawer-head{display:flex;justify-content:space-between;align-items:center;font-family:Georgia,serif;font-size:30px}.icon-btn,.modal-close{border:0;background:transparent;font-size:28px}.drawer-panel nav{display:flex;flex-direction:column;margin:35px 0}.drawer-panel nav a{padding:15px 2px;border-bottom:1px solid var(--line);font-size:20px}.drawer-apply{width:100%}
+.mobile-drawer{position:fixed;inset:0;z-index:80;pointer-events:none;opacity:0;visibility:hidden;transition:opacity .2s,visibility 0s linear .2s}.mobile-drawer.open{pointer-events:auto;opacity:1;visibility:visible;transition:opacity .2s,visibility 0s}.drawer-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.42)}.drawer-panel{position:absolute;top:0;right:0;height:100%;width:min(390px,88vw);background:var(--paper);padding:24px;transform:translateX(100%);transition:.25s;overflow-y:auto;-webkit-overflow-scrolling:touch}.mobile-drawer.open .drawer-panel{transform:none}.drawer-head{display:flex;justify-content:space-between;align-items:center;font-family:Georgia,serif;font-size:30px}/* 关闭键实测：抽屉 30x34、弹窗 40x42，都低于 44。撑成 44x44 的方形命中区，
+   字号与字形不变；它们是浮层里唯一的退出口，点不中就只能靠 Esc 或点背景。 */
+.icon-btn,.modal-close{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;border:0;background:transparent;font-size:28px;cursor:pointer}.drawer-panel nav{display:flex;flex-direction:column;margin:35px 0}.drawer-panel nav a{padding:15px 2px;border-bottom:1px solid var(--line);font-size:20px}.drawer-apply{width:100%}
 
 /* Modal */
 .modal{position:fixed;inset:0;z-index:100;display:none}.modal.open{display:block}.modal-backdrop{position:absolute;inset:0;background:rgba(15,15,12,.72);backdrop-filter:blur(6px)}.modal-card{position:relative;margin:5vh auto;max-height:90vh;overflow:auto;width:min(900px,calc(100% - 32px));background:var(--paper);border-radius:16px;box-shadow:0 30px 100px rgba(0,0,0,.35);padding:34px}.modal-close{position:absolute;right:20px;top:16px;z-index:2}.video-card{width:min(960px,calc(100% - 32px));padding:0;overflow:hidden}.video-placeholder{min-height:520px;background:#111;color:#eee;display:grid;place-items:center;text-align:center;padding:50px}.video-placeholder h3{font-size:30px;margin:12px 0}.video-placeholder p{max-width:580px;color:#aaa;line-height:1.7}.video-play{width:72px;height:72px;border:1px solid #817a47;border-radius:50%;display:grid;place-items:center;color:#c9bd70;font-size:24px}
@@ -507,19 +512,23 @@ html[data-theme="night"] .icon-chip{background:rgba(255,255,255,.06)}
 .chat-head img{width:38px;height:38px;border-radius:50%;background:#fff}
 .chat-head b{display:block;font-size:15px;font-weight:650}
 .chat-head span{display:block;font-size:11px;opacity:.82;margin-top:2px}
-.chat-head button{margin-left:auto;border:0;background:transparent;color:#fff;font-size:22px;cursor:pointer;line-height:1;padding:4px}
+/* 客服面板关闭键实测 30x30 */
+.chat-head button{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;border:0;background:transparent;color:#fff;font-size:22px;cursor:pointer;line-height:1;padding:4px}
 .chat-body{flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:10px;background:var(--paper2)}
 .chat-msg{max-width:82%;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.65;white-space:pre-line;overflow-wrap:break-word}
 .chat-msg.bot{align-self:flex-start;background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:4px}
 .chat-msg.user{align-self:flex-end;background:linear-gradient(135deg,#10305a,#0a1d38);color:#fff;border-bottom-right-radius:4px}
 .chat-msg.typing{color:var(--muted);letter-spacing:.2em}
 .chat-chips{display:flex;flex-wrap:wrap;gap:7px;align-self:flex-start;max-width:95%}
-.chat-chips button{border:1px solid var(--line);background:var(--surface);color:var(--olive-dark);border-radius:999px;padding:7px 13px;font-size:12.5px;cursor:pointer;transition:.15s}
+/* 快捷问句实测 91x35：它们是客服面板里最常点的东西，抬到 44 高。
+   胶囊仍按文字宽度伸缩，只是高度够手指了。 */
+.chat-chips button{display:inline-flex;align-items:center;min-height:44px;border:1px solid var(--line);background:var(--surface);color:var(--olive-dark);border-radius:999px;padding:0 15px;font-size:12.5px;cursor:pointer;transition:.15s}
 .chat-chips button:hover{background:linear-gradient(135deg,#10305a,#0a1d38);color:#fff;border-color:var(--olive-dark)}
 .chat-input{display:flex;gap:9px;padding:12px;border-top:1px solid var(--line);background:var(--paper)}
-.chat-input input{flex:1;height:42px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);padding:0 13px;outline:none;font-size:13.5px}
+/* 输入框与发送键实测 42 高，差 2px 到 44 */
+.chat-input input{flex:1;height:44px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);padding:0 13px;outline:none;font-size:13.5px}
 .chat-input input:focus{border-color:var(--olive)}
-.chat-input button{height:42px;padding:0 17px;border:0;border-radius:10px;background:linear-gradient(135deg,#10305a,#0a1d38);color:#fff;font-weight:600;cursor:pointer}
+.chat-input button{height:44px;min-width:44px;padding:0 17px;border:0;border-radius:10px;background:linear-gradient(135deg,#10305a,#0a1d38);color:#fff;font-weight:600;cursor:pointer}
 .chat-note{font-size:10.5px;color:var(--muted);text-align:center;padding:0 12px 9px;background:var(--paper)}
 html[data-theme="night"] .chat-fab{color:#0a0c10}
 html[data-theme="night"] .chat-head{color:#0a0c10}
@@ -840,13 +849,15 @@ html[data-theme="night"] :focus-visible{outline-color:#b7be63}
 .promo-card.out{animation:promoOut .35s ease-in forwards}
 @keyframes promoOut{to{opacity:0;transform:translateX(-120%)}}
 @keyframes promoIn{0%{opacity:0;transform:translateX(-120%) scale(.96)}70%{opacity:1;transform:translateX(3%) scale(1)}100%{opacity:1;transform:translateX(0) scale(1)}}
-.promo-close{position:absolute;right:10px;top:8px;border:0;background:transparent;color:#c9c2ae;font-size:22px;line-height:1;cursor:pointer;padding:4px 8px}
+/* 卡片关闭键实测 38x30 */
+.promo-close{position:absolute;right:6px;top:4px;display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;border:0;background:transparent;color:#c9c2ae;font-size:22px;line-height:1;cursor:pointer;padding:0}
 .promo-close:hover{color:#fff}
 .promo-eyebrow{font-size:10px;letter-spacing:.24em;font-weight:700;color:#d5b46b;margin-bottom:8px}
 .promo-title{display:block;font-family:"Noto Serif SC","Songti SC",serif;font-size:18px;color:#fff;line-height:1.45;padding-right:18px}
 .promo-desc{margin:10px 0 16px;font-size:13px;line-height:1.7;color:#d8d2bf}
 .promo-actions{display:flex;gap:10px}
-.promo-actions .btn{min-height:42px;padding:0 16px;font-size:13.5px}
+/* 卡片里两个操作按钮实测 88x42，差 2px */
+.promo-actions .btn{min-height:44px;padding:0 16px;font-size:13.5px}
 .promo-actions .btn.primary{background:linear-gradient(135deg,#e9c46a,#c9963d);color:#10305a;border-color:transparent;font-weight:750}
 .promo-actions .btn.secondary{background:transparent;color:#f4ecd8;border-color:rgba(255,255,255,.35)}
 .promo-actions .btn.secondary:hover{background:rgba(255,255,255,.08)}

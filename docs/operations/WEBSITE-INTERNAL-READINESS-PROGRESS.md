@@ -2044,3 +2044,89 @@ WCAG 2.5.5 / 2.5.8 量的是目标的外接盒，外加「有没有被别的目�
 **附带回归无回归**：`test-touch-targets` 18/18、`test-promo-tab` 20/20、
 `test-header-touch` 14/14、`test-header-layout` 19/19、`test-announce-a11y` 22/22、
 `test-drawer-a11y` 14/14、`test-discover-back-link` 30/30、`check-cache-bust` 5/5。
+
+---
+
+# 第十五轮：打开态浮层内的触控目标
+
+## 99. 前几轮的普查有个盲区：关着的浮层量不到
+
+第十一到十四轮的全页普查都是在**浮层关着**的状态下扫的。关着的浮层要么
+`display:none`、要么 `visibility:hidden`、要么 `pointer-events:none`，
+里面的控件量出来是 `0x0` 或「中心点落空」，于是被当成噪声跳过 ——
+普查输出里那一串「中心点落空(量具异常)」正是它们。
+
+但它们恰恰是访客真正会点的东西：**抽屉是手机端主导航，申请弹窗是转化终点，
+客服面板是站点唯一的即时答疑入口**。
+
+**「普查没报」在这里等于「普查够不着」，不等于没问题。** 逐个打开之后实测：
+
+| 浮层 | 控件 | 375px 实测 |
+|---|---|---|
+| 移动抽屉 | 关闭键 `.icon-btn` × | **30x34** |
+| 移动抽屉 | 「申请入学」`.apply-btn` | **282x36** |
+| 申请弹窗 | 关闭键 `.modal-close` × | **40x42** |
+| 校标弹窗 | 关闭键 `.modal-close` × | **40x42** |
+| 客服面板 | 关闭键 `#chatClose` × | **30x30** |
+| 客服面板 | 6 个快捷问句 | **91x35 ~ 116x35** |
+| 客服面板 | 输入框 `#chatText` | **258x42** |
+| 客服面板 | 发送键 `#chatSend` | **66x42** |
+| 招生卡片 | 关闭键 `#promoClose` × | **38x30** |
+| 招生卡片 | 「立即咨询」「申请入学」 | **88x42** ×2 |
+
+五个浮层、十六处，无一合格。其中四个是**浮层唯一的退出口**（×），
+点不中就只能靠 Esc 或点背景 —— 而触屏没有 Esc。
+
+## 100. 每个浮层都用真人的入口打开
+
+测试里不直接改 class 或 `hidden` 属性，而是 `#menuBtn` / `[data-open-application]` /
+`#chatFab` / `.promo-tab` / `[data-open-seal]` 逐个**真实点击**。
+直接改状态会绕过站点自己的开关逻辑，量到的可能是一个真人根本到不了的形态。
+入口点不开也直接判红 —— 那本身就是缺陷。
+
+## 101. 修法（纯 CSS，未动任何浮层的开关逻辑）
+
+```css
+.icon-btn,.modal-close{display:inline-flex;align-items:center;justify-content:center;
+  min-width:44px;min-height:44px;...}                 /* 30x34 / 40x42 -> 44x44 */
+.apply-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px}
+.chat-head button{...;min-width:44px;min-height:44px}  /* 30x30 -> 44x44 */
+.chat-chips button{display:inline-flex;align-items:center;min-height:44px;padding:0 15px}
+.chat-input input{height:44px} .chat-input button{height:44px;min-width:44px}
+.promo-close{...;min-width:44px;min-height:44px;padding:0;right:6px;top:4px}
+.promo-actions .btn{min-height:44px}
+```
+
+快捷问句仍按文字宽度伸缩，只是高度够手指了；关闭键的字号与字形一个都没改。
+
+## 102. 回归 `scripts/test-overlay-touch.mjs`（21/21 PASS）
+
+| 组 | 断言 |
+|---|---|
+| O-320-* / O-375-* | 五个浮层逐个打开，内部**全部**可达控件合格（外接盒 >= 44x44 且无人压住） |
+| O-*b | 浮层内部控件互不相交 |
+| O0 | **负向控制**：还原本轮加大后，抽屉里的过小控件精确复现（`.icon-btn` 18x32） |
+
+「可达」按祖先链算：链上任何一层 `display:none` / `visibility:hidden` /
+`pointer-events:none` / `[hidden]`，这一刻它就不是触控目标，不计入。
+这条规则同时防止了两种错：把关着的浮层算进来（假红），以及把真开着的浮层跳过去（假绿）。
+
+截图：`work/shots/ov-before-{320,375,1280}.png` · `ov-after-{320,375,1280}.png`
+（客服面板，一张图覆盖本轮改的大部分控件）。
+
+**附带回归无回归**：`test-touch-targets` 18/18、`test-promo-tab` 20/20、
+`test-header-touch` 14/14、`test-contact-footer` 12/12、`test-header-layout` 19/19、
+`test-announce-a11y` 22/22、`test-drawer-a11y` 14/14、`test-discover-back-link` 30/30、
+`check-cache-bust` 5/5。
+
+## 103. index.html 上还剩什么（实测，非估计）
+
+重跑全页普查：过小控件从最初的 **40 个降到 13 个**，这 13 个里 7 个是浮层背后的
+量具噪声（现已由本轮的浮层专测覆盖）。真正还剩的是三个，其中两个是**有理由不改**的：
+
+| 控件 | 尺寸 | 处置 |
+|---|---|---|
+| `.text-link`「了解我们的异象与使命 →」 | 158x21 | **待修**：独立 CTA 链接，不属行内例外 |
+| 公告条「查看招生信息 →」 | 126x18 | **不改**：句子中的行内链接（WCAG 2.5.8 行内例外），且在滚动跑马灯里，加高会破坏该组件 |
+| 学费段落里的「奉献支持」 | 60x22 | **不改**：同上，`div.tuition-copy > p > a`，是正文句子的一部分 |
+| `#announceToggle` 公告暂停键 | 44x30 | **不改**：已满足 AA 24x24；见 §90 的理由 |
