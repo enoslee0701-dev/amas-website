@@ -448,7 +448,33 @@ html[data-theme="night"] .icon-chip{background:rgba(255,255,255,.06)}
 .resources-section{background:var(--paper2)}
 .resource-search-wrap{display:flex;justify-content:flex-end}.resource-search-wrap input{width:min(420px,100%);height:48px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:0 16px;outline:none}.resource-search-wrap input:focus{border-color:var(--olive)}
 .resource-list{border-top:1px solid var(--line)}
-.resource-row{display:flex;align-items:center;justify-content:space-between;padding:22px 2px;border-bottom:1px solid var(--line)}.resource-row>div{display:flex;align-items:center;gap:22px}.resource-row>div>span{font-size:10px;letter-spacing:.14em;color:var(--olive-dark);width:45px}.resource-row h3{font-size:19px;margin:0;font-weight:500}.resource-row button,.resource-dl{border:0;background:transparent;color:var(--olive-dark);font-weight:600;font-size:inherit;text-decoration:none;cursor:pointer}.resource-row.resource-hidden{display:none}
+.resource-row{display:flex;align-items:center;justify-content:space-between;padding:22px 2px;border-bottom:1px solid var(--line)}.resource-row>div{display:flex;align-items:center;gap:22px}.resource-row>div>span{font-size:10px;letter-spacing:.14em;color:var(--olive-dark);width:45px}.resource-row h3{font-size:19px;margin:0;font-weight:500}/* 触控命中区：这六个入口原先只有文字行盒那么大（375px 实测 64x27，#formDl 52x25），
+   低于手机上 44px 的建议触控尺寸，而它们正是「拿申请表 / 看课程目录」的入口。
+   只撑命中区，不动字号、配色、文案和右缘对齐：
+   - inline-flex + min-height/min-width 把盒子撑到 44，文字仍居中，视觉重量不变；
+   - 左右各 10px 内边距把命中区横向撑开，再用等量负外边距抵消，右缘一个像素都不移动；
+   - 上下不加负外边距，行本身 22px 的内边距因此成为相邻两行命中区之间的间隔，
+     两个 44px 的命中区之间至少还隔着 44px，不会互相压住。 */
+.resource-row button,.resource-dl{display:inline-flex;align-items:center;justify-content:center;
+  flex:0 0 auto;min-height:44px;min-width:44px;padding:0 10px;margin-inline-end:-10px;
+  white-space:nowrap;border:0;background:transparent;color:var(--olive-dark);font-weight:600;
+  font-size:inherit;text-decoration:none;cursor:pointer}
+/* 键盘聚焦滚动的落点余量。命中区够大还不够用 —— 用 Tab 走到这六个入口时，
+   浏览器只做最小滚动，会把它们停在视口底部，而底部正压着三个 position:fixed 的浮层：
+   招生卡片（手机上整宽约 200px 高）、客服圆钮（离底 66px）、侧边招生标签。
+   实测 375px 下「查看 →」「填写 →」「下载 ↓(DOCX)」聚焦后命中区是 0x0 ——
+   键盘访客把焦点交给了一个自己看不见也点不到的控件。
+   这与 1ee9288 在 discover 结果页修的是同一类问题，用同一种办法：
+   scroll-margin-bottom 只影响浏览器发起的滚动落点，不改变任何静态版式。
+   数值取自实测的浮层占位。手机上决定余量的不是招生卡片（约 200px）而是侧边招生
+   标签 .promo-tab —— 它离视口底 262px，且贴着右缘，正压在这些右对齐按钮上；
+   落点停在它的带子里，按钮左侧只剩正好 44px 的干净宽度，一个像素的余量都没有。
+   取 280px 让落点整体停在标签上方。桌面上标签在视口中部、只压住按钮最外 4px，
+   68px 的干净宽度绰绰有余，所以桌面只需要避开 80px 高的客服圆钮。
+   万一将来浮层变高而这个常数没跟上，回归里「聚焦后仍有完整 44x44 命中区」
+   那条会直接变红，靠的是那条断言而不是这个常数本身。 */
+.resource-row button,.resource-dl{scroll-margin-bottom:calc(100px + env(safe-area-inset-bottom))}
+@media(max-width:580px){.resource-row button,.resource-dl{scroll-margin-bottom:calc(280px + env(safe-area-inset-bottom))}}.resource-row.resource-hidden{display:none}
 
 /* faq */
 .faq-section{background:#fff}.faq-grid{display:grid;grid-template-columns:.45fr 1fr;gap:80px}
