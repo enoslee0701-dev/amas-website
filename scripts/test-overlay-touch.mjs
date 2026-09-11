@@ -132,6 +132,11 @@ window.__overlayControls = (boxSel) => {
     if (!reachable(el)) continue;
     const r = el.getBoundingClientRect();
     if (r.width === 0 && r.height === 0) continue;
+    // 先把它滚进所在浮层的可视区再量 —— 抽屉面板与弹窗卡片自己都是可滚动容器，
+    // 不滚就量，量到的是「此刻露在外面的那一点点」，那是用户滚一下就能解决的事，
+    // 不是控件本身的问题。别的几套测量本来就先 scrollIntoView，这一套之前漏了：
+    // 量具原先看不见祖先裁剪，所以这个漏洞一直没暴露出来（外接盒照样够大）。
+    el.scrollIntoView({ block: 'nearest' });
     const t = window.__target(el, 44);
     items.push({
       name: (el.id ? '#' + el.id : el.tagName.toLowerCase() +

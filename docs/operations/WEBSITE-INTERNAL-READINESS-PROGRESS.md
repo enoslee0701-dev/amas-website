@@ -2690,3 +2690,142 @@ D0b 直接还原站点原来的写法，而不是换一套宽松断言。
 - `detailFrom` 记录来处（首屏 / 结果页）的逻辑是对的，返回目标正确。
   但**结果页目前没有进入详情的入口**，所以 `detailFrom === 'result'` 这条分支
   在真人路径上到不了 —— 是预留而非缺陷，记录备查。
+
+---
+
+# 第二十二轮：giving 与 help 的键盘·导航·错误恢复
+
+## 136. 安全前提
+
+`giving.html` 的表单直接 POST 到写死的 `formsubmit.co` 邮箱（没有 `CONFIG` 间接层）。
+回归每次加载后先把 `window.fetch` 换成「对 formsubmit / supabase 一律失败、其余照旧」
+的包装，**G0 断言包装生效；不生效就不跑提交用例**。本页没有任何支付控件，
+所以「不进行真实付款」是结构性的，不是靠约束实现的。
+
+## 137. 实测确认**不是**缺陷的五处
+
+| 怀疑 | 实测 |
+|---|---|
+| 参与方向单选用方向键切换后业务变量不同步 | **同步**：radio / `purpose` / `.sel` 三者一致 |
+| Tab 顺序有断点 | **完整**：返回官网 → 语言 → 参与方向 → 联系方式 → 表单 → 政策 |
+| 空提交会误发请求 | **不会**：0 次请求，焦点落到第一个未填字段 |
+| 发送失败丢内容 | **不丢**：文案可见、内容保留、可重试、提示在视口内 |
+| help 手风琴/返航有问题 | **正常**：7 个标题依次可 Tab、回车可展开，返航指向 `../index.html` |
+
+## 138. 三处确认的缺口
+
+**C1 复制失败完全静默。** 正常情况（安全上下文 + 文档有焦点）复制是成功的并显示「已复制」；
+但 `writeText` 在**非安全上下文（http 部署）、权限被拒、旧浏览器**上会 reject，
+而原代码是 `.catch(()=>{})` —— 按钮文字一动不动。实测把 `writeText` 显式改成 reject 后，
+按钮与页面上都没有任何变化。修法：`clipboard → execCommand 退化 → 都不行就改按钮文字提示`，
+并为此在四种语言各加一条 `copyFail` 微文案（**本轮唯一新增的可见文案**）。
+
+**C2 发送结果不过期。** 失败后改动表单，「发送失败…」仍挂在这一次的输入旁边。
+与 `index.html` 第十九轮同类，本页脚本独立，需各自加 `input` 清理。
+
+**C3 语言键没有可播报的选中态。** 四个按钮只有 `.active` class，读屏访客听不出当前语言。
+改为同时维护 `aria-pressed`。
+
+## 139. 回归 `scripts/test-giving-help-flow.mjs`（12/12 PASS）
+
+含负向控制 G0b：换回原来的 `.catch(()=>{})` 之后，复制失败重新变成毫无反馈。
+
+**量具本身也修了一处。** G3 一度红成「点击后没反应」，加上「这次点击是否真的落在按钮上」
+的守卫才看清：**是探针点空了**，不是页面缺陷。`clickReal` 因此改成先用
+`elementFromPoint` 校验坐标、被挡住就在元素内换几个点试、都打不到就返回 false。
+这条守卫的价值在于把「量具打偏」和「页面没反应」分开 —— 否则前者会伪装成后者。
+
+---
+
+# 第二十三轮：整合前代码审查（针对三个点名风险）
+
+审查方式：**每条都在浏览器里复现，不靠读代码下结论。**
+
+## 140. R1 共享量具会掩盖「祖先裁剪」造成的遮挡 —— 属实，已修
+
+构造一个 60x60 的按钮，塞进只有 10px 高、`overflow:hidden` 的容器：
+
+```
+外接盒 60x60 · 容器可见高度 10 · __target 判定 = true（理由：外接盒够大且无人压住）
+```
+
+**判定合格，而真人只点得到 10px。** 成因：`elementsFromPoint` 在裁剪区之外
+根本不返回这个元素，那些点被当成「圆角之外」跳过，`covered` 仍是 0。
+
+这不是假想 —— 申请弹窗的 `.modal-card` 就是 `overflow:auto` 的裁剪容器，
+第十九轮那条「错误提示被裁掉 38px」当时正是 `__target` 看不见、
+靠另写一条比较 rect 的断言才抓到的。
+
+修法：新增 `__visibleRect(el)`，把外接盒与所有祖先裁剪容器求交，
+`__target` / `__sq` 一律按这块「此刻真正露在外面」的矩形判。修后同一构造判 false，
+理由写明「被祖先裁剪后只剩 60x10（外接盒 60x60）」。
+
+**收紧之后 `test-overlay-touch` 从 21/21 掉到 17/21 —— 而那 4 条红的是对的：**
+抽屉面板与弹窗卡片自己是可滚动容器，那套测量一直在量「尚未滚到」的控件
+（实测 `234x0`、`307x0`），只是旧量具看不见裁剪、外接盒照样够大，所以一直没暴露。
+给 `__overlayControls` 补上 `scrollIntoView({block:'nearest'})` 后回到 21/21。
+**一次量具收紧同时修掉了一处一直存在的测量漏洞。**
+
+## 141. R2 异步表单的「关闭重开」竞态 —— 属实，已修
+
+把 `sendPayload` 延到 1.5 秒返回，制造在途窗口，然后：
+提交 → Esc 关闭 → 立刻重开并重新输入 →
+
+```
+响应回来之前：{ open: "false", name: "用户重开后新输入的内容" }
+响应回来之后：{ open: "true",  name: "",                  step: "1" }
+```
+
+**在途响应把用户刚重开并重填的弹窗关掉了，输入的内容当场消失。**
+
+第十八轮把 `openApplication` 改成「停在上次那一步」之后，用户重开后正处于填写中的
+概率更高，这个窗口被放大了。修法：每次 `openApplication()` 自增 `appOpenEpoch`，
+提交时记下当时的世代；成功/失败回调与那个 1.8 秒的自动关闭定时器**都先比对世代**，
+不是同一次打开就直接返回。修后同一操作序列：`open=false`、输入内容完整保留、仍停在第 4 步。
+
+## 142. R3 discover 焦点恢复 —— 未发现问题
+
+连续四题的焦点轨迹稳定落在 `#qcard`，走到结果落在 `#rhead`，没有丢失也没有竞态。
+`focusQuietly` 里那句 `document.contains(el)` 兜住了「元素已被重建/移除」的情形。
+
+## 143. R4（审查中额外发现）giving 提交在途可重复提交 —— 属实，已修
+
+```
+在途时按钮：{ disabled: false, aria-busy: null }   连点两次 -> 实际请求数 = 2
+```
+
+**真实环境会给学校发两封一模一样的邮件。** `index.html` 的两个表单本来就有 `setBusy`
+保护，`giving.html` 脚本独立、没有。修法：提交时锁按钮 + `aria-busy`，`finally` 解锁。
+修后连点两次只产生 1 次请求。
+
+## 144. 给 App 唯一 writer 的 discover.html 同步清单（本会话不跨仓写）
+
+App 仓 `AMAS-Seminary/public/discover.html` 是同源副本。本分支对 `discover.html`
+共 **+78 / -12 行**，全部属于同步范围。具体差异：
+
+**样式（4 处）**
+1. `.strip img {...}` → `.strip button {...}`：宽度/圆角/边框/阴影/滚动吸附整体搬到按钮上，
+   新增 `background:#fff; overflow:hidden; line-height:0`；另加 `.strip button:focus-visible` 焦点圈；
+   `.strip img` 简化为 `width:100%; display:block; border-radius:15px`。
+2. 宽屏媒体查询里 `.strip img` 的 hover 位移同样改成 `.strip button`。
+3. `.compare .gold-btn` 高度 `36px → 44px`。
+4. 新增 `#qcard:focus, #rhead:focus, #dTitle:focus { outline: none; }`。
+
+**标记（4 处）**
+5. `<div class="bar">` → 加 `role="progressbar" aria-label="答题进度" aria-valuemin="0"`。
+6. `<div class="card qcard fade" id="qcard">` → 加 `tabindex="-1"`。
+7. `<div class="rhead">` → 加 `id="rhead" tabindex="-1"`。
+8. `<span class="t" id="dTitle">` → 加 `tabindex="-1"`。
+
+**脚本（6 处）**
+9. 新增 `function focusQuietly(el)`（带 `document.contains` 兜底）。
+10. `startQuiz()`：`render(); show('quiz');` → **`show('quiz'); render();`**（顺序不能反）。
+11. `exitQuiz()`：新增 `focusQuietly(#landing .gold-btn)`。
+12. 首屏原型条生成：`<img onclick>` → `<button type="button" aria-label="<名称> · 查看倾向说明">`
+    包 `<img alt="">`，点击行为不变。
+13. `render()`：同步 `aria-valuemax/valuenow/valuetext`（「第 N 题，共 10 题」），末尾 `focusQuietly(card)`。
+14. `finish()` 末尾 `focusQuietly(#rhead)`；`openDetail()` 末尾 `focusQuietly(#dTitle)`；
+    `closeDetail()` 按 `detailFrom` 交回 `#rhead` 或 `#landing .gold-btn`。
+
+**验收**：App 侧同步后可直接跑本仓的 `scripts/test-discover-flow.mjs`（把 ROOT 指向 App 的
+`public/`），14/14 应全绿，其中 D0/D0b 两条负向控制能证明同步是否真的落到位。

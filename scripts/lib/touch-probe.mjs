@@ -43,7 +43,7 @@ window.__owns = (el, x, y) => {
 
 // 可达区域里是否放得下一整块 size x size（用于「已经被压住」之后的追问）
 window.__sq = (el, size) => {
-  const r = el.getBoundingClientRect();
+  const r = window.__visibleRect(el);   // 同样按「此刻真正露在外面」的矩形找方块
   const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
   const clamp = (x, hi) => Math.min(x, hi - 1);
   if (r.width + 1e-6 < size || r.height + 1e-6 < size) return false;
@@ -60,14 +60,41 @@ window.__sq = (el, size) => {
   return false;
 };
 
-// 目标是否合格：外接盒够大 + 没被别的元素压掉（被压了才追问可达区域）
-window.__target = (el, size) => {
+// 元素**此刻真正露在外面**的那块矩形：外接盒与所有祖先裁剪容器求交。
+// 为什么必须有这一步：elementsFromPoint 在裁剪区之外根本不返回这个元素，
+// 于是那些点会被 __target 当成「圆角之外」跳过，covered 仍是 0 —— 一个 60x60、
+// 被祖先 overflow:hidden 裁到只剩 10px 可见的按钮会被判成合格。
+// 这不是假想：申请弹窗的 .modal-card 就是 overflow:auto 的裁剪容器，
+// 第十九轮那条「错误提示被裁掉 38px」当时就是 __target 看不见、
+// 靠另写一条比较 rect 的断言才抓到的。
+window.__visibleRect = (el) => {
   const r = el.getBoundingClientRect();
+  let left = r.left, top = r.top, right = r.right, bottom = r.bottom;
+  for (let n = el.parentElement; n && n !== document.documentElement; n = n.parentElement) {
+    const cs = getComputedStyle(n);
+    const clips = [cs.overflow, cs.overflowX, cs.overflowY].some((v) => v && v !== 'visible');
+    if (!clips) continue;
+    const cr = n.getBoundingClientRect();
+    left = Math.max(left, cr.left); top = Math.max(top, cr.top);
+    right = Math.min(right, cr.right); bottom = Math.min(bottom, cr.bottom);
+  }
+  return { left, top, right, bottom,
+           width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
+};
+// 目标是否合格：可见矩形够大 + 没被别的元素压掉（被压了才追问可达区域）
+window.__target = (el, size) => {
+  const r = window.__visibleRect(el);
   const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
   const clamp = (x, hi) => Math.min(x, hi - 1);
+  const box = el.getBoundingClientRect();
   const out = { w: Math.round(r.width), h: Math.round(r.height), covered: 0, by: [] };
   if (r.width + 1e-6 < size || r.height + 1e-6 < size) {
-    out.ok = false; out.why = '外接盒不足 ' + size; return out;
+    out.ok = false;
+    out.why = (Math.round(box.width) !== Math.round(r.width) || Math.round(box.height) !== Math.round(r.height))
+      ? '被祖先裁剪后只剩 ' + Math.round(r.width) + 'x' + Math.round(r.height) +
+        '（外接盒 ' + Math.round(box.width) + 'x' + Math.round(box.height) + '）'
+      : '外接盒不足 ' + size;
+    return out;
   }
   const by = new Set();
   for (let x = r.left + 1; x < r.right; x += 3)

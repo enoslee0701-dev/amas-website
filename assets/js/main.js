@@ -943,7 +943,13 @@ const APP_STEPS = 4;
 const appModal = $("#applicationModal"), appForm = $("#applicationForm");
 let appStep = 1;
 
+// 每打开一次弹窗就换一个「世代号」。提交是异步的，而用户完全可能在响应回来之前
+// 关掉弹窗、再重新打开、重新填 —— 这时那次在途响应已经不属于眼前这个弹窗了。
+// 实测过没有这道闸的后果：提交在途 -> Esc -> 立刻重开并输入 -> 1.5 秒后响应回来，
+// 把用户刚重开并重填的弹窗直接关掉并 reset()，输入的内容当场消失。
+let appOpenEpoch = 0;
 function openApplication(){
+  appOpenEpoch++;
   // 停在上次那一步，而不是每次都回到第 1 步。
   // 关闭弹窗并不清空表单（只有提交成功后才 reset），所以原先的行为是自相矛盾的：
   // 数据还在，位置却丢了 —— 填到第 3 步的访客关掉再打开，要对着已经填好的字段
@@ -1029,20 +1035,24 @@ appForm.addEventListener("submit", async e => {
   data.lang = currentLang;
 
   const btn = $("#submitApplication"), label = btn.querySelector("span"), status = $("#applicationStatus");
+  const epoch = appOpenEpoch;                 // 这次提交属于哪一次「打开」
   setBusy(btn, true, label);
   status.removeAttribute("data-state");
   try{
     const r = await sendPayload("application", data);
+    if(epoch !== appOpenEpoch) return;        // 期间关过又重开：这次响应不再属于眼前的弹窗
     status.dataset.state = "ok";
     status.textContent = t(r.demo ? "application.okDemo" : "application.ok");
     revealStatus(status);
     toast(t(r.demo ? "toast.appliedDemo" : "toast.applied"));
     setTimeout(() => {
+      if(epoch !== appOpenEpoch) return;      // 1.8 秒里用户又开了一次，别去关他正在填的那个
       closeApplication();
       appForm.reset();
       showAppStep(1);
     }, 1800);
   }catch(err){
+    if(epoch !== appOpenEpoch) return;        // 同理：过期的失败提示不该盖在新一次填写上
     status.dataset.state = "error";
     status.textContent = t("application.error");
     revealStatus(status);
