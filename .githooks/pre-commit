@@ -1,5 +1,39 @@
 #!/bin/sh
 # auto cache-bust on every commit: stamp ?v=<ts> on local css/js refs,
-# then stage exactly the files bump.py reports as changed (no hardcoded list to drift).
-python scripts/bump.py 2>/dev/null | sed -n 's/^stamped //p' | tr '\n' '\0' | xargs -0 -r git add --
+# then stage exactly the files bump.py reports as changed (no hardcoded list to drift),
+# then verify the cache-bust contract and abort the commit if it is violated.
+#
+# 对「不得损坏无关已暂存内容」的处理：
+#   本 hook 只做三件事 —— 改戳记、暂存它自己报告的那些文件、跑校验。
+#   它**不执行** reset / checkout / stash / clean / add -A，
+#   因此失败时既有的暂存区除上述戳记文件外原样保留，作者可以直接修完再提交。
+#   戳记文件被暂存后即便提交中止也留在暂存区，那是它们本就该有的更新，不是损坏。
+
+set -u
+
+# ── 1. 打戳 ──────────────────────────────────────────────────────────
+# 原版把 bump.py 的 stderr 丢进 /dev/null 并无条件 exit 0：
+# stamper 崩溃时管道静默产出空集，提交照常通过，等于闸门失效。改为失败即中止。
+if ! STAMPED=$(python scripts/bump.py 2>&1); then
+  echo "pre-commit: scripts/bump.py 执行失败，已中止提交。" >&2
+  printf '%s\n' "$STAMPED" >&2
+  exit 1
+fi
+
+# ── 2. 精确暂存 stamper 报告的文件（不使用 add -A）──────────────────
+if ! printf '%s\n' "$STAMPED" | sed -n 's/^stamped //p' | tr '\n' '\0' | xargs -0 -r git add --; then
+  echo "pre-commit: 暂存打戳文件失败，已中止提交。" >&2
+  exit 1
+fi
+
+# ── 3. 校验契约 ─────────────────────────────────────────────────────
+if ! python scripts/check-cache-bust.py; then
+  echo "" >&2
+  echo "pre-commit: 缓存戳契约未通过，已中止提交。" >&2
+  echo "  修复后重新提交即可；本 hook 未改动任何无关的已暂存内容。" >&2
+  echo "  单独复跑：python scripts/check-cache-bust.py" >&2
+  echo "  契约用例：python scripts/test-cache-bust-contract.py" >&2
+  exit 1
+fi
+
 exit 0

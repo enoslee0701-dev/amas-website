@@ -4,6 +4,9 @@
 基线：`6a72656`（== 本地 `master` == `origin/master`，复核时工作区干净）
 分支：`worktree-website-cachebust-coverage`（隔离 worktree，**未推 master/main**）
 
+> 本文档按轮次追加。**第一轮**（§1–§9）为初次修复；**第二轮**（§10）应 Codex 复核意见
+> 修正校验器的三处假阳性并加装 hook 闸门。第一轮记录原样保留，未改写。
+
 **边界遵守**：未改 App 仓库 · 未动 live 数据库（本轮对 live 零访问）· 无 schema 变更 ·
 未应用 0027 · 未创建 persona · 未部署或公开暴露 staging · 未改权限或密钥 · 未回显凭据 ·
 未新开写者会话。原检出保持在 `master`，未被本轮触碰。
@@ -202,3 +205,150 @@ Website 仓库没有 `.github`，唯一自动化是 cache-bust 的 pre-commit ho
 live 变更     无（本轮对 live 零访问）
 推送          无 —— 仅提交在隔离分支，待 Codex 复核
 ```
+
+---
+
+# 第二轮 —— 修正校验器假阳性 + 加装 hook 闸门
+
+日期：2026-09-11 · 依据：Codex 对 `eff0067` 的复核意见
+基线：`eff0067`（第一轮提交）· 同一隔离分支 · **仍未推 master**
+
+Codex 指出的三处问题**全部成立**，且第二处属于我自己在别处用过、却在这里漏掉的同一类错误。
+
+---
+
+## 10. Codex 指出的缺陷与修正
+
+### 10.1 C1 接受空戳 / 非数字戳（假阳性）
+
+原实现 C1 只判断 `"?v=" not in url`，于是 `?v=`、`?v=abc`、`?v=2026` 全部算通过；
+而 C2 的 `STAMP = r'\?v=(\d+)'` 又匹配不到它们，于是这些引用在两条断言里**同时隐身**。
+
+**这比没有戳更危险**，而且不是洁癖 —— 实测证明（见 §11 的 B1）：`bump.py` 的正则是
+
+```
+((?:href|src)="(?:\.\./)*assets/(?:css|js)/[^"?]+)(?:\?v=\d+)?"
+```
+
+`[^"?]+` 在 `?` 处停下，随后的可选组只接受**全数字**。遇到 `?v=abc` 时整条匹配失败，
+该引用**既不会被戳、也不会被重戳**，成为永久静默盲区 —— 而它看起来像已经处理过了。
+
+修正：C1 改为要求 query **恰好**是 `?v=<12 位数字>`，闭合引号前不得有其它内容。
+空戳、非数字、长度不符、附加参数、尾随字符一律 FAIL。
+
+### 10.2 零引用即通过（空过）
+
+原实现在扫描到 0 条引用时，`unstamped` 为空 → C1 PASS；`stamps` 为空 → `len<=1` → C2 PASS。
+一次路径写错或正则失配就能拿到满绿。
+
+修正：新增 **C0 反空过**，页面数与可判定引用数必须同时 `> 0`，否则立即判失败并停止后续断言。
+这一条列为第一条，因为它是本校验最容易出的假阳性。
+
+### 10.3 引号形态
+
+实测当前仓库 129 处 `src`/`href` **全部是双引号**，单引号 0、无引号 0。
+但 `bump.py` 的正则也只认双引号 —— 将来若出现 `src='…'`，stamper 摸不到它，
+而校验若照同样口径扫描就会**一起看不见**，正是第一轮所修缺陷的新实例。
+
+修正：扫描**放宽**到双引号 / 单引号 / 无引号三种形态，断言**收紧** ——
+新增 **C3**：本地 assets 引用若使用 stamper 无法处理的引号形态，直接 FAIL。
+把静默盲区变成响亮失败。
+
+### 10.4 顺带补上的一条：stamper 与校验的版本格式漂移
+
+C1 的「12 位」来自 `bump.py` 的 `strftime("%Y%m%d%H%M")`。两者分处两个文件，可能各改各的。
+新增 **C4**：读 `bump.py` 核对其 strftime 格式仍为 `%Y%m%d%H%M`，并要求该文件存在。
+格式一改，校验立刻报错而不是开始误判。
+
+---
+
+## 11. 契约用例（`scripts/test-cache-bust-contract.py`，一次性 fixture，不碰真实仓库）
+
+一条永远为真的断言不是断言。每一项契约都构造了应当失败的场景：
+
+```
+PASS  P1   合法：双引号 + 12 位数字戳              exit=0 全过
+PASS  N1   空戳 ?v=                              exit=1 failed=['C1']
+PASS  N2   非数字戳 ?v=abc                        exit=1 failed=['C1']
+PASS  N3   长度不符 ?v=2026                       exit=1 failed=['C1']
+PASS  N4   附加参数 ?v=…&x=1                      exit=1 failed=['C1']
+PASS  N5   完全无戳                               exit=1 failed=['C1']
+PASS  N6   戳后有尾随内容 ?v=…x                    exit=1 failed=['C1']
+PASS  N7   单引号引用                              exit=1 failed=['C3']
+PASS  N8   无引号引用                              exit=1 failed=['C3']
+PASS  N9   两个不同戳记值                           exit=1 failed=['C2']
+PASS  N10  目录内无任何 HTML                        exit=1 failed=['C0']
+PASS  N11  有 HTML 但零本地资产引用                  exit=1 failed=['C0']
+PASS  N12  bump.py 版本格式漂移为 %Y%m%d            exit=1 failed=['C4']
+PASS  N13  scripts/bump.py 不存在                  exit=1 failed=['C4']
+PASS  B1   畸形戳 ?v=abc 运行 bump.py 后仍未被修正 → 永久盲区（实测未变更）
+
+=== 契约用例: 15/15 PASSED ===
+```
+
+**B1 是 §10.1 严格性的实测依据** —— 不是论证出来的，是跑出来的。
+
+---
+
+## 12. hook 闸门（`.githooks/pre-commit`）
+
+按授权加装，顺序为：**打戳 → 精确暂存 → 跑校验 → 失败即中止提交**。
+
+关于「不得损坏无关已暂存内容」的处理：
+hook 只做那三件事，**不执行** `reset` / `checkout` / `stash` / `clean` / `add -A`。
+失败时既有暂存区除戳记文件外原样保留，作者修完直接重新提交即可。
+戳记文件被暂存后即使提交中止也留在暂存区 —— 那是它们本就该有的更新，不是损坏。
+
+同时修掉原 hook 的一处静默放行：原版把 `bump.py` 的 stderr 丢进 `/dev/null` 并无条件 `exit 0`，
+stamper 崩溃时管道产出空集、提交照常通过，等于闸门失效。现改为 stamper 失败即中止。
+
+### 端到端验证（`scripts/test-hook-gate.py`，一次性 fixture 仓库内真跑 `git commit`）
+
+```
+PASS  A1   合法状态提交成功（闸门不误杀）        exit=0 commits=1
+PASS  A2   畸形戳导致提交被中止                 exit=1 HEAD 未前进=True
+PASS  A3   无关已暂存内容原样保留               仍在暂存=True 内容一致=True
+PASS  A2b  中止原因在 hook 输出中可见           输出含 FAIL C1=True
+PASS  A4   stamper 崩溃时提交被中止             exit=1 commits=0
+
+=== HOOK 闸门: 5/5 PASSED ===
+```
+
+A3 是「无附带损害」的直接证据：中止后 `unrelated.txt` 仍在暂存区且内容逐字节一致。
+
+---
+
+## 13. 第二轮验证汇总
+
+| 项 | 结果 |
+|---|---|
+| 真实仓库跑硬化后的校验 | **5/5 PASSED**（C0 pages=23 refs=82 · C3 non-double-quoted=0 · C1 invalid=0 · C2 单一值 · C4 格式未漂移） |
+| 契约用例（14 负向 + 1 正向 + B1 实测） | **15/15 PASSED** |
+| hook 闸门端到端 | **5/5 PASSED** |
+| 第一轮断言是否仍成立 | 是 —— C1/C2 在硬化后对真实仓库仍 PASS，覆盖率与唯一性结论不变 |
+
+---
+
+## 14. 第二轮改动清单
+
+```
+M  .githooks/pre-commit                    加装校验闸门 + 修掉 stamper 崩溃时的静默放行
+M  scripts/check-cache-bust.py             C0 反空过 / C1 格式严格 / C3 引号形态 / C4 防漂移
+A  scripts/test-cache-bust-contract.py     14 负向 + 1 正向 + B1 实测
+A  scripts/test-hook-gate.py               一次性 fixture 仓库内真跑 commit 的端到端验证
+M  docs/operations/WEBSITE-INTERNAL-READINESS-PROGRESS.md   追加本轮（第一轮记录未改写）
+```
+
+未触碰：`supabase/migrations/**` · `supabase/tests/**` · `assets/**` 的任何逻辑 ·
+`supabase-config.js` 的取值 · 任何历史报告（`RELEASE-READINESS-REPORT.md` 等原样保留）。
+
+**本轮对 live 零访问**：无 schema 变更 · 无迁移 · 无 persona · 未应用 0027 ·
+未部署或公开暴露 staging · 未改权限或密钥 · 未引入 CI · 未推 master。
+
+---
+
+## 15. 仍未解决、依赖 owner 的项
+
+与第一轮 §7 相同，未因本轮变化：`RB-03/04/08/09/10/12/13` · `#22` · `#26`。
+「Website 仓库零 CI」一项的状态更新为：**已有可无条件本地运行的验证入口，
+且已接上 pre-commit 闸门**；是否另行引入 CI 仍是 owner/Codex 的基础设施决策。
