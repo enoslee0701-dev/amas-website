@@ -558,3 +558,155 @@ M  docs/operations/WEBSITE-INTERNAL-READINESS-PROGRESS.md   追加本轮（前�
 教训不是「测试写少了」，而是：**当一个机制会自动修改并暂存文件时，
 第一个该问的问题是「它修改的那个文件里，有没有作者不想提交的部分」**，
 而不是「它会不会误伤别的文件」。前者是载体，后者只是旁观者。
+
+---
+---
+
+# 第四轮 — 本地运行时就绪性验收（Website + Portal）
+
+任务：本地起静态服务器，用浏览器实测既有公开路由、导航、资源与控制台失败。
+不使用任何真实登录账号，不产生任何 live 写入。优先找**具体断裂的路由/资源或前端运行时错误**，
+不新增功能。结论：**未发现需要修复的运行时缺陷**，因此本轮为**纯验收，零代码改动**。
+
+基线 HEAD = `0dbf499`（与 Website 本地 master 一致）。
+
+## 22. 本轮怎么测的
+
+本地服务：`python -m http.server 8731 --bind 127.0.0.1`（仓库根）。
+浏览器：Chrome `--headless=new`，通过 Chrome DevTools Protocol 驱动（Node 22 内置
+`WebSocket` + `fetch`，零依赖，不引入任何 npm 包，不写进仓库）。
+全部一次性脚本放在仓库外的 `%TEMP%\amas-ro-review\`，随时可弃。
+
+采集的信号：`Runtime.exceptionThrown`、`Runtime.consoleAPICalled`(error/warning)、
+`Log.entryAdded`(error)、`Network.loadingFailed`、`Network.responseReceived` 状态码 ≥400。
+
+## 23. 先证明探针不是瞎的（反空过）
+
+「23 个页面全绿」这种结果，最容易的解释是探针根本没在采样。
+所以先在 :8732 上放了一对对照页：
+
+| 对照页 | EXC | CON | HTTP≥400 | NET fail |
+|---|---|---|---|---|
+| `bad.html`（故意抛异常 + console.error + 引用不存在资源） | 1 | 2 | 1 | 1 |
+| `good.html`（干净页） | 0 | 0 | **1** | 0 |
+
+`good.html` 那一条 404 是浏览器自动请求的 `/favicon.ico`。
+这恰好解释了为什么真实站点是 0 —— **站内每个页面都显式声明了
+`<link rel="icon" href="…/assets/img/favicon.png">`，而该文件存在**，
+浏览器就不会去猜 `/favicon.ico`。零不是探针失灵，是站点本身把这条也堵上了。
+
+## 24. 引用完整性（静态）
+
+`refcheck.py` 解析所有 HTML 的 `src / href / srcset / data-src`，逐条在磁盘上解析：
+
+```
+页面 27   引用总数 260   可本地解析 191
+缺失 0    空引用 0    越界（指向仓库外）0
+```
+
+## 25. 运行时审计（动态，23 个页面）
+
+| 结果 | 数量 |
+|---|---|
+| 页面总数 | 23 |
+| 未捕获异常 | **0** |
+| console 错误 | **0** |
+| HTTP ≥400 | **0** |
+| 网络加载失败 | **0** |
+
+覆盖：`index` / `about` / `academics` / `admissions` / `giving` / `discover` /
+`contact` / `news` / `help/` / `login.html` + `login/` / `auth/callback` /
+`auth/recovery` / 12 个 `portal/**` 页面。
+
+## 26. Portal 的降级行为（未配置数据库 = 已知外部闸门）
+
+所有 12 个 Portal 页 + `auth/callback` 都渲染出明确的降级说明：
+
+> 🔧 门户系统尚未启用 — 账号与学习系统正在部署中（等待数据库环境开通），目前暂不可登录。
+
+`auth/recovery` 有自己的专用文案（"无法完成重设 / 门户系统尚未启用，无法处理密码重设"），
+并保留「重新申请重设链接」「返回官网」两个出口。
+
+**没有一个页面是白屏或半渲染**。缺配置走的是**优雅降级**，不是崩溃。
+这是本轮最值得确认的一件事：外部闸门未开时，站点仍是可发布状态。
+
+## 27. 交互路径实测：discover 测验
+
+`discover.html` 的 10 题测验是站内唯一的纯客户端多步交互，也是最可能藏运行时错误的地方。
+实测：点击「开始快速探索」→ 逐题作答 14 轮 → 渲染结果页。
+
+```
+开始测验      clicked    累计错误 0
+作答轮次      14         累计错误 0
+结果页文本    833 字     累计错误 0
+```
+
+结果页正常产出（"你的初步状态…「圣经熟悉度」是最值得先投入的地方…"）。
+**全流程 0 异常。**
+
+## 28. 部署路径安全性：根绝对路径扫描
+
+子路径部署（如 GitHub Pages 项目页）下，`/xxx` 会打到域名根而不是站点根，是典型的
+"本地好好的、上线全断"。因此专门扫了一遍：
+
+```
+HTML 中根绝对路径引用 : 0
+JS  中根绝对路径字面量 : 3
+```
+
+那 3 条逐条核对了上下文，**全部是拼在 Supabase base URL 之后的 API 路径，不是站点路径**：
+
+| 位置 | 字面量 | 实际形态 |
+|---|---|---|
+| `assets/js/main.js:873` | `/rest/v1/submissions` | `fetch(S.url + "/rest/v1/submissions", …)` |
+| `assets/js/portal/auth.js:77` | `/functions/v1/login-by-identifier` | `fetch(SUPA.url + "/functions/v1/login-by-identifier", …)` |
+| `assets/js/portal/auth.js:190` | `/functions/v1/` | `fetch(SUPA.url + "/functions/v1/" + name, …)` |
+
+结论：**全站相对路径，子路径部署不会断。非缺陷。**
+
+## 29. i18n 现状（是产品覆盖面问题，不是运行时缺陷）
+
+| 页面 | 机制 | `?lang=` | 跨页继承 |
+|---|---|---|---|
+| `index.html` | `main.js`，598 个 `data-i18n`，4 个 `data-lang` | 生效 | 写入 `localStorage("amas-lang")` |
+| `giving.html` | 自带内联 zh/en/ko/th 词典 + 切换器，33 个 `data-i18n` | 4 语全部生效 | 读取并跟随 index 的选择 |
+| `discover.html` / `help/` | **无词典** | 不适用 | `stored=en` 时仍保持 `zh-CN` |
+
+后两者不是坏了 —— 是**内容尚未国际化**。属于产品范围决策，本轮不动。
+
+## 30. 一处 UX 断点（报告，不修）
+
+`discover.html` 有 **0 个 `<a href>`**，也没有「返回官网」出口；
+它的控件全是 `<button onclick="goApp(...)">` 和测验动作。
+而它被 `index.html`（第 230、877 行）以及 `portal/applicant/index.html`、
+`portal/student/index.html` 三处链入。
+
+用户进得去、出不来（只能用浏览器后退）。
+
+判定：**UX 死角 / 产品缺口，不是断裂路由，也不是运行时错误**。
+加导航属于内容与信息架构决策 —— 按本轮「不新增功能」的边界，报告而不动手。
+
+## 31. 本轮结论
+
+| 项 | 结论 |
+|---|---|
+| 断裂路由 | 无 |
+| 缺失/404 资源 | 无 |
+| 前端运行时错误 | 无 |
+| 部署路径风险 | 无（全相对路径） |
+| 交互路径 | discover 测验全流程通过 |
+| 需要修复的缺陷 | **无 → 本轮零代码改动** |
+
+**仍然存在的外部依赖（非本仓库能解）：**
+1. Supabase 环境与 Portal 真实配置注入 —— Portal 全部功能的前置闸门，当前走降级路径。
+2. `login-by-identifier` 等 Edge Function 部署 —— 学号登录路径依赖它。
+3. `0027` 及后续迁移仍 HOLD（不在 Website 职责内）。
+4. 产品侧决策两项：discover 的返航导航、discover/help 的多语言内容。
+
+## 32. 方法论追记
+
+第三轮我记下的教训是「先问载体、再问旁观者」。这一轮的对应版本是：
+**拿到一个全绿结果时，先花力气证明探针会变红。**
+`good.html` 上那条 `/favicon.ico` 404 是意外收获 —— 它同时做了两件事：
+证明网络层采样是活的，以及解释了真实站点为什么合法地为零。
+一个全绿结论的可信度，不取决于它有多绿，而取决于同一套装置在坏样本上有多红。
