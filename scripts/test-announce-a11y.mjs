@@ -227,11 +227,11 @@ try {
   await cdp.send("Page.navigate", { url: `${BASE}/index.html` });
   await sleep(2400);
   const s320 = await cdp.ev(STATE);
-  // 注意：device width 设为 320 时 innerWidth 实测为 329 —— 浏览器的 shrink-to-fit
-  // 把布局视口放宽了，因为 hero 的装饰层 .sunset-glow 溢出约 9px。
-  // 那是既有的 hero 视觉问题，与公告条无关，本轮不动；这里只断言公告条自身不是元凶。
-  check(s320.vw <= 340, "T7 narrow-phone viewport in range (320 device width)",
-    `innerWidth=${s320.vw} (browser shrink-to-fit; see .sunset-glow note)`);
+  // 曾经这里 innerWidth 实测是 329（浏览器 shrink-to-fit）。我当时归因给 hero 的
+  // .sunset-glow，那是错的 —— 它被 .hero-media{overflow:hidden} 裁掉，从未参与文档宽度。
+  // 真凶是 .header-actions/#menuBtn，已在 test-header-layout.mjs 里单独复现并修复。
+  check(s320.vw <= 321, "T7 viewport really is 320px wide (no shrink-to-fit)",
+    `innerWidth=${s320.vw}`);
   check(s320.btnW >= 44 && s320.btnDisplay !== "none",
     "T7b control still present and full width at 320px", `${s320.btnW}x${s320.btnH}`);
   check(s320.barW <= s320.vw + 1, "T7c the announce bar itself does not overflow the viewport",

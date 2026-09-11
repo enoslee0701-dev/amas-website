@@ -1419,3 +1419,148 @@ innerWidth=329  scrollWidth=329  body=320
 
 可迁移的规则很简单：**报告里写「会发生 X」时，X 必须是被观测到的，不是被推导出来的。**
 推导出来的要写成「预计」，并在同一轮里补测。
+
+---
+---
+
+# 第十轮 — 320px 横向溢出：真凶不是我上一轮说的那个
+
+## 68. 先推翻自己的归因
+
+第九轮 §65 我把 320px 的 9px 横向溢出判给了 hero 的装饰层：
+
+> 元凶是 `div.sunset-glow`（`w=385`）
+
+**这是错的。** `.sunset-glow` 在 `.hero-media` 内部，而后者有 `overflow:hidden` ——
+它那 385px 的盒子被完整裁掉，从未参与文档宽度。
+
+我错在方法上：当时用 `getBoundingClientRect().width > vw` 来筛选嫌疑元素。
+**`getBoundingClientRect` 量的是元素自身盒子，不反映祖先的 `overflow` 裁切**，
+所以它把一堆「盒子很宽但根本画不出来」的装饰层全列成了嫌疑人。
+
+换成能证伪的方法 —— **逐个 `display:none` 后重量 `scrollWidth`，
+只有真正撑宽文档的元素隐藏后才会让它下降**：
+
+```
+盒子右缘越界的候选元素: 38 个
+隐藏后真正让 scrollWidth 变小的（= 真凶）:
+   div.header-actions          -9px -> 320
+   button#menuBtn.menu-btn     -9px -> 320
+```
+
+38 个嫌疑人里真凶只有 1 个，而且完全不在我上一轮点名的位置。
+
+## 69. 真正的根因
+
+320px 下量出来的账很清楚（`clientWidth=320`，shell 内宽 292，位于 14..306）：
+
+| 部件 | 宽度 |
+|---|---|
+| `.brand`（校标 44 + 间距 9 + 品牌名 89） | **142** |
+| `.header-inner` 栅格间距 | **20** |
+| `.header-actions`（语言 57 + 9 + 主题 34 + 9 + 汉堡 44） | **153** |
+| 合计 | **315** vs 可用 **292** |
+
+溢出 23px，文档因此宽到 329，浏览器 shrink-to-fit 把布局视口也放宽到 329。
+后果是**汉堡菜单键被顶到屏幕边缘之外，页面可以横向拖动**。
+
+**最值得记的一点**：仓库里 `@media(max-width:380px)` 早就写了
+
+```css
+.brand-name{font-size:17px;min-width:0}          /* 允许收缩，把压缩量导向文字而非校标 */
+.brand-name small{overflow:hidden;text-overflow:ellipsis}
+```
+
+作者的意图完全正确 —— 窄屏时让副标题截断。**但它从未生效**：
+栅格首列是 `1fr`，其自动最小值等于 min-content，而 `.brand` 作为栅格项
+没有 `min-width:0`，所以品牌列永远按 142px 的 min-content 占位，
+`.brand-name` 内部那条 `min-width:0` 根本没有机会被用到。
+
+这不是一个缺失的功能，是一个**写好了却被上游一个默认值堵死的功能**。
+
+## 70. 修法（3 处，均为布局属性，零内容改动）
+
+```css
+@media(max-width:1250px){                 /* 切汉堡菜单的断点 */
+  .header-inner{grid-template-columns:minmax(0,1fr) auto}
+  .brand,.brand-name{min-width:0}
+}
+@media(max-width:480px){
+  .brand-name small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;...}
+}
+@media(max-width:380px){
+  .header-inner{gap:10px}
+  .header-actions{gap:8px}
+}
+```
+
+- `minmax(0,1fr)` + `min-width:0` —— 把作者原本的意图接通，让品牌列真的能收缩。
+- `≤480` 补省略号收尾 —— 该断点本就已是 `white-space:nowrap`，只差这一步。
+- `≤380` 收紧两处间距 —— 只动间距，**不动校标尺寸、不动字号、不动三个控件的触控面积**，
+  目的是让「需要截断」这件事尽量不发生。
+
+## 71. 两个旋钮的分工（负向控制逼出来的）
+
+写反空过控制时发现：只还原 `minmax` 而保留新间距，**溢出不会回来**。
+查下去才明白两个旋钮各干了什么：
+
+| 只做这一项 | 320px 结果 |
+|---|---|
+| 只收紧间距 | 315 → 303，溢出 11px，但溢的是 **shell** 不是视口，文档宽度不变 |
+| 只加 minmax | 品牌列压到 119px，副标题截得更狠，但确实不溢出 |
+| 两个都做 | 品牌列 131px，截断最少，且结构上不可能溢出 |
+
+所以**间距负责「少截断」，`minmax` 负责「不可能溢出」**。
+单靠间距把中文挤了进去，换一种更长的语言还会再溢 —— 这正是 T2 语言用例要证的。
+
+负向控制因此必须同时还原两个旋钮，否则它永远变不了红：
+
+```
+PASS T0 control: reverting the shrink fix brings the overflow back
+     | div.header-actions(-9), button#menuBtn.menu-btn(-9)
+```
+
+## 72. 前后对照
+
+| 指标 | 修复前 | 修复后 |
+|---|---|---|
+| `innerWidth` @ device 320 | **329**（shrink-to-fit） | **320** |
+| `document.scrollWidth` | **329** | **320** |
+| 汉堡键右缘 | **329**（越出视口） | **306**（在 14px 内边距内） |
+| 汉堡键尺寸 | 44x44 | 44x44（未变） |
+| 品牌副标题 | 视觉被硬裁 | 省略号收尾，**DOM 文本 16 字一字不少** |
+| 375px / 桌面 | 无溢出 | 无溢出（未变） |
+
+截图：`work/shots/hdr-before-320.png` · `hdr-after-320.png` ·
+`hdr-before-375.png` · `hdr-after-375.png` · `hdr-after-1280.png`。
+
+## 73. 回归 `scripts/test-header-layout.mjs`（19/19 PASS）
+
+| 组 | 断言 |
+|---|---|
+| T-320 / T-375 / T-1280 | 布局视口不被 shrink-to-fit 放宽；无文档横向溢出；**用隐藏重量法确认无任何元素撑宽文档**；header 控件全在视口内 |
+| T-320e / T-375e | 汉堡键保持 44x44 且不越界 |
+| T0 | **负向控制**：两个旋钮一起还原后，溢出必须精确复现（`-9px` ×2） |
+| T1 | **内容保全**：副标题 DOM 文本 16 字与桌面完全一致，只是视觉截断 |
+| T2-en / ko / th | 切到另三种语言后 320px 仍无溢出 |
+
+同时修正了 `test-announce-a11y.mjs` 里那条基于错误归因写下的注释，
+并把 T7 断言从 `vw<=340` 收紧为 `vw<=321`。
+
+**附带回归**：`test-announce-a11y` 22/22、`test-drawer-a11y` 14/14、
+`test-discover-back-link` 30/30、`check-cache-bust` 5/5、全站运行时审计 23/23。
+公告暂停键与 reduced-motion 行为均无回归。
+
+## 74. 方法论
+
+连着两轮，我两次在同一件事上栽跟头：**用一个测不准的量具下了结论**。
+
+第九轮用 `getBoundingClientRect().width > vw` 找溢出源 —— 这个量具**永远不会告诉你
+祖先把它裁掉了**，于是装饰层必然排在嫌疑名单最前面，而它们恰恰是最容易被裁掉的。
+第十轮换成「隐藏后重量 scrollWidth」，38 个嫌疑人当场剩 1 个。
+
+两者的差别不是精度，是**性质**：前者是相关性（盒子宽 → 可能溢出），
+后者是因果性（拿掉它 → 文档真的变窄）。
+
+可迁移的判据很简单：**当你要指认「X 导致了 Y」时，先问这个量具能不能证伪它。**
+量不出「拿掉 X 后 Y 消失」的方法，就只配用来生成嫌疑人名单，不配用来结案。

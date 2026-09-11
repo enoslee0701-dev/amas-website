@@ -526,7 +526,8 @@ html[data-theme="night"] .chat-chips button:hover{color:#0a0c10}
  .desktop-nav{font-size:14px;gap:clamp(12px,1.4vw,24px)}
 }
 @media(max-width:1250px){
- .header-inner{grid-template-columns:1fr auto}
+ .header-inner{grid-template-columns:minmax(0,1fr) auto}
+ .brand,.brand-name{min-width:0}
  .desktop-nav{display:none}
  .menu-btn{display:block}
 }
@@ -1061,13 +1062,14 @@ html[data-theme="night"] .footer{background:linear-gradient(180deg,#0a1220,#060b
   .brand{gap:9px}
   .brand-name{font-size:17px;min-width:0}          /* 允许收缩，把压缩量导向文字而非校标 */
   .brand-name small{font-size:8.5px;overflow:hidden;text-overflow:ellipsis}
-  .header-actions{gap:9px}
+  .header-inner{gap:10px}
+  .header-actions{gap:8px}
   .lang-btn{padding:0 8px;font-size:12px}
 }
 
 /* ===== 手机端排版微调（≤480px）：消除孤字换行 ===== */
 @media(max-width:480px){
-  .brand-name small{white-space:nowrap;font-size:9px;letter-spacing:.02em}
+  .brand-name small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:9px;letter-spacing:.02em}
   .hero-enname{font-size:11px;letter-spacing:.1em}
   .hero-band-item{padding:14px 14px}.hero-band-item b{font-size:13.5px;line-height:1.45}
   .hab-badge{width:34px;height:34px;font-size:12px;border-radius:9px}.hab-text b{font-size:14.5px}.hab-text small{font-size:11px}
