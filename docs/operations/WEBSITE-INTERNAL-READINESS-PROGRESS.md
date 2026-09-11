@@ -734,3 +734,117 @@ git show HEAD -- . ':(exclude)docs' | grep '^[+-]' | grep -v '^[+-][+-]' | grep 
 这也顺带记录了一个 hook 的正常副作用：**任何一次提交都会带上全站戳号刷新**，
 哪怕本次只改了一个 Markdown 文件。这是第一至三轮确定的设计（C2 要求戳号全站唯一），
 不是本轮引入的问题，但审阅 diff 时值得预先知道，免得把机械改动误读成内容改动。
+
+---
+---
+
+# 第五轮 — discover.html 返航出口（有界可用性修复）
+
+Codex 复核第四轮后授权：为 `discover.html` 加一个清晰、可访问的「返回官网」链接，
+沿用现有样式，子路径部署下解析正确，保住答题进度与既有答题行为。
+不扩展翻译、不扩展产品内容。
+
+## 34. 改了什么
+
+两处，共 12 行，全在 `discover.html`：
+
+**结构** —— 放在四个屏幕 div **之外**、`.wrap` 收尾处：
+
+```html
+<nav class="site-exit" aria-label="站点导航">
+  <a class="back-link" href="index.html"><span class="ar" aria-hidden="true">‹</span>返回官网</a>
+</nav>
+```
+
+三个决定各有理由：
+
+- **放在屏幕 div 之外** —— `show(id)` 只在 `landing / quiz / result / detail`
+  四个 div 上切 `hidden`，因此屏幕外的元素天然常驻四屏，不需要改 `show()`。
+  少动一行 JS，就少一条回归风险。
+- **纯静态 `<a>`，不是 `<button onclick>`** —— 该页现有控件全是 `button onclick`，
+  这正是它成为死角的原因（`<a href>` 数 = 0）。用真 `<a>` 才能拿到原生键盘可达、
+  中键新标签页、右键复制链接、以及搜索引擎可见的链接关系。
+- **相对路径 `index.html`** —— 与 `discover.html` 同级，子路径部署照样解析。
+  已在测试里用挂在 `/amas-website/` 前缀下的内置服务器实证。
+
+**样式** —— 沿用该页既有的 `.ghost-btn` 视觉语言（白底、`#E2E5EB` 描边、
+`#475467` 文字、999px 圆角），并补了三点：`min-height:44px` 触控目标、
+`:focus-visible` 金色轮廓、`margin-top:auto` 让它在短屏（答题屏）也贴住底部。
+
+固定底栏遮挡用纯 CSS 解决，不加 JS：
+
+```css
+.sticky-cta:not(.hidden) ~ .site-exit { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+```
+
+`#stickyCta` 只在结果页去掉 `hidden`，且在 DOM 中位于 `.site-exit` 之前，
+后继兄弟选择器因此能精确跟随它的显隐，无需 JS 参与。
+
+## 35. 测试：`scripts/test-discover-back-link.mjs`（21/21 PASS）
+
+真浏览器回归，Node 22 内置 `WebSocket` + `fetch` 驱动 Chrome CDP，零 npm 依赖。
+测试内置一个静态服务器，把整站挂在 `/amas-website/` 前缀下 —— **子路径是被实测的，
+不是被假设的**。
+
+| 用例 | 断言 | 结果 |
+|---|---|---|
+| T0 | 反空过：删掉链接后同一套断言必须失败 | `present=false` |
+| T1 / T1b | 存在、是真 `<a>`、可见、文案正确 | `tag=A h=44` |
+| T2 | 子路径下 `href` 解析为 `<base>/index.html` | 精确相等 |
+| T3 / T3b | Tab 可达（4 次）、焦点轮廓可见 | `outline=solid 3px` |
+| T4 / T4b | 375px：触控目标 ≥44px、不溢出视口 | `h=44 left=133 right=242` |
+| T4c | 1280px 桌面断点同样成立 | `left=578 right=687` |
+| T5 | landing / quiz / result / detail 四屏均可见 | 四个 true |
+| T6 / T6b | 结果页固定底栏确实出现；让位内边距确实生效 | `padding-bottom=84px` |
+| T6c / T6d | 滚到文档底部时链接在视口内，且不被底栏遮住 | `link.bottom=636 < sticky.top=663` |
+| T7 / T7b / T7c | 作答 3 题后进度仍为 3；答题中链接可见；聚焦链接不清空进度 | `answers.length=3` |
+| T8 / T8b | 真实点击导航到官网首页并渲染 | `landed=<base>/index.html` |
+| T9 / T9b | 10 题全程跑完出结果页，零异常零 console 错误 | `errors=0` |
+
+附带回归：`check-cache-bust.py` 5/5 PASS（新链接是页面链接不是资源引用，
+校验器按设计不管它）；引用完整性 260→**261** 条、可解析 191→**192** 条，
+新增的正是这一条，缺失仍为 0。
+
+## 36. 两处失败是器具的错，不是站点的错
+
+第一次跑是 18 项里挂 2 项。两条都查到根因，**结论都是改测试、不改站点**：
+
+**T9b `TypeError: Cannot read properties of undefined (reading 'a')` ×5**
+`finish()` 里 `QS[qi]` 越界。成因是我的 `answerN` 在结果页出现后仍继续点击 ——
+答完最后一题时 `#quiz` 被隐藏，但 `#opts` 里上一题的按钮仍留在 DOM 中，
+**程序化 `.click()` 对隐藏元素照样生效**，于是 `answers` 被推过 `QS.length`。
+真人点不到隐藏元素，这条路径不存在。
+第四轮的探针因为过滤了 `offsetParent !== null` 才没撞上 —— 同一个坑，
+两个器具一个踩一个躲，正好互为印证。修法：`answerN` 也加上可见性过滤与屏幕状态判断。
+
+**T6d 重叠误报**
+`scrollIntoView({ block:'end' })` 把**链接自身**的底边贴到视口底边，
+直接绕过了我加在父元素 `.site-exit` 上的让位内边距，测出一个真人到不了的位置。
+用户能到达的最低点是文档底部，所以改用 `window.scrollTo(0, scrollHeight)`。
+改完 636 vs 663，留 27px 余量。
+同时补了 T6b 直接断言 `padding-bottom=84px` —— **既验几何结果，也验产生它的机制**，
+免得哪天内边距被删掉而几何恰好仍然过关。
+
+## 37. 需要上报的同步义务（不在本仓可解）
+
+`discover.html` 文件头自己写明：
+
+> SOURCE OF TRUTH: amas-website/discover.html
+> AMAS-Seminary 仓库中的 public/discover.html 为同源副本（仅资源路径与 App 链接配置不同）；
+> 两处需同步修改，避免双向漂移。
+
+本轮只改了 Website 侧。**App 仓非本会话可写**，因此
+`AMAS-Seminary/public/discover.html` 的同一处返航出口**尚未同步**，
+需由 Codex 派发给 App 侧执行，否则两份副本从这一轮开始漂移。
+
+## 38. 对第四轮措辞的更正（Codex 要求）
+
+第四轮报告里「Portal 降级正常 / 站点仍处于可发布状态」的说法需要收窄。
+
+准确表述是：**在缺失真实 Portal 配置的前提下，本地只验证了公开页面与降级路径**，
+即「配置缺失时不崩溃、有明确文案与出口」。这**不等于** Portal 具备发布就绪性 ——
+登录、会话、权限、数据读写等全部真实 Portal 功能**一条都没有被验证过**，
+它们的前置条件（Supabase 环境、真实配置注入、Edge Function 部署）目前都未满足。
+
+换句话说：第四轮证明的是**降级行为正确**，不是**功能就绪**。
+前者是后者缺席时的兜底，两者不能互相代替。

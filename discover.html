@@ -112,6 +112,15 @@
   .brand .l { font-size: 12px; font-weight: 700; letter-spacing: 3px; font-family: Georgia, serif; }
   .brand .s { font-size: 8.5px; letter-spacing: 2px; margin-top: 4px; color: #C2C8D4; }
 
+  /* ---- 返回官网：常驻出口（landing / quiz / result / detail 四屏都可见） ---- */
+  .site-exit { margin-top: auto; padding: 16px 18px calc(18px + env(safe-area-inset-bottom)); text-align: center; }
+  .back-link { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 22px; border-radius: 999px; border: 1px solid #E2E5EB; background: #fff; color: #475467; font-size: 13px; font-weight: 700; text-decoration: none; }
+  .back-link:hover { background: #F8FAFC; color: #22345E; border-color: #D3D8E0; }
+  .back-link:focus-visible { outline: 3px solid rgba(201,154,69,.55); outline-offset: 2px; }
+  .back-link .ar { font-size: 15px; line-height: 1; }
+  /* 结果页的固定底栏会盖住出口，抬高下边距让开（纯 CSS，跟随 #stickyCta 的 hidden 类） */
+  .sticky-cta:not(.hidden) ~ .site-exit { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+
   /* ---- 倾向说明页 ---- */
   #detail .body { padding: 16px 18px 0; }
   .rimg { width: 100%; border-radius: 18px; border: 1px solid rgba(20,40,90,.1); box-shadow: 0 4px 12px rgba(16,24,40,.08); display: block; }
@@ -314,6 +323,15 @@
       </div>
     </div>
   </div>
+
+  <!--
+    返回官网出口。放在四个屏幕 div 之外，因此 show() 切屏时始终可见；
+    纯静态 <a>，不触碰 answers / lastResult，答题进度不受影响。
+    相对路径 index.html 与 discover.html 同级，子路径部署同样可解析。
+  -->
+  <nav class="site-exit" aria-label="站点导航">
+    <a class="back-link" href="index.html"><span class="ar" aria-hidden="true">‹</span>返回官网</a>
+  </nav>
 
 </div>
 
