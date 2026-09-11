@@ -145,6 +145,13 @@ const PROBE = `(() => {
   };
 })()`;
 
+// modifiers 位：1=Alt 2=Ctrl 4=Meta 8=Shift
+async function pressKey(cdp, key, code, vk, modifiers = 0) {
+  const base = { key, code, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk, modifiers };
+  await cdp.send("Input.dispatchKeyEvent", { type: "rawKeyDown", ...base });
+  await cdp.send("Input.dispatchKeyEvent", { type: "keyUp", ...base });
+}
+
 // 按 Tab 直到聚焦到 .back-link（或放弃）。返回按了几次。
 async function tabTo(cdp, max = 60) {
   for (let i = 1; i <= max; i++) {
@@ -293,6 +300,69 @@ try {
   check(seen.landing && seen.quiz && seen.result && seen.detail,
     "T5 link is visible on all four screens",
     `landing=${seen.landing} quiz=${seen.quiz} result=${seen.result} detail=${seen.detail}`);
+
+  // --- R 系列：键盘 / 页内查找触发的滚动（Codex 复核提出） ---
+  // T6 只证明了「手动滚到文档底部」不被遮挡。但 Tab 聚焦与 Ctrl+F 查找走的是浏览器的
+  // scrollIntoView 路径 —— 它把元素边缘对齐到视口边缘，会越过 .site-exit 的内边距。
+  // 这条路径真人可达，必须单独证明。
+  await cdp.evaluate(`closeDetail()`); await sleep(350);
+  const rPre = await cdp.evaluate(PROBE);
+  check(rPre.screen === "result" && rPre.stickyTop !== null,
+    "R0 back on the result screen with the fixed CTA visible (precondition)",
+    `screen=${rPre.screen} stickyTop=${rPre.stickyTop === null ? "hidden" : Math.round(rPre.stickyTop)}`);
+
+  // R1/R2：从页顶开始按 Tab，让浏览器自己决定滚到哪里
+  await cdp.evaluate(`if (document.activeElement) document.activeElement.blur(); window.scrollTo(0, 0)`);
+  await sleep(350);
+  const tabsR = await tabTo(cdp, 80);
+  await sleep(400);
+  const r1 = await cdp.evaluate(PROBE);
+  check(tabsR > 0 && r1.focused, "R1 link is reachable by Tab on the result screen", `tab presses=${tabsR}`);
+  check(r1.stickyTop === null || r1.rect.bottom <= r1.stickyTop + 0.5,
+    "R2 Tab-focused link is not obscured by the fixed CTA",
+    `link.bottom=${Math.round(r1.rect.bottom)} sticky.top=${Math.round(r1.stickyTop)} gap=${Math.round(r1.stickyTop - r1.rect.bottom)}`);
+
+  // R3：反向再正向的键盘往返。
+  // 注意不要「按 Tab 离开再 Shift+Tab 回来」—— 链接是文档最后一个可聚焦元素，
+  // 一次 Tab 就把焦点交给了浏览器 UI，Shift+Tab 回来的是地址栏而不是页面。
+  // 真实的反向路径是：从链接 Shift+Tab 退到上一个控件，再 Tab 前进回到链接。
+  await pressKey(cdp, "Tab", "Tab", 9, 8);   // modifiers bit 8 = Shift
+  await sleep(300);
+  const rBack = await cdp.evaluate(`(() => {
+    const a = document.activeElement;
+    return { isLink: !!a && a.classList.contains('back-link'), tag: a ? a.tagName : 'none', inPage: !!a && a !== document.body };
+  })()`);
+  check(!rBack.isLink && rBack.inPage, "R3 Shift+Tab moves focus backwards to the previous in-page control",
+    `now=${rBack.tag} isLink=${rBack.isLink}`);
+  await pressKey(cdp, "Tab", "Tab", 9);
+  await sleep(400);
+  const r3 = await cdp.evaluate(PROBE);
+  check(r3.focused, "R3b Tab forward returns focus to the link", `focused=${r3.focused}`);
+  check(r3.stickyTop === null || r3.rect.bottom <= r3.stickyTop + 0.5,
+    "R3c link returned to via keyboard round trip is not obscured",
+    `link.bottom=${Math.round(r3.rect.bottom)} sticky.top=${Math.round(r3.stickyTop)}`);
+
+  // R4：页内查找的滚动代理 —— scrollIntoView(block:'end') 是最坏情况的边缘对齐
+  await cdp.evaluate(`window.scrollTo(0, 0)`); await sleep(250);
+  await cdp.evaluate(`document.querySelector('.back-link').scrollIntoView({ block: 'end' })`);
+  await sleep(400);
+  const r4 = await cdp.evaluate(PROBE);
+  check(r4.stickyTop === null || r4.rect.bottom <= r4.stickyTop + 0.5,
+    "R4 edge-aligned scrollIntoView (find-in-page proxy) leaves the link unobscured",
+    `link.bottom=${Math.round(r4.rect.bottom)} sticky.top=${Math.round(r4.stickyTop)}`);
+  // 同时断言产生这个结果的机制，而不只是几何数字 —— 免得哪天规则被删而数字恰好仍然过关。
+  const scrollMargin = await cdp.evaluate(`parseFloat(getComputedStyle(document.querySelector('.back-link')).scrollMarginBottom)`);
+  check(scrollMargin >= 60, "R4b scroll-margin-bottom is what reserves the room (mechanism, not just geometry)",
+    `scroll-margin-bottom=${Math.round(scrollMargin)}px`);
+
+  // R5：回车激活 —— 键盘用户拿到焦点之后必须真的能走
+  await cdp.evaluate(`document.querySelector('.back-link').focus()`);
+  await sleep(200);
+  await pressKey(cdp, "Enter", "Enter", 13);
+  await sleep(1800);
+  const r5 = await cdp.evaluate(`({ url: location.href, title: document.title })`);
+  check(r5.url === want, "R5 Enter on the focused link activates it and navigates home",
+    `landed=${r5.url.replace(BASE, "<base>")}`);
 
   const errs = cdp.errors();
   const errText = errs.map((e) => {

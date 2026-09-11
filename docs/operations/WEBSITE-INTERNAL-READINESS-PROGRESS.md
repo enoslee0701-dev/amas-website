@@ -848,3 +848,107 @@ Codex 复核第四轮后授权：为 `discover.html` 加一个清晰、可访问
 
 换句话说：第四轮证明的是**降级行为正确**，不是**功能就绪**。
 前者是后者缺席时的兜底，两者不能互相代替。
+
+---
+---
+
+# 第六轮 — 焦点滚动遮挡：Codex 的质疑成立
+
+## 39. 我上一轮的判断错了
+
+第五轮 §36 我把 `scrollIntoView({block:'end'})` 测出的遮挡称为
+「真人到不了的位置」，理由是用户能到达的最低点是文档底部。
+
+Codex 指出：**Tab 聚焦和页内查找也会以同样方式滚动链接**。这条质疑成立。
+
+我当时只想到了「用户手动滚动」这一种滚动来源，漏掉了浏览器自己发起的滚动。
+两者的落点规则根本不同：
+
+| 滚动来源 | 落点规则 | 受什么约束 |
+|---|---|---|
+| 用户手动滚 | 停在文档最大滚动量 | `.site-exit` 的 `padding-bottom`（它是文档流的一部分，撑高了 scrollHeight） |
+| Tab 聚焦 / Ctrl+F / `#锚点` | 把元素**自身边缘**对齐到视口边缘 | `scroll-margin`，**与 padding 无关** |
+
+`padding-bottom` 撑的是文档，`scroll-margin` 管的是落点。我拿前者的证据去否认后者的风险。
+
+## 40. 先复现，再修
+
+把三条键盘/查找路径写成用例后首跑（修复前）：
+
+```
+PASS R2   Tab-focused link is not obscured        link.bottom=636  sticky.top=663  gap=27
+FAIL R4   edge-aligned scrollIntoView             link.bottom=720  sticky.top=663
+```
+
+**R4 挂了，R2 却过了** —— 这个差异本身说明了机制：
+
+Tab 聚焦同样想把 `link.bottom` 对到 720，但文档最大滚动量被 `.site-exit`
+那 84px 内边距挡住，浏览器滚不过去，于是被钳位在 636。
+**内边距碰巧救了 Tab 路径，救不了 `scrollIntoView` 路径** ——
+因为后者不需要文档有那么多可滚动内容，它直接改变滚动偏移的目标值。
+
+所以：遮挡是真的（57px），但我上一轮以为的触发条件是错的。
+
+## 41. 修法：`scroll-margin-bottom`
+
+`discover.html` 加一条规则，与已有的内边距规则同域：
+
+```css
+.sticky-cta:not(.hidden) ~ .site-exit .back-link {
+  scroll-margin-bottom: calc(84px + env(safe-area-inset-bottom));
+}
+```
+
+两条规则各管一半，缺一不可：`padding-bottom` 给手动滚动留出停靠空间，
+`scroll-margin-bottom` 给浏览器发起的滚动留出落点余量。
+
+依旧是纯 CSS、零 JS、未碰答题逻辑。
+
+## 42. 回归：`scripts/test-discover-back-link.mjs` 30/30 PASS
+
+新增 R 系列 6 项（全部在 375px、结果页、固定底栏可见的条件下）：
+
+| 用例 | 断言 | 实测 |
+|---|---|---|
+| R0 | 前置：确实在结果页且底栏可见 | `stickyTop=663` |
+| R1 | 从页顶按 Tab 可达链接 | 6 次按键 |
+| R2 | Tab 聚焦后不被底栏遮挡 | `636 < 663`，余 27px |
+| R3 | Shift+Tab 反向退到上一个页内控件 | `now=BUTTON` |
+| R3b / R3c | Tab 正向回到链接，且不被遮挡 | `focused=true`，`636 < 663` |
+| R4 | 边缘对齐 `scrollIntoView`（查找代理）不被遮挡 | `636 < 663` |
+| R4b | **机制断言**：`scroll-margin-bottom` 确实生效 | `84px` |
+| R5 | 聚焦后按 Enter 能真的激活并导航 | `landed=<base>/index.html` |
+
+### R3 的第一版是我写错的
+
+首版写成「按 Tab 离开链接，再 Shift+Tab 回来」，结果 `focused=false`。
+原因不是页面的问题：**链接是文档最后一个可聚焦元素**，一次 Tab 就把焦点交给了
+浏览器 UI（地址栏），Shift+Tab 回来的是浏览器而不是页面。
+改成真实的反向路径 —— 从链接 Shift+Tab 退到上一个控件，再 Tab 前进回来 —— 即通过。
+
+### 负向控制：证明那行 CSS 是承重的
+
+临时删掉 `scroll-margin-bottom` 规则重跑：
+
+```
+FAIL R4    link.bottom=720  sticky.top=663
+FAIL R4b   scroll-margin-bottom=0px
+```
+
+恢复后 30/30。这排除了「几何恰好过关但修复其实无效」的可能。
+
+R4b 这条机制断言是特意加的：只断言几何数字，将来规则被误删而数字碰巧仍然合格时，
+测试会沉默地放行。同时断言机制与结果，才能让删除行为立刻可见。
+
+## 43. 这一轮的方法论
+
+第四轮我记的是「先证明探针会变红」，第五轮是「既验几何也验机制」。
+这一轮的教训更直接：**「真人做不到」是一个需要证明的断言，不是一个可以顺手下的结论。**
+
+我上一轮说 `scrollIntoView` 那条路径真人不可达时，脑子里只枚举了一种滚动来源。
+判定「不可达」的正确做法，是把所有能产生该状态的入口列出来逐个排除，
+而不是想不出入口就当它不存在。Codex 只补了两个入口（键盘焦点、页内查找），
+结论就翻了过来。
+
+代价对比也值得记：多写三条用例的成本，远低于让一个键盘用户在结果页
+按 Tab 之后发现出口被压在固定底栏下面。

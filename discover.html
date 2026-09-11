@@ -120,6 +120,10 @@
   .back-link .ar { font-size: 15px; line-height: 1; }
   /* 结果页的固定底栏会盖住出口，抬高下边距让开（纯 CSS，跟随 #stickyCta 的 hidden 类） */
   .sticky-cta:not(.hidden) ~ .site-exit { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+  /* 上面的内边距只约束文档流。浏览器自己发起的滚动（Tab 聚焦、Ctrl+F 查找、#锚点跳转）
+     走 scrollIntoView 的边缘对齐，会把链接底边直接贴到视口底边、越过那段内边距。
+     scroll-margin-bottom 正是给这类滚动预留的落点余量，两者缺一不可。 */
+  .sticky-cta:not(.hidden) ~ .site-exit .back-link { scroll-margin-bottom: calc(84px + env(safe-area-inset-bottom)); }
 
   /* ---- 倾向说明页 ---- */
   #detail .body { padding: 16px 18px 0; }
