@@ -118,7 +118,7 @@ const i18n = {
   "announce.brand":"AMAS 亚洲宣教神学院 · 清迈教学中心","announce.verse":"“我可以差遣谁呢？谁肯为我们去呢？”“我在这里，请差遣我！”— 以赛亚书 6:8","announce.moto":"装备今日的门徒 · 差遣明日的使者","announce.hot":"2026 届神学学士 B.Th 招生","announce.link":"查看招生信息 →",
   "nav.home":"首页","nav.about":"关于我们","nav.courses":"课程设置","nav.admissions":"招生信息","nav.tuition":"学费与支持","nav.life":"学院生活","nav.resources":"资源中心","nav.contact":"联系我们",
   "actions.apply":"申请入学","actions.login":"登录","actions.video":"观看介绍视频","actions.applyNow":"立即申请","actions.download":"下载 ↓","actions.view":"查看 →","actions.fill":"填写 →","actions.skip":"跳到主要内容","actions.backToTop":"↑ 顶部","actions.close":"关闭","actions.sending":"提交中…",
-  "a11y.themeToNight":"切换到夜晚模式","a11y.themeToDay":"切换到白日模式","a11y.themeNight":"夜晚模式","a11y.themeDay":"白日模式","a11y.langSwitch":"切换语言（当前中文）","a11y.openMenu":"打开菜单","a11y.closeMenu":"关闭菜单",
+  "a11y.themeToNight":"切换到夜晚模式","a11y.themeToDay":"切换到白日模式","a11y.themeNight":"夜晚模式","a11y.themeDay":"白日模式","a11y.langSwitch":"切换语言（当前中文）","a11y.announcePause":"暂停公告滚动","a11y.announceResume":"继续公告滚动","a11y.openMenu":"打开菜单","a11y.closeMenu":"关闭菜单",
   "toast.themeNight":"已切换为夜晚模式","toast.themeDay":"已切换为白日模式","toast.applied":"申请资料已送出","toast.appliedDemo":"申请资料已提交（演示）","toast.inquiry":"咨询已送出","toast.inquiryDemo":"咨询已提交（演示）","toast.failed":"提交失败，请稍后再试","toast.downloaded":"已下载占位文件",
   "meta.credits":"{n} 学分","hero.title":"亚洲宣教神学院","hero.sub":"ASIA MISSIONARY ASSOCIATION SEMINARY","hero.verse":"你们要去，使万民作我的门徒。","hero.verseRef":"— 马太福音 28:19",
   "hero.ai.title":"定制化神学 · 3 分钟看见你的信仰成长状态","hero.ai.sub":"10 道题 · 5 项初步状态 · 一条下一步建议 · 完整档案在「AMAS 神学院」App","hero.ai.go":"立即探索 →",
@@ -239,7 +239,7 @@ const i18n = {
   "announce.brand":"AMAS · Chiang Mai Teaching Center","announce.verse":"\"Whom shall I send? And who will go for us?\" \"Here am I. Send me!\" — Isaiah 6:8","announce.moto":"Equipping disciples today · Sending missionaries tomorrow","announce.hot":"2026 B.Th Admissions","announce.link":"Admissions Info →",
   "nav.home":"Home","nav.about":"About","nav.courses":"Courses","nav.admissions":"Admissions","nav.tuition":"Tuition","nav.life":"Student Life","nav.resources":"Resources","nav.contact":"Contact",
   "actions.apply":"Apply","actions.login":"Log In","actions.video":"Watch Introduction","actions.applyNow":"Apply Now","actions.download":"Download ↓","actions.view":"View →","actions.fill":"Fill in →","actions.skip":"Skip to main content","actions.backToTop":"↑ TOP","actions.close":"Close","actions.sending":"Sending…",
-  "a11y.themeToNight":"Switch to night mode","a11y.themeToDay":"Switch to day mode","a11y.themeNight":"Night mode","a11y.themeDay":"Day mode","a11y.langSwitch":"Switch language (currently English)","a11y.openMenu":"Open menu","a11y.closeMenu":"Close menu",
+  "a11y.themeToNight":"Switch to night mode","a11y.themeToDay":"Switch to day mode","a11y.themeNight":"Night mode","a11y.themeDay":"Day mode","a11y.langSwitch":"Switch language (currently English)","a11y.announcePause":"Pause the announcement ticker","a11y.announceResume":"Resume the announcement ticker","a11y.openMenu":"Open menu","a11y.closeMenu":"Close menu",
   "toast.themeNight":"Night mode on","toast.themeDay":"Day mode on","toast.applied":"Application sent","toast.appliedDemo":"Application submitted (demo)","toast.inquiry":"Inquiry sent","toast.inquiryDemo":"Inquiry submitted (demo)","toast.failed":"Submission failed, please try again","toast.downloaded":"Placeholder file downloaded",
   "meta.credits":"{n} Credits","hero.title":"Asia Missionary Association Seminary","hero.sub":"亚洲宣教神学院 · CHIANG MAI, THAILAND","hero.verse":"Go therefore and make disciples of all nations.","hero.verseRef":"— Matthew 28:19",
   "hero.ai.title":"Personalized Theology · See your faith-growth status in 3 minutes","hero.ai.sub":"10 questions · 5 quick indicators · one next step · full profile in the AMAS Seminary app","hero.ai.go":"Start exploring →",
@@ -360,7 +360,7 @@ const i18n = {
   "announce.brand":"AMAS 아시아선교신학교 · 치앙마이 교육센터","announce.verse":"“내가 누구를 보내며 누가 우리를 위하여 갈꼬” “내가 여기 있나이다 나를 보내소서” — 이사야 6:8","announce.moto":"오늘의 제자를 세우고 · 내일의 사역자를 보냅니다","announce.hot":"2026학년도 신학사 B.Th 신입생 모집","announce.link":"모집 안내 보기 →",
   "nav.home":"홈","nav.about":"학교 소개","nav.courses":"교육 과정","nav.admissions":"입학 안내","nav.tuition":"등록금·지원","nav.life":"학교 생활","nav.resources":"자료실","nav.contact":"문의하기",
   "actions.apply":"입학 지원","actions.login":"로그인","actions.video":"소개 영상 보기","actions.applyNow":"바로 지원하기","actions.download":"다운로드 ↓","actions.view":"보기 →","actions.fill":"작성 →","actions.skip":"본문 바로가기","actions.backToTop":"↑ 맨 위로","actions.close":"닫기","actions.sending":"제출 중…",
-  "a11y.themeToNight":"야간 모드로 전환","a11y.themeToDay":"주간 모드로 전환","a11y.themeNight":"야간 모드","a11y.themeDay":"주간 모드","a11y.langSwitch":"언어 전환(현재 한국어)","a11y.openMenu":"메뉴 열기","a11y.closeMenu":"메뉴 닫기",
+  "a11y.themeToNight":"야간 모드로 전환","a11y.themeToDay":"주간 모드로 전환","a11y.themeNight":"야간 모드","a11y.themeDay":"주간 모드","a11y.langSwitch":"언어 전환(현재 한국어)","a11y.announcePause":"공지 스크롤 일시정지","a11y.announceResume":"공지 스크롤 재생","a11y.openMenu":"메뉴 열기","a11y.closeMenu":"메뉴 닫기",
   "toast.themeNight":"야간 모드로 전환되었습니다","toast.themeDay":"주간 모드로 전환되었습니다","toast.applied":"지원서가 전송되었습니다","toast.appliedDemo":"지원서가 제출되었습니다(데모)","toast.inquiry":"문의가 전송되었습니다","toast.inquiryDemo":"문의가 제출되었습니다(데모)","toast.failed":"제출 실패. 잠시 후 다시 시도해 주세요","toast.downloaded":"샘플 파일이 다운로드되었습니다",
   "meta.credits":"{n}학점","hero.title":"아시아선교신학교","hero.sub":"ASIA MISSIONARY ASSOCIATION SEMINARY","hero.verse":"그러므로 너희는 가서 모든 민족을 제자로 삼으라.","hero.verseRef":"— 마태복음 28:19",
   "hero.ai.title":"맞춤 신학 · 3분 만에 나의 신앙 성장 상태 보기","hero.ai.sub":"10문항 · 5가지 초기 지표 · 다음 한 걸음 · 전체 프로필은 「AMAS 신학교」 앱에서","hero.ai.go":"바로 탐색 →",
@@ -481,7 +481,7 @@ const i18n = {
   "announce.brand":"AMAS วิทยาลัยพระคริสตธรรม · ศูนย์เชียงใหม่","announce.verse":"“เราจะใช้ผู้ใดไป และผู้ใดจะไปแทนเรา” “ข้าพระองค์อยู่นี่ ขอทรงใช้ข้าพระองค์เถิด” — อิสยาห์ 6:8","announce.moto":"เตรียมสาวกวันนี้ · ส่งผู้รับใช้ในวันพรุ่งนี้","announce.hot":"รับสมัคร B.Th รุ่นปี 2026","announce.link":"ดูข้อมูลการรับสมัคร →",
   "nav.home":"หน้าแรก","nav.about":"เกี่ยวกับเรา","nav.courses":"รายวิชา","nav.admissions":"การรับสมัคร","nav.tuition":"ค่าเล่าเรียน","nav.life":"ชีวิตในวิทยาลัย","nav.resources":"ศูนย์ทรัพยากร","nav.contact":"ติดต่อเรา",
   "actions.apply":"สมัครเข้าเรียน","actions.login":"เข้าสู่ระบบ","actions.video":"ชมวิดีโอแนะนำ","actions.applyNow":"สมัครเลย","actions.download":"ดาวน์โหลด ↓","actions.view":"ดู →","actions.fill":"กรอก →","actions.skip":"ข้ามไปเนื้อหาหลัก","actions.backToTop":"↑ ขึ้นบน","actions.close":"ปิด","actions.sending":"กำลังส่ง…",
-  "a11y.themeToNight":"สลับเป็นโหมดกลางคืน","a11y.themeToDay":"สลับเป็นโหมดกลางวัน","a11y.themeNight":"โหมดกลางคืน","a11y.themeDay":"โหมดกลางวัน","a11y.langSwitch":"เปลี่ยนภาษา (ปัจจุบันภาษาไทย)","a11y.openMenu":"เปิดเมนู","a11y.closeMenu":"ปิดเมนู",
+  "a11y.themeToNight":"สลับเป็นโหมดกลางคืน","a11y.themeToDay":"สลับเป็นโหมดกลางวัน","a11y.themeNight":"โหมดกลางคืน","a11y.themeDay":"โหมดกลางวัน","a11y.langSwitch":"เปลี่ยนภาษา (ปัจจุบันภาษาไทย)","a11y.announcePause":"หยุดข้อความประกาศชั่วคราว","a11y.announceResume":"เล่นข้อความประกาศต่อ","a11y.openMenu":"เปิดเมนู","a11y.closeMenu":"ปิดเมนู",
   "toast.themeNight":"สลับเป็นโหมดกลางคืนแล้ว","toast.themeDay":"สลับเป็นโหมดกลางวันแล้ว","toast.applied":"ส่งใบสมัครแล้ว","toast.appliedDemo":"ส่งใบสมัครแล้ว (สาธิต)","toast.inquiry":"ส่งคำถามแล้ว","toast.inquiryDemo":"ส่งคำถามแล้ว (สาธิต)","toast.failed":"ส่งไม่สำเร็จ โปรดลองใหม่ภายหลัง","toast.downloaded":"ดาวน์โหลดไฟล์ตัวอย่างแล้ว",
   "meta.credits":"{n} หน่วยกิต","hero.title":"วิทยาลัยพระคริสตธรรมเอเชียมิชชัน","hero.sub":"ASIA MISSIONARY ASSOCIATION SEMINARY","hero.verse":"เหตุฉะนั้น ท่านทั้งหลายจงออกไปและนำชนทุกชาติมาเป็นสาวก","hero.verseRef":"— มัทธิว 28:19",
   "hero.ai.title":"ศาสนศาสตร์เฉพาะบุคคล · ดูสถานะการเติบโตแห่งความเชื่อใน 3 นาที","hero.ai.sub":"10 ข้อ · 5 ตัวชี้วัด · หนึ่งก้าวถัดไป · โปรไฟล์ฉบับเต็มในแอป AMAS","hero.ai.go":"เริ่มสำรวจ →",
@@ -614,6 +614,8 @@ function applyLanguage(lang){
 
   $("#langBtn").setAttribute("aria-label", t("a11y.langSwitch"));
   applyTheme(currentTheme, { persist:false });          // 刷新主题按钮的 aria/title 文案
+  // 公告条按钮的文案随暂停状态变化，无法用 data-i18n-aria 静态绑定，这里手动刷新
+  if(typeof syncAnnounceToggle === "function") syncAnnounceToggle();
   refreshStepsLabel();
   renderContactMeta();
   if(appModal?.classList.contains("open") && appStep === 3) buildReview();
@@ -695,6 +697,30 @@ $$("[data-open-seal]").forEach(x => x.addEventListener("click", () =>
 $$("[data-close-seal]").forEach(x => x.addEventListener("click", () => closeLayer(sealModal)));
 
 /* ===== 移动端抽屉 ===== */
+/* ===== 顶部公告条：暂停 / 继续 =====
+   WCAG 2.2.2：自动开始、持续超过 5 秒且与其它内容并列呈现的移动内容，
+   必须提供暂停、停止或隐藏的机制。原先只有 :hover 会暂停，触屏与键盘都用不上。
+   状态写在 .announce-bar 上而非按钮上，让 CSS 能同时驱动动画与图标。 */
+// 元素在函数里即时查询，不用模块级 const —— applyLanguage() 会调用本函数，
+// 而它可能先于这一段执行，届时 const 还在暂时性死区里，会直接抛 ReferenceError。
+function syncAnnounceToggle(){
+  const announceBar = $(".announce-bar"), announceToggle = $("#announceToggle");
+  if(!announceBar || !announceToggle) return;
+  const paused = announceBar.classList.contains("announce-paused");
+  announceToggle.setAttribute("aria-pressed", paused ? "true" : "false");
+  const label = t(paused ? "a11y.announceResume" : "a11y.announcePause");
+  announceToggle.setAttribute("aria-label", label);
+  announceToggle.title = label;
+}
+const announceToggle = $("#announceToggle");
+if(announceToggle){
+  announceToggle.addEventListener("click", () => {
+    $(".announce-bar").classList.toggle("announce-paused");
+    syncAnnounceToggle();
+  });
+  syncAnnounceToggle();
+}
+
 const drawer = $("#mobileDrawer"), menuBtn = $("#menuBtn");
 function openDrawer(){
   openLayer(drawer, $(".drawer-panel", drawer), () => menuBtn.setAttribute("aria-expanded","false"));

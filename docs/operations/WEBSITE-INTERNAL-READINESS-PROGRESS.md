@@ -1276,3 +1276,146 @@ T6b 首跑是 FAIL，**这条也是器具的错**：我用 `.click()` 直接激�
 
 **同样是红色，回滚一次就能把它们分成三类**：我的回归、既有缺陷、器具假象。
 这三类的处置完全不同，混为一谈就会要么改错地方，要么把好代码改坏。
+
+---
+---
+
+# 第九轮 — 公告条可暂停、键盘可操作、reduced-motion 显式静止
+
+## 61. 先更正上一轮的一条推断
+
+第八轮 §59 第 2 条我写过：reduced-motion 下全局规则会让轨道「瞬间跑完并停在
+`translateX(-50%)`，即停在那份 aria-hidden 的副本上」。
+
+**实测是错的。** `animation-fill-mode` 默认为 `none`，动画结束后元素回到基础样式，
+所以终态是 `transform: none` —— 显示的恰好就是真实的第一份内容：
+
+```
+=== 公告条探针 [prefers-reduced-motion: reduce] ===
+  animation : announceScroll  1e-05s  iterations=1
+  transform : none
+```
+
+这是我按 `forwards` 的行为想当然，没有实测就写进了报告。更正在此。
+
+不过结论的方向仍然成立，只是理由换了：**这个正确结果是全局 `!important` 覆盖的副产物，
+不是被声明的行为**。任何人给它补一个 `forwards`，显示的就会变成 aria-hidden 的副本，
+且不会有任何测试拦住。所以仍需显式化。
+
+## 62. 改了什么
+
+### (1) 暂停 / 继续控件
+
+```html
+<button class="announce-toggle" type="button" id="announceToggle" aria-pressed="false">
+  <span class="announce-toggle-icon" aria-hidden="true"></span>
+</button>
+```
+
+原先唯一的暂停条件是 `.announce-bar:hover` —— **触屏没有 hover，键盘也用不上**，
+等于没有机制（WCAG 2.2.2 Pause, Stop, Hide）。
+
+用真 `<button>` 因此原生可聚焦、可 Enter/空格激活。状态写在 `.announce-bar` 上
+（`.announce-paused`），让同一个类同时驱动动画与图标，不需要 JS 操心样式：
+
+```css
+.announce-bar.announce-paused .announce-track{animation-play-state:paused}
+.announce-bar:not(.announce-paused) .announce-toggle-icon{ /* 两条竖杠 = 暂停图标 */ }
+.announce-toggle-icon{ /* 三角 = 播放图标 */ }
+```
+
+图标是纯 CSS 边框画的，不引入字体或图片依赖。
+`aria-label` 随状态在「暂停公告滚动 / 继续公告滚动」之间切换，四语言词条已补齐
+（中 / 英 / 韩 / 泰），并挂进 `applyLanguage()` 以便切换语言时同步。
+
+### (2) reduced-motion 显式静止
+
+```css
+@media(prefers-reduced-motion:reduce){
+  .announce-track{animation:none!important;transform:none!important}
+  .announce-set[aria-hidden="true"]{display:none}
+  .announce-inner{overflow-x:auto;margin-right:0;padding-left:14px;padding-right:14px}
+  .announce-toggle{display:none}
+}
+```
+
+四件事各有理由：
+- `animation:none + transform:none` —— 让「静止在第一份真实内容」成为规则而非巧合。
+- 副本 `display:none` —— 静止时它毫无用处，留着只会让横向滚动里同一段话出现两次。
+- `overflow-x:auto` —— 静止后视口外的内容本来就读不到，改为可横向滚动；
+  这和仓库里 `.hab-reel` 在 reduced-motion 下的既有做法一致，不是新发明。
+- 隐藏暂停键 —— 没有动效可暂停。
+
+### (3) 触控尺寸
+
+按钮 **44px 宽**，高度跟随公告条自身（实测 `44x30`）。
+纵向要凑满 44px 就得加高公告条，那是改品牌版式，按指令不做。
+横向达标 + 键盘可操作已是这一处能拿到的全部收益。
+
+## 63. 文字与按钮重叠：两次才修对
+
+320px 下按钮压住了「B.Th 招生」。第一次修法是给 `.announce-inner` 加
+`padding-right:46px` 并让按钮背景 `.97` 不透明 —— **无效**：
+
+`overflow:hidden` 在 **padding 边缘**裁切，padding 本身仍在可见区内，
+滚动文字照样跑到按钮底下；`.97` 不透明留的那 3% 让高对比度金字仍然透出来。
+
+改用 `margin-right:44px`：**margin 在 overflow 盒之外，裁切点因此提前 44px**，
+文字根本到不了按钮区。按钮背景随之还原为透明（露出公告条本身的渐变），
+只留一条 22px 的柔化带避免硬裁边。
+
+这条值得记：`padding` 和 `margin` 在「预留空间」这件事上看起来等价，
+遇到 `overflow:hidden` 时完全不是一回事。
+
+## 64. 回归 `scripts/test-announce-a11y.mjs`（22/22 PASS）
+
+| 用例 | 断言 | 实测 |
+|---|---|---|
+| T1 / T1b / T1c | 真 `<button>`；44px 触控宽度；`aria-pressed` + 本地化标签 | `44x30` |
+| T2 | **反空过**：暂停前跑马灯确实在动 | `tx -52 -> -78` |
+| T3 | Tab 可达 | 3 次按键 |
+| T3b / T3c / T3d | 空格激活并暂停；`aria-pressed` 翻转；标签改为「继续」 | `playState=paused` |
+| T4 | 暂停后位置真的不再变 | `tx -89 -> -89` |
+| T5 | Enter 恢复播放并还原 `aria-pressed` | `running / false` |
+| T6 / T6b | 只有一份内容暴露给辅助技术；副本内无可聚焦链接 | `sets=2 exposed=1` |
+| T7 / T7b / T7c / T7d | 320px：按钮仍在且 44px 宽；公告条自身不溢出 | `bar=320` |
+| T8–T8f | reduced-motion：`animation-name=none`、`tx 0->0`、显示真实首份、副本移除、可横向滚动、暂停键隐藏 | 全部通过 |
+
+首跑两条失败，都是器具的错：
+- **T5**：CDP 的 `rawKeyDown` 不会给按钮产生合成 click，Enter 因此没激活
+  （空格是靠我额外补的 `char` 事件才生效）。改为带 `text` 的 `keyDown` 后通过。
+- **T7**：只改 `Emulation.setDeviceMetricsOverride` 而不重新导航时，
+  `innerWidth` 仍沿用上一次的布局宽度，所谓「320px」其实不是 320px。补重载后修正。
+
+## 65. 顺带实测到、但**本轮不修**的一项
+
+把视口设成 320 后 `innerWidth` 实测是 **329** —— 浏览器的 shrink-to-fit：
+页面存在约 9px 的最小宽度溢出，元凶是 hero 的装饰渐变层：
+
+```
+innerWidth=329  scrollWidth=329  body=320
+超过视口宽度的元素: div.sunset-glow  w=385
+```
+
+它是既有的 hero 视觉元素，与公告条无关；收紧它属于改品牌版式，按指令不做。
+测试里因此只断言**公告条自身不是元凶**（`bar=320 <= vw`），并把这条如实登记。
+
+## 66. 附带回归
+
+全站运行时审计 **23/23 页面干净**；
+`test-drawer-a11y` 14/14、`test-discover-back-link` 30/30、
+`check-cache-bust` 5/5、`test-portal-config-check` 44/44。
+
+公告条高度修改前后同为 **31px** —— 品牌版式未变。
+机构文本（招生、学费、认证、课程、经文）一字未动，新增的只有按钮的辅助标签。
+
+## 67. 方法论
+
+这一轮最该记的是 §61：**我上一轮凭 CSS 语义推断写了一条结论，没实测，是错的。**
+
+`animation-fill-mode` 默认 `none` 与 `forwards` 的区别，正是「动画结束后停在哪」
+的全部答案。我按后者想当然，于是报告里出现了一个具体、可证伪、且错误的技术断言。
+代价不大只是因为 Codex 授权了这一轮、我顺手实测了一次。
+
+可迁移的规则很简单：**报告里写「会发生 X」时，X 必须是被观测到的，不是被推导出来的。**
+推导出来的要写成「预计」，并在同一轮里补测。
