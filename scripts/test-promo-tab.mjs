@@ -19,9 +19,10 @@
 // 位置只是手段，换一种排布只要能过这条断言都算合格；
 // 反过来，只断言坐标的测试会在下次微调时假红、在真出问题时假绿。
 //
-// 判据仍是「存在一整块完全属于自己的 44x44」，用 elementFromPoint 实测，
-// 全程浮点、采样点取在方块内部 ±0.5：边框盒的边常是小数，任何取整都会在
-// 「正好 44」时给出差一的错误结论（这一点上一轮栽过两次）。
+// 单个控件是否合格由共享量具 scripts/lib/touch-probe.mjs 的 __target 判：
+// 外接盒 >= 44x44，且它自己形状内的点没被别的元素压住（被压了才追问可达区域里
+// 是否仍放得下完整 44x44）。这样圆角与圆形控件不会被冤枉 —— 本页的招生胶囊正是
+// border-radius:999px，换个更短的译文就会短到只剩圆角。
 //
 // 用法: node scripts/test-promo-tab.mjs
 // Chrome 路径可用环境变量 CHROME 覆盖；找不到时以非零退出，不静默跳过。
@@ -32,6 +33,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { TOUCH_PROBE } from "./lib/touch-probe.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -128,36 +130,8 @@ class Cdp {
   }
 }
 
-const PROBE = `
-document.documentElement.style.scrollBehavior = 'auto';
-window.__owns = (el, x, y) => {
-  const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
-  if (x < 0 || y < 0 || x >= vw || y >= vh) return false;
-  const t = document.elementFromPoint(x, y);
-  return !!t && (t === el || el.contains(t));
-};
-window.__sq = (el, size) => {
-  const r = el.getBoundingClientRect();
-  if (r.width + 1e-6 < size || r.height + 1e-6 < size) return false;
-  const offs = []; for (let d = 0.5; d < size; d += 4) offs.push(d);
-  if (offs[offs.length - 1] < size - 0.5) offs.push(size - 0.5);
-  // 采样点夹进视口内再取样。贴着视口边缘的元素（right:0 的招生标签就是）在
-  // x = 视口宽-0.5 上 elementFromPoint 返回 null —— Chrome 把小数坐标 round 到设备像素
-  // 之后落到了视口外（实测 x=1279.5 -> null，x=1279 -> 命中）。
-  // 一开始我改的是把最后一个采样点整体内缩 1.5px，那等于把 44 的判据放宽成 42.5，
-  // 结果负向控制当场变绿 —— 灵敏度被自己调没了。所以精度保持 0.5，只夹坐标。
-  const clamp = (x, hi) => Math.min(x, hi - 1);
-  for (let ox = 0; ox <= r.width - size + 1e-6; ox += 1)
-    for (let oy = 0; oy <= r.height - size + 1e-6; oy += 1) {
-      let ok = true;
-      for (let i = 0; i < offs.length && ok; i++)
-        for (let j = 0; j < offs.length && ok; j++)
-          if (!window.__owns(el, clamp(r.left + ox + offs[i], document.documentElement.clientWidth),
-                                 clamp(r.top + oy + offs[j], document.documentElement.clientHeight))) ok = false;
-      if (ok) return true;
-    }
-  return false;
-};
+// 量具来自 scripts/lib/touch-probe.mjs，三份回归脚本共用同一份，避免判据分叉。
+const PROBE = TOUCH_PROBE + `
 // 这一屏里被 .promo-tab 压到放不下 44x44 的可交互控件。
 // 归因方式是「把标签藏起来再量一次」：只有藏起来之后变得放得下的，才算标签的责任。
 // 光看「谁在最上层」会把顶栏、客服圆钮、招生卡片的账也算到标签头上。
@@ -181,10 +155,10 @@ window.__blamedOnTab = () => {
     if (el === tab || tab.contains(el)) continue;
     if (r.width + 1e-6 < 44 || r.height + 1e-6 < 44) continue;  // 盒子本身就不足 44，属于另一类问题
     if (getComputedStyle(el).visibility === 'hidden') continue;
-    if (window.__sq(el, 44)) continue;                     // 现在就放得下，无事
+    if (window.__target(el, 44).ok) continue;              // 现在就合格，无事
     const prev = tab.style.visibility;
     tab.style.visibility = 'hidden';
-    const freed = window.__sq(el, 44);
+    const freed = window.__target(el, 44).ok;
     tab.style.visibility = prev;
     if (!freed) continue;                                  // 藏了标签也还是放不下 -> 不是标签的责任
     // 底部浮动条带：由既有客服圆钮的上缘界定，那是页面本来就让给浮动控件的地方。
@@ -210,7 +184,7 @@ window.__tabState = () => {
     top: Math.round(r.top), bottom: Math.round(r.bottom),
     inViewport: r.left >= -0.5 && r.right <= vw + 0.5 && r.top >= -0.5 && r.bottom <= vh + 0.5,
     visible: cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity || '1') > 0.01,
-    sq44: window.__sq(tab, 44),
+    sq44: window.__target(tab, 44).ok,
     verticalFootprint: Math.round(r.height),
     text: (tab.textContent || '').trim().replace(/\\s+/g, ' '),
     ariaLabel: tab.getAttribute('aria-label') || ''
@@ -383,7 +357,7 @@ try {
     const cs = getComputedStyle(tab);
     return { focused, fv: tab.matches(':focus-visible'),
              outlined: cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) > 0,
-             sq: window.__sq(tab, 44) };
+             sq: window.__target(tab, 44).ok };
   })()`);
   await cdp.key("Enter", "Enter", 13);
   const kbOpened = await cdp.ev(`!document.querySelector('#promoCard').hidden`);
@@ -439,7 +413,7 @@ try {
       return { w: Math.round(r.width), h: Math.round(r.height),
                left: Math.round(r.left), right: Math.round(r.right),
                inViewport: r.left >= -0.5 && r.right <= vw + 0.5,
-               overlapFab, sq: window.__sq(tab, 44),
+               overlapFab, sq: window.__target(tab, 44).ok,
                docOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
                text: (tab.textContent || '').trim().replace(/\s+/g, ' ') };
     })()`);

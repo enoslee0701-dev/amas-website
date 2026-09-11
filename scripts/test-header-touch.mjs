@@ -23,6 +23,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { TOUCH_PROBE } from "./lib/touch-probe.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -121,71 +122,9 @@ const SELECTORS = `[
   ['#menuBtn', '汉堡菜单']
 ]`;
 
-const PROBE = `
+// 量具本身来自 scripts/lib/touch-probe.mjs，三份回归脚本共用同一份，避免判据分叉。
+const PROBE = TOUCH_PROBE + `
 window.__sels = ${SELECTORS};
-document.documentElement.style.scrollBehavior = 'auto';
-window.__sq = (el, size) => {
-  const r = el.getBoundingClientRect();
-  const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
-  const clamp = (x, hi) => Math.min(x, hi - 1);
-  const owns = (x, y) => {
-    if (x < 0 || y < 0 || x >= vw || y >= vh) return false;
-    const t = document.elementFromPoint(x, y);
-    return !!t && (t === el || el.contains(t));
-  };
-  if (r.width + 1e-6 < size || r.height + 1e-6 < size) return false;
-  const offs = []; for (let d = 0.5; d < size; d += 4) offs.push(d);
-  if (offs[offs.length - 1] < size - 0.5) offs.push(size - 0.5);
-  for (let ox = 0; ox <= r.width - size + 1e-6; ox += 1)
-    for (let oy = 0; oy <= r.height - size + 1e-6; oy += 1) {
-      let ok = true;
-      for (let i = 0; i < offs.length && ok; i++)
-        for (let j = 0; j < offs.length && ok; j++)
-          if (!owns(clamp(r.left + ox + offs[i], vw), clamp(r.top + oy + offs[j], vh))) ok = false;
-      if (ok) return true;
-    }
-  return false;
-};
-// 触控目标是否合格，分两步判 —— 这两步必须分开，混在一起会把圆形控件冤枉死。
-//
-// 「整块 44x44 方块」这个判据对矩形没问题，对圆形是错的：直径 44 的圆里最大内接
-// 正方形只有 31px，任何圆钮都永远不合格。本轮的主题键正是 border-radius:50%，
-// 而且 :focus-visible 还会给**任何**聚焦元素加上 border-radius:4px ——
-// 于是 44x44 的汉堡键一被键盘聚焦就「放不下 44x44」。那不是缺陷，是判据错了。
-//
-// WCAG 2.5.5/2.5.8 量的是目标的外接盒，加上「有没有被别的目标压掉」。照此分两步：
-//   1) 外接盒 >= 44x44；
-//   2) 它自己形状内的点有没有被别的元素压在上面。一个点都没被压 -> 目标完好；
-//      有被压 -> 这时才要求剩下的可达区域里仍放得下一整块 44x44。
-// 用 elementsFromPoint（复数）拿到整条命中栈：元素不在栈里 = 这点在它自己的圆角外，
-// 不算被谁抢走；在栈里但不在栈顶 = 真被别的元素压住了。
-window.__target = (el, size) => {
-  const r = el.getBoundingClientRect();
-  const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
-  const clamp = (x, hi) => Math.min(x, hi - 1);
-  const out = { w: Math.round(r.width), h: Math.round(r.height), covered: 0, by: [] };
-  if (r.width + 1e-6 < size || r.height + 1e-6 < size) { out.ok = false; out.why = '外接盒不足 ' + size; return out; }
-  const by = new Set();
-  for (let x = r.left + 1; x < r.right; x += 3)
-    for (let y = r.top + 1; y < r.bottom; y += 3) {
-      const stack = document.elementsFromPoint(clamp(x, vw), clamp(y, vh));
-      const idx = stack.findIndex((n) => n === el || el.contains(n));
-      if (idx < 0) continue;                       // 圆角之外，不是被谁抢走
-      if (idx > 0) {
-        out.covered++;
-        const t = stack[0];
-        by.add(t.id ? '#' + t.id : t.tagName.toLowerCase() +
-          (t.className && typeof t.className === 'string' ? '.' + t.className.trim().split(/\s+/)[0] : ''));
-      }
-    }
-  out.by = [...by].slice(0, 3);
-  if (out.covered === 0) { out.ok = true; out.why = '外接盒够大且无人压住'; return out; }
-  out.ok = window.__sq(el, size);
-  // 这里只能用字符串拼接：整个 PROBE 本身就是一个模板字符串，嵌套反引号会把它截断
-  out.why = '被压住 ' + out.covered + ' 点' +
-            (out.ok ? '但仍放得下完整 ' : '且放不下完整 ') + size + 'x' + size;
-  return out;
-};
 window.__measure = () => window.__sels.map(([sel, label]) => {
   const el = document.querySelector(sel);
   if (!el) return { label, missing: true };

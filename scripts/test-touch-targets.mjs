@@ -26,6 +26,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { TOUCH_PROBE } from "./lib/touch-probe.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -132,13 +133,9 @@ const SELECTORS = `[
 ]`;
 
 // 从中心逐像素外扩，直到命中的不再是这个控件。量的是浏览器真实命中测试。
-const PROBE = `
+// 量具来自 scripts/lib/touch-probe.mjs，三份回归脚本共用同一份，避免判据分叉。
+const PROBE = TOUCH_PROBE + `
 window.__sels = ${SELECTORS};
-// 站点设了 html{scroll-behavior:smooth}。不关掉它，scrollIntoView 之后立刻读
-// getBoundingClientRect 读到的是滚动途中的坐标，elementFromPoint 会打在别的元素上 ——
-// 量出来是「中心点都落空」，看上去像控件不存在，其实只是量具跑在了滚动前面。
-// 这一行必须在任何测量之前执行。
-document.documentElement.style.scrollBehavior = 'auto';
 window.__hit = (el) => {
   const r = el.getBoundingClientRect();
   if (r.width === 0 && r.height === 0) return { center: false, w: 0, h: 0 };
@@ -159,67 +156,13 @@ window.__hit = (el) => {
   return { center: true, left: cx - l, right: cx + rr, top: cy - t, bottom: cy + b,
            w: l + rr + 1, h: t + b + 1, boxW: Math.round(r.width), boxH: Math.round(r.height) };
 };
-// 44x44 的手指落点必须是一整块，不能是「横着够 44、竖着够 44，但中间被挖了一块」。
-// 穿过中心的十字量法会把 L 形也算成 44x44 —— 侧边招生标签正好会挖掉按钮右上角，
-// 十字量出来仍是 72x45，实际上放不下一个完整的 44x44 方块。
-// 这里在控件边框盒内逐个候选位置找一个完全属于自己的正方形，4px 采样。
-window.__square = (el, size) => {
-  const r = el.getBoundingClientRect();
-  const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
-  const owns = (x, y) => {
-    if (x < 0 || y < 0 || x >= vw || y >= vh) return false;
-    const t = document.elementFromPoint(x, y);
-    return !!t && (t === el || el.contains(t));
-  };
-  // 全程用浮点，不做任何取整。边框盒的边缘几乎总是小数，
-  // 而这一轮把高度正好设成了 44 —— 一旦对候选起点 ceil、终点 floor，
-  // 「正好 44 高」的元素算出来的整数候选区间是空的，于是每一个都判成放不下。
-  // 这类差一错误会红得非常像真缺陷，但红的是量具。
-  if (r.width + 1e-6 < size || r.height + 1e-6 < size) return { ok: false, w: r.width, h: r.height };
-  // 采样点取在方块内部（±0.5），首尾都不踩边界
-  const offs = [];
-  for (let d = 0.5; d < size; d += 4) offs.push(d);
-  if (offs[offs.length - 1] < size - 0.5) offs.push(size - 0.5);
-  // 再把采样坐标夹进视口内。贴着视口边缘的元素在 x = 视口宽-0.5 上 elementFromPoint
-  // 返回 null —— Chrome 把小数坐标 round 到设备像素后落到了视口外（实测 1279.5 -> null，
-  // 1279 -> 命中）。曾经改成「最后一个采样点整体内缩 1.5px」，那等于把 44 的判据偷偷
-  // 放宽成 42.5，负向控制当场变绿：灵敏度被自己调没了。所以精度保持 0.5，只夹坐标。
-  const clamp = (x, hi) => Math.min(x, hi - 1);
-  for (let ox = 0; ox <= r.width - size + 1e-6; ox += 1) {
-    for (let oy = 0; oy <= r.height - size + 1e-6; oy += 1) {
-      const x0 = r.left + ox, y0 = r.top + oy;
-      let ok = true;
-      for (let i = 0; i < offs.length && ok; i++)
-        for (let j = 0; j < offs.length && ok; j++)
-          if (!owns(clamp(x0 + offs[i], vw), clamp(y0 + offs[j], vh))) ok = false;
-      if (ok) return { ok: true, x: Math.round(x0), y: Math.round(y0) };
-    }
-  }
-  return { ok: false, w: Math.round(r.width), h: Math.round(r.height) };
-};
-// 方块放不下时，必须说得出是谁盖的。只报一句「放不下」，红了也没人知道往哪修。
-window.__coverers = (el) => {
-  const r = el.getBoundingClientRect();
-  const names = new Set();
-  for (let x = r.left + 0.5; x < r.right; x += 3) {
-    for (let y = r.top + 0.5; y < r.bottom; y += 3) {
-      const t = document.elementFromPoint(x, y);
-      if (!t || t === el || el.contains(t)) continue;
-      const top = t.closest('.promo-tab, .promo-card, .chat-fab, .chat-panel, .site-header, .toast') || t;
-      names.add((top.id ? '#' + top.id : top.className && typeof top.className === 'string'
-        ? '.' + top.className.trim().split(/\\s+/)[0] : top.tagName.toLowerCase()) +
-        '@x' + Math.round(x) + ',y' + Math.round(y));
-    }
-  }
-  return [...names].slice(0, 6);
-};
 window.__measure = () => {
   const out = [];
   for (const [sel, label] of window.__sels) {
     const el = document.querySelector(sel);
     if (!el) { out.push({ sel, label, missing: true, w: 0, h: 0 }); continue; }
     el.scrollIntoView({ block: 'center' });
-    out.push({ sel, label, ...window.__hit(el), sq44: window.__square(el, 44).ok });
+    out.push({ sel, label, ...window.__hit(el), sq44: window.__target(el, 44).ok });
   }
   return out;
 };
@@ -262,7 +205,7 @@ window.__survey = () => {
     const h = window.__hit(el);
     // 中心点落空要显式报出来，不能 continue 掉 —— 一个静默跳过会让「量具坏了」
     // 长得和「没有问题」一模一样。
-    if (h.center && h.w >= 44 && h.h >= 44) continue;
+    if (h.center && window.__target(el, 44).ok) continue;
     const inRes = !!el.closest('#resources');
     out.push({ tag: el.tagName.toLowerCase() + (el.id ? '#' + el.id : ''),
                text: (el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 14),
@@ -399,7 +342,7 @@ try {
         const vh = document.documentElement.clientHeight, vw = document.documentElement.clientWidth;
         const inView = r.top >= -0.5 && r.bottom <= vh + 0.5 && r.left >= -0.5 && r.right <= vw + 0.5;
         const h = window.__hit(el);
-        const sq = window.__square(el, 44);
+        const sq = window.__target(el, 44);
         // 说不出是谁盖住的，红了也没法修，所以顺手把遮挡者报出来
         const blocker = sq.ok ? '' : ('，遮挡者: ' + (window.__coverers(el).join(' ') || '无（盒子本身不足44）'));
         return { label: idx >= 0 ? window.__sels[idx][1] : ('(' + el.tagName + ')'), idx,
