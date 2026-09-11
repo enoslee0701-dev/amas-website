@@ -260,7 +260,8 @@ def check_edge_functions(rep, root):
                 "called but not implemented: %s" % ", ".join(missing))
     else:
         rep.add("P7 edge-functions", READY,
-                "all %d called functions implemented: %s" % (len(called), ", ".join(sorted(called))))
+                "source present for all %d called functions (DEPLOYMENT STATUS UNKNOWN): %s"
+                % (len(called), ", ".join(sorted(called))))
     unused = sorted(declared - called)
     if unused:
         rep.add("P7b unused-functions", INFO,
@@ -429,7 +430,20 @@ def verdict(rep):
         print("A rendering degradation page is NOT Portal readiness. Run with --example")
         print("for a safe configuration template.")
         return 1
-    print("=== PORTAL CONFIG PREFLIGHT: %d/%d READY -> READY ===" % (ready, total))
+    # 措辞必须严格：本检查看的是磁盘上的配置形状与源码存在性，全部离线。
+    # 它无法证明 Edge Function 已部署、无法证明 auth/RLS 生效、
+    # 无法证明 Portal 可发布。把这三件事写在通过行里，免得 READY 被读成「就绪」。
+    print("=== PORTAL CONFIG PREFLIGHT: %d/%d CONFIG-SHAPE READY ===" % (ready, total))
+    print("")
+    print("Scope of this result - what it does and does not establish:")
+    print("  ESTABLISHED : config values are present and well-formed on disk;")
+    print("                edge function SOURCE exists; portal pages load their runtime deps;")
+    print("                subpath-safe paths.")
+    print("  NOT CHECKED : whether those functions are DEPLOYED and reachable;")
+    print("                whether auth, RLS or any policy actually works;")
+    print("                whether any request to the project succeeds.")
+    print("  VERDICT     : configuration-shape ready. LIVE VERIFICATION UNKNOWN.")
+    print("                This is NOT Portal release readiness.")
     return 0
 
 

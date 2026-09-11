@@ -1099,3 +1099,180 @@ P7 edge-functions  READY  all 2 called functions implemented: login-by-identifie
 可迁移的做法是 `P7c` 那种**配额哨兵**：不只断言「扫到的都合格」，
 还断言「扫到的数量 = 应该扫到的数量」，差额显式登记为盲区。
 一个静态扫描器的可信度，不取决于它扫到的东西对不对，而取决于它知不知道自己漏了多少。
+
+---
+---
+
+# 第八轮 — 访客路径可用性：键盘用户在首页就走丢
+
+## 53. 先回到原始目标
+
+`README.md` 对两个仓库的分工写得很明确：
+
+> 两者同属 AMAS 亚洲宣教神学院，分工：**网站负责发现与招生，App 负责持续装备与成长。**
+
+所以官网这一侧的成品标准不是「页面都能打开」，而是**一个陌生访客能不能顺利走完
+发现 → 了解 → 申请这条路**。本轮据此检视 首页 → 课程设置 → 招生信息 / 联系我们，
+挑一个压在这条路上的真实缺陷来修。
+
+## 54. 选中的缺陷：关闭状态的移动抽屉仍在 Tab 顺序里
+
+375px 下从页顶按 Tab，第 14 站之内的实测（修复前）：
+
+```
+   1  a.skip-link                       no                  "跳到主要内容"
+   2  a.announce-item                   no                  "查看招生信息 →"
+   3  a.announce-item                   YES <announce-set>  "查看招生信息 →"
+   4  button.brand-seal-btn             no                  ""
+   5  a.brand-name                      no                  "AMAS亚洲宣教神学院 · 清迈教学中心"
+   6  button.lang-btn                   no                  "中文▾"
+   7  button.theme-toggle               no                  "☀ ☾"
+   8  button.menu-btn                   no                  ""
+   9  button.icon-btn                   YES <mobile-drawer> "×"
+  10  a                                 YES <mobile-drawer> "首页"
+  11  a                                 YES <mobile-drawer> "关于我们"
+  12  a                                 YES <mobile-drawer> "课程设置"
+
+  落进 aria-hidden 子树的次数: 5
+```
+
+两处问题：
+
+1. **第 3 站**：公告条为了无缝循环做了一份视觉副本，标了 `aria-hidden="true"`，
+   但里面的「查看招生信息」链接仍可聚焦。键盘用户会在同一条链接上停两次，
+   第二次落在辅助技术被告知「不存在」的元素上（axe-core 的 `aria-hidden-focus`，serious）。
+2. **第 9 站起**：**整个关闭状态的移动抽屉都还在 Tab 顺序里**。
+   键盘访客按到第 9 下，焦点就掉进一个看不见的菜单，此后连续十几站没有任何可见焦点 ——
+   人在页面上看不到光标去了哪里，也不知道怎么出来。
+
+**为什么选它**：这正好卡在「发现 → 招生」的必经之路上。一个用键盘的访客
+（或使用读屏软件的访客）在首页第 9 次按 Tab 就失去方位，根本到不了
+「咨询招生」与「申请神学学士 B.Th」这两个 CTA。这不是观感问题，是转化漏斗在最前端断掉。
+
+### 根因
+
+```css
+.mobile-drawer{position:fixed;inset:0;z-index:80;pointer-events:none;opacity:0;transition:.2s}
+```
+
+`opacity:0` + `pointer-events:none` 对**肉眼**和**鼠标**隐藏了它，对**键盘**没有。
+这两个属性都不影响可聚焦性。
+
+## 55. 修法（2 行 CSS + 1 个属性）
+
+```css
+.mobile-drawer{...;visibility:hidden;transition:opacity .2s,visibility 0s linear .2s}
+.mobile-drawer.open{...;visibility:visible;transition:opacity .2s,visibility 0s}
+```
+
+```html
+<a class="announce-item" href="#admissions" tabindex="-1" data-i18n="announce.link">查看招生信息 →</a>
+```
+
+`visibility:hidden` 是少数几个既不影响布局、又能把子树移出 Tab 顺序的属性。
+过渡时序是刻意写的：**开时 `0s` 立即翻转，关时延后 `.2s`** —— 原因见 §56。
+
+**未新增任何机构性表述**：没有改一个字的招生、学费、认证或课程内容，
+只动了可聚焦性与一个装饰性副本的 `tabindex`。
+
+## 56. 修复中自己制造又消灭的一个回归
+
+第一版只写了 `visibility:hidden` / `visible`，保留原来的 `transition:.2s`。
+测试立刻挂了三条：
+
+```
+FAIL T4b focus moves into the drawer panel on open | focusInside=false
+FAIL T5  focus stays trapped inside the open drawer | escapes=16
+```
+
+**这是我引入的回归，不是既有缺陷** —— 把 CSS 回滚到原状重跑，T4b/T5 都是 PASS。
+先做这一步对照再动手，避免了把自己的错误当成页面的老毛病。
+
+根因：`transition:.2s` 是 `all`，把 `visibility` 也纳入了过渡。
+`openLayer()` 在加上 `.open` 的**同一 tick 内**同步调用 `first.focus()`，
+此刻 `visibility` 的计算值还没翻成 `visible`，浏览器拒绝聚焦一个不可见元素，
+于是焦点没进面板，焦点陷阱自然也就失效。
+
+改成显式时序后 14/14 通过：开时 `visibility 0s`（立即可见，`.focus()` 成功），
+关时 `visibility 0s linear .2s`（延后翻转，淡出动画完整保留）。
+
+## 57. 修复后的实测
+
+```
+   1  a.skip-link            no   "跳到主要内容"
+   2  a.announce-item        no   "查看招生信息 →"
+   3  button.brand-seal-btn  no   ""
+   4  a.brand-name           no   "AMAS亚洲宣教神学院 · 清迈教学中心"
+   5  button.lang-btn        no   "中文▾"
+   6  button.theme-toggle    no   "☀ ☾"
+   7  button.menu-btn        no   ""
+   8  button.hero-seal-btn   no   ""
+   9  button.btn             no   "咨询招生→"
+  10  button.btn             no   "申请神学学士 B.Th"
+  11  a.ai-strip             no   "AI 定制化神学 · 3 分钟看见你的信仰成"
+  12  a.text-link            no   "了解我们的异象与使命 →"
+
+  落进 aria-hidden 子树的次数: 0
+```
+
+重复链接消失；第 8 站起焦点直接进入真实内容，**第 9、10 站就是
+「咨询招生→」与「申请神学学士 B.Th」两个招生 CTA**。
+这就是本轮要的效果：键盘访客现在走得到招生入口。
+
+## 58. 回归测试：`scripts/test-drawer-a11y.mjs`（14/14 PASS）
+
+只验「隐藏的确实退出 Tab 顺序」是不够的 —— 一个把抽屉彻底焊死的改动同样能通过。
+因此同时验打开后的完整行为：
+
+| 用例 | 断言 | 实测 |
+|---|---|---|
+| T0 | 反空过：往 aria-hidden 子树塞一个可聚焦元素，遍历必须抓到 | `hits=1` |
+| T1 | 机制断言：关闭态 `visibility:hidden` | `visibility=hidden opacity=0` |
+| T2 | 遍历确实走了足够站数（前置） | `stops=14` |
+| T2b / T2c | 无一站落进 aria-hidden 子树 / 关闭的抽屉 | `hits=0` / `0` |
+| T3 / T3b | 公告条本体链接仍可达；副本链接退出 Tab 顺序 | `tabIndex=-1` |
+| T4 / T4b | 打开后可见且 `aria-hidden=false`；焦点移入面板 | `aria-expanded=true` |
+| T5 | 焦点陷阱：连按 16 次 Tab 不逃出面板 | `escapes=0` |
+| T6 / T6b | Esc 关闭并重新退出 Tab 顺序；焦点归还菜单按钮 | `restored=true` |
+| T7 / T7b | 抽屉里点「招生信息」仍能跳转，且抽屉关闭 | `hash=#admissions` |
+
+T6b 首跑是 FAIL，**这条也是器具的错**：我用 `.click()` 直接激活按钮，
+`activeElement` 仍是 `body`，`openLayer` 记下的 `restoreTo` 自然就是 `body`。
+真人点按钮时按钮会先获得焦点。改成「先 focus 再 click」后通过。
+
+附带回归：全站运行时审计 **23/23 页面干净**；
+`check-cache-bust.py` 5/5、`test-portal-config-check.py` 44/44、
+`test-discover-back-link.mjs` 30/30 全部照旧。
+截图确认抽屉打开态渲染与原先一致（遮罩、面板、全部条目）。
+
+## 59. 同路径上发现但**本轮未修**的问题（留给排期）
+
+诚实登记，不夹带进本轮改动：
+
+1. **顶部公告条无法暂停**（WCAG 2.2.2 Pause/Stop/Hide）。
+   `animation:announceScroll 46s linear infinite`，暂停条件只有 `.announce-bar:hover` ——
+   **触屏没有 hover，键盘也用不上**。实测暂停/停止控件数量 = `0`。
+   其中「查看招生信息」链接 1.2 秒内移动 32px，是一个持续移动的点击目标。
+2. **`prefers-reduced-motion` 下公告条的落点可疑**。
+   全局规则 `*{animation-iteration-count:1!important;animation-duration:.01ms!important}`
+   会让轨道瞬间跑完并停在 `translateX(-50%)`，即停在那份 `aria-hidden` 的副本上。
+   需要为公告条单独写 `animation:none`。
+3. **若干触控目标偏小**：抽屉关闭按钮 `30x34`、主题切换 `34x34`、
+   资源区若干 `64x26` 的「下载/查看/填写」按钮，均低于 44px 建议值。
+
+这三项都需要独立的设计取舍（加控件、改版式），不适合塞进一次可访问性修复。
+
+## 60. 方法论
+
+这一轮值得记的是**如何避免把自己的错误算到页面头上**。
+
+修完出现三条失败时，第一反应容易是「原来这页焦点管理本来就有问题」。
+实际做法是把 CSS 回滚到原状再跑一遍：T4b/T5 在原状下是 PASS —— 结论立刻清楚，
+是我引入的回归。这一步只花了一次测试运行的时间。
+
+配套的一条是 §58 里 T6b 的判法：同样是失败，但回滚后**依然失败**，
+说明它既不是我的回归，也未必是产品缺陷 —— 再查一层，发现是器具用
+`.click()` 绕过了真实的焦点路径。
+
+**同样是红色，回滚一次就能把它们分成三类**：我的回归、既有缺陷、器具假象。
+这三类的处置完全不同，混为一谈就会要么改错地方，要么把好代码改坏。
