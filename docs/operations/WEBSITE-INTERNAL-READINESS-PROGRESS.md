@@ -2275,3 +2275,111 @@ class 会改名，语义不会）和首页公告条那两处（理由见 §90、
 `test-header-touch` 14/14、`test-contact-footer` 12/12、`test-overlay-touch` 21/21、
 `test-header-layout` 19/19、`test-announce-a11y` 22/22、`test-drawer-a11y` 14/14、
 `test-discover-back-link` 30/30、`check-cache-bust` 5/5、`test-portal-config-check` 44/44。
+
+---
+
+# 第十八轮：访客申请流程验收
+
+## 111. 动手之前：这条流程上有两个真实外发通道
+
+`index.html` 的 `CONFIG.formEndpoint` 指向**真实**的 `formsubmit.co` 邮箱地址 ——
+任何一次成功提交都会给学校真发一封邮件。`window.SUPA` 为空，数据库通道没启用。
+
+所以回归脚本每次加载页面后的第一件事，就是把 `CONFIG.formEndpoint` 清成空串，
+让提交走站点自己的本地演示分支（只写 `localStorage`）。**A0 断言这一步确实生效；
+它不过，后面的提交用例一律不跑。** 上传表单 `#uploadForm` 是原生 POST 到同一个邮箱
+且 `target=_blank`，没有可禁用的开关，因此本轮**不碰它**。
+
+## 112. 先探测后判定：三项怀疑被实测推翻
+
+| 怀疑 | 实测结论 |
+|---|---|
+| Esc 关闭弹窗后焦点丢失 | **不是缺陷。** 真实按键打开时，Esc 后焦点准确回到「填写 →」 |
+| 课程筛选键盘不可用 | **不是缺陷。** 回车可筛选，`aria-pressed` 正确维护，计数区更新为「已显示 6 门课程」 |
+| 注册/登录页缺配置时静默失败 | **不是缺陷。** 显示「门户系统尚未启用」并禁用提交，同时给出替代路径（联系招生同工 / 官网申请入学） |
+
+第一项值得单独记：我第一版探针用 `element.click()` 打开弹窗，
+而 `openLayer` 记录的 `restoreTo` 取的是**当时的 `document.activeElement`** ——
+程序化点击不会让按钮获得焦点，于是 `restoreTo` 记成了 `body`，关闭后焦点自然"丢"了。
+**探针的打开方式决定了被测行为。** 换成真实按键（Tab 到入口 + Enter）后一切正常。
+这类假阳性只能靠「用真人的路径进入」来排除，不能靠盯着代码猜。
+
+## 113. 两个确认的缺陷
+
+**F1 换步之后焦点没进新步骤。** 点完「下一步」，焦点仍停在按钮上，
+而新步骤的字段在 DOM 里排在按钮**前面**。实测键盘访客要么按两次 Tab
+（绕过焦点环回到关闭键再进字段），要么按两次 Shift+Tab，才摸得到本步第一个输入框：
+
+```
+填完第 1 步按 Enter -> 当前步=2  焦点=button#nextStep（步骤外）
+  从此处 Tab 一次 -> button.modal-close
+  再 Tab 一次     -> input[name=church]
+  改按 Shift+Tab  -> 需要 2 次
+```
+
+读屏访客则完全收不到「换步了」的信号 —— 步骤指示器的 `aria-label` 改了，
+但 `aria-label` 变化不会被播报。
+
+**F2 关闭再打开，丢的是位置不是数据。** 关闭弹窗并不清空表单（只有提交成功后才
+`reset()`），但 `openApplication()` 一律 `showAppStep(1)`。于是填到第 3 步的访客
+关掉再打开，要对着**已经填好的字段**再点三次「下一步」才回到原处。
+数据还在、位置没了 —— 两者自相矛盾，要么一起留，要么一起清。
+
+## 114. 修法
+
+```js
+// 换步时把焦点带进新步骤；只有用户自己按上一步/下一步时才移，
+// 打开弹窗那次不移 —— openLayer 已经负责把焦点放进面板，两边抢会打架。
+function showAppStep(step, { moveFocus = false } = {}){ … 
+  if(moveFocus){
+    const target = step === APP_STEPS ? $("#applicationReview", sec)
+                                      : $$(FOCUSABLE, sec).find(el => el.offsetParent !== null);
+    (target || sec)?.focus?.();
+  }
+}
+function openApplication(){ showAppStep(appStep); … }   // 停在上次那一步
+```
+
+第 4 步焦点落在**复核框**而不是同意勾选框：复核内容排在勾选框之前，
+直接跳到勾选框等于让读屏访客跳过了要他确认的全部内容。
+`#applicationReview` 因此加 `tabindex="-1"`（只接受程序化聚焦，不进 Tab 顺序），
+并 `:focus{outline:none}` —— 给一个不可编辑的容器画焦点框会让人误以为它可编辑，
+而紧随其后的勾选框有自己的焦点圈，键盘可见性不受影响。
+
+## 115. 回归 `scripts/test-application-flow.mjs`（12/12 PASS）
+
+| 断言 | 覆盖 |
+|---|---|
+| A0 | 安全闸：真实端点已清空，提交只写 localStorage |
+| A1 | 键盘从资源中心「填写 →」打开，焦点进入面板，停在第 1 步 |
+| A2 | 必填留空不前进，焦点落到第一个未填字段 |
+| A3 / A4 | **本轮修的 F1**：下一步 / 上一步之后焦点进入新步骤 |
+| A5 | **本轮修的 F2**：Esc 关闭后重开停回原步，数据都在 |
+| A6 | Esc 后焦点回到打开它的入口 |
+| A7 | 复核页逐字段回显，枚举译成中文，选填未填显示「—」 |
+| A8 | 未勾「我确认」不许提交：弹窗不关、焦点落到勾选框、没有落库 |
+| A9 / A10 | 提交成功状态可见并落本地；随后自动关闭、清空、回到第 1 步 |
+| A11 | **负向控制**：还原两处改动后缺陷精确复现 |
+
+A3/A4 判的是「焦点在当前这一步之内」而不是「等于某个具体输入框」——
+将来字段顺序调整了断言仍该绿，它要保证的是焦点进了新步骤，不是进了哪个控件。
+
+A11 的还原方式是直接把站点行为改回去（换步不移焦点、打开一律回第 1 步），
+而不是换一套宽松断言。实测复现：`换步后焦点=button#nextStep（在当前步内=false）；
+还原后重开落在第 1 步`。
+
+**附带回归无回归**：`test-touch-targets` 20/20、`test-promo-tab` 20/20、
+`test-header-touch` 14/14、`test-contact-footer` 12/12、`test-overlay-touch` 21/21、
+`test-pages-touch` 7/7、`test-header-layout` 19/19、`test-announce-a11y` 22/22、
+`test-drawer-a11y` 14/14、`test-discover-back-link` 30/30、`check-cache-bust` 5/5、
+`test-portal-config-check` 44/44。
+
+## 116. 本轮记录的阻塞与未覆盖
+
+- **外部 Auth**：`window.SUPA` 未配置，注册/登录/找回密码全部停在「门户系统尚未启用」。
+  降级是妥当的（有说明 + 有替代路径），但**真实注册与登录无法在本地验收**，
+  需要真实 Supabase 项目才能继续。本轮不造身份数据。
+- **真实提交未验**：`formsubmit.co` 通道只在清空端点后走演示分支验过；
+  真实邮件送达与自动回复内容**未验证**，需要一次受控的真人验收。
+- **上传表单未覆盖**：原生 POST + `target=_blank`，没有可禁用的开关，本轮不碰。
+  下一轮若要覆盖，需要先给它一个可注入的提交拦截点。

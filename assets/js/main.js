@@ -944,7 +944,11 @@ const appModal = $("#applicationModal"), appForm = $("#applicationForm");
 let appStep = 1;
 
 function openApplication(){
-  showAppStep(1);
+  // 停在上次那一步，而不是每次都回到第 1 步。
+  // 关闭弹窗并不清空表单（只有提交成功后才 reset），所以原先的行为是自相矛盾的：
+  // 数据还在，位置却丢了 —— 填到第 3 步的访客关掉再打开，要对着已经填好的字段
+  // 再点三次「下一步」才回到原处。位置和数据要么一起留，要么一起清。
+  showAppStep(appStep);
   openLayer(appModal, $(".application-card", appModal));
 }
 function closeApplication(){ closeLayer(appModal); }
@@ -963,7 +967,9 @@ function stepValid(step){
 function refreshStepsLabel(){
   $(".steps")?.setAttribute("aria-label", t("application.stepOf", { n: appStep }));
 }
-function showAppStep(step){
+// moveFocus：只有「用户自己按了上一步/下一步」时才移动焦点。
+// 打开弹窗那次不移 —— openLayer 已经负责把焦点放进面板，两边抢会打架。
+function showAppStep(step, { moveFocus = false } = {}){
   appStep = step;
   refreshStepsLabel();
   $$(".app-step").forEach(s => s.classList.toggle("active", Number(s.dataset.step) === step));
@@ -978,6 +984,17 @@ function showAppStep(step){
   $("#applicationStatus").textContent = "";
   $("#applicationStatus").removeAttribute("data-state");
   if(step === APP_STEPS) buildReview();
+  // 换步后焦点必须进入新步骤。不进的话键盘访客点完「下一步」，焦点还留在按钮上，
+  // 而新步骤的字段在 DOM 里排在按钮**前面** —— 实测要按两次 Tab（绕过焦点环回到关闭键）
+  // 或两次 Shift+Tab 才能摸到本步第一个输入框。读屏访客则完全收不到「换步了」的信号。
+  // 第 4 步focus到复核框而不是同意勾选框：复核内容在勾选框之前，直接跳到勾选框
+  // 等于让读屏访客跳过了要他确认的全部内容。
+  if(moveFocus){
+    const sec = $(`.app-step[data-step="${step}"]`);
+    const target = step === APP_STEPS ? $("#applicationReview", sec)
+                                      : $$(FOCUSABLE, sec).find(el => el.offsetParent !== null);
+    (target || sec)?.focus?.();
+  }
 }
 // 复核页：值为枚举的字段翻译成当前语言的文字
 const REVIEW_ENUMS = { gender:"genders", language:"languages", churchType:"churchTypes", program:"programs", mode:"modes", eduLevel:"edu" };
@@ -992,8 +1009,8 @@ function buildReview(){
     return `<dt>${escapeHTML(t("review." + k))}</dt><dd>${escapeHTML(v)}</dd>`;
   }).join("") + "</dl>";
 }
-$("#nextStep").addEventListener("click", () => { if(stepValid(appStep)) showAppStep(Math.min(APP_STEPS, appStep + 1)); });
-$("#prevStep").addEventListener("click", () => showAppStep(Math.max(1, appStep - 1)));
+$("#nextStep").addEventListener("click", () => { if(stepValid(appStep)) showAppStep(Math.min(APP_STEPS, appStep + 1), { moveFocus:true }); });
+$("#prevStep").addEventListener("click", () => showAppStep(Math.max(1, appStep - 1), { moveFocus:true }));
 
 appForm.addEventListener("submit", async e => {
   e.preventDefault();
