@@ -2539,3 +2539,73 @@ D1–D8 判的是「焦点落在刚换上来的那块内容里」而不是某个
 `test-header-touch` 14/14、`test-contact-footer` 12/12、`test-overlay-touch` 21/21、
 `test-pages-touch` 7/7、`test-header-layout` 19/19、`test-announce-a11y` 22/22、
 `test-drawer-a11y` 14/14、`check-cache-bust` 5/5、`test-portal-config-check` 44/44。
+
+---
+
+# 汇总：本分支的上线验收清单与整合依赖
+
+截至 `3faa1da`，隔离分支 `worktree-website-cachebust-coverage` 相对 `master`（`1ee9288`）
+共 **15 个提交**，全部未 push、未合 master、未部署。
+
+## 127. 已在本地完成、且有回归守着（可直接整合）
+
+| # | commit | 内容 | 守它的回归 |
+|---|---|---|---|
+| 1 | `bb2e5a2` | Portal 真实配置的发布前检查命令 | `test-portal-config-check` 44/44 |
+| 2 | `a434a45` | 关闭的移动抽屉仍在 Tab 顺序里 | `test-drawer-a11y` 14/14 |
+| 3 | `dd0683a` | 公告条可暂停/继续、键盘可操作、reduced-motion | `test-announce-a11y` 22/22 |
+| 4 | `3edfe76` | 320px 顶栏溢出 9px、汉堡键被挤出视口 | `test-header-layout` 19/19 |
+| 5 | `bdea255` | 资源中心 6 个入口触控目标 + 键盘焦点被浮层吞掉 | `test-touch-targets` 20/20 |
+| 6 | `aecc0bf` | 招生侧边标签在手机上切进内容列 | `test-promo-tab` 20/20 |
+| 7 | `f7a8933` | 顶栏语言键/主题键/品牌链接低于 44px | `test-header-touch` 14/14 |
+| 8 | `3e14c52` | 触控判据抽成共享量具 `scripts/lib/touch-probe.mjs` | 上述三套共用 |
+| 9 | `2af0c95` | 联系方式与页脚导航 +「回到顶部」被客服圆钮压住 | `test-contact-footer` 12/12 |
+| 10 | `4a94598` | 五个打开态浮层十六处控件 | `test-overlay-touch` 21/21 |
+| 11 | `d98a9d6` | 收尾两个控件 + 全页普查升级成守门断言 | `test-touch-targets` T4/T5 |
+| 12 | `9b9961d` | 其余六个访客页面 29 处 | `test-pages-touch` 7/7 |
+| 13 | `7856d32` | 申请向导换步焦点 + 关闭重开的状态保持 | `test-application-flow` 15/15 |
+| 14 | `b31c189` | 提交失败提示落在可视区外 + 成功提示不过期 | 同上 A12–A14 |
+| 15 | `3faa1da` | discover 测验换题/换视图焦点 + 进度语义 | `test-discover-flow` 9/9 |
+
+**合计 13 套浏览器/契约回归、约 240 项断言，本轮末次全量执行全绿。**
+每一条修复都配了负向控制（把改动还原后缺陷必须精确复现），
+不是「测试全绿」而是「测试会因为这个缺陷而变红」。
+
+## 128. 整合依赖（合并时必须处理的）
+
+1. **分支是线性的**，`master`(1ee9288) 正是 `bb2e5a2` 的父提交，可直接 fast-forward；
+   不需要 rebase，也没有冲突面。
+2. **缓存戳 hook 会给全部 HTML 打戳**：每个提交都带 21+ 个 HTML 的 `?v=` 变化，
+   属预期产物（`check-cache-bust` 5/5 守着契约）。合并后以最后一次戳值为准。
+3. **`scripts/lib/touch-probe.mjs` 是三套触控回归的共享依赖** ——
+   不能只挑部分文件合入，否则 `test-touch-targets` / `test-promo-tab` /
+   `test-header-touch` 会同时 import 失败。
+4. **回归需要本机 Chrome**：13 套里有 11 套走 CDP 驱动真实 Chrome，
+   找不到浏览器时脚本以退出码 2 明确中止，**不会静默跳过**。
+5. **discover.html 有同源副本在 App 仓**（`AMAS-Seminary/public/discover.html`）。
+   `1ee9288` 已留下该同步待办，本轮 `3faa1da` 的焦点接管与进度语义**同属同步范围**，
+   否则 App 侧会带着旧版本。**不在本会话权限内，需另行安排。**
+6. 全程**未动** schema / 0027 / 身份迁移 / live 配置 / Portal 真实凭据 / App 仓。
+
+## 129. 必须外部身份或真人才能推进的阻塞（本地做不了）
+
+| 阻塞 | 现状（实测） | 需要什么 |
+|---|---|---|
+| **Supabase 未配置** | `window.SUPA = { url:"", anonKey:"" }`；注册/登录/找回密码全部显示「门户系统尚未启用」并禁用提交，给出替代路径 | 真实项目 URL + anon key。**降级本身是妥当的**，但真实注册/登录无法本地验收 |
+| **真实邮件投递未验** | `CONFIG.formEndpoint` 指向真实 formsubmit.co 邮箱；回归一律先清空端点走本地演示分支 | 一次**受控的真人提交**，确认邮件送达与自动回复内容。本会话不真发 |
+| **App 未上线** | `CONFIG.app.web/ios/android/deepLink` 全空、`APP_LINK.url = ""`；discover 与数字校园版块自动降级为「App 即将上线」 | App 正式地址 |
+| **介绍视频未配** | `CONFIG.videoUrl = ""`，视频弹窗显示占位说明 | 视频链接（学校提供） |
+| **真机触控未验** | 本轮全部在 Chrome headless 的 320/375 模拟视口上实测 | 真人在真机上过一遍指触，确认与模拟一致 |
+| **奉献收款方式** | 现文案为「具体方式由同工一对一说明」，**不是空占位** | 学校决定是否补充具体收款信息（内容决策，非缺陷） |
+
+**已核实、不属于阻塞的两项**（避免沿用旧印象）：
+资源中心的 PDF/DOCX 是**真实文件且都在仓库里**（`assets/files/` 共 12 个，四语言各一套
+课程目录、新生手册与申请表）；联系方式邮箱/Line/微信/电话均已填。
+
+## 130. 本分支未覆盖、且本地可执行的后续候选
+
+- 上传表单 `#uploadForm`：原生 POST + `target=_blank`，没有可禁用的开关，
+  要纳入回归得先给它一个可注入的提交拦截点。
+- 资源中心搜索框 `.resource-search-wrap` 带 `hidden` 且全站无代码解除（死 UI），
+  是启用还是移除属产品决定。
+- `discover.html` 的原型详情视图（`#detail`）本轮只走了测验主路径，未做同类焦点验收。
