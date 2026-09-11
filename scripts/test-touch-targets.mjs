@@ -191,8 +191,51 @@ window.__neighbours = () => {
   }
   return bad;
 };
-// 全页普查：只用于如实报告本轮改了哪些、还剩哪些，不作断言。
-// 断言只覆盖上面写死的资源中心 6 个；把普查结果写成断言会让别的轮次一动就红。
+// 全页普查。前几轮它只用于如实报告，不作断言 —— 因为那时全页有 40 个过小控件，
+// 断言只会永远红着没人看。现在逐轮修下来只剩下有明确理由不改的那几个，
+// 于是可以升级成守门断言：**白名单之外不许再有过小控件**。
+// 这样将来任何一处新加的小控件都会被逮住，而不是等到下一次有人想起来做普查。
+//
+// 白名单里每一条都必须写得出理由（见 __ALLOW），理由站不住就该去修而不是加白名单。
+window.__ALLOW = [
+  // WCAG 2.5.8 的行内例外：句子里的链接，加高会破坏段落行距。
+  // 公告条那条还在滚动跑马灯里，改高度会直接破坏该组件。
+  { sel: '.announce-bar a', why: '句子中的行内链接（行内例外）+ 在滚动跑马灯里' },
+  { sel: '.tuition-copy p a', why: '正文段落里的行内链接（行内例外）' },
+  // 已满足 WCAG 2.5.8 AA 的 24x24；凑到 44 高要把整条公告条从 30px 拉到 44px，
+  // 每一页每一屏都多占 14px，或把命中区往下伸进顶栏抢下面控件的热区。
+  { sel: '#announceToggle', why: '44x30，已满足 AA 24x24；见进度文档 §90' }
+];
+// 由别的套件专测的区域。这不是「不改」，是「在另一处更合适的地方改与验」：
+// 浮层里的控件必须先打开浮层才量得到，那是 test-overlay-touch.mjs 的事；
+// 放在这里只会量到半开半闭的中间态，给出一堆没法归因的「中心点落空」。
+window.__ELSEWHERE = [
+  { sel: '.promo-card', by: 'test-overlay-touch.mjs（招生卡片）' },
+  { sel: '.chat-panel', by: 'test-overlay-touch.mjs（客服面板）' },
+  { sel: '.mobile-drawer', by: 'test-overlay-touch.mjs（移动抽屉）' },
+  { sel: '.modal', by: 'test-overlay-touch.mjs（申请/校标弹窗）' },
+  { sel: '.skip-link', by: '本文件 T5（跳转链接只在获得焦点时才出现在屏幕上）' }
+];
+window.__allowedReason = (el) => {
+  for (const a of window.__ALLOW) if (el.matches(a.sel) || el.closest(a.sel) === el) return a.why;
+  return null;
+};
+window.__elsewhereReason = (el) => {
+  for (const e of window.__ELSEWHERE) if (el.matches(e.sel) || el.closest(e.sel)) return e.by;
+  return null;
+};
+// 此刻是否真的可点：祖先链上任何一层 display:none / visibility:hidden /
+// pointer-events:none / [hidden] 都算不可达。关着的浮层里的控件由
+// test-overlay-touch.mjs 打开后专测，不在这里凑数。
+window.__reachable = (el) => {
+  for (let n = el; n && n !== document.documentElement; n = n.parentElement) {
+    const cs = getComputedStyle(n);
+    if (cs.display === 'none' || cs.visibility === 'hidden' ||
+        cs.pointerEvents === 'none' || parseFloat(cs.opacity || '1') < 0.01) return false;
+    if (n.hasAttribute && n.hasAttribute('hidden')) return false;
+  }
+  return true;
+};
 window.__survey = () => {
   const out = [];
   const all = [...document.querySelectorAll(
@@ -201,6 +244,8 @@ window.__survey = () => {
     const r = el.getBoundingClientRect();
     if (r.width === 0 || r.height === 0) continue;
     if (getComputedStyle(el).visibility === 'hidden') continue;
+    if (!window.__reachable(el)) continue;      // 关着的浮层：交给 overlay 专测
+    if (window.__elsewhereReason(el)) continue; // 开着的浮层同理，别在这里量半开半闭的中间态
     el.scrollIntoView({ block: 'center' });
     const h = window.__hit(el);
     // 中心点落空要显式报出来，不能 continue 掉 —— 一个静默跳过会让「量具坏了」
@@ -209,7 +254,8 @@ window.__survey = () => {
     const inRes = !!el.closest('#resources');
     out.push({ tag: el.tagName.toLowerCase() + (el.id ? '#' + el.id : ''),
                text: (el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 14),
-               w: h.w, h: h.h, inRes, centerMiss: !h.center });
+               w: h.w, h: h.h, inRes, centerMiss: !h.center,
+               allowed: window.__allowedReason(el) });
   }
   return out;
 };
@@ -313,12 +359,18 @@ try {
 
     if (v.tag === "375") {
       const survey = await cdp.ev(`window.__survey()`);
-      console.log(`--- 375px 全页过小控件普查（仅供如实报告，不作断言）---`);
+      console.log(`--- 375px 全页过小控件普查 ---`);
       if (!survey.length) console.log("    无");
       for (const s of survey) {
-        console.log(`    ${s.inRes ? "[资源中心]" : "[本轮范围外]"} ${s.tag} "${s.text}" ${s.centerMiss ? "中心点落空(量具异常)" : s.w + "x" + s.h}`);
+        console.log(`    ${s.allowed ? "[已记录不改]" : "[未处理]"} ${s.tag} "${s.text}" ` +
+          `${s.centerMiss ? "中心点落空" : s.w + "x" + s.h}${s.allowed ? "（" + s.allowed + "）" : ""}`);
       }
-      console.log(`--- 共 ${survey.length} 个，其中资源中心 ${survey.filter((s) => s.inRes).length} 个 ---`);
+      const unlisted = survey.filter((s) => !s.allowed);
+      check(unlisted.length === 0,
+        "T4 全页守门：白名单之外没有过小的可达控件",
+        unlisted.length
+          ? "未处理: " + unlisted.map((s) => `${s.tag} "${s.text}" ${s.centerMiss ? "中心点落空" : s.w + "x" + s.h}`).join("; ")
+          : `扫到 ${survey.length} 个过小控件，全部在白名单里且各有理由；关着的浮层由 test-overlay-touch 专测`);
     }
 
     await shot(cdp, v.tag);
@@ -362,6 +414,29 @@ try {
       `T-${v.tag}d 键盘路径：Tab 依 DOM 顺序走完 6 个入口，焦点圈可见、完整在视口内、命中区仍 >= 44`,
       kbBad.length ? kbBad.map((x) => `${x.label}(${x.why})`).join("; ") : `顺序=${order} 命中区=${kb.map((x) => x.hit).join(",")}`);
   }
+
+  // T5 跳转链接：它只在获得焦点时才出现在屏幕上，全页普查扫不到（中心点在视口外），
+  // 所以单独测。它是键盘与读屏访客进站后的第一个控件，漏掉它代价不小。
+  await cdp.send("Emulation.setDeviceMetricsOverride",
+    { width: 375, height: 780, deviceScaleFactor: 1, mobile: true });
+  await cdp.send("Page.navigate", { url: `${BASE}/index.html` });
+  await sleep(2400);
+  await cdp.ev(PROBE);
+  await cdp.ev(`document.querySelector('.skip-link').focus()`);
+  await cdp.tab(true);
+  await cdp.tab(false);
+  const skip = await cdp.ev(`(() => {
+    const el = document.querySelector('.skip-link');
+    const r = el.getBoundingClientRect();
+    const t = window.__target(el, 44);
+    const vh = document.documentElement.clientHeight, vw = document.documentElement.clientWidth;
+    return { focused: document.activeElement === el, ok: t.ok, w: t.w, h: t.h, why: t.why,
+             inView: r.top >= -0.5 && r.bottom <= vh + 0.5 && r.left >= -0.5 && r.right <= vw + 0.5,
+             text: (el.textContent || '').trim() };
+  })()`);
+  check(skip.focused && skip.ok && skip.inView,
+    "T5 跳转链接聚焦后出现在屏幕上、完整可见、且合格（>= 44x44）",
+    `聚焦=${skip.focused} ${skip.w}x${skip.h}（${skip.why}）完整在视口内=${skip.inView} 文案="${skip.text}"`);
 
   // 行为：点在「新扩出来的那一圈」上必须真的触发动作，不能只是视觉上变大。
   await cdp.send("Emulation.setDeviceMetricsOverride",
