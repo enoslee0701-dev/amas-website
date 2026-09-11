@@ -952,3 +952,150 @@ R4b 这条机制断言是特意加的：只断言几何数字，将来规则被�
 
 代价对比也值得记：多写三条用例的成本，远低于让一个键盘用户在结果页
 按 Tab 之后发现出口被压在固定底栏下面。
+
+---
+---
+
+# 第七轮 — Portal 真实配置的本地发布前检查
+
+督工指令：实现或完善 Portal 真实配置的本地发布前检查命令。先复用现有校验脚本；
+检查真实 URL/anon 配置占位、必要 Edge Function 契约与部署路径，输出按项 ready/missing；
+不输出 secret、不自动填生产配置、不登录写 live、不部署；离线 fixture 覆盖
+缺失/格式错误/有效等；**不以降级页通过冒充 Portal 就绪**。
+
+## 44. 先确认「是否已有等价检查」
+
+指令要求能复用就不要再造。逐一核对后的结论是**没有可复用的等价命令**：
+
+| 候选 | 实际是什么 | 能否复用 |
+|---|---|---|
+| `scripts/check-cache-bust.py` | 资源戳号契约（C0–C4） | 与配置无关 |
+| `scripts/test-hook-gate.py` | 提交闸门 | 与配置无关 |
+| `docs/operations/RELEASE-READINESS-REPORT.md` | **2026-09-07 的一次性报告快照** | 不是可执行命令 |
+| `docs/operations/DB-2-DATA-PREFLIGHT-REPORT.md` 等 | 数据库侧一次性报告 | 不覆盖前端配置 |
+
+所以新建检查，但**沿用既有约定**：ASCII 运行时输出、反空过哨兵、
+`PASS/FAIL <name> | <detail>` 行格式、退出码语义。
+
+## 45. 产物
+
+```
+scripts/check-portal-config.py              检查命令（离线只读，0=READY 1=有缺口 2=用法错）
+scripts/test-portal-config-check.py         契约测试（44/44 PASS）
+scripts/fixtures/portal-config/*.js         13 个离线 fixture，不含任何真实凭据
+```
+
+## 46. 检查了哪 10 项
+
+| 项 | 检查内容 | 为什么要查 |
+|---|---|---|
+| P1 | 配置文件存在且确实赋值 `window.SUPA` | 文件在但没赋值 = 运行时静默降级 |
+| P2 | url 非占位、https、host 形态合法 | 区分「没填」与「填错」 |
+| P3 | anonKey 是结构合法的 JWT | 三段式 + payload 可解 |
+| P4 | **role 必须是 anon** | `service_role` 混进客户端配置 → 直接 **BLOCKED** |
+| P5 | key 未过期 | 过期 key 会让登录整体失败 |
+| P6 | key 的 `ref` 与 url 的 ref 同项目 | 捕捉「两个项目的值配错对」 |
+| P7 | 客户端调用的每个 Edge Function 都有 `index.ts` | 契约缺口 |
+| P8 | 每个 Portal 页都加载了 `supabase-config.js` 与 supabase-js | `CONFIGURED` 还依赖 `window.supabase` |
+| P9 | `siteRoot()` 的目录白名单覆盖所有 Portal 页所在目录 | 子路径部署下 ROOT 解析 |
+| P10 | HTML 无根绝对路径引用 | 子路径部署 |
+
+`P4` 是本轮唯一带安全含义的检查。考虑到本项目历史上有「service_role 暴露 =
+OWNER-ACCEPTED / DEFERRED」的记录，把它做成**硬 BLOCKED 而非警告**是必要的。
+
+## 47. 仓库当前真实输出
+
+```
+P1 config-file        READY    parsed assets/js/supabase-config.js
+P2 supabase-url       MISSING  url is empty or a placeholder -> Portal runs in degraded mode
+P3 anon-key-shape     MISSING  anonKey is empty or a placeholder -> Portal runs in degraded mode
+P7 edge-functions     READY    all 7 called functions implemented: create-teacher-invitation,
+                               login-by-identifier, recovery-finalize, review-application,
+                               review-teacher-verification, student-lifecycle, submit-teacher-verification
+P7c scanner-drift     INFO     4 call site(s) pass the function name as a variable
+P8 runtime-deps       READY    all 17 portal pages load both supabase-config.js and supabase-js
+P9 site-root-markers  READY    all portal page dirs covered by siteRoot() markers (8 markers)
+P10 subpath-safety    READY    no root-absolute refs in HTML
+I1 degraded-path      INFO     graceful degradation present (NOT evidence of readiness)
+
+=== PORTAL CONFIG PREFLIGHT: 5/7 READY, 2 GAP(S) -> NOT READY ===
+```
+
+**精确缺口就两项**，都在配置值本身：`P2` 与 `P3`。
+其余结构性前置（Edge Function 契约、运行时依赖、部署路径）**全部就绪** ——
+也就是说 Portal 差的不是代码，是两个还没填的值和它们背后的 Supabase 环境。
+
+## 48. 「降级页不得冒充就绪」是怎么落实的
+
+不是靠措辞，是靠结构：
+
+- 降级路径的检查登记为 `I1`，状态恒为 `INFO`；
+- `verdict()` 只数 `GAP_STATES = {MISSING, INVALID, BLOCKED}`，`INFO` 行**在数学上无法参与判定**；
+- 判定为 NOT READY 时，末尾固定打印
+  `A rendering degradation page is NOT Portal readiness.`；
+- 契约测试 `S5` 用仓库当前状态（`missing.js`）断言：降级路径完好 + 判定仍必须是 NOT READY；
+  `S5b` 断言 `I1` 从来只会是 `INFO`，永不成为计分项。
+
+## 49. 「不输出 secret」是可执行断言，不是承诺
+
+- anon key 的任何字节都不打印，只打印 `len` / `role` / `exp` / ref 是否配对；
+- project ref 打印时中段掩码（`abcd************qrst`）；
+- 契约测试 `S4` 对每个 fixture 断言：checker 输出里不得出现该 fixture 的
+  key 全串、前 24 字符、或 payload 段前 20 字符。
+
+**负向控制**：临时把 P3 改成回显 key，`S4` 立刻列出 7 个 fixture 的泄漏
+（`leaked 194 chars` 等），恢复后 44/44。证明这条断言会咬人。
+
+## 50. 两处自查出来的缺陷
+
+**(a) 扫描器漏了一种调用形态 —— 一次真正的假 READY**
+
+首版的 Edge Function 扫描只覆盖两种形态：`/functions/v1/<name>` 与 `fn("<name>"`。
+漏掉了 `A.callFn("<name>", ...)`，而这是仓库里最常见的一种：7 个函数里有 5 个
+只以这种形式被调用。结果首跑报
+
+```
+P7 edge-functions  READY  all 2 called functions implemented: login-by-identifier, review-application
+```
+
+**结论碰巧是对的（7 个函数确实都存在），但过程是坏的** ——
+它是在只看见 2/7 调用点的前提下说「全都实现了」。如果缺的恰好是那 5 个之一，
+这条 READY 会直接放行一个缺失契约。
+
+修法不止是补正则，还加了 `P7c` 漂移哨兵：统计调用点总数与解析出字面量名的调用点数，
+差值即「变量传名」的静态盲区，如实登记为 INFO（当前 4 处，都是包装函数自身的定义）。
+扫描器再次落后于代码时，这个差值会先变大。
+
+**(b) 占位符识别只看串首**
+
+`https://<project-ref>.supabase.co` 被判成 `INVALID`（填错了），
+但它其实是 `MISSING`（没填）。两者给用户的下一步动作不同：前者去 dashboard 取值，
+后者去查为什么取错。修法是增加「任意位置含 `<` 或 `>`」判据 ——
+角括号在合法 URL 与 base64url token 里都不可能出现，**零误报**。
+并补 `placeholder-inline.js` fixture 覆盖不含角括号的模板形态（`your-project` / `YOUR_`）。
+
+## 51. fixture 覆盖（13 个，全离线）
+
+`valid` · `missing` · `placeholder` · `placeholder-inline` · `no-window-supa` ·
+`bad-scheme` · `bad-host` · `malformed-key` · `undecodable-key` ·
+`service-role` · `wrong-role` · `expired` · `ref-mismatch`
+
+所有 token 都是构造值，签名固定为 `fake-signature-for-tests-only`，
+**不含也不可能含真实凭据**。退出码实测：仅 `valid.js` 为 0，其余 12 个均为 1。
+
+契约测试的哨兵：
+`S1` 语料非空 · `S2` 无 fixture 被漏测（目录与期望表一一对应）·
+`S3` 检查器既能过也能挂（全过或全挂的检查器都是坏的）·
+`S4` 无 key 泄漏 · `S5`/`S5b` 降级页不能顶成就绪。
+
+## 52. 方法论
+
+这一轮自己撞上了第二轮 Codex 指出过的同一类错误：**空过的变种 —— 不是「没扫到东西就通过」，
+而是「只扫到一部分就宣布全体合格」**。
+
+区别在于后者更难发现：输出是 `READY all 2 called functions implemented`，
+数字、列表、措辞都自洽，只有把它和真实调用点数一对，才看得出 2 ≠ 7。
+
+可迁移的做法是 `P7c` 那种**配额哨兵**：不只断言「扫到的都合格」，
+还断言「扫到的数量 = 应该扫到的数量」，差额显式登记为盲区。
+一个静态扫描器的可信度，不取决于它扫到的东西对不对，而取决于它知不知道自己漏了多少。
