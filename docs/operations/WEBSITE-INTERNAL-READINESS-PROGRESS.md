@@ -2869,3 +2869,29 @@ C 门户降级态七个文件（**必须同进同出**：五个页面读 `A.CONF
 
 上线阻塞全部是外部的，核心是 Supabase 项目未开通；本地无已知的、有实测证据的缺口。
 详见 work/website-next-report.md §45–§46。
+
+## §147 可体验交付与部署耦合核查
+
+**预览**：复用 §15 既有约定 `python -m http.server`，未引入新工具、未叠加第二个服务
+（启动前确认本机无在跑的站点预览）。`--bind 127.0.0.1 --port 8787`，实测只有环回监听，
+本机非网卡地址访问连接失败。worktree 工作区 0 处未提交，所以发的就是 054c273 本身。
+
+四条地址：`/index.html`、`/discover.html`、`/index.html#admissions`（申请是弹窗非独立页）、
+`/portal/student/`。验收说明见 work/website-next-report.md §47。
+
+出厂配置为空，门户只能看到 `missing` 态。要看 `sdk-unavailable` 态又不填任何配置，
+在门户页控制台执行 `AmasAuth.renderDisabled('sdk-unavailable')` —— 已对着本预览实测：
+「门户暂时打不开」、title 同步、重试按钮 47px、焦点落标题、不再说「正在部署中」。
+**看到它不等于 Auth 就绪。**
+
+**部署耦合**：`.github/workflows` 整个不存在（master 与本分支都没有），hooks 只有
+`pre-commit`（cache-bust），无 `pre-push` / `post-*`。文档 §2.1/§14 写明 GitHub Pages
+**从 master 直发、无构建**，线上与 `origin/master` 逐字节一致。
+
+结论：**合 master 是纯本地动作不发布；`git push origin master` 等于立即公开发布，
+中间没有任何闸门。** 整合与发布这两个决定被 push 一个动作绑在一起 —— 建议先本地整合
+验收、再单独决定发布。Pages 来源分支属服务端仓库设置，代码里无法 100% 确认。
+
+**整合锚点**：base `1ee9288d0001`（= 当前 master）、head `054c2737 4990`，master 是 head
+直接祖先，可 `--ff-only`，无冲突。回退 `git reset --hard 1ee9288d0001`，不影响未跟踪的
+`?? .claude/`。全程不使用共享 stash。步骤见报告 §49。
