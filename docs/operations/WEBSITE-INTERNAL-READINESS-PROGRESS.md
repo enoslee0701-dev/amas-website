@@ -352,3 +352,37 @@ M  docs/operations/WEBSITE-INTERNAL-READINESS-PROGRESS.md   追加本轮（第�
 与第一轮 §7 相同，未因本轮变化：`RB-03/04/08/09/10/12/13` · `#22` · `#26`。
 「Website 仓库零 CI」一项的状态更新为：**已有可无条件本地运行的验证入口，
 且已接上 pre-commit 闸门**；是否另行引入 CI 仍是 owner/Codex 的基础设施决策。
+
+---
+
+## 16. 一处必须写明的限制：hook 闸门在本分支上无法自证
+
+提交 `d6bc448` 之后核对发现：`core.hooksPath` 配的是**绝对路径**
+
+```
+core.hooksPath = C:\Users\enosl\Desktop\AMAS-website\.githooks
+```
+
+worktree 与主检出**共享 git 配置**，因此在本隔离 worktree 里提交时，
+git 用的是**主检出**的 `.githooks/pre-commit`（仍是旧版），
+而不是本分支刚改好的那一份。
+
+实测证据：`d6bc448` 把戳记从 `202609111133` 推进到 `202609111146`，
+说明旧 hook 确实运行并调用了 worktree 的 `scripts/bump.py`（hook 的 cwd 是 worktree 根）；
+但旧 hook 没有校验步骤，所以**本次提交没有跑过 `check-cache-bust.py`**。
+
+由此三点：
+
+1. **不能拿本分支的提交当作新 hook 生效的证据。** 我先前在对话中说过
+   「让新 hook 正常运行，这是它在真实仓库里的活证据」——**那句话是错的**，就地更正。
+   报告 §12 引用的始终是 fixture 证据，未受影响。
+2. **`scripts/test-hook-gate.py` 是唯一有效的证明方式**，而且方式是对的：
+   它在一次性 fixture 仓库里把 `core.hooksPath` 指向该仓库自己的 `.githooks`，
+   因此测的是 **hook 文件的内容**，与部署路径无关。5/5 PASSED 的结论成立。
+3. **闸门要真正生效，必须等本分支合入且主检出拿到这份 `.githooks/pre-commit`。**
+   在那之前，主检出与其它 worktree 的提交仍走旧 hook（只打戳、不校验、
+   且 stamper 崩溃时静默放行）。这一点请 Codex 在决定合入时机时一并考虑。
+
+附带一个可复用的判断：任何「改 hook 本身」的工作都无法在 worktree 内自证，
+因为 `core.hooksPath` 指向主检出。以后遇到同类任务，
+直接用一次性 fixture 仓库验证 hook 内容，不要试图用本分支的提交去证明它。
