@@ -2197,3 +2197,81 @@ WCAG 2.5.5 / 2.5.8 量的是目标的外接盒，外加「有没有被别的目�
 | `test-header-layout`（320px 顶栏溢出，第十轮） | 19/19 |
 | `test-announce-a11y` / `test-drawer-a11y` / `test-discover-back-link` | 22/22 · 14/14 · 30/30 |
 | `check-cache-bust` / `test-portal-config-check` | 5/5 · 44/44 |
+
+---
+
+# 第十七轮：其余六个访客页面
+
+## 107. 「已经修好了」这句话在六个页面上不成立
+
+前六轮把 `index.html` 收拾干净了。但同一批缺陷在其余公开页面照样存在 ——
+把同一套量具（`scripts/lib/touch-probe.mjs`）指向其它页面，375px 实测 **29 处**：
+
+| 页面 | 过小可达控件 |
+|---|---|
+| `giving.html` | 「← 返回官网」71x22、四个语言键 38~58x27、三个手风琴标题 331x20 |
+| `help/index.html` | 七个手风琴标题 297x25、「前往登录」「返回官网」各 48x17 |
+| `discover.html` | 紧凑态金色按钮 311x36（本页通往数字校园的唯一按钮） |
+| `login/` | 「联系招生同工」260x42、「忘记密码？」69x40、「注册」24x17、「返回官网」48x17 |
+| `register/` | 「联系招生同工」78x19、「登录」24x17、「返回官网」48x17 |
+| `forgot-password/` | 「联系招生同工」247x42、「返回登录」「返回官网」各 48x17 |
+
+**注册页的「登录」是该页唯一的出口，实测 24x17。**
+
+## 108. 一条先前定在 40px 的规则，和它带来的特异性陷阱
+
+`portal.css` 里已有一条更早轮次留下的规则：
+
+```css
+/* 触控目标下限 40px（WCAG 2.5.8）。句子中的行内链接属该条款的 inline 例外，故排除 .notice 内的链接。 */
+:where(button.link, a.link):not(.notice .link){...min-height:40px...}
+```
+
+方向是对的，但下限停在 40，与这几轮统一的 44 不一致（2.5.8 AA 是 24x24，
+44x44 是 2.5.5 AAA —— 40 两头不靠）。
+
+我第一版想在基础 `.link` 上加 `min-height:44px`，再补一条 `p .link{display:inline}`
+做行内例外。**结果是一条看起来生效其实没生效的死规则**：`:not()` 取其参数中最高的
+特异性，上面那条是 **(0,2,0)**，而 `p .link` 只有 (0,1,1)，永远抢不过它。
+登录页的「忘记密码？」因此一直停在 40x40 —— 改了 CSS、测试照红，很容易被误读成
+「页面顽固」而不是「规则没匹配上」。
+
+正确做法是**把例外写在那条规则自己身上**，而不是另起一条去抢特异性：
+
+```css
+:where(button.link, a.link):not(.notice .link):not(p .link):not(li .link){...min-height:44px...}
+p .link,li .link{display:inline;min-height:0;padding:0}
+```
+
+## 109. 修法与结果
+
+- `portal.css`：`.link` 下限 40 → **44**，行内例外写进同一条规则；
+  `.foot a` 撑到 44（那是这些页面回到站点的唯一出口）；
+  新增 `details > summary{display:flex;align-items:center;min-height:44px}`（手风琴标题整行可点）。
+- `giving.html` 内联样式：返回链接、四个语言键、三个手风琴标题。
+- `discover.html` 内联样式：紧凑态金色按钮 36 → 44。
+
+| 页面 | 修复前 | 修复后 |
+|---|---|---|
+| `giving.html` | 8 | **0** |
+| `help/index.html` | 13 | **4**（全部是段落里的行内链接） |
+| `discover.html` | 1 | **0** |
+| `login/` | 4 | **0** |
+| `register/` | 3 | **0** |
+| `forgot-password/` | 3 | **0** |
+
+`help` 剩下的四个是 `<p>` 里的行内链接（「注册页」「找回密码」「教师验证」「招生信息」），
+适用 WCAG 2.5.8 的 inline 例外 —— 把 44px 的盒子塞进句子会破坏段落行距。
+**修复后它们从 40px 的 inline-flex 回到了 19px 的真行内**，这是有意为之：
+上一版那个 40px 的中间态既不满足 44，又已经在撑句子的行距，两头不讨好。
+
+## 110. 回归 `scripts/test-pages-touch.mjs`（7/7 PASS）
+
+七个公开页面逐个扫描，断言「白名单之外没有过小的可达控件」。
+白名单只有两类：**句子中的行内链接**（按祖先里有 `p`/`li` 判定，不按 class 猜 ——
+class 会改名，语义不会）和首页公告条那两处（理由见 §90、§105）。
+
+**附带回归无回归**：`test-touch-targets` 20/20、`test-promo-tab` 20/20、
+`test-header-touch` 14/14、`test-contact-footer` 12/12、`test-overlay-touch` 21/21、
+`test-header-layout` 19/19、`test-announce-a11y` 22/22、`test-drawer-a11y` 14/14、
+`test-discover-back-link` 30/30、`check-cache-bust` 5/5、`test-portal-config-check` 44/44。

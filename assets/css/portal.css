@@ -25,11 +25,23 @@ body::before{content:"";position:fixed;inset:0;background:rgba(250,247,240,.86);
 .btn{display:inline-flex;align-items:center;justify-content:center;width:100%;height:48px;border:0;border-radius:11px;background:linear-gradient(135deg,#102f55,#173f70);color:#fff;font-size:15.5px;font-weight:700;cursor:pointer;margin-top:16px}
 .btn:disabled{opacity:.6;cursor:default}
 .btn.ghost{background:#fff;color:var(--navy);border:1.5px solid var(--line)}
-.link{color:var(--navy2);cursor:pointer;text-decoration:none;background:none;border:0;font:inherit;font-size:13px}
+/* 触控目标：登录/注册/找回密码/帮助页里的 .link 实测最小 24x17（「注册」「登录」）。
+   它们是这些页面之间互相跳转的唯一入口 —— 注册页上「登录」是唯一的出口。
+   inline-flex + min-height:44 撑高，字号与配色不变。
+   句子里的行内 .link（帮助页 <p> 中的「注册页」「找回密码」等）另见 .link-inline。 */
+.link{display:inline-flex;align-items:center;min-height:44px;color:var(--navy2);cursor:pointer;text-decoration:none;background:none;border:0;font:inherit;font-size:13px}
+/* 正文段落里的行内链接适用行内例外：撑高会把 44px 的盒子塞进句子，破坏段落行距。
+   这里显式还原成行内，是有意为之而不是漏改。特异性 (0,1,1) 压过基础 .link (0,1,0)，
+   而上面那条 (0,2,0) 的规则已经把 p/li 排除在外，两者不冲突。 */
+p .link,li .link{display:inline;min-height:0;padding:0}
 .link:hover{color:var(--gold)}
 .link:focus-visible{outline:2px solid var(--navy2);outline-offset:2px;border-radius:6px}
-/* 触控目标下限 40px（WCAG 2.5.8）。句子中的行内链接属该条款的 inline 例外，故排除 .notice 内的链接。 */
-:where(button.link, a.link):not(.notice .link){display:inline-flex;align-items:center;min-height:40px;padding:0 2px}
+/* 触控目标下限：由 40px 提到 44px，与站点其余页面这几轮统一到同一条判据
+   （WCAG 2.5.5 AAA 的 44x44；2.5.8 AA 的 24x24 是更低的那条底线）。
+   句子中的行内链接属该条款的 inline 例外 —— 例外写在这一条规则自己身上，
+   而不是另起一条去和它抢特异性：`:not()` 取其参数中最高的特异性，这条规则是 (0,2,0)，
+   任何后加的 `p .link` (0,1,1) 都抢不过它，只会变成一条看起来生效其实没生效的死规则。 */
+:where(button.link, a.link):not(.notice .link):not(p .link):not(li .link){display:inline-flex;align-items:center;min-height:44px;padding:0 2px}
 .msg{display:none;margin-top:14px;padding:11px 14px;border-radius:10px;font-size:13px;line-height:1.7}
 .msg.show{display:block}
 .msg.err{background:#fdecec;border:1px solid #f2b8b5;color:var(--err)}
@@ -42,7 +54,8 @@ body::before{content:"";position:fixed;inset:0;background:rgba(250,247,240,.86);
 .quick b{display:block;font-size:13.5px;color:var(--navy)}
 .quick span{font-size:11px;color:var(--muted)}
 .foot{margin-top:22px;text-align:center;font-size:12px;color:var(--muted)}
-.foot a{color:var(--navy2)}
+/* 页脚的「返回官网」「前往登录」实测 48x17：它们是这些页面回到站点的唯一出口。 */
+.foot a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 10px;color:var(--navy2)}
 .spaces{display:grid;gap:12px;margin-top:16px}
 .spaces a{display:flex;align-items:center;gap:14px;padding:16px 18px;border:1px solid var(--line);border-radius:12px;background:#fff;text-decoration:none;color:var(--ink)}
 .spaces a:hover{border-color:var(--gold)}
@@ -172,3 +185,7 @@ body::before{content:"";position:fixed;inset:0;background:rgba(250,247,240,.86);
   .field input,
   .fgrid input,.fgrid select,.fgrid textarea{font-size:16px}
 }
+
+/* 手风琴标题是整行可点的控件，实测 297x25 / 331x20。加高到 44 并让整行可点；
+   ::after 的加减号仍靠右浮动，视觉不变。 */
+details > summary{display:flex;align-items:center;min-height:44px}

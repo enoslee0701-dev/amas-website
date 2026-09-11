@@ -6,16 +6,18 @@
 <meta name="robots" content="noindex,nofollow">
 <title>与我们同工 | AMAS</title>
 <link rel="icon" href="assets/img/favicon.png">
-<script src="assets/js/supabase-config.js?v=202609111820"></script>
+<script src="assets/js/supabase-config.js?v=202609111831"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/main.css?v=202609111820">
+<link rel="stylesheet" href="assets/css/main.css?v=202609111831">
 <style>
   body{background:var(--bg,#f7f1e6)}
   .gv-wrap{max-width:760px;margin:0 auto;padding:34px 18px 70px}
   .gv-top{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:24px}
-  .gv-back{font-size:13.5px;color:#a5742f;border-bottom:1px solid rgba(183,138,53,.4);padding-bottom:1px}
+  /* 触控目标：「← 返回官网」实测 71x22，是本页回到站点的唯一出口 */
+  .gv-back{display:inline-flex;align-items:center;min-height:44px;font-size:13.5px;color:#a5742f;border-bottom:1px solid rgba(183,138,53,.4)}
   .gv-langs{display:flex;gap:6px}
-  .gv-langs button{border:1px solid var(--line);background:var(--surface,#fffdf9);color:var(--muted);font-size:12px;padding:4px 10px;border-radius:999px;cursor:pointer}
+  /* 四个语言键实测 38~58 x27，低于 44 */
+  .gv-langs button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;min-width:44px;border:1px solid var(--line);background:var(--surface,#fffdf9);color:var(--muted);font-size:12px;padding:0 12px;border-radius:999px;cursor:pointer}
   .gv-langs button.active{background:#12345f;color:#fff;border-color:#12345f}
   .gv-head{text-align:center;margin-bottom:22px}
   .gv-head img{width:76px;height:76px;border-radius:50%}
@@ -54,7 +56,8 @@
   .giving-status{font-size:13px;color:var(--olive-dark)}
   .policies{margin-top:30px}
   .policies details{border-bottom:1px solid var(--line);padding:12px 4px}
-  .policies summary{cursor:pointer;font-size:13.5px;font-weight:600;color:var(--ink);list-style:none}
+  /* 三个手风琴标题实测 331x20；整行可点，加高到 44，加减号仍靠右 */
+  .policies summary{display:flex;align-items:center;min-height:44px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--ink);list-style:none}
   .policies summary::-webkit-details-marker{display:none}
   .policies summary::after{content:"＋";float:right;color:#8a6a1f}
   .policies details[open] summary::after{content:"−"}
