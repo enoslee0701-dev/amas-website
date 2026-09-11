@@ -267,6 +267,51 @@ try {
     "D8 ✕ 退出测验：回到首屏，焦点交回「开始快速探索」",
     `视图=${exited.view} 焦点在开始按钮上=${exited.onStart} 焦点=${exited.who}`);
 
+  // ── 原型详情视图（#detail）──────────────────────────────────────────
+  // D9 首屏 12 个原型必须能用键盘逐个到达并激活。
+  // 改之前它们是带 onclick 的 <img>：不可聚焦、回车无反应。键盘 Tab 只能停在
+  // .strip 这个可横向滚动的容器上（Chrome 会让可滚动容器可聚焦），
+  // 于是「焦点进得去」和「原型打得开」看起来像一回事，其实差着一整块内容。
+  await cdp.send("Page.navigate", { url: `${BASE}/discover.html` });
+  await sleep(2400);
+  const stripKind = await cdp.ev(`(() => {
+    const kids = [...document.getElementById('strip').children];
+    return { n: kids.length, tag: kids[0] ? kids[0].tagName : '(空)',
+             name: kids[0] ? (kids[0].getAttribute('aria-label') || '') : '' };
+  })()`);
+  const toStripItem = await tabTo(cdp,
+    `(() => { const el = document.activeElement;
+       return el.tagName === 'BUTTON' && !!el.closest('#strip'); })()`, 20);
+  check(stripKind.n === 12 && stripKind.tag === "BUTTON" && stripKind.name.length > 0 && toStripItem > 0,
+    "D9 首屏原型条的 12 项是真按钮：键盘可逐个聚焦，且有可读的无障碍名称",
+    `共 ${stripKind.n} 项，元素=${stripKind.tag}，首项名称="${stripKind.name}"，Tab ${toStripItem} 次到达其中一项`);
+
+  // D10 键盘回车打开详情，焦点进入详情内容
+  await cdp.key("Enter", "Enter", 13);
+  await sleep(500);
+  const opened = await cdp.ev(`({ view: ${VIEW}, inDetail: ${FOCUS_IN("#detail")}, who: ${WHO},
+    title: (document.getElementById('dTitle').textContent || '').trim() })`);
+  check(opened.view === "detail" && opened.inDetail && opened.title.length > 0,
+    "D10 键盘回车打开原型详情，焦点进入详情内容",
+    `视图=${opened.view} 焦点在详情内=${opened.inDetail} 标题="${opened.title}" 焦点=${opened.who}`);
+
+  // D11 详情内切换原型：标题更新，焦点仍在详情里
+  const t0 = await cdp.ev(`document.getElementById('dTitle').textContent`);
+  const switched = await cdp.clickReal("#dGrid button:nth-child(3)");
+  const afterSwitch = await cdp.ev(`({ title: document.getElementById('dTitle').textContent,
+    inDetail: ${FOCUS_IN("#detail")}, who: ${WHO} })`);
+  check(switched && afterSwitch.title !== t0 && afterSwitch.inDetail,
+    "D11 详情内点缩略图切换原型：标题更新，焦点仍在详情里",
+    `标题已变=${afterSwitch.title !== t0} 焦点在详情内=${afterSwitch.inDetail} 焦点=${afterSwitch.who}`);
+
+  // D12 从详情返回首屏：焦点交回首屏的主操作
+  const backHome = await cdp.clickReal("#detail button[onclick='closeDetail()']");
+  const home = await cdp.ev(`({ view: ${VIEW},
+    onStart: document.activeElement === document.querySelector('#landing .gold-btn'), who: ${WHO} })`);
+  check(backHome && home.view === "landing" && home.onStart,
+    "D12 从详情返回：回到来处（首屏），焦点交回「开始快速探索」",
+    `视图=${home.view} 焦点在开始按钮上=${home.onStart} 焦点=${home.who}`);
+
   // D0 负向控制：把本轮的焦点接管换成空操作，四处焦点必须重新掉回 body。
   // 直接改站点自己的函数，而不是换一套宽松断言 —— 不会变红的负向控制等于没有控制。
   await cdp.send("Page.navigate", { url: `${BASE}/discover.html` });
@@ -283,6 +328,25 @@ try {
   check(h2 > 0 && toOpt2 > 0 && !revStart.inQuiz && !revAnswer.inQuiz,
     "D0 负向控制：把焦点接管换成空操作后，开始与答题两处焦点重新掉回 body",
     `开始后焦点=${revStart.who}；答一题后焦点=${revAnswer.who}`);
+
+  // D0b 负向控制之二：把原型条换回带 onclick 的 <img>，键盘必须再也到不了任何一项。
+  // 直接还原站点原来的写法，而不是换一套宽松断言。
+  await cdp.send("Page.navigate", { url: `${BASE}/discover.html` });
+  await sleep(2400);
+  await cdp.ev(`(() => {
+    const strip = document.getElementById('strip');
+    strip.innerHTML = '';
+    ARCH.forEach(function(a){ var im = document.createElement('img');
+      im.src = img(a.k); im.alt = a.l; im.onclick = function(){ openDetail(a.k); };
+      strip.appendChild(im); });
+  })()`);
+  const revStrip = await tabTo(cdp,
+    `(() => { const el = document.activeElement;
+       return el.tagName === 'BUTTON' && !!el.closest('#strip'); })()`, 20);
+  check(revStrip === -1,
+    "D0b 负向控制：原型条换回 <img> 后，键盘 20 次 Tab 内到不了任何一项",
+    revStrip === -1 ? "20 次 Tab 内没有任何原型项获得焦点（与改前实测一致）"
+                    : `不应该到达，却在第 ${revStrip} 次 Tab 到了`);
 
   cdp.ws.close();
 } finally {
