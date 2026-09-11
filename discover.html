@@ -118,6 +118,10 @@
   .back-link { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 22px; border-radius: 999px; border: 1px solid #E2E5EB; background: #fff; color: #475467; font-size: 13px; font-weight: 700; text-decoration: none; }
   .back-link:hover { background: #F8FAFC; color: #22345E; border-color: #D3D8E0; }
   .back-link:focus-visible { outline: 3px solid rgba(201,154,69,.55); outline-offset: 2px; }
+  /* 题卡与结果页头部只接受程序化聚焦（换题、出结果时），不进 Tab 顺序。
+     给这种不可编辑的容器画焦点框会让人以为它可输入；真正的可操作控件
+     （选项按钮、返航链接）各自有自己的焦点圈，键盘可见性不受影响。 */
+  #qcard:focus, #rhead:focus { outline: none; }
   .back-link .ar { font-size: 15px; line-height: 1; }
   /* 结果页的固定底栏会盖住出口，抬高下边距让开（纯 CSS，跟随 #stickyCta 的 hidden 类） */
   .sticky-cta:not(.hidden) ~ .site-exit { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
@@ -245,11 +249,16 @@
     <div class="topbar">
       <button class="x" onclick="exitQuiz()" aria-label="退出">✕</button>
       <span class="t">信仰成长快速探索<small>第 1 阶段 · 信仰基础与实践 · 约 3 分钟</small></span>
-      <div class="bar"><i id="prog"></i></div>
+      <!-- 进度只有视觉宽度是不够的：读屏访客既看不到宽度，页面上也没有「第几题」的文字。
+           给它 progressbar 语义，render() 里同步 aria-valuenow。 -->
+      <div class="bar" role="progressbar" aria-label="答题进度" aria-valuemin="0"><i id="prog"></i></div>
     </div>
     <div class="qbody">
       <div class="notice"><div class="ic">🛡</div><p>本评估依据 <b>AMAS 神学与门训框架</b>设计，帮助你认识当前的信仰基础、成长状态与装备需要。结果用于成长与装备参考，不作为个人价值、属灵程度或教会任职资格的判断。</p></div>
-      <div class="card qcard fade" id="qcard">
+      <!-- tabindex="-1"：每渲染一题就把焦点带到这里。它不进 Tab 顺序，只接受程序化聚焦。
+           不这么做的话，选项按钮在 render() 里被整批重建，按回车答题的那一刻
+           承载焦点的那个按钮当场被销毁，焦点掉回 body —— 十道题就是十次。 -->
+      <div class="card qcard fade" id="qcard" tabindex="-1">
         <span class="chip" id="qnum"></span>
         <p class="qtext" id="qtext"></p>
         <div id="opts"></div>
@@ -261,7 +270,7 @@
 
   <!-- ============ 结果页（Level 0：初步状态） ============ -->
   <div id="result" class="hidden fade">
-    <div class="rhead">
+    <div class="rhead" id="rhead" tabindex="-1">
       <span style="font-size:9.5px;font-weight:800;letter-spacing:2px;color:rgba(232,201,140,.9)">QUICK EXPLORATION</span><span class="pre">初步状态</span>
       <h2>你的初步状态</h2>
       <p class="decl" id="rDecl"></p>
@@ -409,8 +418,20 @@ if (!APP_LINK.url) {
     });
   });
 }
-function startQuiz(){ answers = []; render(); show('quiz'); }
-function exitQuiz(){ show('landing'); }
+function startQuiz(){
+  answers = [];
+  // 顺序不能反：render() 里要把焦点放进题卡，而 show() 之前 #quiz 还是 hidden，
+  // 对 display:none 的元素调 focus() 会静默失败 —— 实测就是这样，
+  // 「开始快速探索」按下回车后焦点掉在 body 上，后面每一题才正常。
+  show('quiz');
+  render();
+}
+function exitQuiz(){
+  show('landing');
+  // 退出后把焦点交回「开始快速探索」—— 那是用户进来的地方，也是首屏唯一的主操作。
+  var start = document.querySelector('#landing .gold-btn');
+  focusQuietly(start);
+}
 function restart(){ startQuiz(); }
 
 (function(){
@@ -427,11 +448,23 @@ function render(){
   document.getElementById('qnum').textContent = AREAS[q.a];
   document.getElementById('qtext').textContent = q.t;
   document.getElementById('prog').style.width = Math.min(96, (i/QS.length)*100) + '%';
+  var bar = document.querySelector('#quiz .bar');
+  if (bar) { bar.setAttribute('aria-valuemax', QS.length);
+             bar.setAttribute('aria-valuenow', i);
+             bar.setAttribute('aria-valuetext', '第 ' + (i + 1) + ' 题，共 ' + QS.length + ' 题'); }
   var box = document.getElementById('opts'); box.innerHTML = '';
   q.o.forEach(function(opt, oi){ var b = document.createElement('button'); b.className = 'opt'; b.textContent = opt[0]; b.onclick = function(){ answers.push(oi); render(); }; box.appendChild(b); });
   document.getElementById('undoBtn').disabled = answers.length === 0;
   var card = document.getElementById('qcard'); card.classList.remove('fade'); void card.offsetWidth; card.classList.add('fade');
+  // 焦点跟着题目走。选项按钮每题都被整批重建，按回车答题的那一刻承载焦点的按钮
+  // 当场被销毁，焦点掉回 body —— 键盘访客每答一题都要重新找位置，读屏访客则
+  // 完全收不到「换题了」的信号（题干只是文本被替换，没有任何活动区）。
+  // 落在题卡而不是第一个选项：读屏访客先听到题号与题干，再 Tab 进选项；
+  // 也避免按住回车时一路把后面的题「连点」掉。
+  focusQuietly(card);
 }
+// 只接受程序化聚焦的容器统一走这里，顺便把「元素还在不在文档里」兜住
+function focusQuietly(el){ if (el && document.contains(el)) { try { el.focus({ preventScroll: false }); } catch (e) {} } }
 function undo(){ if (answers.length) { answers.pop(); render(); } }
 
 var LEVEL = function(v){ return v >= 80 ? '稳定' : v >= 60 ? '较稳定' : v >= 40 ? '发展中' : '需要建立'; };
@@ -457,6 +490,9 @@ function finish(){
   document.getElementById('adviceT').textContent = '下一步建议：' + ADVICE[weakest.k][0];
   document.getElementById('advice').textContent = ADVICE[weakest.k][1];
   show('result');
+  // 结果页同理：换视图不移焦点的话，答完最后一题焦点就掉在 body 上，
+  // 读屏访客不知道已经出结果了。落在结论标题处，从那里往下读。
+  focusQuietly(document.getElementById('rhead'));
 }
 
 // 倾向说明页

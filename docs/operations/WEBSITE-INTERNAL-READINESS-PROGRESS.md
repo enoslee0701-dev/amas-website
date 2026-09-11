@@ -2459,3 +2459,83 @@ A14 直接改站点自己的函数而不是换一套宽松断言 —— 不会�
 另记一条**死 UI**：资源中心的搜索框 `.resource-search-wrap` 在标记里带 `hidden`，
 全站没有任何代码解除它 —— 搜索输入框、`#resourceCount` 活动区与那段过滤逻辑
 当前对访客不可见。只有 6 行资源，作者大概是有意关掉的；本轮不动，记录在此。
+
+---
+
+# 第二十轮：discover 测验流程（答题 → 结果 → 返航）
+
+## 122. 全程用真实输入复现
+
+这份探测与回归里所有点击都是 `Input.dispatchMouseEvent`（先滚进视口，再在元素中心
+按下松开），所有按键都是 `Input.dispatchKeyEvent`，**不用 `element.click()`**。
+上一轮在这件事上吃过亏：程序化 click 不让按钮获得焦点，量到的是探针自己造出来的状态。
+焦点行为只能用真实输入去验。
+
+## 123. 四处焦点全掉回 body
+
+```
+回车「开始快速探索」  -> 焦点 = (body)
+键盘答一题            -> 焦点 = (body)
+鼠标点「上一题」      -> 焦点 = (body)
+答完出结果            -> 焦点 = (body)
+```
+
+根因在 `render()`：每渲染一题都 `box.innerHTML = ''` 再整批重建选项按钮。
+**按回车作答的那一刻，承载焦点的那个按钮当场被销毁**，焦点只能回落到 `body`。
+十道题就是十次。读屏访客更糟 —— 题干只是文本被替换，页面上没有任何活动区，
+换题这件事完全没有信号。
+
+「开始」那一处的成因还不一样：`startQuiz()` 是 `render(); show('quiz');`，
+`render()` 想聚焦时 `#quiz` 还是 `hidden`，**对 `display:none` 的元素调 `focus()`
+会静默失败**。所以修法是把顺序换成 `show('quiz'); render();` —— 这一处不是漏写，
+是写了但没生效，光读代码看不出来。
+
+## 124. 进度只有视觉宽度
+
+`.bar` 里只有一个按百分比设宽的 `<i>`，没有任何 ARIA。页面上也没有「第几题 / 共几题」
+的文字 —— `#qnum` 显示的是领域名（如「圣经熟悉度」）。读屏访客拿不到任何进度信息。
+
+## 125. 修法
+
+```html
+<div class="bar" role="progressbar" aria-label="答题进度" aria-valuemin="0">…
+<div class="card qcard fade" id="qcard" tabindex="-1">…
+<div class="rhead" id="rhead" tabindex="-1">…
+#qcard:focus, #rhead:focus { outline: none; }
+```
+
+```js
+function focusQuietly(el){ if (el && document.contains(el)) { try { el.focus(); } catch (e) {} } }
+render()      同步 aria-valuenow / aria-valuetext（「第 N 题，共 10 题」），末尾 focusQuietly(#qcard)
+finish()      show('result') 之后 focusQuietly(#rhead)
+exitQuiz()    focusQuietly(#landing .gold-btn)   // 交回用户进来的那个入口
+startQuiz()   show('quiz') 提前到 render() 之前
+```
+
+焦点落在**题卡**而不是第一个选项：读屏访客先听到题号与题干再 Tab 进选项，
+也避免按住回车时一路把后面的题「连点」掉。结果页同理落在结论标题处。
+两个容器都 `outline:none` —— 它们不可编辑，画焦点框会让人以为可以输入；
+真正的可操作控件（选项按钮、返航链接）各有自己的焦点圈。
+
+## 126. 回归 `scripts/test-discover-flow.mjs`（9/9 PASS）
+
+| 断言 | 内容 |
+|---|---|
+| D1 | 键盘 Tab 到「开始快速探索」回车，焦点进入题卡 |
+| D2 | 键盘回车作答后题目更新，焦点没掉回 body |
+| D3 | 进度条 `role=progressbar`，带当前题号与总题数（实测 `第 2 题，共 10 题`） |
+| D4 | 鼠标点「上一题」退回，焦点跟着回题卡 |
+| D5 | 答完出结果：焦点落在结果内容上，五项指标与建议都在 |
+| D6 | 返航出口键盘可达、完整在视口内、不被固定底栏遮住、指向 `index.html` |
+| D7 | 「重新探索一次」回到第 1 题，焦点进题卡，`aria-valuenow` 归零 |
+| D8 | ✕ 退出回首屏，焦点交回「开始快速探索」 |
+| D0 | **负向控制**：把 `focusQuietly` 换成空操作，开始与答题两处焦点重新掉回 body |
+
+D1–D8 判的是「焦点落在刚换上来的那块内容里」而不是某个具体元素 ——
+将来调整结构，只要焦点仍进了新视图，断言就该绿。
+
+**附带回归无回归**：`test-discover-back-link` 30/30（上一轮的返航测试未受影响）、
+`test-application-flow` 15/15、`test-touch-targets` 20/20、`test-promo-tab` 20/20、
+`test-header-touch` 14/14、`test-contact-footer` 12/12、`test-overlay-touch` 21/21、
+`test-pages-touch` 7/7、`test-header-layout` 19/19、`test-announce-a11y` 22/22、
+`test-drawer-a11y` 14/14、`check-cache-bust` 5/5、`test-portal-config-check` 44/44。
