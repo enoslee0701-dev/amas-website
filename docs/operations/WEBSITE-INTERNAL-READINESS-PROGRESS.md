@@ -2829,3 +2829,43 @@ App 仓 `AMAS-Seminary/public/discover.html` 是同源副本。本分支对 `dis
 
 **验收**：App 侧同步后可直接跑本仓的 `scripts/test-discover-flow.mjs`（把 ROOT 指向 App 的
 `public/`），14/14 应全绿，其中 D0/D0b 两条负向控制能证明同步是否真的落到位。
+
+## §145 门户降级态：把「没开通」和「组件加载失败」分开说
+
+`CONFIGURED = !!(SUPA.url && SUPA.anonKey && window.supabase)` 把两个原因不同、
+用户该做的事相反的状态压成了一个布尔，于是两种都显示「正在部署中（等待数据库环境开通）」。
+
+配置齐全而 supabase-js 的 CDN 脚本没拉下来时，那句话是假的，并且把唯一有效的自救动作
+（刷新／换网络）藏了起来。AMAS 的学员在泰国与中国大陆，jsdelivr 打不开是常态。
+
+实测（CDP 拦 jsdelivr + 注入齐全配置，`Network.setCacheDisabled`）：
+portal/student/、portal/admin/、login/、register/ 四处全都声称「正在部署中」。
+
+改：`CONFIG_STATE` 三态（ready / missing / sdk-unavailable），占位符判据与
+`check-portal-config.py` 的 `is_placeholder` 对齐；`renderDisabled(state)` 分支，
+`sdk-unavailable` 给「重新载入」，`missing` 不给（给了是误导）。顺带修 `document.title`
+仍写着「学员中心 | AMAS」、以及 body 整段替换后焦点掉回 body。
+
+`.notice-act` 不能复用 `.notice .link` —— 后者被 44px 规则**特意**排除（那是句中行内链接），
+而重新载入是独立成行的按钮。
+
+### 证伪掉的三条，没写成缺陷
+- 估算「返回官网」约 37px，**实测 100x45 达标**。按估算改就是制造缺陷。
+- 猜「替换前会闪现原骨架」，110ms 采样显示替换前 body 一直是空的。
+- C 段第一次测出跳 `/login/`：**上一段注入的假 SDK 被磁盘缓存命中**，C 段实际重跑了 B 段。
+  又一次「红的是仪器不是页面」。
+
+`scripts/test-portal-degraded.mjs` 110/110，含 5 条负向控制。全程真实按键。
+**离线全绿不代表 Auth 就绪** —— fixture 无任何真实凭据，无外部请求。
+
+## §146 累计整合清单
+
+26 个产品文件里 15 个是 cache-bust hook 的时间戳噪声，真正要审的是 12 个，分四组：
+A 公开站样式与行为（main.css / main.js / index.html）、B 两个独立访客页（discover / giving）、
+C 门户降级态七个文件（**必须同进同出**：五个页面读 `A.CONFIG_STATE`，只有 auth.js 提供；
+重试按钮读 `.notice-act`，只有 portal.css 提供）、D 测试与文档。
+
+`touch-probe.mjs` 是 A/B/C 共用量具，必须先于任何一组合入。
+
+上线阻塞全部是外部的，核心是 Supabase 项目未开通；本地无已知的、有实测证据的缺口。
+详见 work/website-next-report.md §45–§46。
