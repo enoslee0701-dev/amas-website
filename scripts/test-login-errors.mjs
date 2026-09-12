@@ -372,6 +372,130 @@ try {
   await aliasCase({ fail: true }, /网络连不上/, "L9f 连接失败 → 网络");
   aliasPlan = null;
 
+  // ════════════ L11 next 回跳只许留在本站 ════════════
+  console.log("\n=== L11 ?next= 的同源收口 ===");
+  /* 原判据是 `next.startsWith("/")`，而 `//evil.example` 也以 "/" 开头 ——
+     那是协议相对 URL，浏览器会当成 https://evil.example 跳出去。
+     一条域名看起来完全是学院的链接就能把刚登录完的用户送到别人站上。
+     这里同时验两件事：站外的一律不跟，站内的正常跟。 */
+  const loginWithNext = async (rawNext, roles) => {
+    await cdp.send("Page.addScriptToEvaluateOnNewDocument", {
+      source: "window.__SCEN = " + JSON.stringify({ login: { mode: "ok" },
+        rpc: { my_roles: { data: roles || [{ role: "student" }] } } }) + "; window.__calls = [];",
+    });
+    navLog.length = 0;
+    await cdp.send("Page.navigate", { url: `${BASE}/login/?next=` + encodeURIComponent(rawNext) });
+    await sleep(1700);
+    await login("a@example.invalid");
+    await sleep(1100);
+    return navLog.filter((u) => !/\/login\/?(\?|$)/.test(u));
+  };
+
+  const offsite = [
+    ["//evil.example/steal", "协议相对 URL"],
+    ["https://evil.example/steal", "绝对 URL"],
+    ["\\\\evil.example/steal", "反斜杠开头"],
+    ["/\\evil.example/steal", "斜杠加反斜杠"],
+    ["//evil.example\\@127.0.0.1/x", "夹带 @ 的混淆写法"],
+  ];
+  for (const [raw, label] of offsite) {
+    const nav = await loginWithNext(raw);
+    /* 判据要的是「**没离开本站**」，而不是「URL 里没出现 evil.example」。
+       反向对照里旧代码确实跳出去了，但 DNS 解析不了，浏览器停在
+       chrome-error://chromewebdata/ —— 那串里没有 evil.example，
+       只查关键字的话这条会假绿。所以改成：每一次导航都必须仍在 BASE 下。 */
+    const stayed = nav.length > 0 && nav.every((u) => u.indexOf(BASE) === 0);
+    ok("L11 站外 next 不跟随，全程没离开本站 —— " + label, stayed, JSON.stringify(nav));
+    ok("L11 站外 next 时仍按角色回自己的首页 —— " + label,
+       nav.some((u) => /portal\/student\//.test(u)), JSON.stringify(nav));
+  }
+
+  const navIn = await loginWithNext("/portal/student/courses/");
+  ok("L11 站内 next 正常跟随（收口没有把正常情况一起挡掉）",
+     navIn.some((u) => /portal\/student\/courses\//.test(u)), JSON.stringify(navIn));
+
+  /* 注意别把「解析失败」和「解析成站内的一个 404 路径」混为一谈。
+     `new URL(raw, origin)` 对相对串几乎不会抛错，"::::not a url::::"
+     会老老实实变成本站内的一个路径 —— 那不是漏洞，只是会落到本站 404。
+     真正要守住的性质是**没有离开本站**。 */
+  const navBad = await loginWithNext("::::not a url::::");
+  ok("L11 乱码 next 仍留在本站（可能是站内 404，但绝不出站）",
+     navBad.length > 0 && navBad.every((u) => u.indexOf(BASE) === 0), JSON.stringify(navBad));
+
+  /* 共享判据本身（A.safePath）的直接验证。
+     先回登录页 —— 上一条用例把浏览器留在了站内那个 404 路径上，
+     那页不加载 auth.js，window.AmasAuth 是 undefined。
+
+     ★ 待测串**不写进 eval 的模板字符串里**：模板字面量自己会处理一次反斜杠转义，
+       上一版就是这么把 `\\` 吃成单个反斜杠、于是测了个跟本意不同的输入。
+       改为在 Node 侧 JSON 编码后整体注入，只有 JSON 这一层转义，不会再串味。 */
+  await openLogin({ login: { mode: "ok" } });
+  /* 探针串用 String.fromCharCode(92) 拼出反斜杠，文件里一个反斜杠字面量都不留。
+     前两版都栽在这上面：Python 写文件、JS 字面量、模板字符串，一路每层都吃一次转义，
+     结果测的输入跟我以为的不是同一个东西。数反斜杠靠不住，索性不写反斜杠。
+
+     WHATWG URL 的实际归一（已单独核对）：
+       "\x"    → 同源 /x        （单个反斜杠归一成路径分隔符）
+       "\\x"   → 出站          （两个反斜杠等同 //，后面成了主机名）
+       "/\x"   → 出站          （斜杠加反斜杠同样等同 //）
+       "//x"   → 出站 */
+  const BS = String.fromCharCode(92);
+  const PROBES = {
+    协议相对: "//evil.example/x",
+    绝对外站: "https://evil.example/x",
+    单反斜杠: BS + "evil.example/x",
+    双反斜杠: BS + BS + "evil.example/x",
+    斜杠加反斜杠: "/" + BS + "evil.example/x",
+    夹带at: "//evil.example" + BS + "@127.0.0.1/y",
+    站内: "/portal/student/",
+    带查询和锚点: "/portal/?a=1#b",
+    空串: "",
+    解析不了: "http://",
+  };
+  // 先自证探针确实是我以为的那几个串，否则下面全是空转
+  ok("L11 探针自证：双反斜杠确实含两个反斜杠",
+     (PROBES.双反斜杠.split(BS).length - 1) === 2, JSON.stringify(PROBES.双反斜杠));
+  ok("L11 探针自证：单反斜杠确实只含一个",
+     (PROBES.单反斜杠.split(BS).length - 1) === 1, JSON.stringify(PROBES.单反斜杠));
+
+  const sp = await cdp.ev(`(() => {
+    const A = window.AmasAuth;
+    const probes = ${JSON.stringify(PROBES)};
+    const out = {};
+    for (const k of Object.keys(probes)) {
+      const v = A.safePath(probes[k]);
+      let stays = true;
+      if (v !== null) { try { stays = new URL(v, location.origin).origin === location.origin; }
+                        catch (e) { stays = false; } }
+      out[k] = { v: v, stays: stays };
+    }
+    return out;
+  })()`);
+
+  /* 要守住的性质只有一条：**返回值绝不会把人送出本站**。
+     返回 null（拒绝跟随）和返回一个同源路径，都满足这条。 */
+  for (const k of Object.keys(PROBES)) {
+    ok("L11 safePath 结果绝不出站 —— " + k, sp[k] && sp[k].stays === true, JSON.stringify(sp[k]));
+  }
+  ok("L11 safePath：协议相对 URL 判 null", sp["协议相对"].v === null, JSON.stringify(sp["协议相对"]));
+  ok("L11 safePath：绝对外站 URL 判 null", sp["绝对外站"].v === null, JSON.stringify(sp["绝对外站"]));
+  ok("L11 safePath：双反斜杠（会被解析成外站授权部分）判 null",
+     sp["双反斜杠"].v === null, JSON.stringify(sp["双反斜杠"]));
+  ok("L11 safePath：斜杠加反斜杠判 null",
+     sp["斜杠加反斜杠"].v === null, JSON.stringify(sp["斜杠加反斜杠"]));
+  ok("L11 safePath：夹带 @ 的混淆写法判 null", sp["夹带at"].v === null, JSON.stringify(sp["夹带at"]));
+  /* 单反斜杠不同：URL 解析器把它归一成本站内的一个路径（/evil.example/x），
+     没有离开本站，只会落到本站 404。这是**安全的**，不该被判 null —— 
+     写成 null 反而是把「同源的怪路径」错当成「出站」。 */
+  ok("L11 safePath：单反斜杠归一为站内路径，不判 null（它本来就没出站）",
+     sp["单反斜杠"].v === "/evil.example/x", JSON.stringify(sp["单反斜杠"]));
+  ok("L11 safePath：站内路径原样保留", sp["站内"].v === "/portal/student/", JSON.stringify(sp["站内"]));
+  ok("L11 safePath：保留 query 与 hash", sp["带查询和锚点"].v === "/portal/?a=1#b",
+     JSON.stringify(sp["带查询和锚点"]));
+  ok("L11 safePath：空值判 null", sp["空串"].v === null, JSON.stringify(sp["空串"]));
+  ok("L11 safePath：真正解析不了的串判 null（不抛错穿出去）",
+     sp["解析不了"].v === null, JSON.stringify(sp["解析不了"]));
+
   // ════════════ L10 外发 ════════════
   console.log("\n=== L10 外发 ===");
   ok("L10 全程没有一个请求到达真实 supabase 域名（没有真实登录）",

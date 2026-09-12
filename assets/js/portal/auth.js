@@ -78,6 +78,26 @@
     return ROOT + ROLE_HOME[distinct[0]];
   }
 
+  /** 回跳参数（?next=）只接受**本站内**的路径，否则一律返回 null。
+
+      登录页与 MFA 页原先的判据都是 `next.startsWith("/")`。
+      但 `//evil.example` 也以 "/" 开头 —— 那是协议相对 URL，
+      浏览器会当成 `https://evil.example` 跳出去。
+      于是一条域名看起来完全是学院的链接
+      （`…/login/?next=//evil.example`），能把刚登录完的用户送到别人站上；
+      MFA 页更糟，那是刚过完两步验证的已登录用户。
+
+      判据交给 URL 解析器比一次 origin，而不是手写前缀判断：
+      反斜杠、百分号编码、大小写、多余的斜杠这些花样都由解析器统一处理，
+      不靠我逐个去猜。 */
+  function safePath(raw) {
+    if (!raw) return null;
+    let u;
+    try { u = new URL(String(raw), location.origin); } catch (e) { return null; }
+    if (u.origin !== location.origin) return null;
+    return u.pathname + u.search + u.hash;
+  }
+
   /** 登录失败的分类。判据与注册共用 classifyAuthError（同一份 SDK 错误契约），
       但结论不同：**登录失败没有副作用** —— 没建账号、没发信、没写任何东西，
       所以「结果不明」不必锁住按钮，用户可以直接再试。
@@ -370,7 +390,7 @@
   window.AmasAuth = {
     CONFIGURED, CONFIG_STATE, ROOT, client,
     getSession, getRoles, getProfile, homeForRoles,
-    signIn, signUp, resetPassword, signOut, requireRole, renderDisabled,
+    signIn, signUp, resetPassword, signOut, requireRole, renderDisabled, safePath,
     getAal, requireRoleAal2, callFn,
   };
 })();
