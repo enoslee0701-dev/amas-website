@@ -26,21 +26,42 @@ const MIME = { ".html":"text/html; charset=utf-8", ".js":"text/javascript; chars
   ".css":"text/css; charset=utf-8", ".png":"image/png", ".webp":"image/webp",
   ".svg":"image/svg+xml", ".ico":"image/x-icon", ".woff2":"font/woff2" };
 
-/* 本地旁路文件由测试自己造，跑完删掉 —— 不依赖仓库里存在这个文件，
-   也不会把它留在工作树里。内容是构造值，不是凭据。 */
-const LOCAL_CFG = path.join(ROOT, "assets", "js", "supabase-config.local.js");
+/* ── 为什么要镜像站点，而不是直接在工作树里造夹具 ──────────────────────
+   本测试要反复创建/删除 assets/js/supabase-config.local.js。
+   但工作树里的那个文件可能是**真实的联调配置**（已 gitignore，git 救不回来）。
+   早先的写法是「先备份、finally 还原」—— 只要进程被杀（超时、Ctrl-C、
+   会话中断），finally 就不会执行，真实配置永久丢失。
+
+   所以改为：把站点**镜像**到一次性临时目录，夹具只在镜像里造。
+   工作树里那个文件从头到尾**一次都不碰** —— 没有可丢失的东西，
+   也就不需要靠 finally 兜底。测试末尾会断言它确实没被动过。 */
+const REAL_CFG = path.join(ROOT, "assets", "js", "supabase-config.local.js");
+const realCfgBefore = fs.existsSync(REAL_CFG)
+  ? { exists: true, size: fs.statSync(REAL_CFG).size, mtime: fs.statSync(REAL_CFG).mtimeMs }
+  : { exists: false };
+
+// 镜像：只复制站点需要的那几个目录，够跑门户页就行
+const MIRROR = fs.mkdtempSync(path.join(os.tmpdir(), "amas-mirror-"));
+/* 镜像要包含 login/：配置生效后门户会 requireRole -> 没有 session -> 跳登录页。
+   只镜像 assets+portal 的话登录页 404，页面整个白掉，window.AmasAuth 根本没定义 ——
+   而断言「state !== missing」会因为拿到「(未加载)」而**假绿**。这一条踩过。 */
+for (const rel of ["assets", "portal", "login"]) {
+  fs.cpSync(path.join(ROOT, rel), path.join(MIRROR, rel), { recursive: true });
+}
+// 镜像里若跟着复制来了真实配置，立刻删掉 —— 夹具要从「没有」这个状态起步
+const LOCAL_CFG = path.join(MIRROR, "assets", "js", "supabase-config.local.js");
+if (fs.existsSync(LOCAL_CFG)) fs.unlinkSync(LOCAL_CFG);
+
 const LOCAL_BODY =
   'window.SUPA = { url: "https://abcdefghijklmnopqrst.supabase.co",' +
   ' anonKey: "local-test-not-a-credential" };\n';
-let hadLocalBefore = fs.existsSync(LOCAL_CFG);
-let savedLocal = hadLocalBefore ? fs.readFileSync(LOCAL_CFG) : null;
 
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split("?")[0]);
   if (p.endsWith("/")) p += "index.html";
   if (p.indexOf("..") > -1) { res.writeHead(400); res.end("no"); return; }
-  const abs = path.join(ROOT, p);
-  if (!abs.startsWith(ROOT) || !fs.existsSync(abs) || fs.statSync(abs).isDirectory()) {
+  const abs = path.join(MIRROR, p);
+  if (!abs.startsWith(MIRROR) || !fs.existsSync(abs) || fs.statSync(abs).isDirectory()) {
     res.writeHead(404); res.end("nf"); return;
   }
   res.writeHead(200, { "Content-Type": MIME[path.extname(abs).toLowerCase()] || "application/octet-stream",
@@ -142,7 +163,7 @@ try {
   ok("B1 旁路的 url 覆盖了空配置", /abcdefghijklmnopqrst\.supabase\.co/.test(b.url), JSON.stringify(b));
   ok("B2 anonKey 也被覆盖", b.key === "(有值)");
   ok("B3 标记来源为 local-override", b.source === "local-override", b.source);
-  ok("B4 门户不再是 missing", b.state !== "missing", JSON.stringify(b));
+  ok("B4 门户判为 ready（不是「未加载」那种假绿）", b.state === "ready", JSON.stringify(b));
 
   // ════ C 非回环主机：旁路必须完全不加载 ════
   // 这是整套里最要紧的一条 —— 它证明「就算旁路文件被误提交，线上也不会生效」。
@@ -173,12 +194,21 @@ try {
   fail++; console.log("  FAIL  套件异常: " + e.message);
 } finally {
   chrome.kill(); server.close();
-  // 还原工作树：测试造的文件删掉；原本就有的还回去
-  try { if (fs.existsSync(LOCAL_CFG)) fs.unlinkSync(LOCAL_CFG); } catch {}
-  try { if (hadLocalBefore && savedLocal) fs.writeFileSync(LOCAL_CFG, savedLocal); } catch {}
+  /* 不需要「还原」—— 全程没碰过工作树里的真实配置。
+     但仍要**证明**这一点，否则「没碰」只是我的说法。 */
+  const after = fs.existsSync(REAL_CFG)
+    ? { exists: true, size: fs.statSync(REAL_CFG).size, mtime: fs.statSync(REAL_CFG).mtimeMs }
+    : { exists: false };
+  const untouched = after.exists === realCfgBefore.exists &&
+                    after.size === realCfgBefore.size &&
+                    after.mtime === realCfgBefore.mtime;
+  if (untouched) { pass++; console.log("  PASS  F1 工作树里的真实 local 配置**一次都没被动过**（存在性/大小/mtime 均未变）"); }
+  else { fail++; console.log("  FAIL  F1 真实 local 配置被动过了 ← " +
+    JSON.stringify({ before: realCfgBefore, after })); }
+  try { fs.rmSync(MIRROR, { recursive: true, force: true }); } catch {}
 }
 
 console.log(`\n${pass}/${pass + fail} 通过`);
 console.log("本套件用构造的 project ref 与字面占位串，无真实凭据、零外网请求；" +
-            "跑完已还原工作树，未留下任何配置文件。");
+            "全程在一次性镜像目录里跑，工作树里的真实配置一次都没碰。");
 process.exit(fail ? 1 : 0);
