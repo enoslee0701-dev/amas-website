@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>我的资料 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130256">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130301">
 <style>
 .sec{margin-bottom:18px}
 .sec h2{font-size:16px;color:var(--navy);margin:0 0 4px}
@@ -29,11 +29,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130256"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130256"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130256"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130256"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130256"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130301"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130301"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130301"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130301"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130301"></script>
 <script>
 /* 教师我的资料页。
 
@@ -138,7 +138,7 @@
     if (btn.disabled) return;                      // 在途期间吞掉重复提交
     err.classList.remove("show"); ok.classList.remove("show");
     btn.disabled = true; btn.setAttribute("aria-busy", "true");
-    const { error } = await Api.rpc("update_my_contact", {
+    const { data: d2, error } = await Api.rpc("update_my_contact", {
       p_display_name: document.getElementById("nm").value.trim() || null,
       p_phone: document.getElementById("ph").value.trim(),
       p_contact_note: document.getElementById("ct").value.trim(),
@@ -148,6 +148,14 @@
       /* Api.msg 收的是 code 字符串，不是 error 对象 —— 传对象会一律落到 unknown。
          与站内其余提交路径同一判据：拿不到明确回应时不断言「没保存上」。 */
       err.textContent = error.message || Api.msg(error.code);
+      err.classList.add("show");
+      return;
+    }
+    /* 成功要按契约验：update_my_contact 成功返回 jsonb_build_object('ok', true)
+       （migrations/0017_student_experience.sql）。只凭「没有 error」就报已保存，
+       结构对不上时会把没写成的当成写成了。属防御性边界，不声称真实服务上发生过。 */
+    if (!d2 || d2.ok !== true) {
+      err.textContent = "没能确认这次修改有没有保存成功，请稍后刷新核实。";
       err.classList.add("show");
       return;
     }

@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>个人资料 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130256">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130301">
 <style>
 .sec{margin-bottom:18px}
 .sec h2{font-size:16px;color:var(--navy);margin:0 0 4px}
@@ -27,11 +27,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130256"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130256"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130256"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130256"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130256"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130301"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130301"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130301"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130301"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130301"></script>
 <script>
 /* 申请者个人资料页。
 
@@ -112,7 +112,7 @@
     if (btn.disabled) return;                      // 在途期间吞掉重复提交
     err.classList.remove("show"); ok.classList.remove("show");
     btn.disabled = true; btn.setAttribute("aria-busy", "true");
-    const { error: e2 } = await Api.rpc("update_my_contact", {
+    const { data: d2, error: e2 } = await Api.rpc("update_my_contact", {
       p_display_name: document.getElementById("nm").value.trim() || null,
       p_phone: document.getElementById("ph").value.trim(),
       p_contact_note: document.getElementById("ct").value.trim(),
@@ -121,7 +121,20 @@
     if (e2) {
       /* 与站内其余提交路径同一判据：只有服务端明确拒绝才说「没保存上」。
          拿不到回应时不能断言失败 —— 写入可能已经生效，让人反复重试没有意义。 */
-      err.textContent = Api.msg ? Api.msg(e2) : (e2.message || "保存失败，请稍后再试。");
+      /* Api.msg 收的是 **code 字符串**（`msg = (code) => MESSAGES[code] || MESSAGES.unknown`），
+         原来这里把整个 error 对象传了进去 —— 对象做键必然落空，于是
+         forbidden / rate_limited / validation_failed 统统被压成一句笼统的
+         「操作未能完成，请稍后再试。」。教师资料页的注释里早就记着这个坑。
+         Api.rpc 返回的 error 已经是 { code, message }，直接用 message。 */
+      err.textContent = e2.message || Api.msg(e2.code);
+      err.classList.add("show");
+      return;
+    }
+    /* 成功要按契约验：update_my_contact 成功返回 jsonb_build_object('ok', true)
+       （migrations/0017_student_experience.sql）。只凭「没有 error」就报已保存，
+       结构对不上时会把没写成的当成写成了。属防御性边界，不声称真实服务上发生过。 */
+    if (!d2 || d2.ok !== true) {
+      err.textContent = "没能确认这次修改有没有保存成功，请稍后刷新核实。";
       err.classList.add("show");
       return;
     }
