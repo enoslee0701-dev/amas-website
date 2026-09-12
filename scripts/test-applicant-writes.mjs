@@ -484,6 +484,68 @@ try {
      Object.keys(f3m).length === 0, JSON.stringify(f3m));
   ok("F3b 并如实说这一次没有保存", /没有保存|没能确认/.test(await saveState()), JSON.stringify(await saveState()));
 
+  // ════════ R 冲突之后，编辑要能救回来 ════════
+  console.log("\n=== R 冲突后的可恢复体验 ===");
+  /* 第十九包做到了「不自动重载、编辑留在屏幕上」，但用户一旦点「重新载入」，
+     他刚填的东西还是全没了 —— 等于让他把一份长表单手抄一遍。
+     这一段要的是：**先把他的编辑留住再去取最新版本**，回来能一键恢复；
+     而且永远不自动应用、不自动重载，由他决定。 */
+  const banner = async (id) => cdp.ev(`(()=>{const b=document.getElementById(${JSON.stringify(id)});
+    return b ? { text:(b.textContent||"").trim(), buttons:[...b.querySelectorAll("button")].map(x=>(x.textContent||"").trim()) } : null;})()`);
+  const fieldVal = async () => cdp.ev(`(()=>{const i=document.querySelector("#appForm [data-f]"); return i?i.value:null;})()`);
+  const stash = async () => cdp.ev(`(()=>{try{return sessionStorage.getItem("amasDraftStash");}catch(e){return null;}})()`);
+  const localKeys = async () => cdp.ev(`(()=>{try{return Object.keys(localStorage);}catch(e){return [];}})()`);
+
+  const DRAFT_T0 = { ...DRAFT, updated_at: "2026-09-10T00:00:00Z" };
+  const DRAFT_T1 = { ...DRAFT, updated_at: "2026-09-12T00:00:00Z" };
+
+  await open({ ...withApp,
+    writes: { applications: { data:[], error:null } },          // 命中 0 行 = 冲突
+    rpc: { my_application:{ data:[DRAFT_T0] } } });
+  ok("R0 前提：改一个字段并落到冲突", (await touchForm()) === true);
+  await sleep(1600);
+  const rb = await banner("conflictBox");
+  ok("R1 冲突提示里有「保留我的编辑」这条出路，不是只让他自己抄下来",
+     !!rb && rb.buttons.some(t => /保留/.test(t)), JSON.stringify(rb));
+
+  // 换成「服务端已是新版本、写入会成功」的场景，再走保留并重载
+  await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: "window.__SCEN = " + JSON.stringify({
+    ...withApp, writes: { applications: { data:[{ id:"app-fixture-1", updated_at:"2026-09-12T00:00:00Z" }], error:null } },
+    rpc: { my_application:{ data:[DRAFT_T1] } } }) + ";" });
+  await cdp.ev(`(()=>{const b=[...document.querySelectorAll("#conflictBox button")].find(x=>/保留/.test(x.textContent||"")); if(b) b.click(); return !!b;})()`);
+  await sleep(3000);
+  ok("R2 保留之后确实把编辑暂存下来了", !!(await stash()), JSON.stringify((await stash() || "").slice(0, 80)));
+  ok("R2b 暂存只在本标签页（sessionStorage），没有写进 localStorage",
+     !(await localKeys()).some(k => /[Dd]raft|amas/.test(k)), JSON.stringify(await localKeys()));
+  const rr = await banner("restoreBox");
+  ok("R3 重新载入后出现恢复提示，并给出恢复与丢弃两个选择",
+     !!rr && rr.buttons.some(t => /恢复/.test(t)) && rr.buttons.some(t => /丢弃/.test(t)), JSON.stringify(rr));
+  ok("R3b 但**没有自动应用** —— 此刻表单里还是服务端那一版",
+     (await fieldVal()) !== "FIXTURE-EDIT", "当前值=" + JSON.stringify(await fieldVal()));
+
+  await cdp.ev(`(()=>{const b=[...document.querySelectorAll("#restoreBox button")].find(x=>/恢复/.test(x.textContent||"")); if(b) b.click(); return !!b;})()`);
+  await sleep(900);
+  ok("R4 点「恢复」之后，用户自己填的内容回来了", (await fieldVal()) === "FIXTURE-EDIT",
+     "当前值=" + JSON.stringify(await fieldVal()));
+  ok("R4b 恢复之后暂存被清掉，不会反复弹", !(await stash()), JSON.stringify(await stash()));
+
+  // 丢弃这条路
+  await open({ ...withApp,
+    writes: { applications: { data:[], error:null } },
+    rpc: { my_application:{ data:[DRAFT_T0] } } });
+  await touchForm();
+  await sleep(1600);
+  await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: "window.__SCEN = " + JSON.stringify({
+    ...withApp, writes: { applications: { data:[{ id:"app-fixture-1", updated_at:"2026-09-12T00:00:00Z" }], error:null } },
+    rpc: { my_application:{ data:[DRAFT_T1] } } }) + ";" });
+  await cdp.ev(`(()=>{const b=[...document.querySelectorAll("#conflictBox button")].find(x=>/保留/.test(x.textContent||"")); if(b) b.click(); return !!b;})()`);
+  await sleep(3000);
+  await cdp.ev(`(()=>{const b=[...document.querySelectorAll("#restoreBox button")].find(x=>/丢弃/.test(x.textContent||"")); if(b) b.click(); return !!b;})()`);
+  await sleep(700);
+  ok("R5 选「丢弃」后提示消失、暂存清空，表单保持服务端版本",
+     !(await banner("restoreBox")) && !(await stash()) && (await fieldVal()) !== "FIXTURE-EDIT",
+     JSON.stringify({ banner: await banner("restoreBox"), stash: await stash(), val: await fieldVal() }));
+
   // ════════ Q 标记补件完成 ════════
   console.log("\n=== Q 标记补件完成 ===");
   const REQ_APP = { ...DRAFT, status: "needs_information" };
