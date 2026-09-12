@@ -441,6 +441,54 @@ try {
   ok("M2 招生审核收到 200 {} → 不当成成功，说无法确认",
      /无法确认/.test(am || ""), JSON.stringify(am));
 
+  // ════════ E 证据读不到，必须说「未知」，不能当「没有」════════
+  console.log("\n=== E 管理详情的缺失要说未知 ===");
+  /* 这两页都在做**不可逆且写审计**的决定。几路读取原来只解构 data，
+     读不到就当成没有：
+       internal 读失败 → 内部备注显示「（暂无）」——上一位管理员写的
+         「此人材料存疑」就此隐形；
+       reqs 读失败 → 补充资料要求整段省略——看不出这份申请还欠材料；
+       hist 读失败 → 时间线显示「暂无记录」；
+       hq 读失败 → 每一行总校状态都显示「未记录」——可能重复记录或误判。 */
+  const drawer = async () => vis("#detail");
+
+  await open("portal/admin/admissions/", { tables: Object.assign({}, TABLES, {
+    application_internal: { data:null, error:{ message:"boom" }, status:500 } }) }, 3000);
+  await openDetail();
+  const e1 = await drawer();
+  ok("E1 内部备注读不到时不显示「（暂无）」", !/（暂无）/.test(e1 || ""), (e1 || "").slice(0, 200));
+  ok("E1b 而是明说这一次没读到", /没能读到|没读到|未知/.test(e1 || ""), (e1 || "").slice(0, 200));
+
+  await open("portal/admin/admissions/", { tables: Object.assign({}, TABLES, {
+    application_requirements: { data:null, error:{ message:"boom" }, status:500 } }) }, 3000);
+  await openDetail();
+  const e2 = await drawer();
+  ok("E2 补件要求读不到时不静默省略，明确说出来",
+     /补充资料要求/.test(e2 || "") && /没能读到|没读到|未知/.test(e2 || ""), (e2 || "").slice(0, 240));
+
+  await open("portal/admin/admissions/", { tables: Object.assign({}, TABLES, {
+    application_status_history: { data:null, error:{ message:"boom" }, status:500 } }) }, 3000);
+  await openDetail();
+  const e3 = await drawer();
+  ok("E3 时间线读不到时不显示「暂无记录」", !/暂无记录/.test(e3 || ""), (e3 || "").slice(0, 240));
+
+  await open("portal/admin/students/", { tables: Object.assign({}, TABLES, {
+    application_hq_approvals: { data:null, error:{ message:"boom" }, status:500 } }),
+    rpc: { admissions_ready_for_enrollment: { data: [] } } }, 3000);
+  await cdp.ev(`(()=>{const b=document.querySelector('[data-tab="accepted"]'); if(b) b.click(); return !!b;})()`);
+  await sleep(1200);
+  const e4 = await cdp.ev(`(()=>{const p=document.getElementById("panel");
+    if(!p) return null; const k=p.cloneNode(true); k.querySelectorAll("[hidden]").forEach(n=>n.remove());
+    return (k.textContent||"").replace(/\\s+/g," ").trim();})()`);
+  ok("E4 总校审核读不到时不把每一行都说成「未记录」", !/未记录/.test(e4 || ""), (e4 || "").slice(0, 240));
+  ok("E4b 而是明说这一次没读到总校审核记录",
+     /没能读到|没读到|未知/.test(e4 || ""), (e4 || "").slice(0, 240));
+
+  await open("portal/admin/admissions/", { tables: TABLES }, 3000);
+  await openDetail();
+  const e5 = await drawer();
+  ok("E5 读得到时照常显示内部备注（没改坏）", /fixture 内部备注/.test(e5 || ""), (e5 || "").slice(0, 200));
+
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");

@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>学籍管理 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130352">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130409">
 <style>
 .tabs{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap}
 .tabs button{min-height:40px;padding:0 16px;border:1.5px solid var(--line);border-radius:999px;background:#fff;
@@ -32,11 +32,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130352"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130352"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130352"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130352"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130352"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130409"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130409"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130409"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130409"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130409"></script>
 <script>
 /* PORTAL-2 学籍管理（教务侧）
    闭环：录取 → 记录总校审核确认 → 建档(pre_enrolled) → 正式注册(active)；学号可经专用通道更正。
@@ -101,16 +101,31 @@
       columns: "id,applicant_id,status,form_data,decided_at",
       eq: { status: "accepted" }, order: { column: "decided_at", asc: true },
     });
-    if (error) return UI.error(panel, { message: error.message, onRetry: load });
-    const { data: hq } = await Api.select("application_hq_approvals", {
+    if (error || !Array.isArray(data)) {
+      return UI.error(panel, { message: (error && error.message) || "这一次没能读到已录取的申请。", onRetry: load });
+    }
+    /* 这一路原来把 error 丢了。读不到总校审核记录时 hqMap 是空的，后果有两层：
+       每一行的总校状态都显示「未记录」—— 已经确认过的申请看起来像没确认过；
+       同时那个 `status !== "approved"` 的过滤也筛不掉任何东西，已确认的申请
+       会重新出现在待确认列表里。而 confirm_hq_approval 是 on conflict do update
+       （0012_student_core.sql:331），再记一次会**覆盖**已有的总校结论。
+       所以读不到时要明说未知，不能显示成「未记录」。 */
+    const { data: hq, error: hqErr } = await Api.select("application_hq_approvals", {
       columns: "application_id,status,approval_reference,confirmed_at",
     });
+    const hqUnknown = !!hqErr || !Array.isArray(hq);
     const hqMap = Object.fromEntries((hq || []).map(h => [h.application_id, h]));
-    const rows = (data || []).filter(a => (hqMap[a.id] || {}).status !== "approved");
+    const rows = hqUnknown ? data : data.filter(a => (hqMap[a.id] || {}).status !== "approved");
 
     if (!rows.length) return panel.innerHTML = UI.box("✅", "没有待确认的录取", "已录取的申请都已记录总校审核结论。");
 
-    panel.innerHTML = '<div class="card"><div class="scroller"><table class="tbl">' +
+    const hqWarn = hqUnknown
+      ? '<div class="msg warn show" style="margin-bottom:12px"><b>这一次没能读到总校审核结论（未知）。</b>' +
+        '因此下面每一行的总校状态都显示不出来，列表也可能包含<b>已经确认过</b>的申请。' +
+        '再记一次会覆盖已有的总校结论 —— 请刷新核实之后再操作。</div>'
+      : "";
+
+    panel.innerHTML = hqWarn + '<div class="card"><div class="scroller"><table class="tbl">' +
       '<thead><tr><th>姓名</th><th>项目</th><th>录取时间</th><th>总校状态</th><th>操作</th></tr></thead><tbody>' +
       rows.map(a => {
         const d = a.form_data || {};
@@ -118,7 +133,7 @@
         return '<tr><td><b>' + UI.esc(d.name_zh || "—") + '</b></td>' +
           '<td>' + UI.esc(progName((d.programs || [])[0])) + '</td>' +
           '<td>' + (a.decided_at ? new Date(a.decided_at).toLocaleDateString("zh-CN") : "—") + '</td>' +
-          '<td>' + UI.esc(h ? (HQ[h.status] || h.status) : "未记录") + '</td>' +
+          '<td>' + UI.esc(hqUnknown ? "未知" : (h ? (HQ[h.status] || h.status) : "未记录")) + '</td>' +
           '<td><div class="acts2"><button class="pri" data-hq="' + a.id + '">记录总校确认</button></div></td></tr>';
       }).join("") + '</tbody></table></div></div>';
 

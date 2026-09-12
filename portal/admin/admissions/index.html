@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>招生审核 | AMAS 管理后台</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130352">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130409">
 <style>
 .qtable{width:100%;border-collapse:collapse;font-size:13px}
 .qtable th,.qtable td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:top}
@@ -34,12 +34,12 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130352"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130352"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130352"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130352"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130352"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609130352"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130409"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130409"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130409"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130409"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130409"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609130409"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -140,11 +140,27 @@
     box.classList.add("open");
     box.innerHTML = UI.skeleton(6);
 
-    const [{ data: internal }, { data: reqs }, { data: hist }] = await Promise.all([
+    /* 这三路原来只解构 data，把各自的 error 丢掉 —— 读不到就当成「没有」。
+       后果落在**不可逆且写审计**的决定上：内部备注读不到显示「（暂无）」，
+       上一位同工写下的「此人材料存疑」就此隐形；补件要求读不到整段省略，
+       看不出这份申请还欠材料就按「资料齐全」录取；时间线读不到显示
+       「暂无记录」，像是从来没人审过。三者都会把「没读到」当成证据。
+       改成：读不到就明说这一次没读到，不替服务端断言「没有」。 */
+    const [{ data: internal, error: intErr }, { data: reqs, error: reqErr },
+           { data: hist, error: histErr }] = await Promise.all([
       Api.select("application_internal", { columns: "notes,updated_at", eq: { application_id: id }, single: true }),
       Api.select("application_requirements", { columns: "id,label,detail,field,resolved", eq: { application_id: id }, order: { column: "created_at", asc: true } }),
       Api.select("application_status_history", { columns: "from_status,to_status,actor_role,applicant_visible_message,created_at", eq: { application_id: id }, order: { column: "created_at", asc: true } }),
     ]);
+
+    const readFailed = (what) =>
+      `<div class="msg warn show" style="margin:6px 0">这一次没能读到${what}（未知）。` +
+      `这不表示它是空的 —— 请刷新核实之后再据此判断。</div>`;
+    /* internal 走 maybeSingle：没有备注时是 data=null / error=null，那才是「确实没写过」；
+       只有 error 才算读不到。数组的两路则要求真的拿到数组。 */
+    const intUnknown = !!intErr;
+    const reqUnknown = !!reqErr || !Array.isArray(reqs);
+    const histUnknown = !!histErr || !Array.isArray(hist);
 
     const d = current.form_data || {};
     const p = Array.isArray(d.programs) ? pcMap[d.programs[0]] : null;
@@ -184,14 +200,18 @@
       ${d.testimony ? `<h3 style="font-size:14.5px;color:var(--navy);margin:16px 0 6px">自我介绍与见证</h3>
         <p style="font-size:13px;line-height:1.9;color:var(--ink);white-space:pre-wrap">${UI.esc(d.testimony)}</p>` : ""}
 
-      ${(reqs || []).length ? `<h3 style="font-size:14.5px;color:var(--navy);margin:16px 0 6px">补充资料要求</h3>
-        <ul style="padding-left:18px;font-size:13px">${reqs.map(r => `<li>${UI.esc(r.label)}${r.field ? `<span class="who">（已解锁：${UI.esc(LOCK_LABEL[r.field] || r.field)}）</span>` : ""}${r.resolved ? " ✓ 已完成" : " · 待完成"}</li>`).join("")}</ul>` : ""}
+      ${reqUnknown
+        ? `<h3 style="font-size:14.5px;color:var(--navy);margin:16px 0 6px">补充资料要求</h3>
+        ${readFailed("这份申请的补充资料要求")}`
+        : (reqs.length ? `<h3 style="font-size:14.5px;color:var(--navy);margin:16px 0 6px">补充资料要求</h3>
+        <ul style="padding-left:18px;font-size:13px">${reqs.map(r => `<li>${UI.esc(r.label)}${r.field ? `<span class="who">（已解锁：${UI.esc(LOCK_LABEL[r.field] || r.field)}）</span>` : ""}${r.resolved ? " ✓ 已完成" : " · 待完成"}</li>`).join("")}</ul>` : "")}
 
       <h3 style="font-size:14.5px;color:var(--navy);margin:16px 0 6px">内部备注（仅管理员可见）</h3>
-      <p style="font-size:13px;color:var(--muted);white-space:pre-wrap">${UI.esc(internal?.notes || "（暂无）")}</p>
+      ${intUnknown ? readFailed("内部备注")
+        : `<p style="font-size:13px;color:var(--muted);white-space:pre-wrap">${UI.esc(internal?.notes || "（暂无）")}</p>`}
 
       <h3 style="font-size:14.5px;color:var(--navy);margin:16px 0 6px">状态时间线</h3>
-      ${UI.timeline((hist || []).map(h => ({
+      ${histUnknown ? readFailed("状态时间线") : UI.timeline((hist || []).map(h => ({
         title: (ST[h.to_status] || h.to_status) + (h.actor_role ? " · " + (h.actor_role === "admin" ? "教务" : "申请人") : ""),
         time: new Date(h.created_at).toLocaleString("zh-CN",{hour12:false}),
         text: h.applicant_visible_message || "",
