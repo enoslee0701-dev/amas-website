@@ -6,15 +6,15 @@
 <meta name="robots" content="noindex">
 <title>申请者中心 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609130155">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609130205">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609130155"></script>
-<script src="../../assets/js/portal/auth.js?v=202609130155"></script>
-<script src="../../assets/js/portal/api.js?v=202609130155"></script>
-<script src="../../assets/js/portal/ui.js?v=202609130155"></script>
-<script src="../../assets/js/portal/shell.js?v=202609130155"></script>
+<script src="../../assets/js/supabase-config.js?v=202609130205"></script>
+<script src="../../assets/js/portal/auth.js?v=202609130205"></script>
+<script src="../../assets/js/portal/api.js?v=202609130205"></script>
+<script src="../../assets/js/portal/ui.js?v=202609130205"></script>
+<script src="../../assets/js/portal/shell.js?v=202609130205"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell;
@@ -43,18 +43,35 @@
   const app = rows && rows[0];
   const pcMap = Object.fromEntries((pc || []).map(p => [p.code, p]));
 
-  let pending = 0;
+  /* 待补充项数：读不到 ≠ 没有。原来只解构 data，读失败时 rq 是 null，
+     pending 就成了 0，那条「有 N 项资料需要补充」的横幅**直接消失** ——
+     申请人看到「需补充资料」的状态，却看不到任何待办，会以为已经补完了。 */
+  let pending = 0, pendingUnknown = false;
   if (app && app.status === "needs_information") {
-    const { data: rq } = await Api.select("application_requirements", {
+    const { data: rq, error: rqErr } = await Api.select("application_requirements", {
       columns: "id,resolved", eq: { application_id: app.id },
     });
-    pending = (rq || []).filter(r => !r.resolved).length;
+    if (rqErr || !Array.isArray(rq)) pendingUnknown = true;
+    else pending = rq.filter(r => !r.resolved).length;
   }
 
   const name = profile && profile.display_name ? profile.display_name : "";
   const s = app ? (ST[app.status] || { t: app.status, a: "查看申请", d: "" }) : null;
   const code = app && app.form_data && Array.isArray(app.form_data.programs) ? app.form_data.programs[0] : null;
   const prog = code ? pcMap[code] : null;
+
+  /* PORTAL-blueprint §234 规定这一页是「状态卡 + 下一步 + **通知**」。
+     通知这一块此前整个没有：my_application 明明返回了
+     applicant_visible_message（教务写给申请人的话，
+     见 migrations/0008_applications.sql:197/201），申请详情页与历史页都把它
+     显示成「招生同工留言」，唯独申请人自己的首页不显示 —— 教务让他补材料、
+     或者给了录取说明，他登进来只看到一个状态标签和一句固定描述，
+     得再点一层才知道对方说了什么。
+     这里用的是**已经取回来的同一份数据**，不额外发请求。
+     留言是服务端来的文本，一律走 UI.esc，不当 HTML 解析。 */
+  const notice = app && app.applicant_visible_message
+    ? `<div class="msg info show" style="margin-top:10px"><b>招生同工留言：</b>${UI.esc(app.applicant_visible_message)}</div>`
+    : "";
 
   main.innerHTML =
     "<h1>欢迎" + (name ? "，" + UI.esc(name) : "") + "</h1>" +
@@ -65,8 +82,15 @@
           <div>
             <h2 style="margin:0;font-size:17px">当前申请 <span class="st ${app.status}">${s.t}</span></h2>
             <div class="who" style="margin-top:6px">${UI.esc(s.d)}</div>
-            ${prog ? `<div class="who" style="margin-top:4px">申请项目：<b>${UI.esc(prog.name_zh)}</b>${prog.short_label ? "（" + UI.esc(prog.short_label) + "）" : ""}</div>` : ""}
-            ${pending ? `<div class="msg info show" style="margin-top:10px">有 <b>${pending}</b> 项资料需要补充。</div>` : ""}
+            ${prog
+              ? `<div class="who" style="margin-top:4px">申请项目：<b>${UI.esc(prog.name_zh)}</b>${prog.short_label ? "（" + UI.esc(prog.short_label) + "）" : ""}</div>`
+              /* 课程目录没读到时，至少把申请人自己填的项目代码显示出来，
+                 而不是让整行凭空消失。 */
+              : (code ? `<div class="who" style="margin-top:4px">申请项目：<b>${UI.esc(code)}</b></div>` : "")}
+            ${notice}
+            ${pendingUnknown
+              ? `<div class="msg info show" style="margin-top:10px">没能确认还有多少项资料需要补充（这一次没读到）。请打开申请页查看。</div>`
+              : (pending ? `<div class="msg info show" style="margin-top:10px">有 <b>${pending}</b> 项资料需要补充。</div>` : "")}
           </div>
           <a class="btn" style="width:auto;padding:0 22px;margin:0" href="application/">${s.a}</a>
         </div>
