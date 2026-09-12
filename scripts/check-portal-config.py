@@ -452,6 +452,9 @@ def main(argv=None):
     ap.add_argument("--config", default=None, help="path to the supabase config js (for fixtures)")
     ap.add_argument("--root", default=ROOT, help="repository root to scan")
     ap.add_argument("--example", action="store_true", help="print a safe config template and exit")
+    ap.add_argument("--local", action="store_true",
+                    help="check the local-only override (assets/js/supabase-config.local.js) "
+                         "instead of the committed config")
     args = ap.parse_args(argv)
 
     if args.example:
@@ -459,7 +462,21 @@ def main(argv=None):
         return 0
 
     root = os.path.abspath(args.root)
-    config_path = args.config or os.path.join(root, DEFAULT_CONFIG)
+    if args.local:
+        # 本地联调旁路：这个文件已 gitignore，永远不会进入发布产物。
+        # 检查它是为了在联调前就发现填错（占位符没换、粘成了 service_role 等），
+        # 而不是等页面报错才回头找。
+        config_path = os.path.join(root, "assets", "js", "supabase-config.local.js")
+        if not os.path.isfile(config_path):
+            print("=== PORTAL CONFIG CHECK (--local) ===")
+            print("  MISSING : assets/js/supabase-config.local.js 不存在。")
+            print("            本地联调请先复制模板并填值：")
+            print("              cp assets/js/supabase-config.local.example.js \\")
+            print("                 assets/js/supabase-config.local.js")
+            print("            该文件已列入 .gitignore，不会被提交、不会公开发布。")
+            return 1
+    else:
+        config_path = args.config or os.path.join(root, DEFAULT_CONFIG)
 
     rep = Report()
     check_config(rep, config_path)
@@ -469,7 +486,13 @@ def main(argv=None):
     check_deploy_paths(rep, root, pages)
     check_degradation(rep, root)
     rep.emit()
-    return verdict(rep)
+    rc = verdict(rep)
+    if args.local:
+        print("")
+        print("  NOTE: 这是**本地联调专用**配置的检查结果。")
+        print("        assets/js/supabase-config.local.js 已 gitignore，不会进入发布产物；")
+        print("        它通过**不代表**公开官网已连上任何环境，也不代表 Portal 可发布。")
+    return rc
 
 
 if __name__ == "__main__":

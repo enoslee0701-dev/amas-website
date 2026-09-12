@@ -1,2 +1,6 @@
 staging.env
 supabase/.temp/
+
+# 本地联调专用的 Supabase 配置。绝不提交 —— master 推送即公开发布。
+# 模板见 assets/js/supabase-config.local.example.js（只有占位符，可以提交）。
+assets/js/supabase-config.local.js
