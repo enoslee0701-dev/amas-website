@@ -67,6 +67,7 @@ const BASE = `http://127.0.0.1:${server.address().port}`;
 const { chrome, port, profileDir: prof } = await launchOwnChrome({
   profilePrefix: "amas-next-",
   extraArgs: [
+    "--disable-gpu", "--hide-scrollbars",
     "--host-resolver-rules=MAP *.supabase.co 0.0.0.0, MAP *.supabase.in 0.0.0.0",
   ],
 });

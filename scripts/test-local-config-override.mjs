@@ -79,6 +79,7 @@ const PORT = server.address().port;
 const { chrome, port, profileDir: prof } = await launchOwnChrome({
   profilePrefix: "amas-lcfg-",
   extraArgs: [
+    "--disable-gpu", "--hide-scrollbars",
     "--host-resolver-rules=MAP amas-published.test 127.0.0.1, MAP *.supabase.co 0.0.0.0",
   ],
 });

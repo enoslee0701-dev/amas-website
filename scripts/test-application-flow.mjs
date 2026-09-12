@@ -26,6 +26,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { launchOwnChrome } from "./lib/chrome-launcher.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -155,11 +156,15 @@ if (!CHROME) {
 
 const server = await startServer();
 const BASE = `http://127.0.0.1:${server.address().port}`;
-const port = 9500 + (process.pid % 40);
-const profile = fs.mkdtempSync(path.join(os.tmpdir(), "amas-appflow-"));
-const chrome = spawn(CHROME, ["--headless=new", `--remote-debugging-port=${port}`,
-  `--user-data-dir=${profile}`, "--no-first-run", "--no-default-browser-check",
-  "--disable-gpu", "--hide-scrollbars", "about:blank"], { stdio: "ignore" });
+/* 端口与 profile 由本次实例真正拥有（见 lib/chrome-launcher.mjs）：
+   交给操作系统分配，再从自己那个 Chrome 的 DevToolsActivePort 读回来。
+   原来是 `9xxx + (process.pid % n)` —— 那只是按 pid 猜，两个进程 pid 同余就撞。 */
+const { chrome, port, profileDir: profile } = await launchOwnChrome({
+  profilePrefix: "amas-appflow-",
+  extraArgs: [
+    "--disable-gpu", "--hide-scrollbars",
+  ],
+});
 
 let netCut = false;
 async function load(cdp) {

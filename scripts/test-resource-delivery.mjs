@@ -45,7 +45,9 @@ const BASE = `http://127.0.0.1:${server.address().port}`;
    不写死、不按 pid 猜、不连已经开着的浏览器。 */
 const { chrome, port, profileDir: prof } = await launchOwnChrome({
   profilePrefix: "amas-res-",
-  extraArgs: [],
+  extraArgs: [
+    "--disable-gpu", "--hide-scrollbars",
+  ],
 });
 
 class Cdp {

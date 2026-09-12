@@ -50,6 +50,7 @@ const BASE = `http://127.0.0.1:${server.address().port}`;
 const { chrome, port, profileDir: prof } = await launchOwnChrome({
   profilePrefix: "amas-giving-",
   extraArgs: [
+    "--disable-gpu", "--hide-scrollbars",
     "--host-resolver-rules=MAP formsubmit.co 0.0.0.0, MAP *.formsubmit.co 0.0.0.0",
   ],
 });

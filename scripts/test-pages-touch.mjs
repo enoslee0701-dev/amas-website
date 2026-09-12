@@ -22,6 +22,7 @@ import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { TOUCH_PROBE } from "./lib/touch-probe.mjs";
+import { launchOwnChrome } from "./lib/chrome-launcher.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const results = [];
@@ -43,12 +44,15 @@ const server = http.createServer((req, res) => {
 });
 await new Promise((r) => server.listen(0, "127.0.0.1", r));
 const BASE = `http://127.0.0.1:${server.address().port}`;
-const prof = fs.mkdtempSync(path.join(os.tmpdir(), "pagesurvey-"));
-const port = 9580 + (process.pid % 40);
-const chrome = spawn("C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-  ["--headless=new", `--remote-debugging-port=${port}`, `--user-data-dir=${prof}`,
-   "--no-first-run", "--no-default-browser-check", "--disable-gpu", "--hide-scrollbars", "about:blank"],
-  { stdio: "ignore" });
+/* 端口与 profile 由本次实例真正拥有（见 lib/chrome-launcher.mjs）。
+   这一个此前还把 Chrome 路径写死成 Windows 的 C:\Program Files\… ——
+   在 Mac 上根本起不来；启动器统一按 CHROME_PATH / CHROME 解析。 */
+const { chrome, port, profileDir: prof } = await launchOwnChrome({
+  profilePrefix: "pagesurvey-",
+  extraArgs: [
+    "--disable-gpu", "--hide-scrollbars",
+  ],
+});
 
 class Cdp {
   constructor(ws) { this.ws = ws; this.id = 0; this.pending = new Map(); }

@@ -46,8 +46,12 @@ export async function launchOwnChrome(opts = {}) {
     "--remote-debugging-port=0",          // ← 由操作系统分配，不是我们挑的
     `--user-data-dir=${profileDir}`,      // ← 每次一个全新目录，不共用任何既有 profile
     "--no-first-run", "--no-default-browser-check",
+    /* 这里**只放与渲染无关**的旗标。--disable-gpu / --hide-scrollbars 会影响
+       布局测量，必须由各套件自己按原样带 —— 第一版把它们统一加了进去，
+       test-touch-targets 的负向控制立刻从 64x27 变成 66x25（滚动条没了，
+       视口宽了 2px），18/20。旗标要原样保留，不能顺手统一。 */
     ...(opts.extraArgs || []),
-    "--disable-gpu", "--hide-scrollbars", "about:blank",
+    "about:blank",
   ];
   const chrome = spawn(chromeBinary(), args, { stdio: "ignore" });
 
@@ -68,6 +72,14 @@ export async function launchOwnChrome(opts = {}) {
     try { chrome.kill(); } catch (e) {}
     try { fs.rmSync(profileDir, { recursive: true, force: true }); } catch (e) {}
   };
+
+  /* 各套件的 finally 普遍只写了 chrome.kill()，不删 profile 目录 ——
+     系统临时区里因此堆了上百个残留目录（本轮实测 157 个）。
+     由启动器自己在进程退出时清掉**它自己创建的那一个**，
+     不依赖调用方记得调 dispose()，也绝不碰别人的目录。 */
+  process.once("exit", () => {
+    try { fs.rmSync(profileDir, { recursive: true, force: true }); } catch (e) {}
+  });
 
   if (!port) {
     dispose();

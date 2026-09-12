@@ -62,6 +62,7 @@ const F_TOO_BIG  = mk("too-big.pdf", "%PDF-1.4\n", 11 * 1024 * 1024);
 const { chrome, port, profileDir: prof } = await launchOwnChrome({
   profilePrefix: "amas-upload-",
   extraArgs: [
+    "--disable-gpu", "--hide-scrollbars",
     "--host-resolver-rules=MAP formsubmit.co 0.0.0.0, MAP *.formsubmit.co 0.0.0.0",
   ],
 });
