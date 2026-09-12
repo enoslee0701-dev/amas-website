@@ -160,6 +160,10 @@ window.supabase = {
           if (m === "error") return reply({ data: { session: null }, error: authErr({ status: 500, message: "boom" }) });
           if (m === "throw") throw new TypeError("Failed to fetch");
           if (m === "none") return reply({ data: { session: null }, error: null });
+          /* 防御性形状：data 整个缺失。2.116.0 的正常路径不会这样返回
+             （产物已核，data 永远是对象），但分不清结构时同样是「不知道」，
+             不能替它断定成没登录。 */
+          if (m === "nodata") return reply({ data: null, error: null });
           return reply({ data: { session: { user:{ id:"u-fixture" }, access_token:"fixture-token" } }, error: null });
         },
         onAuthStateChange: function(cb){
@@ -285,8 +289,19 @@ try {
      (await cdp.ev(`location.pathname`)) === "/portal/student/" && loginHits() === 0,
      "落点=" + (await cdp.ev(`location.pathname`)));
 
+  // D 防御性边界：data 整个缺失（监督事件 141c 顺带发现）
+  await open("portal/student/?cat=nt", { ...STU, sessionMode:"nodata" }, 2800);
+  const d1 = await txt();
+  ok("D1 连 data 结构都读不出时也算「不知道」，不被当成没登录弹去登录页",
+     loginHits() === 0, "登录页出现 " + loginHits() + " 次: " + JSON.stringify(navLog.slice(0,3)));
+  ok("D2 停下来说清楚并给重试", /没能确认/.test(d1) && /重试/.test(d1), d1.slice(0,160));
+
   // ════════ C callFn：请求一次都没发出去，却说「登录状态已失效」 ════════
   console.log("\n=== C callFn 的说法 ===");
+  /* C 段自己开一张页面再探。否则它依赖上一段把浏览器留在哪里 ——
+     D 段在修前会导航去登录页，那里根本没有 AmasApi，C 就会因为
+     「页面不对」而判红，看起来像是另一个缺陷。次序依赖要自己消掉。 */
+  await open("portal/student/", STU, 2800);
   const probe = async (mode) => {
     await cdp.ev(`(()=>{window.__SCEN.sessionMode=${JSON.stringify(mode)}; return true;})()`);
     /* 探针自己要接住异常：callFn 对「抛出」这一形态**根本没有 try/catch**，

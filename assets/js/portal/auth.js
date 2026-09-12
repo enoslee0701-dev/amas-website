@@ -659,7 +659,14 @@
     try { res = await client.auth.getSession(); }
     catch (e) { return { session: null, failed: true }; }
     if (!res || res.error) return { session: null, failed: true };
-    return { session: (res.data && res.data.session) || null, failed: false };
+    /* `data` 读不出来同样是「不知道」，不是「确定没登录」。
+       2.116.0 的 getSession 在任何正常路径上都返回 `{ data:{session:…}, error }`
+       —— data 永远是个对象（产物已核：没有会话时是 `{data:{session:null},error:null}`）。
+       所以 `data` 缺失属于**防御性边界**，不是观察到的 SDK 常态；但既然分不清，
+       就不能替它断定成没登录：那正是本轮反复在修的同一个错误。
+       只有 data 在、session 是 null，才是确定「没有会话」。 */
+    if (!res.data) return { session: null, failed: true };
+    return { session: res.data.session || null, failed: false };
   }
 
   /** 兼容旧签名（api.js 的 aal2 预检仍在用）。**新代码别用** ——
