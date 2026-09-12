@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>两步验证 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609122241">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609122312">
 <style>
 .qr{display:grid;place-items:center;margin:14px 0;padding:14px;border:1px solid var(--line);border-radius:12px;background:#fff}
 .qr svg,.qr img{width:190px;height:190px}
@@ -68,8 +68,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609122241"></script>
-<script src="../../assets/js/portal/auth.js?v=202609122241"></script>
+<script src="../../assets/js/supabase-config.js?v=202609122312"></script>
+<script src="../../assets/js/portal/auth.js?v=202609122312"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
@@ -120,9 +120,11 @@
 
   /** 读不到 ≠ 没有。话不能说死，而且必须给重试。
       与 renderBlocked 的「这不表示你没有权限」是同一条纪律。 */
+  const READ_FAILED = { reason: "read-failed" };
   function readErrText(e, what) {
     const tail = "（这不表示你没有设置过两步验证）。";
     if (e === TIMED_OUT) return "等了太久，没能确认你的" + what + "。请稍后重试" + tail;
+    if (e === READ_FAILED) return "没能确认你的" + what + "，可能是网络不稳或服务端短暂不可用。请稍后重试" + tail;
     const c = A.classifyAuthError(e);
     if (c.kind === "rejected") return "没能确认你的" + what + tail + "请稍后重试；如果一直这样，" + RESET_HINT;
     if (c.reason === "network" || c.reason === "exception")
@@ -144,12 +146,16 @@
      这正是 §84.1 在角色上修过的同一个错误，换个地方又犯了一次。 */
 
   // ① 会话
-  let session = null;
-  try { session = await withTimeout(A.getSession()); }
-  catch (e) { return stopWithRetry(readErrText(e, "登录状态"), READ_TITLE); }
-  /* 注意这里只有**确实读到了「没有会话」**才去登录页。读不到是上面那一支，
-     不能把「没读到」当成「没登录」—— 那是同一个错误的第三种写法。 */
-  if (!session) return location.replace(A.withNext("login/"));
+  let sess = null;
+  try { sess = await withTimeout(A.fetchSession()); }
+  catch (e) { return stopWithRetry("没能确认你的登录状态。请稍后重试（这不表示你没有登录）。", "没能确认登录状态"); }
+  /* 只有**确实读到「没有会话」**才去登录页。读失败时 SDK 返回的是
+     { data:{session:null}, error } —— 旧写法只看 data.session，把「读不到」
+     当成「没登录」，人被弹去重新输一次密码。同一条纪律的第三种写法。 */
+  if (sess.failed) return stopWithRetry(
+    "没能确认你的登录状态，可能是网络不稳或服务端短暂不可用。这不表示你没有登录 —— 只是这一次没查到。请稍后重试。",
+    "没能确认登录状态");
+  if (!sess.session) return location.replace(A.withNext("login/"));
   $("btnOut").addEventListener("click", () => A.signOut());
 
   // 同源收口走共享层：`//evil.example` 也以 "/" 开头，旧判据会把刚过完
@@ -163,10 +169,13 @@
 
   // ② AAL
   let aal = null;
-  try { aal = await withTimeout(A.getAal()); }
+  try { aal = await withTimeout(A.fetchAal()); }
   catch (e) { if (A.sessionEnded()) return; return stopWithRetry(readErrText(e, "两步验证状态"), READ_TITLE); }
   if (A.sessionEnded()) return;
-  if (aal && aal.current === "aal2") return goBack();
+  /* 读不出就停下来：既不回跳（他可能还没通过），也不摆出挑战卡或注册卡
+     请他再验一次（他可能早就通过了，那会白烧一个一次性动态码）。给重试。 */
+  if (aal.failed) return stopWithRetry(readErrText(READ_FAILED, "两步验证状态"), READ_TITLE);
+  if (aal.current === "aal2") return goBack();
 
   // ③ 因子表
   let factorData = null, listError = null;
@@ -210,6 +219,7 @@
   function verifyErrText(e) {
     if (e === TIMED_OUT) return "等了太久还没有结果，这一次验证有没有完成还不确定。请稍后再试（这不是动态码的问题）。";
     if (e === UNCLEAR) return "没能确认验证结果，请稍后再试（这不是动态码的问题）。";
+    if (e === READ_FAILED) return "没能确认这一次验证有没有完成，也就没法确定要不要再验一次。请稍后重试（这不是动态码的问题）。";
     const c = A.classifyAuthError(e);
     if (c.kind === "rejected") {
       // 429 与「码不对」是两回事。说成码不对，用户只会一遍遍重打，越打越被限。
@@ -221,7 +231,7 @@
     return "没能确认验证结果，请稍后再试（这不是动态码的问题）。";
   }
   function isUnclear(e) {
-    if (e === TIMED_OUT || e === UNCLEAR) return true;
+    if (e === TIMED_OUT || e === UNCLEAR || e === READ_FAILED) return true;
     return A.classifyAuthError(e).kind !== "rejected";
   }
 
@@ -250,9 +260,12 @@
          challenge，等于拿一个一次性的码去撞第二次 —— 必然失败，
          然后页面告诉他「动态码不正确」。 */
       if (lastUnclear) {
-        const a = await withTimeout(A.getAal());
+        const a = await withTimeout(A.fetchAal());
         if (A.sessionEnded()) return;
-        if (a && a.current === "aal2") return goBack();
+        /* 读不出就**到此为止**，不能照发第二次 challenge：上一次可能已经成功，
+           拿一个一次性的码去撞第二次必然失败，页面又会告诉他「动态码不正确」。 */
+        if (a.failed) throw READ_FAILED;
+        if (a.current === "aal2") return goBack();
       }
       const ch = await withTimeout(A.client.auth.mfa.challenge({ factorId }));
       if (ch && ch.error) throw ch.error;

@@ -526,6 +526,13 @@
               "<br>正式学员与教师身份须经学校审核开通（规范 §5.2）；如有疑问，请通过官网联系招生同工。",
         retry: "重新检查",
       },
+      "aal-unavailable": {
+        icon: "🔐",
+        head: "没能确认你的两步验证状态",
+        body: "我们暂时读不到这个账号的两步验证状态，可能是网络不稳或服务端短暂不可用。" +
+              "<br><b>这不表示你没有通过两步验证</b> —— 只是这一次没查到。请稍后重试。",
+        retry: "重试",
+      },
       forbidden: {
         icon: "🚫",
         head: "你没有访问这个页面的权限",
@@ -597,12 +604,57 @@
     if (h) { try { h.focus({ preventScroll: true }); } catch (e) { h.focus(); } }
   }
 
-  /** 当前/可达的认证保障级别（MFA）。返回 {current:'aal1'|'aal2', next:'aal1'|'aal2'} */
+  /** 认证保障级别（MFA）的**真实结果**：`{ current, next, failed }`。
+
+      旧的 `getAal()` 在三种情况下一律返回 aal1 ——「没读出来」被写成
+      「确定是 aal1」。这与 §84.1 在角色上、第三包在因子表上修过的，
+      是同一条纪律：**不确定不能当成确定**。落进那一支的三种形态都是真实的：
+
+        · 返回 `{ data:null, error }`
+        · **抛出** —— 2.116.0 的 mfa.* 对非 AuthError 是 `throw` 的，
+          而旧 `getAal` 连 try/catch 都没有，异常直接穿到调用方
+        · 返回 `{ data:{ currentLevel:null, nextLevel:null }, error:null }`
+          —— JWT 里没有 aal 声明时的真实形状：data 在，值是空的
+
+      代价很具体：一个**其实已经是 aal2** 的教师会被 requireRoleAal2 送去
+      /portal/mfa/ 再做一次两步验证；做完回来仍然读不出，于是再被送去 ——
+      每转一圈烧掉一个一次性动态码。 */
+  async function fetchAal() {
+    if (!client) return { current: null, next: null, failed: true };
+    let res;
+    try { res = await client.auth.mfa.getAuthenticatorAssuranceLevel(); }
+    catch (e) { return { current: null, next: null, failed: true }; }
+    if (!res || res.error || !res.data) return { current: null, next: null, failed: true };
+    const cur = res.data.currentLevel;
+    // 只认这两个明确值。null 或意外值一律算读不出，不替它猜一个低级别。
+    if (cur !== "aal1" && cur !== "aal2") return { current: null, next: null, failed: true };
+    return { current: cur, next: res.data.nextLevel || null, failed: false };
+  }
+
+  /** 会话的**真实结果**：`{ session, failed }`。
+
+      旧的 `getSession()` 只看 `data.session`，**把 error 丢掉**。而读失败时
+      SDK 返回的正是 `{ data:{ session:null }, error }` —— 于是「读不到」在
+      调用方眼里和「没登录」一模一样，人被弹去登录页重新输一次密码。
+      同一条纪律的第三种写法。
+
+      本轮只有 portal/mfa/ 改用它（该路径有复现证据）；requireRole 等其余
+      调用方仍走旧签名，留待监督决定是否同批收口 —— 不在本包里顺手扩大重构。 */
+  async function fetchSession() {
+    if (!client) return { session: null, failed: true };
+    let res;
+    try { res = await client.auth.getSession(); }
+    catch (e) { return { session: null, failed: true }; }
+    if (!res || res.error) return { session: null, failed: true };
+    return { session: (res.data && res.data.session) || null, failed: false };
+  }
+
+  /** 兼容旧签名（api.js 的 aal2 预检仍在用）。**新代码别用** ——
+      它没法表达「读不到」；读不到时给出的 aal1 是 fail-closed 的保守值，
+      对 api.js 是安全的（挡住调用），但对导航型调用方会变成误导。 */
   async function getAal() {
-    if (!client) return { current: "aal1", next: "aal1" };
-    const { data, error } = await client.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (error || !data) return { current: "aal1", next: "aal1" };
-    return { current: data.currentLevel, next: data.nextLevel };
+    const r = await fetchAal();
+    return { current: r.current || "aal1", next: r.next || "aal1" };
   }
 
   /** 敏感角色（教师/管理员）页面守卫：requireRole 之上强制 aal2（甲方审查 #8 前端层）。
@@ -610,7 +662,10 @@
   async function requireRoleAal2(allowedRoles) {
     const ctx = await requireRole(allowedRoles);
     if (!ctx) return null;
-    const aal = await getAal();
+    const aal = await fetchAal();
+    /* 读不出就停下来说清楚：**不放行**（他可能确实还没做），
+       也**不把人弹去做两步验证**（他可能早就做过了）。给重试。 */
+    if (aal.failed) { renderBlocked("aal-unavailable"); return null; }
     if (aal.current !== "aal2") {
       location.replace(withNext("portal/mfa/"));
       return null;
@@ -658,6 +713,6 @@
     // 必须是同一套口径，各写一遍迟早各走各的。
     classifyAuthError,
     signIn, signUp, resetPassword, signOut, requireRole, renderDisabled, renderBlocked, safePath,
-    getAal, requireRoleAal2, callFn,
+    getAal, fetchAal, fetchSession, requireRoleAal2, callFn,
   };
 })();
