@@ -211,6 +211,10 @@ window.supabase = {
           listFactors: function(){
             bump("listFactors");
             return wait("listFactors").then(function(){
+              /* 契约③ 同样适用于 listFactors：非 AuthError 是**抛出**的。
+                 三种读不到的形态各自复现：抛出 / 返回 error / 永远不落地。 */
+              if (S().listThrow) throw new TypeError("Failed to fetch");
+              if (S().listError) return { data: null, error: authErr(S().listError) };
               var raw = S().factors || [];
               var out = { all: [], phone: [], totp: [], webauthn: [], recovery_code: [] };
               raw.forEach(function(f){
@@ -458,6 +462,113 @@ try {
      n7.shown === true && n7.msg.length > 0, JSON.stringify(n7));
   ok("N7 措辞是「还不确定」而不是断定码错", !/动态码不正确/.test(n7.msg), JSON.stringify(n7));
   ok("N7 按钮恢复可用", n7.btnDisabled === false, JSON.stringify(n7));
+
+  // ════════ I 初始化读不到因子表（监督复审指出的路径）════════
+  console.log("\n=== I 读不到因子表 ≠ 一个因子都没有 ===");
+  /* portal/mfa/ 的初始化是三次裸 await：getSession → getAal → listFactors。
+     既不接异常、也不看 error、也没有超时。三种读不到的形态各有各的坏法：
+       抛出        → 整个初始化终止，页面永远停在「正在检查安全状态…」
+       永远不落地  → 同上，连超时都没有
+       返回 error  → factorData 是 null，于是 all=[] totp=null pending=null，
+                     **直接掉进「全新注册」分支去 enroll**
+     第三条最坏：它把「没读到」当成「确实没有」—— 正是 §84.1 在角色上修过的
+     同一个错误，换个地方又犯一次。 */
+  const loadingStuck = async () => cdp.ev(`(()=>{const c=document.getElementById("cardLoading");
+    return !!c && !c.hidden;})()`);
+  const initView = async () => cdp.ev(`(()=>{
+    const err = document.getElementById("enErr");
+    const retry = document.getElementById("enRetry");
+    const h = document.querySelector("#cardEnroll h2");
+    const form = document.getElementById("enrollForm");
+    return { msg: err ? (err.textContent||"").trim() : null,
+             shown: err ? err.classList.contains("show") : false,
+             retry: !!retry && !retry.hidden,
+             title: h ? (h.textContent||"").trim() : null,
+             formHidden: !form || form.hidden,
+             loading: !document.getElementById("cardLoading").hidden };
+  })()`);
+
+  // I-a 返回 {data:null,error}：最坏的一条 —— 会去 enroll
+  await open({ aal: "aal1", factors: VERIFIED, listError: { status: 500, message: "boom" } }, 2600);
+  const ia = await initView();
+  const iaCalls = await calls();
+  ok("I1 读不到因子表时**绝不**接着去 enroll 一个新因子", iaCalls.enroll === 0, JSON.stringify(iaCalls));
+  ok("I2 停下来说清楚，不静默", ia.shown === true && (ia.msg || "").length > 0, JSON.stringify(ia));
+  ok("I3 明写「这不表示你没有设置过」，不把读不到说成没有",
+     /不表示|并不表示/.test(ia.msg || ""), JSON.stringify(ia));
+  ok("I4 给重试出口", ia.retry === true, JSON.stringify(ia));
+  ok("I5 标题不再谎称「启用两步验证」", (ia.title || "") !== "启用两步验证", JSON.stringify(ia));
+  ok("I6 不留一个点了会静默重载的表单", ia.formHidden === true, JSON.stringify(ia));
+
+  // I-b 抛出（断网形态）
+  await open({ aal: "aal1", factors: VERIFIED, listThrow: true }, 2600);
+  const ib = await initView();
+  ok("I7 listFactors 抛出时不再永远停在「正在检查安全状态…」", ib.loading === false, JSON.stringify(ib));
+  ok("I8 抛出时同样说话并给重试", ib.shown === true && ib.retry === true, JSON.stringify(ib));
+  ok("I9 抛出时同样不去 enroll", (await calls()).enroll === 0, JSON.stringify(await calls()));
+
+  // I-c 永远不落地
+  console.log("  （I10 挂起用例要等页面自己的超时闸，约 17 秒）");
+  await open({ aal: "aal1", factors: VERIFIED, slow: { listFactors: 99000 } }, 1500);
+  ok("I10 前提：这一刻还停在「正在检查安全状态…」（挂起确实构造出来了）", await loadingStuck());
+  await sleep(16000);
+  const ic = await initView();
+  ok("I11 一直不落地时有超时兜底，不永远卡在加载态",
+     ic.loading === false && ic.shown === true, JSON.stringify(ic));
+  ok("I12 措辞是「没能确认」而不是「你没有设置过」",
+     /不表示|并不表示|没能确认/.test(ic.msg || ""), JSON.stringify(ic));
+  ok("I13 挂起期间也没有 enroll", (await calls()).enroll === 0, JSON.stringify(await calls()));
+
+  // I-d 会话在 listFactors 期间失效：让位给 watchSession，不抢着报初始化错误
+  await open({ aal: "aal1", factors: VERIFIED, slow: { listFactors: 1200 }, killAfter: 400 }, 3200);
+  ok("I14 会话在读因子表期间失效 → 让位回登录页，不抢着报「读不到」",
+     navLog.some((u) => /\/login\//.test(u)), JSON.stringify(navLog.slice(0, 4)));
+
+  // ════════ T 超时之后，原来那个请求还在跑 ════════
+  console.log("\n=== T 超时不等于取消 ===");
+  /* Promise.race **不会取消**已经发出去的请求。2.116.0 的 verify 成功会
+     _saveSession，会话是真的升到 aal2 的 —— 只是页面还停在挑战卡上。
+     于是：人其实已经通过了，却被留在验证页；他再输一次码重试，
+     TOTP 码一次性，第二次多半失败，页面告诉他「动态码不正确」。
+     本段**不声称**我们取消了 SDK 操作 —— 恰恰相反，T3 就是拿它还在跑当证据。 */
+  console.log("  （T 段要等页面超时闸 + 晚到的回执，约 19 秒）");
+  await open({ aal: "aal1", factors: VERIFIED, slow: { verify: 16000 } }, 2400);
+  await typeCode("chCode", "123456");
+  await cdp.clickReal("#btnCh");
+  await sleep(15600);
+  const t1 = await cdp.ev(`(()=>{const e=document.getElementById("chErr");
+    return { msg:(e.textContent||"").trim(), shown:e.classList.contains("show"),
+             here: location.pathname };})()`);
+  ok("T1 先看到超时提示（措辞是「还不确定」，不是断定失败）",
+     t1.shown === true && /不确定/.test(t1.msg), JSON.stringify(t1));
+  ok("T1b 这时人还在验证页上", t1.here === "/portal/mfa/", JSON.stringify(t1));
+  await sleep(3500);
+  const t2here = await cdp.ev(`location.pathname`);
+  ok("T2 晚到的成功回执也要认：不把已经验过的人留在验证页", t2here === "/help/", "落点=" + t2here);
+  const t2calls = await calls();
+  ok("T3 全程只发出过一次 verify —— 超时没有、也不可能取消它（这正是 T2 的前提）",
+     t2calls.verify === 1, JSON.stringify(t2calls));
+
+  // T4 超时之后用户自己重试：先问真实 AAL，别拿一次性的码去撞第二次
+  console.log("  （T4 同样要等一次超时闸，约 17 秒）");
+  await open({ aal: "aal1", factors: VERIFIED, slow: { verify: 99000 } }, 2400);
+  await typeCode("chCode", "123456");
+  await cdp.clickReal("#btnCh");
+  await sleep(15800);
+  const t4mid = await calls();
+  ok("T4 前提：第一次已超时，challenge/verify 各发过一次",
+     t4mid.challenge === 1 && t4mid.verify === 1, JSON.stringify(t4mid));
+  /* 那个还在跑的 verify 其实已经把会话升到了 aal2
+     （真实 SDK 的 _saveSession 就是这个效果）—— 用 stub 的同一个开关模拟。 */
+  await cdp.ev(`(()=>{try{sessionStorage.setItem("verified","1");}catch(e){} return true;})()`);
+  await typeCode("chCode", "654321");
+  await cdp.ev(`(()=>{const f=document.getElementById("chForm"); if(f) f.requestSubmit(); return true;})()`);
+  await sleep(2800);
+  const t4 = await calls();
+  ok("T4b 重试时先问真实 AAL，发现已经是 aal2 就直接放行，不再发第二次 challenge",
+     t4.challenge === 1, JSON.stringify(t4));
+  ok("T4c 并且真的把人送到 next，而不是留在验证页报「动态码不正确」",
+     (await cdp.ev(`location.pathname`)) === "/help/", "落点=" + (await cdp.ev(`location.pathname`)));
 
   // ════════ A 回跳 / 会话 / 闸门（round1+2 成果的定向回归）════════
   console.log("\n=== A 回跳与闸门 ===");

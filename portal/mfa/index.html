@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>两步验证 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609122046">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609122241">
 <style>
 .qr{display:grid;place-items:center;margin:14px 0;padding:14px;border:1px solid var(--line);border-radius:12px;background:#fff}
 .qr svg,.qr img{width:190px;height:190px}
@@ -68,75 +68,25 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609122046"></script>
-<script src="../../assets/js/portal/auth.js?v=202609122046"></script>
+<script src="../../assets/js/supabase-config.js?v=202609122241"></script>
+<script src="../../assets/js/portal/auth.js?v=202609122241"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
   if (!A.CONFIGURED) return A.renderDisabled();
   // 这一页同样不走 Shell.mount：监听自己挂，否则会话失效在这里是静默的（§5.6）
   A.watchSession();
-  const session = await A.getSession();
-  /* 没有会话 → 去登录页。**要把当前位置连同 next 一起带上**：
-     原来直接 replace 到 login/，用户原本要去的那一页（就在自己的 ?next= 里）
-     被整个丢掉，登完只能落到 role home。withNext 会把本页连 query 一起编进去，
-     所以登完先回 MFA、过完两步验证再去目的地，一步不少。 */
-  if (!session) return location.replace(A.withNext("login/"));
-  document.getElementById("btnOut").addEventListener("click", () => A.signOut());
 
   const $ = (id) => document.getElementById(id);
   const say = (el, msg) => { el.textContent = msg; el.classList.add("show"); };
   const clear = (el) => { el.textContent = ""; el.classList.remove("show"); };
+  const show = (id) => { for (const s of ["cardLoading","cardEnroll","cardChallenge"]) $(s).hidden = (s !== id); };
   const RESET_HINT = "请联系教务同工（amasthai2026@gmail.com）人工核验身份后由系统管理员重置两步验证；重置操作会记录审计日志。";
 
-  // 同源收口走共享层：`//evil.example` 也以 "/" 开头，旧判据会把刚过完
-  // 两步验证的已登录用户送到站外去。nextFromQuery 在同源校验之外还拒绝
-  // 指回本页的 next —— 否则过完验证又回到验证页，原地打转。
-  const next = A.nextFromQuery() || (A.ROOT + "portal/");
-  const show = (id) => { for (const s of ["cardLoading","cardEnroll","cardChallenge"]) $(s).hidden = (s !== id); };
-  /* 回跳前问一次会话还在不在。这一页每条路都是 await 之后才跳：
-     aal2 直接回跳要等 getAal，验证成功要等 mfa.verify。会话在那段时间里断掉，
-     返回的那一刻照样 replace 进受保护区域 —— 拿死会话做导航决策。
-     让位之后由 watchSession 统一带人回登录页，**不降低任何 MFA 要求**。 */
-  const goBack = () => { if (A.sessionEnded()) return; location.replace(next); };
-
-  const aal = await A.getAal();
-  if (aal.current === "aal2") return goBack();
-
-  const { data: factorData } = await A.client.auth.mfa.listFactors();
-  if (A.sessionEnded()) return;            // 晚返回的渲染同样让位
-
-  /* listFactors().totp 在 supabase-js 2.116.0 里**只含已验证**的因子
-     （产物已核，不是文档推测）：
-       for (t of user.factors) { all.push(t);
-         t.status === "verified" && Array.isArray(n[t.factor_type]) && n[t.factor_type].push(t) }
-     所以上次开了头没做完的那个 unverified 因子，**只在 all 里**。
-
-     原来这里只看 totp[0]，看不见它，于是每次进来都再 enroll 一个新的。
-     而服务端对同名因子有唯一性约束，再 enroll 就直接失败，页面又只把英文
-     原文抛给用户 —— 人被锁在这一页：进不去工作台，也没有任何出路。 */
-  const all = (factorData && factorData.all) || [];
-  const totp = (factorData && factorData.totp && factorData.totp[0]) || null;
-  const pending = all.find((f) => f && f.factor_type === "totp" && f.status === "unverified") || null;
-
-  /* ── 共用：challenge → verify ────────────────────────────────────────
-     两个表单（补完注册 / 日常挑战）做的事一模一样，原来各写一遍，
-     于是同样的毛病各犯一次。收成一处，四件事一起做对：
-
-       ① try/catch。2.116.0 的 mfa.* 是
-            catch(e){ if (isAuthError(e)) return {data:null,error:e}; throw e }
-          —— 断网那种 TypeError 是**重新抛出**的，不是返回 {error}。
-          原来没有 try/catch，异常一路穿出 submit 处理器：按钮停在原地、
-          一句话都不说，用户只看到自己点了一下什么也没发生。
-       ② 不把「连不上」说成「动态码不正确」。判据复用 A.classifyAuthError，
-          与登录/注册同一份。说错的代价很实：用户在网络抖动时反复重打验证码，
-          很快撞上限流，被自己的工作台锁在门外 —— 而他什么都没做错。
-       ③ 一次只跑一遍。TOTP 码是一次性的：连点两次，第二次 verify 必然失败，
-          于是明明第一次已经成功，用户看到的却是「动态码不正确」。
-          闸放在处理器里，不只靠按钮 disabled —— 回车、自动填充、脚本
-          触发的提交都绕得开按钮。
-       ④ 超时兜底。一直没有回音时说「还不确定」，不说「失败了」，
-          也不把按钮永远留在「验证中…」。 */
+  /* ── 超时闸与判据 ───────────────────────────────────────────────────
+     初始化和提交都要用，所以定义在最前面。
+     **withTimeout 只是不再等，它取消不了任何东西** —— 已经发出去的请求
+     还在跑。这一点在下面 acceptLate 那里是要认真处理的，不是可以含糊的。 */
   const TIMEOUT_MS = 15000;
   const TIMED_OUT = { reason: "timeout" };
   const UNCLEAR = { reason: "unclear" };
@@ -149,6 +99,114 @@
       new Promise((_, rej) => { t = setTimeout(() => rej(TIMED_OUT), TIMEOUT_MS); }),
     ]);
   }
+
+  /* 初始化任何一步读不到时的统一停靠。藏掉一切会让人误以为可以继续操作的
+     东西，只留一句可读的话和一个重试，并且**把标题改对** ——
+     标题还写着「启用两步验证」，等于对着一个什么都没读到的页面宣称
+     它正在帮你启用。 */
+  function stopWithRetry(msg, title) {
+    const h = document.querySelector("#cardEnroll h2");
+    if (h) h.textContent = title;
+    document.title = title + " | AMAS";
+    $("enrollIntro").hidden = true;
+    $("enrollResume").hidden = true;
+    $("enrollQr").hidden = true;
+    $("enrollForm").hidden = true;
+    say($("enErr"), msg);
+    $("enRetry").hidden = false;
+    $("enRetry").onclick = () => location.reload();
+    show("cardEnroll");
+  }
+
+  /** 读不到 ≠ 没有。话不能说死，而且必须给重试。
+      与 renderBlocked 的「这不表示你没有权限」是同一条纪律。 */
+  function readErrText(e, what) {
+    const tail = "（这不表示你没有设置过两步验证）。";
+    if (e === TIMED_OUT) return "等了太久，没能确认你的" + what + "。请稍后重试" + tail;
+    const c = A.classifyAuthError(e);
+    if (c.kind === "rejected") return "没能确认你的" + what + tail + "请稍后重试；如果一直这样，" + RESET_HINT;
+    if (c.reason === "network" || c.reason === "exception")
+      return "网络连不上，没能确认你的" + what + "。请检查网络后重试" + tail;
+    if (c.reason === "server") return "服务器暂时出错，没能确认你的" + what + "。请稍后重试" + tail;
+    return "没能确认你的" + what + "。请稍后重试" + tail;
+  }
+  const READ_TITLE = "没能确认两步验证状态";
+
+  /* ── 初始化：三步，每一步都要能说话 ─────────────────────────────────
+     这三次 await 原来全是裸的：不接异常、不看 error、没有超时。
+     按 2.116.0 的契约（非 AuthError 是 throw 的），三种读不到各有各的坏法：
+       抛出       → 整个初始化终止，页面永远停在「正在检查安全状态…」
+       永远不落地 → 同上，连超时都没有
+       返回 error → factorData 是 null，于是 all=[] totp=null pending=null，
+                    **直接掉进「全新注册」分支去 enroll**
+     第三条最坏：把「没读到」当成「确实没有」。一个明明已经设置过两步验证
+     的老师，会被一声不吭地请去扫一个新的二维码。
+     这正是 §84.1 在角色上修过的同一个错误，换个地方又犯了一次。 */
+
+  // ① 会话
+  let session = null;
+  try { session = await withTimeout(A.getSession()); }
+  catch (e) { return stopWithRetry(readErrText(e, "登录状态"), READ_TITLE); }
+  /* 注意这里只有**确实读到了「没有会话」**才去登录页。读不到是上面那一支，
+     不能把「没读到」当成「没登录」—— 那是同一个错误的第三种写法。 */
+  if (!session) return location.replace(A.withNext("login/"));
+  $("btnOut").addEventListener("click", () => A.signOut());
+
+  // 同源收口走共享层：`//evil.example` 也以 "/" 开头，旧判据会把刚过完
+  // 两步验证的已登录用户送到站外去。nextFromQuery 在同源校验之外还拒绝
+  // 指回本页的 next —— 否则过完验证又回到验证页，原地打转。
+  const next = A.nextFromQuery() || (A.ROOT + "portal/");
+  /* 回跳前问一次会话还在不在；并且**只跳一次** —— 正常路径与「晚到的回执」
+     两条路都会调它（见 acceptLate），不设闸就会发两次导航。 */
+  let leaving = false;
+  const goBack = () => { if (A.sessionEnded() || leaving) return; leaving = true; location.replace(next); };
+
+  // ② AAL
+  let aal = null;
+  try { aal = await withTimeout(A.getAal()); }
+  catch (e) { if (A.sessionEnded()) return; return stopWithRetry(readErrText(e, "两步验证状态"), READ_TITLE); }
+  if (A.sessionEnded()) return;
+  if (aal && aal.current === "aal2") return goBack();
+
+  // ③ 因子表
+  let factorData = null, listError = null;
+  try {
+    const r = await withTimeout(A.client.auth.mfa.listFactors());
+    factorData = r && r.data; listError = (r && r.error) || null;
+  } catch (e) { listError = e; }
+  if (A.sessionEnded()) return;            // 会话失效让位给 watchSession，不抢着报「读不到」
+  if (listError || !factorData) return stopWithRetry(readErrText(listError, "两步验证状态"), READ_TITLE);
+
+  /* listFactors().totp 在 supabase-js 2.116.0 里**只含已验证**的因子
+     （产物已核，不是文档推测）：
+       for (t of user.factors) { all.push(t);
+         t.status === "verified" && Array.isArray(n[t.factor_type]) && n[t.factor_type].push(t) }
+     所以上次开了头没做完的那个 unverified 因子，**只在 all 里**。
+
+     原来这里只看 totp[0]，看不见它，于是每次进来都再 enroll 一个新的。
+     而服务端对同名因子有唯一性约束，再 enroll 就直接失败，页面又只把英文
+     原文抛给用户 —— 人被锁在这一页：进不去工作台，也没有出路。 */
+  const all = (factorData && factorData.all) || [];
+  const totp = (factorData && factorData.totp && factorData.totp[0]) || null;
+  const pending = all.find((f) => f && f.factor_type === "totp" && f.status === "unverified") || null;
+
+  /* ── 共用：challenge → verify ────────────────────────────────────────
+     两个表单（补完注册 / 日常挑战）做的事一模一样，原来各写一遍，
+     于是同样的毛病各犯一次。收成一处，几件事一起做对：
+
+       ① try/catch。2.116.0 的 mfa.* 是
+            catch(e){ if (isAuthError(e)) return {data:null,error:e}; **throw e** }
+          —— 断网那种 TypeError 是重新抛出的。原来没有 try/catch，
+          异常一路穿出 submit 处理器：按钮停在原地、一句话都不说。
+       ② 不把「连不上」说成「动态码不正确」。判据复用 A.classifyAuthError，
+          与登录/注册同一份。说错的代价很实：用户在网络抖动时反复重打验证码，
+          很快撞上限流，被自己的工作台锁在门外 —— 而他什么都没做错。
+       ③ 一次只跑一遍。TOTP 码是一次性的：连点两次，第二次 verify 必然失败，
+          于是明明第一次已经成功，用户看到的却是「动态码不正确」。
+          闸放在处理器里，不只靠按钮 disabled —— 回车、自动填充、脚本
+          触发的提交都绕得开按钮。
+       ④ 超时兜底，措辞是「还不确定」不是「失败了」。
+       ⑤ **超时不等于取消**（见 acceptLate 与 lastUnclear）。 */
   function verifyErrText(e) {
     if (e === TIMED_OUT) return "等了太久还没有结果，这一次验证有没有完成还不确定。请稍后再试（这不是动态码的问题）。";
     if (e === UNCLEAR) return "没能确认验证结果，请稍后再试（这不是动态码的问题）。";
@@ -162,8 +220,24 @@
     if (c.reason === "server") return "服务器暂时出错，没能完成验证（这不是动态码的问题）。请稍后再试。";
     return "没能确认验证结果，请稍后再试（这不是动态码的问题）。";
   }
+  function isUnclear(e) {
+    if (e === TIMED_OUT || e === UNCLEAR) return true;
+    return A.classifyAuthError(e).kind !== "rejected";
+  }
+
+  /* Promise.race 只是不再等，**它取消不了已经发出去的 verify**。
+     而 2.116.0 的 verify 一旦成功就 _saveSession —— 会话是**真的**升到 aal2 的，
+     只是页面还停在挑战卡上。放着不管的后果很具体：
+       · 人其实已经通过了，却被留在验证页；
+       · 他再输一码重试，TOTP 码一次性，第二次多半失败，
+         页面于是告诉他「动态码不正确」—— 而他早就通过了。
+     所以晚到的成功也要认。goBack 自带只跳一次的闸，重复调用无害。 */
+  function acceptLate(p) {
+    p.then((r) => { if (r && !r.error) goBack(); }).catch(() => {});
+  }
 
   let busy = false;
+  let lastUnclear = false;                 // 上一次的结果是「不确定」（超时/连不上/读不出）
   async function runVerify(factorId, codeId, errEl, btn, label) {
     if (busy) return;                                        // ③
     clear(errEl);
@@ -171,15 +245,27 @@
     if (!/^\d{6}$/.test(code)) { say(errEl, "请输入 6 位数字。"); return; }
     busy = true; btn.disabled = true; btn.textContent = "验证中…";
     try {
+      /* 上一次「不确定」之后再来一次：**先问真实 AAL**。
+         上一次可能只是回执没等到，人其实已经通过了。不问就直接再发
+         challenge，等于拿一个一次性的码去撞第二次 —— 必然失败，
+         然后页面告诉他「动态码不正确」。 */
+      if (lastUnclear) {
+        const a = await withTimeout(A.getAal());
+        if (A.sessionEnded()) return;
+        if (a && a.current === "aal2") return goBack();
+      }
       const ch = await withTimeout(A.client.auth.mfa.challenge({ factorId }));
       if (ch && ch.error) throw ch.error;
       const cid = ch && ch.data && ch.data.id;
       if (!cid) throw UNCLEAR;                               // 形状不对＝结果不明，别顺手当成码错
-      const vr = await withTimeout(A.client.auth.mfa.verify({ factorId, challengeId: cid, code }));
+      const vp = A.client.auth.mfa.verify({ factorId, challengeId: cid, code });
+      acceptLate(vp);                                        // ⑤ 晚到的成功也算数
+      const vr = await withTimeout(vp);
       if (vr && vr.error) throw vr.error;
       if (A.sessionEnded()) return;                          // 晚返回：会话已断就别再往受保护区走
       return goBack();                                       // 成功：不解锁，页面正在跳走
     } catch (e) {
+      lastUnclear = isUnclear(e);
       say(errEl, verifyErrText(e));
     }
     btn.disabled = false; btn.textContent = label; busy = false;   // 错误不是单向门
@@ -226,14 +312,9 @@
   if (A.sessionEnded()) return;
 
   if (enrollError || !enroll || !enroll.totp) {
-    $("enrollIntro").hidden = true;
-    $("enrollQr").hidden = true;
-    $("enrollForm").hidden = true;                            // 见 HTML 里那段注释：留着它最坏
-    say($("enErr"), enrollErrText(enrollError));
-    $("enRetry").hidden = false;
-    $("enRetry").addEventListener("click", () => location.reload());
-    show("cardEnroll");
-    return;
+    /* 留着那个表单最坏 —— 它没有 submit 监听，点「确认并启用」会触发原生
+       表单提交，页面静默重载，用户以为自己点坏了。整个藏掉，给可读中文与重试。 */
+    return stopWithRetry(enrollErrText(enrollError), "没能开始两步验证设置");
   }
 
   showQr(enroll.totp.qr_code);
