@@ -78,6 +78,23 @@
     return ROOT + ROLE_HOME[distinct[0]];
   }
 
+  /** 登录失败的分类。判据与注册共用 classifyAuthError（同一份 SDK 错误契约），
+      但结论不同：**登录失败没有副作用** —— 没建账号、没发信、没写任何东西，
+      所以「结果不明」不必锁住按钮，用户可以直接再试。
+      要紧的只有一件：**不能把「连不上」说成「密码不对」**。
+      而明确被拒时一律统一文案，不区分账号是否存在（§5.3）。 */
+  function signInErrorCode(e) {
+    const c = classifyAuthError(e);
+    if (c.kind === "unknown") {
+      if (c.reason === "network" || c.reason === "exception") return "network";
+      if (c.reason === "server") return "server";
+      return "unknown";
+    }
+    // 明确拒绝。429 不涉及账号是否存在，可以如实说；其余一律统一文案。
+    if (e && e.status === 429) return "rate_limited";
+    return "bad_credentials";
+  }
+
   /** 登录页调用：邮箱或学号 + 密码。学号走受保护 Edge Function（§5.3），不在前端解析别名 */
   async function signIn(identifier, password) {
     if (!CONFIGURED) return { error: "not_configured" };
@@ -85,8 +102,17 @@
     if (!id || !password) return { error: "invalid_input" };
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(id);
     if (isEmail) {
-      const { error } = await client.auth.signInWithPassword({ email: id.toLowerCase(), password });
-      if (error) return { error: "bad_credentials" };
+      /* 以前这里是 `if (error) return { error: "bad_credentials" }` ——
+         断网、网关 5xx、响应解析不出来，全都被说成「账号或密码不正确」。
+         那是在用户什么都没做错的时候指责用户，还会让人反复改密码。 */
+      let r;
+      try {
+        r = await client.auth.signInWithPassword({ email: id.toLowerCase(), password });
+      } catch (e) {
+        // SDK 只重新抛出它自己都不认的错误，这种更谈不上是凭据问题
+        return { error: signInErrorCode(e) };
+      }
+      if (r && r.error) return { error: signInErrorCode(r.error) };
       return {};
     }
     // 学号/教职工号：调用服务端登录代理
@@ -99,10 +125,14 @@
       if (!res.ok) {
         if (res.status === 404) return { error: "alias_login_unavailable" };
         if (res.status === 429) return { error: "rate_limited" };
+        // 5xx 和 408 同样不是凭据问题，不能说成密码不对
+        if (res.status >= 500 || res.status === 408) return { error: "server" };
         return { error: "bad_credentials" };
       }
-      const payload = await res.json();
-      if (!payload || !payload.access_token) return { error: "bad_credentials" };
+      let payload = null;
+      try { payload = await res.json(); }
+      catch (e) { return { error: "unknown" }; }   // 网关返回 HTML 之类：结果不明，不是凭据错
+      if (!payload || !payload.access_token) return { error: "unknown" };
       const { error } = await client.auth.setSession({
         access_token: payload.access_token,
         refresh_token: payload.refresh_token,

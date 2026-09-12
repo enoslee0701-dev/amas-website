@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>登录 | AMAS 亚洲宣教神学院</title>
 <link rel="icon" href="../assets/img/favicon.png">
-<link rel="stylesheet" href="../assets/css/portal.css?v=202609121610">
+<link rel="stylesheet" href="../assets/css/portal.css?v=202609121623">
 </head>
 <body>
 <div class="wrap">
@@ -61,8 +61,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../assets/js/supabase-config.js?v=202609121610"></script>
-<script src="../assets/js/portal/auth.js?v=202609121610"></script>
+<script src="../assets/js/supabase-config.js?v=202609121623"></script>
+<script src="../assets/js/portal/auth.js?v=202609121623"></script>
 <script>
 (function(){
   const A = window.AmasAuth;
@@ -73,9 +73,15 @@
     bad_credentials: "账号或密码不正确。",           // 统一文案，不区分账号是否存在（§5.3）
     rate_limited: "尝试次数过多，请 15 分钟后再试。",
     alias_login_unavailable: "学号登录暂未开通，请先使用邮箱登录。",
-    network: "网络异常，请稍后再试。",
+    /* 下面三条是「没能完成登录」，不是「登录被拒」。都要明写不是账号密码的问题 ——
+       否则用户会去改一个本来没错的密码，甚至以为自己账号出了事。 */
+    network: "网络连不上，没能完成登录。请检查网络后重试（这不是账号或密码的问题）。",
+    server: "服务器暂时出错，没能完成登录。请稍后再试（这不是账号或密码的问题）。",
+    unknown: "没能确认登录结果，请稍后再试（这不是账号或密码的问题）。",
   };
-  function showErr(code){ err.textContent = ERR[code] || ERR.bad_credentials; err.classList.add("show"); }
+  /* 兜底**绝不能**是 bad_credentials：那等于一遇到没见过的状况就指责用户密码错。
+     认不出来的就老实说认不出来。 */
+  function showErr(code){ err.textContent = ERR[code] || ERR.unknown; err.classList.add("show"); }
 
   if (!A.CONFIGURED) {
     const offline = A.CONFIG_STATE === "sdk-unavailable";
