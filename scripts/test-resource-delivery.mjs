@@ -283,10 +283,14 @@ try {
   ok("G2 把 HTML 命名成 .pdf 时魔数判定识破", sniff(fake) === "HTML", sniff(fake));
   fs.unlinkSync(fake);
 
-  // G3 探测器不会对不存在的文件说 ok
+  // G3 探测器不会对不存在的文件说 ok。
+  // 契约已从布尔改成三态："ok" / "missing" / "timeout" —— 超时必须与不存在分开，
+  // 因为前者该让人重试，后者不该（见 test-resource-wait 的 C 组）。
   await open("zh");
   const g3 = await cdp.ev(`resourceReachable('assets/files/__this-does-not-exist__.pdf')`);
-  ok("G3 探测不存在的文件返回 false", g3 === false);
+  ok("G3 探测不存在的文件返回 missing（不是 ok，也不是 timeout）", g3 === "missing", String(g3));
+  const g3b = await cdp.ev(`resourceReachable('assets/files/AMAS-student-handbook.pdf')`);
+  ok("G3b 探测存在的文件返回 ok", g3b === "ok", String(g3b));
 
   cdp.ws.close();
 } catch (e) {

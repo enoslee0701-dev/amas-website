@@ -196,6 +196,7 @@ try {
   };
   const status = async () => cdp.ev(`(()=>{const b=document.querySelector('#uploadForm .upload-status');
     return b ? { 文案:(b.textContent||'').trim(), 成功态:b.classList.contains('is-ok'),
+                 待确认:b.classList.contains('is-pending'),
                  role:b.getAttribute('role'), 聚焦:document.activeElement===b } : null;})()`);
   const inputs = async () => cdp.ev(`(()=>{const f=document.getElementById('uploadForm');
     return { 姓名:f.querySelector('input[name="姓名"]').value,
@@ -262,9 +263,15 @@ try {
   const sE = await status();
   const btnE = await cdp.ev(`(()=>{const b=document.querySelector('#uploadForm button[type=submit]');
     return { disabled:b.disabled, busy:b.getAttribute('aria-busy') };})()`);
-  ok("页面上给出了提交回执（不再一声不吭）", !!sE && sE.文案.length > 0, "无状态");
-  ok("回执是成功态样式", !!sE && sE.成功态 === true);
-  ok("回执说明了到哪里看确认结果", !!sE && /新打开的页面/.test(sE.文案), sE ? sE.文案 : "");
+  ok("页面上给出了回执（不再一声不吭）", !!sE && sE.文案.length > 0, "无状态");
+  // 关键：本页只是触发了原生 POST，响应落在另一个窗口里读不到。
+  // 用绿色成功样式说「已提交」＝ 把交接当成投递成功。必须是中性待确认态。
+  ok("回执**不是**成功样式", !!sE && sE.成功态 === false, "用了成功样式，等于谎称投递成功");
+  ok("回执是中性待确认样式", !!sE && sE.待确认 === true);
+  ok("回执明说本页无法确认是否送达", !!sE && /无法确认/.test(sE.文案), sE ? sE.文案 : "");
+  ok("回执要求去确认页核实", !!sE && /确认页/.test(sE.文案), sE ? sE.文案 : "");
+  ok("回执给出没看到确认页时的退路", !!sE && /重试|联系/.test(sE.文案), sE ? sE.文案 : "");
+  ok("回执说明输入已保留", !!sE && /已保留/.test(sE.文案), sE ? sE.文案 : "");
   ok("提交期间按钮锁定", btnE.disabled === true, JSON.stringify(btnE));
   ok("提交期间标了 aria-busy", btnE.busy === "true");
   const lE = await submitLog();
