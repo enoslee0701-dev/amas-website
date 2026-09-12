@@ -148,6 +148,11 @@ window.supabase = {
         var sc = S();
         var r = (sc.rpc && sc.rpc[name]);
         if (typeof r === "function") r = r(args);
+        /* 默认值要贴住真实契约：update_my_contact 成功时返回
+           jsonb_build_object('ok', true)（migrations/0017_student_experience.sql
+           函数体最后一句）。默认给 {data:null} 是不真实的 —— 真实函数不会那样返回，
+           拿它当「成功」去断言，测的就不是真实契约。 */
+        if (!r && name === "update_my_contact") r = { data: { ok: true }, error: null };
         if (!r) r = { data: null, error: null };
         return reply({ data: r.data, error: r.error || null, status: r.error ? 500 : 200 });
       },
