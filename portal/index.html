@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>选择工作空间 | AMAS</title>
 <link rel="icon" href="../assets/img/favicon.png">
-<link rel="stylesheet" href="../assets/css/portal.css?v=202609121833">
+<link rel="stylesheet" href="../assets/css/portal.css?v=202609121941">
 </head>
 <body>
 <div class="wrap">
@@ -27,14 +27,21 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../assets/js/supabase-config.js?v=202609121833"></script>
-<script src="../assets/js/portal/auth.js?v=202609121833"></script>
+<script src="../assets/js/supabase-config.js?v=202609121941"></script>
+<script src="../assets/js/portal/auth.js?v=202609121941"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
+  /* 这一页不走 Shell.mount，会话失效的监听得自己挂，否则是完全静默的（§5.6）。
+     挂在守卫之前 —— 守卫还在等 my_roles 的这段时间里会话一样会断。 */
+  A.watchSession();
   const ctx = await A.requireRole(["applicant","student","teacher","mentor","registrar","finance","content_admin","academic_admin","super_admin"]);
   if (!ctx) return;
   const p = await A.getProfile();
+  /* 晚返回的渲染不能把一个已经结束的会话演成还在：下面既要写身份、
+     又可能在「只有一个空间」时直接 replace 进那个空间 —— 那等于拿一个
+     死掉的会话做导航决策。会话已断就让位，由 watchSession 带人回登录页。 */
+  if (A.sessionEnded()) return;
   document.getElementById("who").textContent = (p && (p.display_name || p.email)) || "";
   document.getElementById("btnOut").addEventListener("click", () => A.signOut());
 

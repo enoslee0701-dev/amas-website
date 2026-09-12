@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>管理后台 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609121833">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609121941">
 <style>
 table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 .list th,.list td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top}
@@ -66,14 +66,19 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609121833"></script>
-<script src="../../assets/js/portal/auth.js?v=202609121833"></script>
+<script src="../../assets/js/supabase-config.js?v=202609121941"></script>
+<script src="../../assets/js/portal/auth.js?v=202609121941"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
+  /* 这一页也不走 Shell.mount（交接文档只列了 portal/ 与 portal/mfa/，
+     本轮查出它是同一缺口的第三处，而且是权限最高的那一页）。
+     监听自己挂，否则管理员的会话失效在这里是完全静默的（§5.6）。 */
+  A.watchSession();
   const ctx = await A.requireRoleAal2(["academic_admin","super_admin","registrar"]);  // 角色 + MFA
   if (!ctx) return;
   const p = await A.getProfile();
+  if (A.sessionEnded()) return;            // 晚返回的渲染让位，不拿死会话摆出管理界面
   document.getElementById("who").textContent = (p && (p.display_name || p.email)) || "";
   document.getElementById("btnOut").addEventListener("click", () => A.signOut());
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -108,6 +113,7 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
       .select("id, user_id, status, submitted_data, submitted_at, reviewed_at, profiles:user_id(display_name,email)")
       .order("submitted_at", { ascending: false, nullsFirst: false })
       .limit(200);
+    if (A.sessionEnded()) return;          // 同上：队列也是 await 之后才渲染
     const qErr = document.getElementById("qErr"); qErr.classList.remove("show");
     if (error) { qErr.textContent = "读取失败：" + error.message; qErr.classList.add("show"); return; }
     const rows = data || [];

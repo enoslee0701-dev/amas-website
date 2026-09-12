@@ -325,6 +325,86 @@
     location.replace(ROOT + "login/");
   }
 
+  /* ── 会话失效监听（§5.6）────────────────────────────────────────────
+     这段原先只长在 shell.js 的 Shell.mount 里，于是门户下**不走外壳的三页**
+     （portal/index.html 选择工作空间、portal/mfa/ 两步验证、
+       portal/admin/ 管理总览）在会话失效时是**完全静默**的：
+     令牌刷新失败 → SDK 经 _removeSession 发出 SIGNED_OUT → 没有人听 →
+     页面继续摆着身份与入口，用户点下去才一路 401，自己不知道已经被登出。
+     所以实现挪到这里共用，外壳与那三页调同一份，不各写一遍。
+
+     ① 只认 SIGNED_OUT。supabase-js v2 的事件表是 INITIAL_SESSION /
+        SIGNED_IN / SIGNED_OUT / PASSWORD_RECOVERY / TOKEN_REFRESHED /
+        USER_UPDATED（官方 JS 参考 auth-onauthstatechange，2026-09-12 核对）。
+        **没有 `TOKEN_REFRESHED_FAILED` 这个事件** —— 曾经监听过它，那一支
+        永远不会执行，留着只制造「刷新失败已处理」的假象。刷新失败最终就是
+        经 _removeSession 发出 SIGNED_OUT，兜住它的一直是这一支。别再加回去。
+
+     ② 回调保持**同步**，而且不在里面调任何 SDK 方法。官方对这个回调的说法是
+        「safe to use without an async function as callback」；回调是在 auth
+        的锁内被调用的，在里面 await SDK 会把自己锁死。导航也用 setTimeout
+        推到回调之外再做。
+
+     ③ **只订阅一次**。页面脚本、外壳、将来别的调用方可能各调一次，重复订阅
+        会让同一次失效弹多次提示、发多次导航，互相竞争。
+
+     ④ 主动退出与过期共用 SIGNED_OUT 这一个事件，必须分开：自己点退出的人
+        不该被告知「登录已过期」（不实），也不该被带上 ?next=<刚离开的那一页>
+        下次登录又被悄悄拖回去。
+
+     ⑤ sessionEnded() 是给**晚返回的 async** 用的。那三页都是 await 之后才
+        渲染或跳转；会话在 await 期间断掉，返回那一刻代码照样把人送进受保护
+        区域 —— 等于拿一个已经死掉的会话做导航决策。调用方在 await 之后、
+        渲染或跳转之前问一次，该让位就让位。 */
+  let sessionWatch = null;
+  let sessionOver = false;
+
+  /** 会话是否已经结束（过期或主动退出）。晚返回的 async 渲染/导航据此让位。 */
+  function sessionEnded() { return sessionOver; }
+
+  /** 内置提示。不走外壳的三页没有 ui.js，不能依赖 AmasUI.toast；
+      也不能像 renderBlocked 那样整段换掉 body —— 那会把用户正在填的
+      验证码一起抹掉，而这一刻页面还要停 1.2 秒才跳走。 */
+  function sessionNotice(text) {
+    let el = document.getElementById("amasSessionNotice");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "amasSessionNotice";
+      el.setAttribute("role", "alert");
+      el.style.cssText = "position:fixed;left:50%;top:16px;transform:translateX(-50%);z-index:9999;" +
+        "box-sizing:border-box;max-width:92vw;padding:12px 20px;border-radius:10px;" +
+        "background:#b3261e;color:#fff;text-align:center;" +
+        "font:500 14px/1.6 'Microsoft YaHei',sans-serif;box-shadow:0 6px 22px rgba(16,47,85,.24)";
+      document.body.appendChild(el);
+    }
+    el.textContent = text;
+  }
+
+  /** 挂上会话失效监听。重复调用只订阅一次，返回同一个订阅句柄。
+      opts.notify —— 自定义提示（外壳传 AmasUI.toast）；省略时用内置提示。 */
+  function watchSession(opts) {
+    if (!client) return null;
+    if (sessionWatch) return sessionWatch;
+    const o = opts || {};
+    const notify = typeof o.notify === "function" ? o.notify : sessionNotice;
+    const delay = typeof o.delay === "number" ? o.delay : 1200;
+
+    const res = client.auth.onAuthStateChange(function (event) {
+      if (event !== "SIGNED_OUT") return;
+      sessionOver = true;
+      if (leavingOnPurpose) return;            // 自己走的，signOut 负责去向
+      try { notify("登录已过期，正在返回登录页…"); } catch (e) {}
+      // next 连 query 与 hash 一起带上，否则回来时页内位置与筛选条件都没了。
+      // 同源收口仍由登录页的 safePath 把关。
+      const back = location.pathname + location.search + location.hash;
+      setTimeout(function () {
+        location.replace(ROOT + "login/?next=" + encodeURIComponent(back));
+      }, delay);
+    });
+    sessionWatch = (res && res.data && res.data.subscription) || { unsubscribe: function () {} };
+    return sessionWatch;
+  }
+
   /** 门户页守卫：未配置→引导页真实状态；未登录→/login；角色不符→自己的首页（§5.4 禁止越权切换） */
   async function requireRole(allowedRoles) {
     if (!CONFIGURED) {
@@ -520,6 +600,7 @@
   window.AmasAuth = {
     CONFIGURED, CONFIG_STATE, ROOT, client,
     getSession, getRoles, fetchRoles, getProfile, homeForRoles, isSigningOut,
+    watchSession, sessionEnded,
     signIn, signUp, resetPassword, signOut, requireRole, renderDisabled, renderBlocked, safePath,
     getAal, requireRoleAal2, callFn,
   };

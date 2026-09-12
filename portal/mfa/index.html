@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>两步验证 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609121833">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609121941">
 <style>
 .qr{display:grid;place-items:center;margin:14px 0;padding:14px;border:1px solid var(--line);border-radius:12px;background:#fff}
 .qr svg,.qr img{width:190px;height:190px}
@@ -60,12 +60,14 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609121833"></script>
-<script src="../../assets/js/portal/auth.js?v=202609121833"></script>
+<script src="../../assets/js/supabase-config.js?v=202609121941"></script>
+<script src="../../assets/js/portal/auth.js?v=202609121941"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
   if (!A.CONFIGURED) return A.renderDisabled();
+  // 这一页同样不走 Shell.mount：监听自己挂，否则会话失效在这里是静默的（§5.6）
+  A.watchSession();
   const session = await A.getSession();
   if (!session) return location.replace(A.ROOT + "login/");
   document.getElementById("btnOut").addEventListener("click", () => A.signOut());
@@ -74,17 +76,23 @@
   // 两步验证的已登录用户送到站外去。
   const next = A.safePath(new URLSearchParams(location.search).get("next")) || (A.ROOT + "portal/");
   const show = (id) => { for (const s of ["cardLoading","cardEnroll","cardChallenge"]) document.getElementById(s).hidden = (s !== id); };
-  const goBack = () => location.replace(next);
+  /* 回跳前问一次会话还在不在。这一页每条路都是 await 之后才跳：
+     aal2 直接回跳要等 getAal，验证成功要等 mfa.verify。会话在那段时间里断掉，
+     返回的那一刻照样 replace 进受保护区域 —— 拿死会话做导航决策。
+     让位之后由 watchSession 统一带人回登录页，**不降低任何 MFA 要求**。 */
+  const goBack = () => { if (A.sessionEnded()) return; location.replace(next); };
 
   const aal = await A.getAal();
   if (aal.current === "aal2") return goBack();
 
   const { data: factorData } = await A.client.auth.mfa.listFactors();
+  if (A.sessionEnded()) return;            // 晚返回的渲染同样让位
   const totp = (factorData && factorData.totp && factorData.totp[0]) || null;
 
   if (!totp) {
     // ---- 注册流程 ----
     const { data: enroll, error } = await A.client.auth.mfa.enroll({ factorType: "totp", friendlyName: "AMAS TOTP" });
+    if (A.sessionEnded()) return;          // 会话已断，别再摆出一个注册不成的表单
     if (error) { show("cardEnroll"); document.getElementById("enErr").textContent = "无法初始化两步验证：" + error.message; document.getElementById("enErr").classList.add("show"); return; }
     document.getElementById("qrBox").innerHTML = enroll.totp.qr_code;       // Supabase 返回内联 SVG
     document.getElementById("secretBox").textContent = enroll.totp.secret;

@@ -105,28 +105,14 @@
     });
 
     /* 会话失效监听：明确提示，不静默失败（§5.6）。
-       两处纠正：
-
-       ① 原来还监听 `TOKEN_REFRESHED_FAILED` —— supabase-js 2.116.0
-          **根本没有这个事件**（真实事件只有 INITIAL_SESSION / SIGNED_IN /
-          SIGNED_OUT / PASSWORD_RECOVERY / TOKEN_REFRESHED / USER_UPDATED /
-          MFA_CHALLENGE_VERIFIED）。那一支永远不会执行，留着只是制造
-          「刷新失败已处理」的假象。刷新失败最终会经 _removeSession 发出
-          SIGNED_OUT，真正兜住它的一直是下面这一支。
-
-       ② SIGNED_OUT 同样由**用户自己点退出**触发。不加区分的话，
-          主动退出的人会被告知「登录已过期」（不实），而且会被带上
-          ?next=<刚退出的那一页>，下次登录又被悄悄拖回去。 */
-    if (A.client) {
-      A.client.auth.onAuthStateChange((event) => {
-        if (event !== "SIGNED_OUT") return;
-        if (A.isSigningOut && A.isSigningOut()) return;   // 自己走的，signOut 会处理去向
-        U.toast("登录已过期，正在返回登录页…", "err");
-        // next 要连 query 和 hash 一起带上，否则回来时丢掉页内位置与筛选条件
-        const back = location.pathname + location.search + location.hash;
-        setTimeout(() => location.replace(A.ROOT + "login/?next=" + encodeURIComponent(back)), 1200);
-      });
-    }
+       实现已挪到 auth.js 的 watchSession() 共用。原因：门户下有三页
+       （portal/index.html、portal/mfa/、portal/admin/）**不走 Shell.mount**，
+       监听只长在这里的话，那三页上会话失效就是完全静默的。
+       区分主动退出与过期、next 连 query 与 hash 一起带、只订阅一次、
+       以及为什么不能再监听 `TOKEN_REFRESHED_FAILED`（那个事件在
+       supabase-js v2 里根本不存在，别再加回去）—— 全部写在 auth.js 那一处。
+       外壳有 ui.js，所以把提示接到统一的 toast 上。 */
+    A.watchSession({ notify: (m) => U.toast(m, "err") });
 
     // 离线提示
     window.addEventListener("offline", () => U.toast("网络已断开，操作可能无法保存", "err"));
