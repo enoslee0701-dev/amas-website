@@ -802,6 +802,9 @@ html[data-theme="night"] :focus-visible{outline-color:#b7be63}
 .btn[aria-busy="true"]{opacity:.62;pointer-events:none}
 .form-status[data-state="error"]{color:#e08a6a}
 .form-status[data-state="ok"]{color:#c9a85c}
+/* 超时既不是成功也不是失败：请求可能已经送到，只是没等到回应。
+   用独立的警示色，不要和 error 共用 —— 那会让访客以为一定没送出去。 */
+.form-status[data-state="warn"]{color:#d8b24a}
 
 /* ===== 学费明细 ===== */
 .tuition-section{background:var(--paper2)}

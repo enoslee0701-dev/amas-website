@@ -406,6 +406,98 @@ try {
     "A14 负向控制：把提示滚动还原成空操作后，错误提示重新落到卡片可视区之外",
     `state=${revView.state} 在卡片可视区内=${revView.inView} 被裁掉=${revView.clipped}px`);
 
+  // ════ A15–A19 提交超时 ════
+  // 服务器挂住时，原本 await fetch 没有上限，按钮会永远停在「提交中…」：
+  // 访客辛苦填完的一整份资料既送不出去也拿不回来。这正是 AMAS 学员所在的
+  // 泰国 / 中国大陆常见的网络状况，不是边缘情况。
+  //
+  // 安全：全程把 CONFIG.formEndpoint 指向本机一个**永不回应**的地址，
+  // 并把 SUBMIT_TIMEOUT 调短以免测试跑太久。不碰真实 formsubmit。
+  await cdp.send("Page.navigate", { url: `${BASE}/index.html` });
+  await sleep(2000);
+  await cdp.ev(`document.documentElement.style.scrollBehavior='auto'`);
+  await cdp.ev(`(()=>{
+    // 127.0.0.1:1 必然拒绝连接；用一个永远 pending 的 fetch 更贴近「挂住」，
+    // 所以直接替换 fetch，让发往 formEndpoint 的请求永不 settle。
+    CONFIG.formEndpoint = "http://127.0.0.1:9/never-answers";
+    const orig = window.fetch;
+    window.fetch = function(u, opt){
+      if(String(u).indexOf("never-answers") > -1){
+        return new Promise((res, rej) => {
+          if(opt && opt.signal){
+            opt.signal.addEventListener("abort", () => {
+              const e = new Error("aborted"); e.name = "AbortError"; rej(e);
+            });
+          }
+          // 否则永不 settle —— 就是「服务器挂住」
+        });
+      }
+      return orig.apply(this, arguments);
+    };
+    window.SUBMIT_TIMEOUT_ORIG = typeof SUBMIT_TIMEOUT === "number" ? SUBMIT_TIMEOUT : null;
+    return true;})()`);
+  const hasConst = await cdp.ev(`typeof SUBMIT_TIMEOUT === "number" && SUBMIT_TIMEOUT > 0 && SUBMIT_TIMEOUT <= 30000`);
+  results.push([hasConst === true, "A15 提交有超时上限常量（且在合理区间）",
+    `SUBMIT_TIMEOUT=${await cdp.ev(`typeof SUBMIT_TIMEOUT === "number" ? SUBMIT_TIMEOUT : "未定义"`)}`]);
+
+  await cdp.ev(`openApplication()`);
+  await sleep(300);
+  await cdp.ev(`(()=>{
+    const set=(n,v)=>{const f=document.querySelector('[name='+n+']'); if(!f) return;
+      f.value=v; f.dispatchEvent(new Event('input',{bubbles:true}));
+      f.dispatchEvent(new Event('change',{bubbles:true}));};
+    set('fullName','超时测试'); set('gender','male'); set('birth','1990-01'); set('nationality','中国');
+    set('language','mandarin'); set('phone','13800000000'); set('email','a@example.invalid');
+    set('location','清迈'); set('church','教会'); set('churchType','house');
+    set('program','bth'); set('eduLevel','bachelor'); set('motivation','文本');
+    const c=document.querySelector('[name=consent]'); if(c) c.checked=true;
+    showAppStep(4);
+    return true;})()`);
+  await sleep(250);
+  // SUBMIT_TIMEOUT 是 const，测试里改不了它（改了会抛 TypeError）。
+  // 所以这里如实等满真实上限 —— 慢一点，但测的是真正会上线的那个值。
+  const realTimeout = await cdp.ev(`SUBMIT_TIMEOUT`);
+  await cdp.ev(`document.querySelector('#applicationForm').requestSubmit()`);
+  await sleep(600);
+  const during = await cdp.ev(`(()=>{const b=document.querySelector('#submitApplication');
+    return { disabled:b.disabled, busy:b.getAttribute('aria-busy') };})()`);
+  results.push([during.disabled === true && during.busy === "true",
+    "A16 提交在途期间按钮锁定", JSON.stringify(during)]);
+
+  // 等真实上限触发
+  await sleep((typeof realTimeout === "number" ? realTimeout : 15000) + 2000);
+  const afterTimeout = await cdp.ev(`(()=>{const st=document.querySelector('#applicationStatus');
+    const b=document.querySelector('#submitApplication');
+    return { state: st.dataset.state || "", text:(st.textContent||'').trim(),
+             按钮解锁: b.disabled === false,
+             弹窗还开着: document.querySelector('#applicationModal').classList.contains('open'),
+             姓名还在: (document.querySelector('[name=fullName]')||{}).value || "" };})()`);
+  results.push([afterTimeout.state === "warn",
+    "A17 超时用独立的 warn 状态，不冒充 error（请求可能已送达）", `state=${afterTimeout.state}`]);
+  results.push([/无法确认/.test(afterTimeout.text) && /重复/.test(afterTimeout.text),
+    "A18 超时文案明说无法确认是否送达，并提醒不要盲目重投", afterTimeout.text.slice(0, 60)]);
+  results.push([afterTimeout.按钮解锁 === true && afterTimeout.弹窗还开着 === true && afterTimeout.姓名还在 === "超时测试",
+    "A19 超时后按钮解锁、弹窗不关、填写内容原样保留", JSON.stringify(afterTimeout)]);
+
+  // A20 负向控制：换成**立刻失败的普通网络错**（不是超时）。
+  // 若 warn 状态是随便哪种失败都会出现，那 A17 就是假绿。
+  // 正确行为是：普通失败走 error，只有超时走 warn。
+  await cdp.ev(`(()=>{
+    const orig = window.fetch;
+    window.fetch = function(u){
+      if(String(u).indexOf("never-answers") > -1) return Promise.reject(new TypeError("Failed to fetch"));
+      return orig.apply(this, arguments);
+    };
+    const st=document.querySelector('#applicationStatus');
+    st.textContent=''; st.removeAttribute('data-state'); return true;})()`);
+  await cdp.ev(`document.querySelector('#applicationForm').requestSubmit()`);
+  await sleep(1200);
+  const neg = await cdp.ev(`(()=>{const st=document.querySelector('#applicationStatus');
+    return { state: st.dataset.state || "", text:(st.textContent||'').trim() };})()`);
+  results.push([neg.state === "error",
+    "A20 负向控制：普通网络错走 error 而非 warn（证明 warn 专属于超时）",
+    `state=${neg.state || "(空)"}`]);
+
   cdp.ws.close();
 } finally {
   chrome.kill();

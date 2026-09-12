@@ -119,7 +119,7 @@ const i18n = {
   "nav.home":"首页","nav.about":"关于我们","nav.courses":"课程设置","nav.admissions":"招生信息","nav.tuition":"学费与支持","nav.life":"学院生活","nav.resources":"资源中心","nav.contact":"联系我们",
   "actions.apply":"申请入学","actions.login":"登录","actions.video":"观看介绍视频","actions.applyNow":"立即申请","actions.download":"下载 ↓","actions.view":"查看 →","actions.fill":"填写 →","actions.skip":"跳到主要内容","actions.backToTop":"↑ 顶部","actions.close":"关闭","actions.sending":"提交中…",
   "a11y.themeToNight":"切换到夜晚模式","a11y.themeToDay":"切换到白日模式","a11y.themeNight":"夜晚模式","a11y.themeDay":"白日模式","a11y.langSwitch":"切换语言（当前中文）","a11y.announcePause":"暂停公告滚动","a11y.announceResume":"继续公告滚动","a11y.openMenu":"打开菜单","a11y.closeMenu":"关闭菜单",
-  "toast.themeNight":"已切换为夜晚模式","toast.themeDay":"已切换为白日模式","toast.applied":"申请资料已送出","toast.appliedDemo":"申请资料已提交（演示）","toast.inquiry":"咨询已送出","toast.inquiryDemo":"咨询已提交（演示）","toast.failed":"提交失败，请稍后再试","toast.downloaded":"已下载占位文件","resources.unavailable":"「{name}」暂时无法下载","resources.notReady":"「{name}」尚未提供可下载的正式文件","resources.unavailableHint":"你可以直接联系招生同工索取，或先提交在线申请，我们会与你联络。","resources.checking":"正在检查「{name}」…","resources.timeout":"「{name}」检查超时","resources.timeoutHint":"网络似乎较慢，这不代表文件不存在。可以重试一次；若多次不成，再联系招生同工。","resources.retry":"重试","resources.contactLink":"联系招生同工","resources.applyLink":"在线申请",
+  "toast.themeNight":"已切换为夜晚模式","toast.themeDay":"已切换为白日模式","toast.applied":"申请资料已送出","toast.appliedDemo":"申请资料已提交（演示）","toast.inquiry":"咨询已送出","toast.inquiryDemo":"咨询已提交（演示）","toast.failed":"提交失败，请稍后再试","toast.timeout":"等待回应超时，请看弹窗内说明","toast.downloaded":"已下载占位文件","resources.unavailable":"「{name}」暂时无法下载","resources.notReady":"「{name}」尚未提供可下载的正式文件","resources.unavailableHint":"你可以直接联系招生同工索取，或先提交在线申请，我们会与你联络。","resources.checking":"正在检查「{name}」…","resources.timeout":"「{name}」检查超时","resources.timeoutHint":"网络似乎较慢，这不代表文件不存在。可以重试一次；若多次不成，再联系招生同工。","resources.retry":"重试","resources.contactLink":"联系招生同工","resources.applyLink":"在线申请",
   "meta.credits":"{n} 学分","hero.title":"亚洲宣教神学院","hero.sub":"ASIA MISSIONARY ASSOCIATION SEMINARY","hero.verse":"你们要去，使万民作我的门徒。","hero.verseRef":"— 马太福音 28:19",
   "hero.ai.title":"定制化神学 · 3 分钟看见你的信仰成长状态","hero.ai.sub":"10 道题 · 5 项初步状态 · 一条下一步建议 · 完整档案在「AMAS 神学院」App","hero.ai.go":"立即探索 →",
   "herometa.program":"项目","herometa.programVal":"神学学士 B.Th","herometa.startVal":"2026 年 9 月","herometa.start":"2026 届开学","herometa.mode":"学习","herometa.modeVal":"线上 + 线下",
@@ -216,7 +216,7 @@ const i18n = {
   "application.programs.bth":"神学学士 B.Th（2026 届招生）","application.programs.gdip":"教牧学研究硕士 G.DIP","application.programs.mdiv":"道学硕士 M.DIV","application.programs.dmin":"教牧学博士 D.MIN","application.programs.pastor":"牧会者进修","application.programs.preaching":"讲道学校","application.programs.missionary":"宣教士训练",
   "application.modes.online":"线上为主","application.modes.onsite":"线下为主","application.modes.hybrid":"线上 + 线下",
   "application.consent":"我确认以上资料真实，并愿意接受学校后续联系与入学说明。","application.back":"上一步","application.next":"下一步","application.submit":"提交申请",
-  "application.okDemo":"申请已保存在本机演示数据中。正式上线时需要接入后端/数据库。","application.ok":"申请已送出，招生同工会尽快与你联络。","application.error":"提交失败：网络或服务器异常。请稍后重试，或用下方联系方式联络我们。",
+  "application.okDemo":"申请已保存在本机演示数据中。正式上线时需要接入后端/数据库。","application.ok":"申请已送出，招生同工会尽快与你联络。","application.error":"提交失败：网络或服务器异常。请稍后重试，或用下方联系方式联络我们。","application.timeout":"等待服务器回应超时，无法确认申请是否已送达。你填的内容都还在，弹窗也没有关闭。建议先用下方联系方式向招生同工核实是否收到，确认没收到再重新提交，以免重复递交同一份申请。",
   "application.stepOf":"第 {n} 步，共 4 步",
   "review.fullName":"中文姓名","review.englishName":"英文姓名","review.gender":"性别","review.birth":"出生年月","review.nationality":"国籍","review.language":"使用语言","review.phone":"手机","review.email":"Email / QQ / 微信","review.location":"城市 / 国家","review.church":"教会","review.churchType":"教会类型","review.conversionDate":"初信日期","review.baptismDate":"受洗日期","review.role":"服事 / 角色","review.referrer":"介绍人","review.program":"申请项目","review.eduLevel":"最高学历","review.eduSchool":"毕业学校","review.mode":"学习方式","review.gifts":"恩赐","review.motivation":"异象与见证"
  },
@@ -240,7 +240,7 @@ const i18n = {
   "nav.home":"Home","nav.about":"About","nav.courses":"Courses","nav.admissions":"Admissions","nav.tuition":"Tuition","nav.life":"Student Life","nav.resources":"Resources","nav.contact":"Contact",
   "actions.apply":"Apply","actions.login":"Log In","actions.video":"Watch Introduction","actions.applyNow":"Apply Now","actions.download":"Download ↓","actions.view":"View →","actions.fill":"Fill in →","actions.skip":"Skip to main content","actions.backToTop":"↑ TOP","actions.close":"Close","actions.sending":"Sending…",
   "a11y.themeToNight":"Switch to night mode","a11y.themeToDay":"Switch to day mode","a11y.themeNight":"Night mode","a11y.themeDay":"Day mode","a11y.langSwitch":"Switch language (currently English)","a11y.announcePause":"Pause the announcement ticker","a11y.announceResume":"Resume the announcement ticker","a11y.openMenu":"Open menu","a11y.closeMenu":"Close menu",
-  "toast.themeNight":"Night mode on","toast.themeDay":"Day mode on","toast.applied":"Application sent","toast.appliedDemo":"Application submitted (demo)","toast.inquiry":"Inquiry sent","toast.inquiryDemo":"Inquiry submitted (demo)","toast.failed":"Submission failed, please try again","toast.downloaded":"Placeholder file downloaded","resources.unavailable":"\u201c{name}\u201d cannot be downloaded right now","resources.notReady":"No official file is available yet for \u201c{name}\u201d","resources.unavailableHint":"You can ask the admissions team for it directly, or submit the online application and we will get in touch.","resources.checking":"Checking \u201c{name}\u201d\u2026","resources.timeout":"Checking \u201c{name}\u201d timed out","resources.timeoutHint":"The network looks slow. This does not mean the file is missing. Try again; if it keeps failing, contact the admissions team.","resources.retry":"Try again","resources.contactLink":"Contact admissions","resources.applyLink":"Apply online",
+  "toast.themeNight":"Night mode on","toast.themeDay":"Day mode on","toast.applied":"Application sent","toast.appliedDemo":"Application submitted (demo)","toast.inquiry":"Inquiry sent","toast.inquiryDemo":"Inquiry submitted (demo)","toast.failed":"Submission failed, please try again","toast.timeout":"Timed out — see the note in the form","toast.downloaded":"Placeholder file downloaded","resources.unavailable":"\u201c{name}\u201d cannot be downloaded right now","resources.notReady":"No official file is available yet for \u201c{name}\u201d","resources.unavailableHint":"You can ask the admissions team for it directly, or submit the online application and we will get in touch.","resources.checking":"Checking \u201c{name}\u201d\u2026","resources.timeout":"Checking \u201c{name}\u201d timed out","resources.timeoutHint":"The network looks slow. This does not mean the file is missing. Try again; if it keeps failing, contact the admissions team.","resources.retry":"Try again","resources.contactLink":"Contact admissions","resources.applyLink":"Apply online",
   "meta.credits":"{n} Credits","hero.title":"Asia Missionary Association Seminary","hero.sub":"亚洲宣教神学院 · CHIANG MAI, THAILAND","hero.verse":"Go therefore and make disciples of all nations.","hero.verseRef":"— Matthew 28:19",
   "hero.ai.title":"Personalized Theology · See your faith-growth status in 3 minutes","hero.ai.sub":"10 questions · 5 quick indicators · one next step · full profile in the AMAS Seminary app","hero.ai.go":"Start exploring →",
   "herometa.program":"Program","herometa.programVal":"B.Th — Bachelor of Theology","herometa.startVal":"September 2026","herometa.start":"Class of 2026 starts","herometa.mode":"Format","herometa.modeVal":"Online + On-site",
@@ -337,7 +337,7 @@ const i18n = {
   "application.programs.bth":"Bachelor of Theology B.Th (2026 first intake)","application.programs.gdip":"Master of Ministry Studies G.Dip","application.programs.mdiv":"Master of Divinity M.DIV","application.programs.dmin":"Doctor of Ministry D.MIN","application.programs.pastor":"Pastoral Continuing Education","application.programs.preaching":"School of Preaching","application.programs.missionary":"Missionary Training",
   "application.modes.online":"Mainly online","application.modes.onsite":"Mainly in-person","application.modes.hybrid":"Online + in-person",
   "application.consent":"I confirm the information above is accurate and agree to be contacted regarding admissions.","application.back":"Back","application.next":"Next","application.submit":"Submit Application",
-  "application.okDemo":"Application saved locally for demo. Connect a backend/database for production.","application.ok":"Application sent. Our admissions team will contact you soon.","application.error":"Submission failed: network or server error. Please retry, or reach us with the contact details below.",
+  "application.okDemo":"Application saved locally for demo. Connect a backend/database for production.","application.ok":"Application sent. Our admissions team will contact you soon.","application.error":"Submission failed: network or server error. Please retry, or reach us with the contact details below.","application.timeout":"Timed out waiting for the server, so we cannot confirm whether your application arrived. Everything you filled in is still here and this window stays open. Please check with the admissions team using the contact details below before submitting again, so you do not send the same application twice.",
   "application.stepOf":"Step {n} of 4",
   "review.fullName":"Name (Chinese)","review.englishName":"Name (English)","review.gender":"Gender","review.birth":"Date of Birth","review.nationality":"Nationality","review.language":"Language","review.phone":"Mobile","review.email":"Email / QQ / WeChat","review.location":"City / Country","review.church":"Church","review.churchType":"Church Type","review.conversionDate":"Conversion","review.baptismDate":"Baptism","review.role":"Ministry / Role","review.referrer":"Referrer","review.program":"Program","review.eduLevel":"Highest Education","review.eduSchool":"School","review.mode":"Study Mode","review.gifts":"Gifts","review.motivation":"Vision & Testimony"
  },
@@ -361,7 +361,7 @@ const i18n = {
   "nav.home":"홈","nav.about":"학교 소개","nav.courses":"교육 과정","nav.admissions":"입학 안내","nav.tuition":"등록금·지원","nav.life":"학교 생활","nav.resources":"자료실","nav.contact":"문의하기",
   "actions.apply":"입학 지원","actions.login":"로그인","actions.video":"소개 영상 보기","actions.applyNow":"바로 지원하기","actions.download":"다운로드 ↓","actions.view":"보기 →","actions.fill":"작성 →","actions.skip":"본문 바로가기","actions.backToTop":"↑ 맨 위로","actions.close":"닫기","actions.sending":"제출 중…",
   "a11y.themeToNight":"야간 모드로 전환","a11y.themeToDay":"주간 모드로 전환","a11y.themeNight":"야간 모드","a11y.themeDay":"주간 모드","a11y.langSwitch":"언어 전환(현재 한국어)","a11y.announcePause":"공지 스크롤 일시정지","a11y.announceResume":"공지 스크롤 재생","a11y.openMenu":"메뉴 열기","a11y.closeMenu":"메뉴 닫기",
-  "toast.themeNight":"야간 모드로 전환되었습니다","toast.themeDay":"주간 모드로 전환되었습니다","toast.applied":"지원서가 전송되었습니다","toast.appliedDemo":"지원서가 제출되었습니다(데모)","toast.inquiry":"문의가 전송되었습니다","toast.inquiryDemo":"문의가 제출되었습니다(데모)","toast.failed":"제출 실패. 잠시 후 다시 시도해 주세요","toast.downloaded":"샘플 파일이 다운로드되었습니다","resources.unavailable":"「{name}」은(는) 지금 내려받을 수 없습니다","resources.notReady":"「{name}」의 정식 파일이 아직 준비되지 않았습니다","resources.unavailableHint":"입학 담당자에게 직접 요청하시거나, 온라인 지원을 먼저 제출해 주시면 연락드리겠습니다.","resources.checking":"\u300c{name}\u300d 확인 중\u2026","resources.timeout":"\u300c{name}\u300d 확인 시간 초과","resources.timeoutHint":"네트워크가 느린 것 같습니다. 파일이 없다는 뜻은 아닙니다. 다시 시도해 보시고, 계속 실패하면 입학 담당자에게 문의해 주세요.","resources.retry":"다시 시도","resources.contactLink":"입학 담당자 문의","resources.applyLink":"온라인 지원",
+  "toast.themeNight":"야간 모드로 전환되었습니다","toast.themeDay":"주간 모드로 전환되었습니다","toast.applied":"지원서가 전송되었습니다","toast.appliedDemo":"지원서가 제출되었습니다(데모)","toast.inquiry":"문의가 전송되었습니다","toast.inquiryDemo":"문의가 제출되었습니다(데모)","toast.failed":"제출 실패. 잠시 후 다시 시도해 주세요","toast.timeout":"응답 시간 초과 — 창 안의 안내를 확인해 주세요","toast.downloaded":"샘플 파일이 다운로드되었습니다","resources.unavailable":"「{name}」은(는) 지금 내려받을 수 없습니다","resources.notReady":"「{name}」의 정식 파일이 아직 준비되지 않았습니다","resources.unavailableHint":"입학 담당자에게 직접 요청하시거나, 온라인 지원을 먼저 제출해 주시면 연락드리겠습니다.","resources.checking":"\u300c{name}\u300d 확인 중\u2026","resources.timeout":"\u300c{name}\u300d 확인 시간 초과","resources.timeoutHint":"네트워크가 느린 것 같습니다. 파일이 없다는 뜻은 아닙니다. 다시 시도해 보시고, 계속 실패하면 입학 담당자에게 문의해 주세요.","resources.retry":"다시 시도","resources.contactLink":"입학 담당자 문의","resources.applyLink":"온라인 지원",
   "meta.credits":"{n}학점","hero.title":"아시아선교신학교","hero.sub":"ASIA MISSIONARY ASSOCIATION SEMINARY","hero.verse":"그러므로 너희는 가서 모든 민족을 제자로 삼으라.","hero.verseRef":"— 마태복음 28:19",
   "hero.ai.title":"맞춤 신학 · 3분 만에 나의 신앙 성장 상태 보기","hero.ai.sub":"10문항 · 5가지 초기 지표 · 다음 한 걸음 · 전체 프로필은 「AMAS 신학교」 앱에서","hero.ai.go":"바로 탐색 →",
   "herometa.program":"과정","herometa.programVal":"신학사 B.Th","herometa.startVal":"2026년 9월","herometa.start":"2026학년도 개강","herometa.mode":"학습","herometa.modeVal":"온라인 + 오프라인",
@@ -458,7 +458,7 @@ const i18n = {
   "application.programs.bth":"신학사 B.Th(2026학년도 모집)","application.programs.gdip":"목회연구석사 G.Dip","application.programs.mdiv":"목회학석사 M.DIV","application.programs.dmin":"목회학박사 D.MIN","application.programs.pastor":"목회자 연수","application.programs.preaching":"설교학교","application.programs.missionary":"선교사 훈련",
   "application.modes.online":"온라인 중심","application.modes.onsite":"오프라인 중심","application.modes.hybrid":"온라인 + 오프라인",
   "application.consent":"위 정보가 사실임을 확인하며, 학교의 후속 연락과 입학 안내를 받는 데 동의합니다.","application.back":"이전","application.next":"다음","application.submit":"지원서 제출",
-  "application.okDemo":"지원서가 데모 데이터로 저장되었습니다. 정식 오픈 시 백엔드 연동이 필요합니다.","application.ok":"지원서가 전송되었습니다. 입학 담당자가 곧 연락드리겠습니다.","application.error":"제출 실패: 네트워크 또는 서버 오류입니다. 잠시 후 다시 시도하시거나 아래 연락처로 문의해 주세요.",
+  "application.okDemo":"지원서가 데모 데이터로 저장되었습니다. 정식 오픈 시 백엔드 연동이 필요합니다.","application.ok":"지원서가 전송되었습니다. 입학 담당자가 곧 연락드리겠습니다.","application.error":"제출 실패: 네트워크 또는 서버 오류입니다. 잠시 후 다시 시도하시거나 아래 연락처로 문의해 주세요.","application.timeout":"서버 응답 대기 시간이 초과되어 지원서가 접수되었는지 확인할 수 없습니다. 입력하신 내용은 그대로 남아 있고 창도 닫히지 않았습니다. 같은 지원서를 두 번 보내지 않도록, 다시 제출하기 전에 아래 연락처로 입학 담당자에게 접수 여부를 확인해 주세요.",
   "application.stepOf":"4단계 중 {n}단계",
   "review.fullName":"이름(중문)","review.englishName":"이름(영문)","review.gender":"성별","review.birth":"생년월","review.nationality":"국적","review.language":"사용 언어","review.phone":"휴대전화","review.email":"Email / QQ / 위챗","review.location":"도시 / 국가","review.church":"교회","review.churchType":"교회 유형","review.conversionDate":"신앙 시작","review.baptismDate":"세례","review.role":"섬김 / 역할","review.referrer":"추천인","review.program":"지원 과정","review.eduLevel":"최종 학력","review.eduSchool":"출신 학교","review.mode":"학습 방식","review.gifts":"은사","review.motivation":"비전과 간증"
  },
@@ -482,7 +482,7 @@ const i18n = {
   "nav.home":"หน้าแรก","nav.about":"เกี่ยวกับเรา","nav.courses":"รายวิชา","nav.admissions":"การรับสมัคร","nav.tuition":"ค่าเล่าเรียน","nav.life":"ชีวิตในวิทยาลัย","nav.resources":"ศูนย์ทรัพยากร","nav.contact":"ติดต่อเรา",
   "actions.apply":"สมัครเข้าเรียน","actions.login":"เข้าสู่ระบบ","actions.video":"ชมวิดีโอแนะนำ","actions.applyNow":"สมัครเลย","actions.download":"ดาวน์โหลด ↓","actions.view":"ดู →","actions.fill":"กรอก →","actions.skip":"ข้ามไปเนื้อหาหลัก","actions.backToTop":"↑ ขึ้นบน","actions.close":"ปิด","actions.sending":"กำลังส่ง…",
   "a11y.themeToNight":"สลับเป็นโหมดกลางคืน","a11y.themeToDay":"สลับเป็นโหมดกลางวัน","a11y.themeNight":"โหมดกลางคืน","a11y.themeDay":"โหมดกลางวัน","a11y.langSwitch":"เปลี่ยนภาษา (ปัจจุบันภาษาไทย)","a11y.announcePause":"หยุดข้อความประกาศชั่วคราว","a11y.announceResume":"เล่นข้อความประกาศต่อ","a11y.openMenu":"เปิดเมนู","a11y.closeMenu":"ปิดเมนู",
-  "toast.themeNight":"สลับเป็นโหมดกลางคืนแล้ว","toast.themeDay":"สลับเป็นโหมดกลางวันแล้ว","toast.applied":"ส่งใบสมัครแล้ว","toast.appliedDemo":"ส่งใบสมัครแล้ว (สาธิต)","toast.inquiry":"ส่งคำถามแล้ว","toast.inquiryDemo":"ส่งคำถามแล้ว (สาธิต)","toast.failed":"ส่งไม่สำเร็จ โปรดลองใหม่ภายหลัง","toast.downloaded":"ดาวน์โหลดไฟล์ตัวอย่างแล้ว","resources.unavailable":"ขณะนี้ยังดาวน์โหลด \u201c{name}\u201d ไม่ได้","resources.notReady":"ยังไม่มีไฟล์ฉบับทางการของ \u201c{name}\u201d","resources.unavailableHint":"คุณสามารถติดต่อฝ่ายรับสมัครเพื่อขอไฟล์ หรือส่งใบสมัครออนไลน์ไว้ก่อน แล้วเราจะติดต่อกลับ","resources.checking":"กำลังตรวจสอบ \u201c{name}\u201d\u2026","resources.timeout":"ตรวจสอบ \u201c{name}\u201d หมดเวลา","resources.timeoutHint":"เครือข่ายอาจช้า ไม่ได้แปลว่าไม่มีไฟล์ กรุณาลองอีกครั้ง หากยังไม่สำเร็จให้ติดต่อฝ่ายรับสมัคร","resources.retry":"ลองอีกครั้ง","resources.contactLink":"ติดต่อฝ่ายรับสมัคร","resources.applyLink":"สมัครออนไลน์",
+  "toast.themeNight":"สลับเป็นโหมดกลางคืนแล้ว","toast.themeDay":"สลับเป็นโหมดกลางวันแล้ว","toast.applied":"ส่งใบสมัครแล้ว","toast.appliedDemo":"ส่งใบสมัครแล้ว (สาธิต)","toast.inquiry":"ส่งคำถามแล้ว","toast.inquiryDemo":"ส่งคำถามแล้ว (สาธิต)","toast.failed":"ส่งไม่สำเร็จ โปรดลองใหม่ภายหลัง","toast.timeout":"หมดเวลารอ — โปรดดูคำอธิบายในหน้าต่าง","toast.downloaded":"ดาวน์โหลดไฟล์ตัวอย่างแล้ว","resources.unavailable":"ขณะนี้ยังดาวน์โหลด \u201c{name}\u201d ไม่ได้","resources.notReady":"ยังไม่มีไฟล์ฉบับทางการของ \u201c{name}\u201d","resources.unavailableHint":"คุณสามารถติดต่อฝ่ายรับสมัครเพื่อขอไฟล์ หรือส่งใบสมัครออนไลน์ไว้ก่อน แล้วเราจะติดต่อกลับ","resources.checking":"กำลังตรวจสอบ \u201c{name}\u201d\u2026","resources.timeout":"ตรวจสอบ \u201c{name}\u201d หมดเวลา","resources.timeoutHint":"เครือข่ายอาจช้า ไม่ได้แปลว่าไม่มีไฟล์ กรุณาลองอีกครั้ง หากยังไม่สำเร็จให้ติดต่อฝ่ายรับสมัคร","resources.retry":"ลองอีกครั้ง","resources.contactLink":"ติดต่อฝ่ายรับสมัคร","resources.applyLink":"สมัครออนไลน์",
   "meta.credits":"{n} หน่วยกิต","hero.title":"วิทยาลัยพระคริสตธรรมเอเชียมิชชัน","hero.sub":"ASIA MISSIONARY ASSOCIATION SEMINARY","hero.verse":"เหตุฉะนั้น ท่านทั้งหลายจงออกไปและนำชนทุกชาติมาเป็นสาวก","hero.verseRef":"— มัทธิว 28:19",
   "hero.ai.title":"ศาสนศาสตร์เฉพาะบุคคล · ดูสถานะการเติบโตแห่งความเชื่อใน 3 นาที","hero.ai.sub":"10 ข้อ · 5 ตัวชี้วัด · หนึ่งก้าวถัดไป · โปรไฟล์ฉบับเต็มในแอป AMAS","hero.ai.go":"เริ่มสำรวจ →",
   "herometa.program":"หลักสูตร","herometa.programVal":"ศาสนศาสตรบัณฑิต B.Th","herometa.startVal":"กันยายน 2026","herometa.start":"รุ่นปี 2026 เปิดเรียน","herometa.mode":"การเรียน","herometa.modeVal":"ออนไลน์ + ออนไซต์",
@@ -579,7 +579,7 @@ const i18n = {
   "application.programs.bth":"ศาสนศาสตรบัณฑิต B.Th (รุ่นปี 2026)","application.programs.gdip":"G.Dip","application.programs.mdiv":"ศาสนศาสตรมหาบัณฑิต M.DIV","application.programs.dmin":"ดุษฎีบัณฑิต D.MIN","application.programs.pastor":"อบรมศิษยาภิบาล","application.programs.preaching":"โรงเรียนเทศนา","application.programs.missionary":"อบรมมิชชันนารี",
   "application.modes.online":"ออนไลน์เป็นหลัก","application.modes.onsite":"ออนไซต์เป็นหลัก","application.modes.hybrid":"ออนไลน์ + ออนไซต์",
   "application.consent":"ข้าพเจ้ายืนยันว่าข้อมูลข้างต้นเป็นความจริง และยินดีรับการติดต่อและคำแนะนำการเข้าเรียนจากวิทยาลัย","application.back":"ย้อนกลับ","application.next":"ถัดไป","application.submit":"ส่งใบสมัคร",
-  "application.okDemo":"ใบสมัครถูกบันทึกเป็นข้อมูลสาธิตในเครื่องนี้ เวอร์ชันจริงต้องเชื่อมระบบหลังบ้าน","application.ok":"ส่งใบสมัครแล้ว ฝ่ายรับสมัครจะติดต่อกลับโดยเร็ว","application.error":"ส่งไม่สำเร็จ: เครือข่ายหรือเซิร์ฟเวอร์ขัดข้อง โปรดลองใหม่ หรือติดต่อตามช่องทางด้านล่าง",
+  "application.okDemo":"ใบสมัครถูกบันทึกเป็นข้อมูลสาธิตในเครื่องนี้ เวอร์ชันจริงต้องเชื่อมระบบหลังบ้าน","application.ok":"ส่งใบสมัครแล้ว ฝ่ายรับสมัครจะติดต่อกลับโดยเร็ว","application.error":"ส่งไม่สำเร็จ: เครือข่ายหรือเซิร์ฟเวอร์ขัดข้อง โปรดลองใหม่ หรือติดต่อตามช่องทางด้านล่าง","application.timeout":"หมดเวลารอการตอบกลับจากเซิร์ฟเวอร์ จึงยืนยันไม่ได้ว่าใบสมัครส่งถึงหรือไม่ ข้อมูลที่กรอกไว้ยังอยู่ครบและหน้าต่างยังไม่ปิด กรุณาติดต่อฝ่ายรับสมัครตามช่องทางด้านล่างเพื่อตรวจสอบก่อนส่งใหม่ เพื่อไม่ให้ส่งใบสมัครซ้ำ",
   "application.stepOf":"ขั้นตอนที่ {n} จาก 4",
   "review.fullName":"ชื่อ (จีน)","review.englishName":"ชื่อ (อังกฤษ)","review.gender":"เพศ","review.birth":"เดือน/ปีเกิด","review.nationality":"สัญชาติ","review.language":"ภาษาที่ใช้","review.phone":"มือถือ","review.email":"Email / QQ / WeChat","review.location":"เมือง / ประเทศ","review.church":"คริสตจักร","review.churchType":"ประเภทคริสตจักร","review.conversionDate":"เริ่มเชื่อ","review.baptismDate":"บัพติศมา","review.role":"งานรับใช้","review.referrer":"ผู้แนะนำ","review.program":"หลักสูตร","review.eduLevel":"วุฒิสูงสุด","review.eduSchool":"สถาบัน","review.mode":"รูปแบบเรียน","review.gifts":"ของประทาน","review.motivation":"นิมิตและคำพยาน"
  }
@@ -1108,15 +1108,37 @@ async function sendPayload(kind, payload){
     logToDB(kind, payload);
     return { ok:true, demo:true };
   }
-  const res = await fetch(CONFIG.formEndpoint, {
-    method: "POST",
-    headers: CONFIG.formHeaders,
-    body: JSON.stringify(payload)
-  });
-  if(!res.ok) throw new Error("HTTP " + res.status);
+  /* 提交必须有超时上限。没有的话，服务器一挂住，按钮就永远停在「提交中…」，
+     访客辛苦填完的一整份资料既送不出去也拿不回来 —— 这正是 AMAS 学员所在的
+     泰国 / 中国大陆常见的网络状况。 */
+  const ctl = typeof AbortController === "function" ? new AbortController() : null;
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; if(ctl) ctl.abort(); }, SUBMIT_TIMEOUT);
+  let res;
+  try{
+    res = await fetch(CONFIG.formEndpoint, {
+      method: "POST",
+      headers: CONFIG.formHeaders,
+      body: JSON.stringify(payload),
+      signal: ctl ? ctl.signal : undefined
+    });
+  }catch(e){
+    clearTimeout(timer);
+    // 超时与普通网络错误要分开抛：前者**无法确定是否已送达**，
+    // 不能像后者那样劝人直接重投 —— 会造成重复申请。
+    const err = new Error(timedOut ? "submit_timeout" : "submit_network");
+    err.kind = timedOut ? "timeout" : "network";
+    throw err;
+  }
+  clearTimeout(timer);
+  if(!res.ok){ const e2 = new Error("HTTP " + res.status); e2.kind = "http"; throw e2; }
   logToDB(kind, payload);
   return { ok:true, demo:false };
 }
+
+/* 一次提交最多等多久。比资源 HEAD 宽松：POST 带着整份表单，本来就更慢。
+   但不能没有上限 —— 无上限等于把访客永远锁在「提交中…」。 */
+const SUBMIT_TIMEOUT = 15000;
 
 // 提交按钮的忙碌态
 function setBusy(btn, busy, labelEl){
@@ -1244,10 +1266,15 @@ appForm.addEventListener("submit", async e => {
     }, 1800);
   }catch(err){
     if(epoch !== appOpenEpoch) return;        // 同理：过期的失败提示不该盖在新一次填写上
-    status.dataset.state = "error";
-    status.textContent = t("application.error");
+    /* 超时单独说。POST 超时意味着**请求可能已经送到了，只是没等到回应** ——
+       告诉访客「提交失败，请重试」是不诚实的，照做还可能造成重复申请。
+       所以这一支明说无法确认，并建议联系招生同工核实，而不是盲目重投。
+       两种情况下填写的内容都原样保留，弹窗不关。 */
+    const timedOut = err && err.kind === "timeout";
+    status.dataset.state = timedOut ? "warn" : "error";
+    status.textContent = t(timedOut ? "application.timeout" : "application.error");
     revealStatus(status);
-    toast(t("toast.failed"));
+    toast(t(timedOut ? "toast.timeout" : "toast.failed"));
   }finally{
     setBusy(btn, false, label);
   }
