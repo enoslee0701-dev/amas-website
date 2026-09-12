@@ -157,6 +157,31 @@ export function classify(r, baselines) {
   const s = summarize(r.out || "");
   if (r.missing) return { ...s, state: "缺文件", reason: "scripts/test-<name>.mjs 不存在" };
 
+  /* **先问它是怎么结束的。**
+     汇总可以在崩溃或被打死之前就已经打完了 —— 那份汇总看着是好的，
+     FAIL 行也正好都在登记表里，于是一路走到基线豁免。
+     但这一轮根本没有正常结束，不能拿「既有基线」把它盖过去。 */
+  if (r.spawnError) {
+    return { ...s, state: "未判定", reason: "套件没能启动：" + r.spawnError };
+  }
+  if (r.timedOut) {
+    return { ...s, state: "未判定", reason: "超时被终止，这一轮没有跑完" };
+  }
+  if (r.signal) {
+    return { ...s, state: "未判定", reason: "被信号 " + r.signal + " 终止，这一轮没有正常结束" };
+  }
+  if (!Number.isInteger(r.code)) {
+    return { ...s, state: "未判定",
+      reason: "没有拿到退出码（code=" + JSON.stringify(r.code) + "），无法确认它是怎么结束的" };
+  }
+  /* stderr 里出现 Node 栈帧 = 以未捕获的异常（或未处理的 rejection）结束。
+     已核：本仓 42 个套件的 console.error 一律只打纯文本消息，从不打栈，
+     所以这个判据不会误伤正常的错误路径。 */
+  if (/^\s+at .+:\d+:\d+/m.test(String(r.err || ""))) {
+    return { ...s, state: "未判定",
+      reason: "以未捕获的异常结束（stderr 里有 Node 栈帧），这一轮没有正常跑完" };
+  }
+
   /* **任何分支都先要求一份成立的汇总。**
      跑到一半崩掉、改了输出格式、或者数字自相矛盾，都说明这一轮没有正常跑完 ——
      没正常跑完就什么都不能断言，既不能说通过，更不能拿既有基线去豁免它。 */
@@ -165,18 +190,34 @@ export function classify(r, baselines) {
       reason: "没有一份成立的汇总（" + (s.why || "读不出汇总行") + "），这一轮没有正常跑完" };
   }
 
+  /* 打出来的 FAIL 行必须和汇总里的失败数对得上。
+     对不上有两种：汇总少报了（打了 FAIL 行却说 0 失败 —— 退出码往往还是 0），
+     或者汇总多报了（有失败没打印成我们认得的 FAIL 行）。两种都说明这份输出
+     自己跟自己矛盾，不能据此判通过，也不能据此豁免。
+     （已核：现有 42 个套件的真实日志里，这两个数始终相等。） */
+  const seenAll = failedAssertions(r.out);
+  if (seenAll.length !== s.fail) {
+    return { ...s, state: "未判定",
+      reason: "打印了 " + seenAll.length + " 条 FAIL 行，汇总却说挂了 " + s.fail + " 条，对不上" };
+  }
+
   if (r.code !== 0) {
     const reg = (baselines || {})[r.suite];
     if (reg && Array.isArray(reg.assertions)) {
+      /* 本仓所有套件断言失败都退 1（process.exit(fail ? 1 : 0) 等）；
+         2 是启动阶段自己放弃，别的码根本不该出现。
+         既有基线只解释「断言失败」这一种结束方式，别的方式一律不适用。 */
+      if (r.code !== 1) {
+        return { ...s, state: "失败",
+          reason: "退出码 " + r.code + " 不是断言失败该有的 1，说明它是以别的方式结束的，不适用既有基线" };
+      }
       const known = reg.assertions.map(normalizeAssertion);
       const seen = failedAssertions(r.out);
       /* 规范化之后**整名精确相等**才算数。用前缀放行会让
          「<已登记的名字> NEW regression」这种新回归混进来。 */
       const unknown = seen.filter((a) => !known.includes(a));
-      /* 还要对得上数：解析出来的失败条数必须等于汇总里报的失败数，
-         否则说明有失败没被打印成我们认得的 FAIL 行，那就不能豁免。 */
-      const counted = seen.length === s.fail;
-      if (seen.length && unknown.length === 0 && counted) {
+      /* 条数是否对得上，上面的全局检查已经拦过了，这里不再重复判。 */
+      if (seen.length && unknown.length === 0) {
         const gone = known.filter((k) => !seen.includes(k));
         return { ...s, state: "既有基线",
           reason: "只复现了登记过的断言" + (gone.length ? "（其中 " + gone.length + " 条这次没有复现）" : "") };
@@ -184,7 +225,7 @@ export function classify(r, baselines) {
       return { ...s, state: "失败",
         reason: !seen.length ? "退出码非 0，但一条失败断言都解析不出来"
           : unknown.length ? "出现了没有登记的失败断言：" + unknown.slice(0, 3).join("；")
-          : "解析到 " + seen.length + " 条失败断言，汇总却说挂了 " + s.fail + " 条，对不上" };
+          : "登记表之外还有别的情况" };
     }
     return { ...s, state: "失败", reason: "退出码 " + r.code };
   }
@@ -199,6 +240,56 @@ export const isFailure = (state) =>
 
 /** 这一轮的结果能不能归属到某个 SHA：运行前后必须一模一样。
     跑到一半有人改了工作树或切了分支，这批数字就不属于任何一个 SHA。 */
+/** 单个套件最多跑多久。超过就杀掉并记成「未判定」——挂死不是通过。 */
+export const SUITE_TIMEOUT_MS = 30 * 60 * 1000;
+
+/** 跑一个文件，把「它是怎么结束的」原样带回来。
+    原来只接 close 的第一个参数 code，signal 被丢掉了 —— 被 SIGKILL 打死时
+    code 是 null，看上去只是「非零退出」，于是还能走到基线豁免那一支。
+    另外原来没有 error 处理：进程起不来时这个 Promise 永远吊着。 */
+export function runFile(file, opts = {}) {
+  return new Promise((resolve) => {
+    const t0 = Date.now();
+    let out = "", err = "", settled = false, timedOut = false, timer = null;
+    const done = (extra) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      resolve({ out, err, ms: Date.now() - t0, ...extra });
+    };
+    let p;
+    try {
+      p = spawn(opts.node || process.execPath, [file], {
+        cwd: opts.cwd || ROOT,
+        env: opts.env || process.env,
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+    } catch (e) {
+      return done({ code: null, signal: null, spawnError: String((e && e.message) || e) });
+    }
+    timer = setTimeout(() => {
+      timedOut = true;
+      try { p.kill("SIGKILL"); } catch (e) {}
+    }, opts.timeoutMs || SUITE_TIMEOUT_MS);
+    p.stdout.on("data", (d) => { out += d; });
+    /* stderr 既并进 out（日志要完整），也单独留一份 —— 判「是不是以未捕获的
+       异常结束的」只能看 stderr：套件正文里本来就会出现 TypeError 这种字样
+       （断言说明里写着），在 stdout 里找那个词一定误伤。 */
+    p.stderr.on("data", (d) => { out += d; err += d; });
+    p.on("error", (e) => done({ code: null, signal: null, spawnError: String((e && e.message) || e) }));
+    p.on("close", (code, signal) => done({ code, signal, timedOut }));
+  });
+}
+
+/** 按套件名跑。找不到文件是「缺文件」，不是失败的一种。 */
+export function runOne(suite, opts = {}) {
+  const file = path.join(ROOT, "scripts", "test-" + suite + ".mjs");
+  if (!fs.existsSync(file)) {
+    return Promise.resolve({ suite, code: 127, signal: null, out: "", ms: 0, missing: true });
+  }
+  return runFile(file, opts).then((r) => ({ suite, ...r }));
+}
+
 const LOOKS_LIKE_SHA = (x) => /^[0-9a-f]{40}$/.test(String(x || ""));
 
 export function attribution(before, after) {
@@ -299,28 +390,14 @@ console.log("  套件       " + planned.length + " 个（串行，每个自带�
 console.log("  浏览器     " + CHROME);
 console.log("");
 
-const runOne = (suite) => new Promise((resolve) => {
-  const file = path.join(ROOT, "scripts", "test-" + suite + ".mjs");
-  if (!fs.existsSync(file)) return resolve({ suite, code: 127, out: "", ms: 0, missing: true });
-  const t0 = Date.now();
-  const p = spawn(process.execPath, [file], {
-    cwd: ROOT,
-    env: { ...process.env, CHROME_PATH: CHROME, CHROME },
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  let out = "";
-  p.stdout.on("data", (d) => { out += d; });
-  p.stderr.on("data", (d) => { out += d; });
-  p.on("close", (code) => resolve({ suite, code, out, ms: Date.now() - t0 }));
-});
 
 
 
 const results = [];
 for (const { suite, group } of planned) {
   process.stdout.write("  … " + suite.padEnd(26));
-  const r = await runOne(suite);
-  const c = classify({ suite, code: r.code, out: r.out, missing: r.missing }, KNOWN_BASELINE_FAIL);
+  const r = await runOne(suite, { env: { ...process.env, CHROME_PATH: CHROME, CHROME } });
+  const c = classify(r, KNOWN_BASELINE_FAIL);
   const s = { pass: c.pass, fail: c.fail, text: c.text };
   const state = c.state;
   results.push({ suite, group, code: r.code, ...s, state, ms: r.ms });

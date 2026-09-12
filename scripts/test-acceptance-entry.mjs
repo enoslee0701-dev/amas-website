@@ -8,6 +8,9 @@
      C  固定 SHA：若运行当中工作树或 HEAD 变了，结果不能归属到那个 SHA。
 */
 import * as M from "./acceptance-offline.mjs";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 let pass = 0, fail = 0;
 const ok = (name, cond, detail) => {
@@ -114,8 +117,10 @@ ok("D3b 而且计入没过",
 
 const d4 = call("classify", { suite: "touch-targets", code: 1,
   out: [T0, "", "15/20 通过"].join("\n") }, B);
+/* 这条现在落在全局的「FAIL 行数与汇总失败数对不上」那一关，状态是「未判定」
+   而不是「失败」—— 断言写的是那个不变量（不豁免、且计入没过），不是标签。 */
 ok("D4 只解析出 1 条失败断言、汇总却说挂了 5 条：对不上就不豁免",
-   stateOf(d4) === "失败", JSON.stringify(d4));
+   stateOf(d4) !== "既有基线" && M.isFailure(stateOf(d4)) === true, JSON.stringify(d4));
 
 const dead = { ok: false, head: null, dirty: null, why: "读不到 git 状态：spawn git ENOENT" };
 const d5 = call("attribution", dead, dead);
@@ -144,6 +149,97 @@ const d9 = call("classify", { suite: "application-flow", code: 0,
         "=== APPLICATION FLOW: 33/33 PASSED ==="].join("\n") }, B);
 ok("D9 对照：application-flow 实跑那一行现在认得出来，判通过",
    stateOf(d9) === "通过" && d9.text === "33/33", JSON.stringify(d9));
+
+console.log("\n=== E 异常退出边界：汇总打完之后才出事，不能拿基线盖过去 ===");
+
+/* 汇总可以在崩溃或被打死**之前**就已经打完了。那份汇总看着是好的，FAIL 行
+   也正好都在登记表里，于是一路走到基线豁免 —— 但这一轮根本没有正常结束。 */
+const REAL_TT_OUT = [T0, T5, "", "=== TOUCH TARGETS: 18/20 PASSED ==="].join("\n");
+
+const e1 = call("classify", { suite: "touch-targets", code: null, out: REAL_TT_OUT }, B);
+ok("E1 汇总打完之后被打死（close 给的 code 是 null）不算既有基线",
+   stateOf(e1) !== "既有基线", JSON.stringify(e1));
+ok("E1b 而且计入没过",
+   typeof M.isFailure === "function" && M.isFailure(stateOf(e1)) === true, stateOf(e1));
+
+const e2 = call("classify", { suite: "touch-targets", code: 7,
+  out: REAL_TT_OUT + "\nTypeError: Cannot read properties of undefined (reading 'close')" }, B);
+ok("E2 汇总打完之后清理阶段抛异常（退出码 7）不算既有基线",
+   stateOf(e2) !== "既有基线", JSON.stringify(e2));
+
+const e3 = call("classify", { suite: "touch-targets", code: null, signal: "SIGKILL", out: REAL_TT_OUT }, B);
+ok("E3 被信号终止时说得出是哪个信号",
+   stateOf(e3) !== "既有基线" && /SIGKILL/.test((e3 && e3.reason) || ""), JSON.stringify(e3));
+
+const e4 = call("classify", { suite: "portal-pages", code: 0,
+  out: ["  FAIL  L3 审核不通过没填理由也放行了  ← 实测放行", "", "  PASS 20  FAIL 0"].join("\n") }, B);
+ok("E4 退出码 0、汇总说 0 失败，却明明打了 FAIL 行：不算通过",
+   stateOf(e4) !== "通过", JSON.stringify(e4));
+
+const e5 = call("classify", { suite: "header-layout", code: 0,
+  out: ["FAIL H9 头部在 320px 溢出 | scrollWidth=360/320", "",
+        "=== HEADER LAYOUT: 12/12 PASSED ==="].join("\n") }, B);
+ok("E5 换一种汇总格式同样不算通过", stateOf(e5) !== "通过", JSON.stringify(e5));
+
+const e6 = call("classify", { suite: "touch-targets", code: 1, out: REAL_TT_OUT,
+  err: "file:///x/scripts/test-touch-targets.mjs:512\n  throw e;\n  ^\nTypeError: x is not a function\n    at cleanup (file:///x/scripts/test-touch-targets.mjs:512:9)\n" }, B);
+ok("E6 退出码是 1、汇总与 FAIL 行都对得上，但 stderr 里有栈帧：仍不豁免",
+   stateOf(e6) !== "既有基线", JSON.stringify(e6));
+
+const e7 = call("classify", { suite: "touch-targets", code: 1, out: REAL_TT_OUT,
+  err: "  [zh] loaded, measuring...\n  [zh] measured\n" }, B);
+ok("E7 对照：stderr 只是套件自己打的进度消息时，照常判既有基线",
+   stateOf(e7) === "既有基线", JSON.stringify(e7));
+
+console.log("\n=== F runner 有没有把「怎么结束的」带回来（真的起子进程，不开浏览器）===");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "amas-accept-"));
+const write = (name, body) => { const f = path.join(tmp, name); fs.writeFileSync(f, body); return f; };
+
+const fOk = write("ok.mjs", 'console.log("  PASS 3  FAIL 0");\n');
+const f1 = typeof M.runFile === "function" ? await M.runFile(fOk, { timeoutMs: 20000 }) : { __missing: "runFile" };
+ok("F1 对照：正常跑完拿得到退出码 0，且没有 signal",
+   f1 && f1.code === 0 && !f1.signal, JSON.stringify(f1 && { code: f1.code, signal: f1.signal }));
+ok("F1b 对照：正常跑完判通过",
+   stateOf(call("classify", { suite: "x", ...f1 }, B)) === "通过", JSON.stringify(f1 && f1.out));
+
+const fKill = write("kill.mjs",
+  'console.log("=== TOUCH TARGETS: 18/20 PASSED ===");\n' +
+  'setTimeout(()=>process.kill(process.pid,"SIGKILL"),30);\n');
+const f2 = typeof M.runFile === "function" ? await M.runFile(fKill, { timeoutMs: 20000 }) : { __missing: "runFile" };
+ok("F2 被 SIGKILL 打死时，signal 被带回来（原来只接了 code）",
+   f2 && f2.signal === "SIGKILL", JSON.stringify(f2 && { code: f2.code, signal: f2.signal }));
+ok("F2b 这种情况下不判既有基线",
+   stateOf(call("classify", { suite: "touch-targets", ...f2 }, B)) !== "既有基线",
+   JSON.stringify(f2 && { code: f2.code, signal: f2.signal }));
+
+const fHang = write("hang.mjs", 'console.log("  PASS 1  FAIL 0");\nsetInterval(()=>{},1000);\n');
+const f3 = typeof M.runFile === "function" ? await M.runFile(fHang, { timeoutMs: 900 }) : { __missing: "runFile" };
+ok("F3 挂住不退的套件会超时被终止，而不是一直吊着",
+   f3 && f3.timedOut === true, JSON.stringify(f3 && { code: f3.code, signal: f3.signal, timedOut: f3.timedOut }));
+ok("F3b 超时不算通过",
+   stateOf(call("classify", { suite: "x", ...f3 }, B)) !== "通过", JSON.stringify(f3 && f3.timedOut));
+
+const f4 = typeof M.runFile === "function"
+  ? await M.runFile(fOk, { node: path.join(tmp, "no-such-node"), timeoutMs: 5000 })
+  : { __missing: "runFile" };
+ok("F4 子进程根本起不来时会有结论，不会永远吊着",
+   f4 && typeof f4.spawnError === "string" && f4.spawnError.length > 0,
+   JSON.stringify(f4 && { spawnError: f4.spawnError }));
+ok("F4b 起不来也不算通过",
+   stateOf(call("classify", { suite: "x", ...f4 }, B)) !== "通过", JSON.stringify(f4 && f4.spawnError));
+
+const fThrow = write("throw.mjs",
+  'console.log("=== TOUCH TARGETS: 18/20 PASSED ===");\\n' +
+  'setTimeout(()=>{ throw new TypeError("cleanup boom"); }, 20);\\n');
+const f5 = typeof M.runFile === "function" ? await M.runFile(fThrow, { timeoutMs: 20000 }) : { __missing: "runFile" };
+ok("F5 汇总打完之后抛未捕获异常：stderr 被单独留了下来",
+   f5 && /^\s+at .+:\d+:\d+/m.test(String(f5.err || "")),
+   JSON.stringify(f5 && { code: f5.code, errHead: String(f5.err || "").slice(0, 60) }));
+ok("F5b 这种情况下不判既有基线",
+   stateOf(call("classify", { suite: "touch-targets", ...f5 }, B)) !== "既有基线",
+   JSON.stringify(f5 && { code: f5.code }));
+
+try { fs.rmSync(tmp, { recursive: true, force: true }); } catch (e) {}
 
 console.log(`\n  PASS ${pass}  FAIL ${fail}`);
 console.log("本套件全程离线：只喂合成的 stdout 与退出码，未启动浏览器、未跑任何被测套件。");
