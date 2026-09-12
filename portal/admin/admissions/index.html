@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>招生审核 | AMAS 管理后台</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130539">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130557">
 <style>
 .qtable{width:100%;border-collapse:collapse;font-size:13px}
 .qtable th,.qtable td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:top}
@@ -34,12 +34,12 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130539"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130539"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130539"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130539"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130539"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609130539"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130557"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130557"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130557"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130557"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130557"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609130557"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -79,6 +79,12 @@
         <option value="bth">正式 B.Th 学籍</option>
         <option value="common_learning">共同学习</option>
       </select>
+      <select id="fTm">
+        <option value="">全部时间</option>
+        <option value="7">近 7 天</option>
+        <option value="30">近 30 天</option>
+        <option value="90">近 90 天</option>
+      </select>
       <input id="fQ" placeholder="搜索姓名 / 教会" style="min-width:180px">
       <button class="link" id="fReload">刷新</button>
     </div>
@@ -89,7 +95,7 @@
   pcMap = Object.fromEntries((pc || []).map(p => [p.code, p]));
 
   document.getElementById("fReload").addEventListener("click", load);
-  ["fSt","fPw"].forEach(id => document.getElementById(id).addEventListener("change", renderList));
+  ["fSt","fPw","fTm"].forEach(id => document.getElementById(id).addEventListener("change", renderList));
   document.getElementById("fQ").addEventListener("input", renderList);
 
   await load();
@@ -105,17 +111,49 @@
     renderList();
   }
 
+  /* 提交时间是这一列里唯一能定位到时间轴上的东西，但有两种行放不上去：
+     草稿根本没有 submitted_at；服务端也可能给回一个解析不出来的值。
+     时间筛选不能把它们悄悄吞掉 —— 选了时间范围就明说「另有几份放不进时间轴」。 */
+  /* 写成函数声明而不是 const：`await load()` 在这一行之前就跑了，
+     它会调到 renderList，const 在那时还处于 TDZ，会直接抛。 */
+  function submittedAt(r){
+    if (!r.submitted_at) return null;
+    const t = new Date(r.submitted_at).getTime();
+    return Number.isFinite(t) ? t : null;
+  }
+
   function renderList(){
     const st = document.getElementById("fSt").value;
     const pw = document.getElementById("fPw").value;
+    const tm = document.getElementById("fTm").value;
     const q = document.getElementById("fQ").value.trim().toLowerCase();
-    const list = rows.filter(r =>
-      (!st || r.status === st) && (!pw || r.pathway === pw) &&
-      (!q || JSON.stringify([r.form_data?.name_zh, r.form_data?.name_en, r.form_data?.church_name]).toLowerCase().includes(q)));
+    const since = tm ? Date.now() - Number(tm) * 864e5 : null;
 
-    if (!list.length) return UI.empty("#list", { title: "没有符合条件的申请", text: "调整筛选条件后再试。" });
+    let unplaceable = 0;
+    const list = rows.filter(r => {
+      if (st && r.status !== st) return false;
+      if (pw && r.pathway !== pw) return false;
+      if (q && !JSON.stringify([r.form_data?.name_zh, r.form_data?.name_en, r.form_data?.church_name])
+                .toLowerCase().includes(q)) return false;
+      if (since !== null) {
+        const t = submittedAt(r);
+        if (t === null) { unplaceable++; return false; }   // 放不进时间轴，计数后排除
+        if (t < since) return false;
+      }
+      return true;
+    });
 
-    document.getElementById("list").innerHTML = `<div class="qwrap"><table class="qtable">
+    const offNote = unplaceable
+      ? `<div class="msg info show" style="margin-bottom:10px">另有 <b>${unplaceable}</b> 份` +
+        `<b>放不进时间轴</b>（没有提交时间，或提交时间读不出来），不在这个时间范围内。` +
+        `切回「全部时间」可以看到它们。</div>`
+      : "";
+
+    if (!list.length) {
+      return UI.render("#list", offNote + UI.box("🔎", "没有符合条件的申请", "调整筛选条件后再试。"));
+    }
+
+    document.getElementById("list").innerHTML = offNote + `<div class="qwrap"><table class="qtable">
       <thead><tr><th>申请人</th><th>项目 / 路径</th><th>状态</th><th>提交时间</th><th></th></tr></thead>
       <tbody>${list.map(r => {
         const d = r.form_data || {};
@@ -124,7 +162,12 @@
           <td><b>${UI.esc(d.name_zh || "（未填姓名）")}</b><br><span style="color:var(--muted)">${UI.esc(d.church_name || "")}</span></td>
           <td>${UI.esc(p ? p.name_zh : "—")}<br><span style="color:var(--muted)">${UI.esc(PW[r.pathway] || r.pathway)}</span></td>
           <td><span class="st ${r.status}">${ST[r.status] || r.status}</span></td>
-          <td>${r.submitted_at ? new Date(r.submitted_at).toLocaleString("zh-CN",{hour12:false}) : "—"}</td>
+          <td>${r.submitted_at
+            ? (submittedAt(r) !== null
+                ? new Date(r.submitted_at).toLocaleString("zh-CN", { hour12: false })
+                /* 原来直接 toLocaleString，服务端给回怪值时这一格写的是「Invalid Date」。 */
+                : "时间读不出")
+            : "—"}</td>
           <td><button class="link" data-open="${r.id}">查看</button></td>
         </tr>`;
       }).join("")}</tbody></table></div>`;

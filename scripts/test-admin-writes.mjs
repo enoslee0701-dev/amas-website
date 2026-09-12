@@ -637,6 +637,68 @@ try {
   ok("H5c 并说明为什么停用（认不出是谁）",
      /认不出|无法确认是谁|没读到/.test(h5panel || ""), (h5panel || "").slice(0, 240));
 
+  // ════════ J 招生队列的时间筛选（PORTAL-blueprint §6）════════
+  console.log("\n=== J 队列筛选：状态 / 路径 / 时间 ===");
+  /* 蓝图 §6 写的是「队列（筛选：状态/路径/**时间**）」，实际只有状态与路径两个
+     下拉和一个搜索框 —— 时间这一项从来没做。招生同工要按提交时间分流时无从下手。
+     另外这一列有两种「放不进时间轴」的行：草稿没有 submitted_at；
+     服务端给回不能解析的时间。它们不能被时间筛选悄悄吞掉。 */
+  const iso = (daysAgo) => new Date(Date.now() - daysAgo * 864e5).toISOString();
+  const mkApp = (id, name, submitted, status) => ({
+    id, applicant_id: "u-appl", pathway: "degree", status: status || "submitted",
+    submitted_at: submitted, decided_at: null, updated_at: "2026-09-01T02:00:00Z",
+    applicant_visible_message: null, locked_fields: [],
+    form_data: { name_zh: name, name_en: "X", church_name: "测试教会", programs: ["bth"] },
+  });
+  const QUEUE = Object.assign({}, TABLES, { applications: { data: [
+    mkApp("q-new", "三天前的申请", iso(3)),
+    mkApp("q-mid", "二十天前的申请", iso(20)),
+    mkApp("q-old", "两百天前的申请", iso(200)),
+    mkApp("q-draft", "还没提交的草稿", null, "draft"),
+    mkApp("q-bad", "时间读不出来的那份", "not-a-timestamp"),
+  ] } });
+
+  const listVis = async () => cdp.ev(`(()=>{const e=document.getElementById("list");
+    if(!e) return null; const k=e.cloneNode(true); k.querySelectorAll("[hidden]").forEach(n=>n.remove());
+    return (k.textContent||"").replace(/\\s+/g," ").trim();})()`);
+  const pickTime = async (v) => cdp.ev(`(()=>{const s=document.getElementById("fTm");
+    if(!s) return false; s.value=${JSON.stringify(v)};
+    s.dispatchEvent(new Event("change",{bubbles:true})); return true;})()`);
+
+  await open("portal/admin/admissions/", { tables: QUEUE }, 3000);
+  const j0 = await cdp.ev(`(()=>{const s=document.getElementById("fTm");
+    return s ? Array.from(s.options).map(o=>o.value) : null;})()`);
+  ok("J0 队列上有「时间」这一项筛选", Array.isArray(j0) && j0.length > 1, JSON.stringify(j0));
+
+  const jAll = await listVis();
+  ok("J0b 前提：不筛时间时五份都在", /三天前的申请/.test(jAll || "") && /两百天前的申请/.test(jAll || "") &&
+     /还没提交的草稿/.test(jAll || ""), (jAll || "").slice(0, 200));
+
+  const got7 = await pickTime("7");
+  await sleep(400);
+  const j1 = await listVis();
+  ok("J1 选「近 7 天」时，二十天前和两百天前的都不在列表里",
+     got7 === true && /三天前的申请/.test(j1 || "") &&
+     !/二十天前的申请/.test(j1 || "") && !/两百天前的申请/.test(j1 || ""), (j1 || "").slice(0, 240));
+
+  ok("J2 没有提交时间的草稿不被悄悄吞掉，页面说得出有几份放不进时间轴",
+     /放不进|没有提交时间|无法按时间/.test(j1 || ""), (j1 || "").slice(0, 240));
+  ok("J2b 时间读不出来的那份也算在里面（2 份：草稿 + 读不出时间的）",
+     /2 份|2份/.test(j1 || ""), (j1 || "").slice(0, 240));
+
+  await pickTime("30");
+  await sleep(400);
+  const j3 = await listVis();
+  ok("J3 选「近 30 天」时二十天前那份回来了，两百天前那份仍然不在",
+     /二十天前的申请/.test(j3 || "") && !/两百天前的申请/.test(j3 || ""), (j3 || "").slice(0, 240));
+
+  await pickTime("");
+  await sleep(400);
+  const j4 = await listVis();
+  ok("J4 对照：切回「全部时间」五份都回来，且不再提那句话",
+     /两百天前的申请/.test(j4 || "") && /还没提交的草稿/.test(j4 || "") &&
+     !/放不进/.test(j4 || ""), (j4 || "").slice(0, 240));
+
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
