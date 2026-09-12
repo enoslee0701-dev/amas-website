@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609122344">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130012">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609122344"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609122344"></script>
-<script src="../../../assets/js/portal/api.js?v=202609122344"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609122344"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609122344"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609122344"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130012"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130012"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130012"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130012"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130012"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609130012"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -39,6 +39,29 @@
   const EDITABLE = ["draft","needs_information"];
 
   let app = null, programs = [], reqs = [], dirty = false, saveTimer = null, step = 0;
+
+  /* 这一页有四条写入：创建草稿、自动保存、标记补件完成、提交申请。
+     判据与 portal/admin/*（第六包）同一套：
+       network / server_error / unknown（或压根没有错误码）＝ **请求可能已经生效**。
+         对这一页来说，重来一次的代价很具体：会多出一份申请、会再走一次审核流程。
+       服务端给了错误码 ＝ 确定没执行，如实说并允许重来。 */
+  const UNKNOWN_CODES = { network: 1, server_error: 1, unknown: 1 };
+  const isUnknown = (e) => !e || !e.code || !!UNKNOWN_CODES[e.code];
+
+  /** 结果不明时的统一呈现：说清楚，并且**只留「刷新核实」这一条出路** ——
+      不给「重试」，重试恰恰是这里最不该做的事。 */
+  function sayUnknown(el, text){
+    el.textContent = text + " ";
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "link"; b.textContent = "刷新核实";
+    b.addEventListener("click", () => location.reload());
+    el.appendChild(b);
+    el.classList.add("show");
+    el.setAttribute("role", "alert");
+  }
+
+  let creating = false;
+
 
   // ---------- 载入 ----------
   UI.loading(main, 4);
@@ -74,12 +97,31 @@
   }
 
   async function createDraft(){
+    if (creating) return;                       // 在途期间吞掉重复点击
+    creating = true;
+    const startBtn = main.querySelector('[data-act="new"]');
+    if (startBtn) startBtn.disabled = true;
     const qs = Object.fromEntries(new URLSearchParams(location.search));
     const form = F.prefillFromQuickApply(qs);
     const { data, error } = await Api.insert("applications", {
       applicant_id: uid, pathway: "undecided", status: "draft", form_data: form,
     });
-    if (error) return UI.toast(error.message, "err");
+    if (error) {
+      if (isUnknown(error)) {
+        /* 不解锁 —— 这一份可能已经建出来了，再点一次就是第二份。 */
+        main.innerHTML = "";
+        const box = document.createElement("div");
+        box.className = "msg err";
+        sayUnknown(box, "没有拿到这次创建的结果，无法确认申请是否已经创建。" +
+          "请不要重复创建 —— 重复创建会多出一份申请。请先刷新核实当前状态。");
+        main.appendChild(box);
+        return;
+      }
+      creating = false;
+      if (startBtn) startBtn.disabled = false;
+      return UI.toast(error.message, "err");
+    }
+    creating = false;
     const { data: rows } = await Api.rpc("my_application");
     app = rows && rows[0];
     reqs = [];
@@ -283,7 +325,16 @@
     }));
     document.querySelectorAll("[data-req]").forEach(cb => cb.addEventListener("change", async () => {
       const { error } = await Api.rpc("resolve_requirement", { p_req: cb.dataset.req });
-      if (error) { cb.checked = false; return UI.toast(error.message, "err"); }
+      if (error) {
+        if (isUnknown(error)) {
+          /* **不把勾去掉** —— 去掉等于断言「没生效」，而这一次恰恰不知道。
+             也不让它马上能再点：真生效了的话，第二次就是重复标记。 */
+          cb.disabled = true;
+          return UI.toast("没能确认这一项有没有标记成功，请刷新后核实。", "err");
+        }
+        cb.checked = false;
+        return UI.toast(error.message, "err");
+      }
       await loadRequirements(); render();
       UI.toast("已标记完成");
     }));
@@ -309,7 +360,13 @@
     if (!EDITABLE.includes(app.status)) return;
     const { error } = await Api.update("applications", { id: app.id },
       { form_data: app.form_data, pathway: app.pathway });
-    if (error) { setSaveState("保存失败：" + error.message); return; }
+    /* 自动保存失败也要分清楚：读不到结论时这一次可能其实已经存进去了，
+       说死「保存失败」会让人以为刚才白填了。 */
+    if (error) {
+      setSaveState(isUnknown(error) ? "没能确认是否保存成功，请稍后再看"
+                                    : "保存失败：" + error.message);
+      return;
+    }
     dirty = false;
     setSaveState("已保存 " + new Date().toLocaleTimeString("zh-CN", { hour12: false }));
   }
@@ -317,12 +374,27 @@
   // ---------- 提交 / 撤回 ----------
   async function submit(){
     const err = document.getElementById("subErr"); err.classList.remove("show");
-    clearTimeout(saveTimer); await save();
     const btn = document.getElementById("btnSubmit");
+    /* **先禁用，再去保存。** 原来 disabled 是在 `await save()` 之后才设的，
+       而 save() 是一次网络往返 —— 那段时间里按钮还是活的，
+       两次点击真的会发出两次 submit_application（实测 2 次）。 */
+    if (btn.disabled) return;
     btn.disabled = true; btn.textContent = "提交中…";
+    clearTimeout(saveTimer); await save();
     const { data, error } = await Api.rpc("submit_application", { p_app: app.id });
+    const UNKNOWN_SUBMIT = "没有拿到这次提交的结果，无法确认申请是否已经提交。" +
+      "请不要重复提交 —— 重复提交会再走一次审核流程。请先刷新核实当前状态。";
+    if (error) {
+      // 结果不明：刻意**不**解锁按钮，提交是状态变更且会写审核历史
+      if (isUnknown(error)) { sayUnknown(err, UNKNOWN_SUBMIT); return; }
+      btn.disabled = false; btn.textContent = "提交申请";
+      err.textContent = error.message + "（这次没有提交。）"; err.classList.add("show");
+      return;
+    }
+    /* 200 但没有可读结论。原来这里直接 `!data.ok`，data 是 null 就抛
+       TypeError —— 页面一句话都没有，而按钮那时已经被放开，人只会再点一次。 */
+    if (!data) { sayUnknown(err, UNKNOWN_SUBMIT); return; }
     btn.disabled = false; btn.textContent = "提交申请";
-    if (error) { err.textContent = error.message; err.classList.add("show"); return; }
     if (!data.ok) {
       if (data.error === "validation_failed") {
         const names = {}; F.STEPS.forEach(s => s.fields.forEach(f => names[f.name] = f.label));
