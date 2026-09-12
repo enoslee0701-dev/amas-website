@@ -195,7 +195,7 @@ const i18n = {
   "tuition.pr.title":"学费原则","tuition.pr.0":"课程费用按科计算，具体金额请亲自咨询招生同工","tuition.pr.1":"按科缴费，不要求一次缴清全年费用","tuition.pr.2":"经济困难者可申请个别评估与学习支持","tuition.pr.3":"学校不会单纯因为经济困难而拒绝一个认真寻求装备的学员","tuition.pr.4":"具体减免、分期及支持方式由学校个别沟通决定",
   "life.title":"学习不是孤立发生的。","life.desc":"课堂、门训、小组、教会服事与真实生活共同构成神学教育。","life.items.0.title":"导师同行","life.items.0.body":"课程之外，重视生命陪伴与方向辨识。","life.items.0.p0":"定期的一对一生命陪伴与代祷","life.items.0.p1":"学习方向与服事召命的辨识","life.items.0.p2":"与资深牧者同行的属灵网络","life.items.1.title":"小组学习","life.items.1.body":"透过讨论、案例与彼此回应深化学习。","life.items.1.p0":"固定学习小组，彼此守望同行","life.items.1.p1":"课程讨论、案例分享与彼此回应","life.items.1.p2":"跨地区学员的线上团契生活","life.items.2.title":"实践服事","life.items.2.body":"把所学带入教会、家庭、职场与宣教现场。","life.items.2.p0":"与本地教会配搭的服事岗位","life.items.2.p1":"传道、门训、探访等实践安排","life.items.2.p2":"清迈线下密集训练与实践周","life.items.3.title":"敬拜与灵修","life.items.3.body":"在敬拜与祷告中扎根，生命先于事奉。","life.items.3.p0":"规律的灵修与祷告操练","life.items.3.p1":"参与崇拜聚会与礼拜服事","life.items.3.p2":"在群体中培养敬虔与品格",
   "life.rhythm.title":"每周学习节奏","life.rhythm.0":"线上课程与阅读作业","life.rhythm.1":"小组讨论与彼此回应","life.rhythm.2":"门训与导师时间","life.rhythm.3":"教会服事与生活实践",
-  "resources.title":"资源中心","resources.searchLabel":"搜索资源","resources.searchPlaceholder":"搜索资源…","resources.count":"找到 {n} 项资源","resources.items.0":"新生入学手册","resources.items.1":"B.Th 课程目录","resources.items.2":"学费与学习支持","resources.items.3":"在线申请（快速通道）","resources.items.4":"入学申请表（完整版 Word）","resources.items.5":"上传已填写的申请表","actions.upload":"上传 ↑","upload.name":"姓名","upload.contact":"联系方式（邮箱 / 微信 / 电话）","upload.file":"选择已填写的申请表（Word 或 PDF）","upload.submit":"上传并提交","upload.note":"资料将直接发送至招生同工邮箱；提交后会在新页面显示确认。",
+  "resources.title":"资源中心","resources.searchLabel":"搜索资源","resources.searchPlaceholder":"搜索资源…","resources.count":"找到 {n} 项资源","resources.items.0":"新生入学手册","resources.items.1":"B.Th 课程目录","resources.items.2":"学费与学习支持","resources.items.3":"在线申请（快速通道）","resources.items.4":"入学申请表（完整版 Word）","resources.items.5":"上传已填写的申请表","actions.upload":"上传 ↑","upload.name":"姓名","upload.contact":"联系方式（邮箱 / 微信 / 电话）","upload.file":"选择已填写的申请表（Word 或 PDF）","upload.submit":"上传并提交","upload.note":"资料将直接发送至招生同工邮箱；提交后会在新页面显示确认。","upload.hint":"支持 Word 或 PDF，单个文件不超过 {max}。","upload.badType":"这个文件格式不支持。请上传 {types} 格式的申请表；你填的内容已保留。","upload.tooBig":"文件 {size} 超过了 {max} 的上限。请压缩后再传，或直接联系招生同工；你填的内容已保留。","upload.popupBlocked":"浏览器拦截了确认页面。请允许本站弹出窗口后再点一次「上传并提交」；你填的内容已保留。","upload.sent":"已提交。确认结果会显示在新打开的页面里；若没看到，请检查是否被拦截并重试。",
   "courses.filters.history":"历史与文化","training.0":"通读圣经训练","training.1":"背诵圣经训练","training.2":"家庭礼拜训练","training.3":"人际关系训练","training.4":"奉献训练","training.5":"讲道作成训练","training.6":"祷告训练","training.7":"传道训练","training.8":"Q.T 训练","training.9":"晨祷训练","training.10":"开辟教会训练","training.title":"实践训练（11 项）","training.note":"以下 11 项实践训练由学校检查认定；不计入毕业学分，未完成不影响毕业。","verse.courses":"“你当竭力在神面前得蒙喜悦，作无愧的工人，按着正意分解真理的道。”","verse.coursesRef":"— 提摩太后书 2:15","verse.adm":"“来跟从我，我要叫你们得人如得鱼一样。”","verse.admRef":"— 马太福音 4:19","verse.life":"“铁磨铁，磨出刃来；朋友相感也是如此。”","verse.lifeRef":"— 箴言 27:17","verse.digital":"“你的话是我脚前的灯，是我路上的光。”","verse.digitalRef":"— 诗篇 119:105","verse.res":"“圣经都是神所默示的，于教训、督责、使人归正、教导人学义都是有益的。”","verse.resRef":"— 提摩太后书 3:16",
   "footer.desc":"植根圣经、扎根祷告，装备走向亚洲禾场的工人。清迈教学中心与线上课堂，共同服务华人教会与跨文化宣教。","footer.c1":"学院","footer.c2":"学习","footer.c3":"开始",
   "faq.title":"常见问题","faq.items.0.q":"没有神学背景可以申请吗？","faq.items.0.a":"可以。我们更看重持续学习、遵守学习纪律与认真接受装备的意愿。","faq.items.1.q":"课程全部线上吗？","faq.items.1.a":"以灵活学习为原则，包含线上课程，同时鼓励参与清迈线下门训、实践与群体学习。","faq.items.2.q":"完成后由谁建立学籍和颁发学位？","faq.items.2.a":"学籍由 AMAS 总校审核建立，并按学校正式制度完成毕业与学位流程。","faq.items.3.q":"如何开始申请？","faq.items.3.a":"点击“申请入学”，填写基础资料与学习动机，之后由招生同工联络并说明下一步。",
@@ -316,7 +316,7 @@ const i18n = {
   "tuition.pr.title":"Tuition Principles","tuition.pr.0":"Fees are charged per course — please ask admissions for details","tuition.pr.1":"Pay per course — no full-year payment required","tuition.pr.2":"Individual review and learning support available for financial hardship","tuition.pr.3":"No sincere seeker of formation is turned away merely for financial reasons","tuition.pr.4":"Specific reductions, instalments and support are arranged individually with the school",
   "life.title":"Learning never happens alone.","life.desc":"Classes, mentoring, groups, church ministry and everyday life all shape theological education.","life.items.0.title":"Mentoring","life.items.0.body":"Guidance for life, calling and discernment beyond the classroom.","life.items.0.p0":"Regular one-on-one accompaniment and prayer","life.items.0.p1":"Discernment of study direction and calling","life.items.0.p2":"A network of seasoned pastors walking alongside","life.items.1.title":"Group Learning","life.items.1.body":"Discussion, cases and mutual response deepen understanding.","life.items.1.p0":"Fixed study groups watching over one another","life.items.1.p1":"Course discussion, case sharing and response","life.items.1.p2":"Online fellowship across regions","life.items.2.title":"Ministry Practice","life.items.2.body":"Take learning into church, family, workplace and mission.","life.items.2.p0":"Serving roles alongside local churches","life.items.2.p1":"Practice in preaching, discipleship and visitation","life.items.2.p2":"On-site intensives and practicum weeks in Chiang Mai","life.items.3.title":"Worship & Devotion","life.items.3.body":"Rooted in worship and prayer — life before ministry.","life.items.3.p0":"Steady rhythms of devotion and prayer","life.items.3.p1":"Participation in worship and service","life.items.3.p2":"Godliness and character formed in community",
   "life.rhythm.title":"Weekly Rhythm","life.rhythm.0":"Online courses and reading","life.rhythm.1":"Group discussion and response","life.rhythm.2":"Discipleship and mentoring time","life.rhythm.3":"Church ministry and everyday practice",
-  "resources.title":"Resources","resources.searchLabel":"Search resources","resources.searchPlaceholder":"Search resources…","resources.count":"{n} resources found","resources.items.0":"New Student Handbook","resources.items.1":"B.Th Curriculum Guide","resources.items.2":"Tuition & Learning Support","resources.items.3":"Online Application (Fast Track)","resources.items.4":"Application Form (Full Word Version)","resources.items.5":"Upload Your Completed Application","actions.upload":"Upload ↑","upload.name":"Name","upload.contact":"Contact (Email / WeChat / Phone)","upload.file":"Choose your completed form (Word or PDF)","upload.submit":"Upload & Submit","upload.note":"Your file goes directly to the admissions team's inbox; a confirmation page opens after submission.",
+  "resources.title":"Resources","resources.searchLabel":"Search resources","resources.searchPlaceholder":"Search resources…","resources.count":"{n} resources found","resources.items.0":"New Student Handbook","resources.items.1":"B.Th Curriculum Guide","resources.items.2":"Tuition & Learning Support","resources.items.3":"Online Application (Fast Track)","resources.items.4":"Application Form (Full Word Version)","resources.items.5":"Upload Your Completed Application","actions.upload":"Upload ↑","upload.name":"Name","upload.contact":"Contact (Email / WeChat / Phone)","upload.file":"Choose your completed form (Word or PDF)","upload.submit":"Upload & Submit","upload.note":"Your file goes directly to the admissions team's inbox; a confirmation page opens after submission.","upload.hint":"Word or PDF, up to {max} per file.","upload.badType":"That file type is not supported. Please upload the form as {types}. Everything you typed has been kept.","upload.tooBig":"The file is {size}, over the {max} limit. Please compress it or contact the admissions team directly. Everything you typed has been kept.","upload.popupBlocked":"Your browser blocked the confirmation page. Allow pop-ups for this site, then press Upload again. Everything you typed has been kept.","upload.sent":"Submitted. The confirmation appears in the newly opened page; if you do not see it, check whether it was blocked and try again.",
   "courses.filters.history":"History & Culture","training.0":"Bible read-through training","training.1":"Scripture memorization training","training.2":"Family worship training","training.3":"Interpersonal relationship training","training.4":"Giving training","training.5":"Sermon writing training","training.6":"Prayer training","training.7":"Evangelism training","training.8":"Quiet Time (Q.T) training","training.9":"Morning prayer training","training.10":"Church planting training","training.title":"Practical Training (11 Items)","training.note":"These 11 practical trainings are reviewed and recognised by the school; they carry no graduation credits, and completing them is not a graduation requirement.","verse.courses":"“Do your best to present yourself to God as one approved, a worker who does not need to be ashamed and who correctly handles the word of truth.”","verse.coursesRef":"— 2 Timothy 2:15","verse.adm":"“Come, follow me, and I will send you out to fish for people.”","verse.admRef":"— Matthew 4:19","verse.life":"“As iron sharpens iron, so one person sharpens another.”","verse.lifeRef":"— Proverbs 27:17","verse.digital":"“Your word is a lamp for my feet, a light on my path.”","verse.digitalRef":"— Psalm 119:105","verse.res":"“All Scripture is God-breathed and is useful for teaching, rebuking, correcting and training in righteousness.”","verse.resRef":"— 2 Timothy 3:16",
   "footer.desc":"Rooted in Scripture and prayer, equipping workers for the harvest fields of Asia. Our Chiang Mai campus and online classrooms serve the Chinese church and cross-cultural mission.","footer.c1":"Seminary","footer.c2":"Study","footer.c3":"Get Started",
   "faq.title":"Frequently Asked Questions","faq.items.0.q":"Can I apply without prior theological study?","faq.items.0.a":"Yes. We value willingness to learn, consistency and commitment to serious formation.","faq.items.1.q":"Are all classes online?","faq.items.1.a":"Learning is flexible: online coursework is combined with encouraged in-person discipleship, practice and community in Chiang Mai.","faq.items.2.q":"Who manages student status and degree completion?","faq.items.2.a":"Official student status is reviewed and established through AMAS according to school policies.","faq.items.3.q":"How do I begin?","faq.items.3.a":"Click Apply, submit basic information and your motivation, then admissions will contact you with next steps.",
@@ -437,7 +437,7 @@ const i18n = {
   "tuition.pr.title":"등록금 원칙","tuition.pr.0":"등록금은 과목 단위로 산정되며, 금액은 입학 담당자에게 문의","tuition.pr.1":"과목별 납부, 연간 일시납 요구 없음","tuition.pr.2":"경제적 어려움이 있는 경우 개별 심사와 학업 지원 신청 가능","tuition.pr.3":"경제적 이유만으로 진지하게 훈련을 구하는 학생을 거절하지 않음","tuition.pr.4":"감면·분납·지원 방식은 학교와 개별 상담으로 결정",
   "life.title":"배움은 홀로 이루어지지 않습니다.","life.desc":"강의·제자훈련·소그룹·교회 섬김과 실제 삶이 함께 신학 교육을 이룹니다.","life.items.0.title":"멘토 동행","life.items.0.body":"수업 밖에서도 삶의 동행과 방향 분별을 중시합니다.","life.items.0.p0":"정기적인 일대일 동행과 중보기도","life.items.0.p1":"학업 방향과 사역 소명의 분별","life.items.0.p2":"경륜 있는 목회자와 동행하는 영적 네트워크","life.items.1.title":"소그룹 학습","life.items.1.body":"토론·사례·상호 피드백으로 배움을 깊게 합니다.","life.items.1.p0":"고정 학습 소그룹에서 서로 돌봄","life.items.1.p1":"과목 토론·사례 나눔·상호 피드백","life.items.1.p2":"지역을 넘는 온라인 교제 생활","life.items.2.title":"실천 섬김","life.items.2.body":"배운 것을 교회·가정·일터·선교 현장으로 가져갑니다.","life.items.2.p0":"지역 교회와 동역하는 섬김의 자리","life.items.2.p1":"전도·제자훈련·심방 등 실천 배치","life.items.2.p2":"치앙마이 현장 집중 훈련과 실습 주간","life.items.3.title":"예배와 경건","life.items.3.body":"예배와 기도에 뿌리내려, 사역보다 생명이 먼저입니다.","life.items.3.p0":"규칙적인 경건과 기도 훈련","life.items.3.p1":"예배 모임과 예배 섬김 참여","life.items.3.p2":"공동체 안에서 경건과 인격을 세움",
   "life.rhythm.title":"주간 학습 리듬","life.rhythm.0":"온라인 수업과 읽기 과제","life.rhythm.1":"소그룹 토론과 상호 피드백","life.rhythm.2":"제자훈련과 멘토 시간","life.rhythm.3":"교회 섬김과 삶의 실천",
-  "resources.title":"자료실","resources.searchLabel":"자료 검색","resources.searchPlaceholder":"자료 검색…","resources.count":"{n}개 자료 검색됨","resources.items.0":"신입생 안내서","resources.items.1":"B.Th 과목 목록","resources.items.2":"등록금과 학업 지원","resources.items.3":"온라인 지원(빠른 통로)","resources.items.4":"입학지원서(전체 Word판)","resources.items.5":"작성한 지원서 업로드","actions.upload":"업로드 ↑","upload.name":"이름","upload.contact":"연락처(이메일 / 위챗 / 전화)","upload.file":"작성한 지원서 선택(Word 또는 PDF)","upload.submit":"업로드 및 제출","upload.note":"자료는 입학 담당자 이메일로 바로 전송되며, 제출 후 새 페이지에 확인이 표시됩니다.",
+  "resources.title":"자료실","resources.searchLabel":"자료 검색","resources.searchPlaceholder":"자료 검색…","resources.count":"{n}개 자료 검색됨","resources.items.0":"신입생 안내서","resources.items.1":"B.Th 과목 목록","resources.items.2":"등록금과 학업 지원","resources.items.3":"온라인 지원(빠른 통로)","resources.items.4":"입학지원서(전체 Word판)","resources.items.5":"작성한 지원서 업로드","actions.upload":"업로드 ↑","upload.name":"이름","upload.contact":"연락처(이메일 / 위챗 / 전화)","upload.file":"작성한 지원서 선택(Word 또는 PDF)","upload.submit":"업로드 및 제출","upload.note":"자료는 입학 담당자 이메일로 바로 전송되며, 제출 후 새 페이지에 확인이 표시됩니다.","upload.hint":"Word 또는 PDF, 파일당 최대 {max}.","upload.badType":"지원하지 않는 파일 형식입니다. {types} 형식으로 올려 주세요. 입력한 내용은 그대로 남아 있습니다.","upload.tooBig":"파일이 {size}로 {max} 제한을 넘었습니다. 압축 후 다시 올리거나 입학 담당자에게 직접 문의해 주세요. 입력한 내용은 그대로 남아 있습니다.","upload.popupBlocked":"브라우저가 확인 페이지를 차단했습니다. 팝업을 허용한 뒤 「업로드 및 제출」을 다시 눌러 주세요. 입력한 내용은 그대로 남아 있습니다.","upload.sent":"제출되었습니다. 확인 내용은 새로 열린 페이지에 표시됩니다. 보이지 않으면 차단 여부를 확인하고 다시 시도해 주세요.",
   "courses.filters.history":"역사와 문화","training.0":"성경 통독 훈련","training.1":"성경 암송 훈련","training.2":"가정 예배 훈련","training.3":"인간관계 훈련","training.4":"드림(헌금) 훈련","training.5":"설교 작성 훈련","training.6":"기도 훈련","training.7":"전도 훈련","training.8":"Q.T 훈련","training.9":"새벽기도 훈련","training.10":"교회 개척 훈련","training.title":"실천 훈련(11항목)","training.note":"다음 11개 실천 훈련은 학교가 확인·인정합니다. 졸업 학점에 포함되지 않으며, 미이수가 졸업에 영향을 주지 않습니다.","verse.courses":"“너는 진리의 말씀을 옫게 분별하며 부끄러울 것이 없는 일꾼으로 인정된 자로 자신을 하나님 앞에 드리기를 힘쓰라.”","verse.coursesRef":"— 디모데후서 2:15","verse.adm":"“나를 따라오라 내가 너희를 사람을 끬는 어부가 되게 하리라.”","verse.admRef":"— 마태복음 4:19","verse.life":"“철이 철을 날카롭게 하는 것 같이 사람이 그의 친구의 얼굴을 빛나게 하느니라.”","verse.lifeRef":"— 잠언 27:17","verse.digital":"“주의 말씀은 내 발에 등이요 내 길에 빛이니이다.”","verse.digitalRef":"— 시편 119:105","verse.res":"“모든 성경은 하나님의 감동으로 된 것으로 교훈과 책망과 바르게 함과 의로 교육하기에 유익하니.”","verse.resRef":"— 디모데후서 3:16",
   "footer.desc":"말씀과 기도에 뿌리내려 아시아의 추수밭으로 나아갈 일꾼을 세웁니다. 치앙마이 캠퍼스와 온라인 강의실이 중국어권 교회와 타문화 선교를 섬깁니다.","footer.c1":"학교","footer.c2":"배움","footer.c3":"시작하기",
   "faq.title":"자주 묻는 질문","faq.items.0.q":"신학 배경이 없어도 지원할 수 있나요?","faq.items.0.a":"네. 우리는 꾸준한 학습, 학습 규율 준수, 진지하게 훈련받으려는 의지를 더 중요하게 봅니다.","faq.items.1.q":"수업은 전부 온라인인가요?","faq.items.1.a":"유연 학습을 원칙으로 온라인 수업을 제공하며, 동시에 치앙마이 현장 제자훈련·실습·공동체 학습 참여를 권장합니다.","faq.items.2.q":"수료 후 학적 등록과 학위 수여는 누가 하나요?","faq.items.2.a":"학적은 AMAS 본교의 심사를 거쳐 등록되며, 학교의 정식 제도에 따라 졸업과 학위 절차가 진행됩니다.","faq.items.3.q":"지원은 어떻게 시작하나요?","faq.items.3.a":"「입학 지원」을 눌러 기본 정보와 학업 동기를 작성하시면, 이후 입학 담당자가 연락드려 다음 단계를 안내합니다.",
@@ -558,7 +558,7 @@ const i18n = {
   "tuition.pr.title":"หลักการค่าเล่าเรียน","tuition.pr.0":"ค่าเล่าเรียนคิดเป็นรายวิชา จำนวนเงินโปรดสอบถามฝ่ายรับสมัคร","tuition.pr.1":"จ่ายรายวิชา ไม่ต้องจ่ายทั้งปีในครั้งเดียว","tuition.pr.2":"ผู้มีข้อจำกัดทางการเงินขอรับการพิจารณาและช่วยเหลือเป็นรายบุคคลได้","tuition.pr.3":"วิทยาลัยไม่ปฏิเสธผู้แสวงหาการเตรียมอย่างจริงจังเพียงเพราะเหตุผลทางการเงิน","tuition.pr.4":"ส่วนลด การผ่อนชำระ และการช่วยเหลือ กำหนดโดยการปรึกษาเป็นรายบุคคล",
   "life.title":"การเรียนไม่ได้เกิดขึ้นอย่างโดดเดี่ยว","life.desc":"ห้องเรียน การฝึกสาวก กลุ่มย่อย การรับใช้ในคริสตจักร และชีวิตจริง ร่วมกันประกอบเป็นการศึกษาศาสนศาสตร์","life.items.0.title":"พี่เลี้ยงเดินเคียงข้าง","life.items.0.body":"นอกห้องเรียน เราให้ความสำคัญกับการเดินเคียงข้างชีวิตและการแยกแยะทิศทาง","life.items.0.p0":"การเดินเคียงข้างและอธิษฐานเผื่อแบบตัวต่อตัวสม่ำเสมอ","life.items.0.p1":"การแยกแยะทิศทางการเรียนและการทรงเรียก","life.items.0.p2":"เครือข่ายฝ่ายวิญญาณร่วมกับศิษยาภิบาลผู้มากประสบการณ์","life.items.1.title":"เรียนเป็นกลุ่มย่อย","life.items.1.body":"เรียนลึกขึ้นผ่านการสนทนา กรณีศึกษา และการตอบสนองซึ่งกันและกัน","life.items.1.p0":"กลุ่มเรียนประจำ ดูแลกันและกัน","life.items.1.p1":"สนทนารายวิชา แบ่งปันกรณีศึกษา ตอบสนองกัน","life.items.1.p2":"ชีวิตสามัคคีธรรมออนไลน์ข้ามภูมิภาค","life.items.2.title":"รับใช้ภาคปฏิบัติ","life.items.2.body":"นำสิ่งที่เรียนไปสู่คริสตจักร ครอบครัว ที่ทำงาน และสนามมิชชัน","life.items.2.p0":"ตำแหน่งรับใช้ร่วมกับคริสตจักรท้องถิ่น","life.items.2.p1":"การฝึกประกาศ สร้างสาวก เยี่ยมเยียน ฯลฯ","life.items.2.p2":"การฝึกเข้มข้นและสัปดาห์ปฏิบัติที่เชียงใหม่","life.items.3.title":"นมัสการและภาวนา","life.items.3.body":"หยั่งรากในการนมัสการและอธิษฐาน ชีวิตมาก่อนการรับใช้","life.items.3.p0":"วินัยภาวนาและอธิษฐานสม่ำเสมอ","life.items.3.p1":"ร่วมนมัสการและรับใช้ในพิธีนมัสการ","life.items.3.p2":"สร้างความยำเกรงและอุปนิสัยในชุมชน",
   "life.rhythm.title":"จังหวะการเรียนรายสัปดาห์","life.rhythm.0":"เรียนออนไลน์และอ่านตามที่กำหนด","life.rhythm.1":"สนทนากลุ่มย่อยและตอบสนองกัน","life.rhythm.2":"ฝึกสาวกและเวลากับพี่เลี้ยง","life.rhythm.3":"รับใช้คริสตจักรและปฏิบัติในชีวิตจริง",
-  "resources.title":"ศูนย์ทรัพยากร","resources.searchLabel":"ค้นหาทรัพยากร","resources.searchPlaceholder":"ค้นหา…","resources.count":"พบ {n} รายการ","resources.items.0":"คู่มือนักศึกษาใหม่","resources.items.1":"รายวิชา B.Th","resources.items.2":"ค่าเล่าเรียนและการช่วยเหลือ","resources.items.3":"สมัครออนไลน์ (ช่องทางด่วน)","resources.items.4":"ใบสมัครฉบับเต็ม (Word)","resources.items.5":"อัปโหลดใบสมัครที่กรอกแล้ว","actions.upload":"อัปโหลด ↑","upload.name":"ชื่อ","upload.contact":"ช่องทางติดต่อ (อีเมล / WeChat / โทรศัพท์)","upload.file":"เลือกใบสมัครที่กรอกแล้ว (Word หรือ PDF)","upload.submit":"อัปโหลดและส่ง","upload.note":"เอกสารจะส่งตรงถึงอีเมลฝ่ายรับสมัคร หลังส่งจะแสดงหน้ายืนยันในแท็บใหม่",
+  "resources.title":"ศูนย์ทรัพยากร","resources.searchLabel":"ค้นหาทรัพยากร","resources.searchPlaceholder":"ค้นหา…","resources.count":"พบ {n} รายการ","resources.items.0":"คู่มือนักศึกษาใหม่","resources.items.1":"รายวิชา B.Th","resources.items.2":"ค่าเล่าเรียนและการช่วยเหลือ","resources.items.3":"สมัครออนไลน์ (ช่องทางด่วน)","resources.items.4":"ใบสมัครฉบับเต็ม (Word)","resources.items.5":"อัปโหลดใบสมัครที่กรอกแล้ว","actions.upload":"อัปโหลด ↑","upload.name":"ชื่อ","upload.contact":"ช่องทางติดต่อ (อีเมล / WeChat / โทรศัพท์)","upload.file":"เลือกใบสมัครที่กรอกแล้ว (Word หรือ PDF)","upload.submit":"อัปโหลดและส่ง","upload.note":"เอกสารจะส่งตรงถึงอีเมลฝ่ายรับสมัคร หลังส่งจะแสดงหน้ายืนยันในแท็บใหม่","upload.hint":"รองรับ Word หรือ PDF ไฟล์ละไม่เกิน {max}","upload.badType":"ไม่รองรับไฟล์ประเภทนี้ กรุณาอัปโหลดเป็น {types} ข้อมูลที่กรอกไว้ยังอยู่ครบ","upload.tooBig":"ไฟล์มีขนาด {size} เกินขีดจำกัด {max} กรุณาบีบอัดแล้วลองใหม่ หรือติดต่อฝ่ายรับสมัครโดยตรง ข้อมูลที่กรอกไว้ยังอยู่ครบ","upload.popupBlocked":"เบราว์เซอร์บล็อกหน้ายืนยัน กรุณาอนุญาตป๊อปอัปของเว็บไซต์นี้แล้วกดอัปโหลดอีกครั้ง ข้อมูลที่กรอกไว้ยังอยู่ครบ","upload.sent":"ส่งแล้ว ผลการยืนยันจะแสดงในแท็บที่เปิดใหม่ หากไม่เห็น กรุณาตรวจสอบว่าถูกบล็อกหรือไม่แล้วลองอีกครั้ง",
   "courses.filters.history":"ประวัติศาสตร์และวัฒนธรรม","training.0":"ฝึกอ่านพระคัมภีร์ตลอดเล่ม","training.1":"ฝึกท่องจำพระคัมภีร์","training.2":"ฝึกนมัสการในครอบครัว","training.3":"ฝึกความสัมพันธ์ระหว่างบุคคล","training.4":"ฝึกการถวาย","training.5":"ฝึกเขียนคำเทศนา","training.6":"ฝึกการอธิษฐาน","training.7":"ฝึกการประกาศ","training.8":"ฝึกเฝ้าเดี่ยว (Q.T)","training.9":"ฝึกอธิษฐานเช้า","training.10":"ฝึกบุกเบิกคริสตจักร","training.title":"การฝึกภาคปฏิบัติ (11 รายการ)","training.note":"การฝึก 11 รายการนี้โรงเรียนเป็นผู้ตรวจรับรอง ไม่นับเป็นหน่วยกิตจบการศึกษา และไม่กระทบการจบการศึกษา","verse.courses":"“จงอุตส่าห์สำแดงตนให้เป็นที่พอพระทัยพระเจ้า เป็นคนงานที่ไม่ต้องอาย ใช้พระวจนะแห่งความจริงอย่างถูกต้อง”","verse.coursesRef":"— 2 ทิโมธี 2:15","verse.adm":"“จงตามเรามา และเราจะตั้งท่านให้เป็นผู้หาคนดั่งหาปลา”","verse.admRef":"— มัทธิว 4:19","verse.life":"“เหล็กลับเหล็กได้ฉันใด คนหนึ่งก็ลับเพื่อนของตนได้ฉันนั้น”","verse.lifeRef":"— สุภาษิต 27:17","verse.digital":"“พระวจนะของพระองค์เป็นโคมสำหรับเท้าของข้าพระองค์ และเป็นความสว่างแก่ทางของข้าพระองค์”","verse.digitalRef":"— สดุดี 119:105","verse.res":"“พระคัมภีร์ทุกตอนได้รับการดลใจจากพระเจ้า และเป็นประโยชน์ในการสอน การตักเตือน การแก้ไขสิ่งผิด และการอบรมในความชอบธรรม”","verse.resRef":"— 2 ทิโมธี 3:16",
   "footer.desc":"หยั่งรากในพระคัมภีร์และการอธิษฐาน เตรียมผู้รับใช้สู่ทุ่งนาแห่งเอเชีย ศูนย์เชียงใหม่และห้องเรียนออนไลน์ร่วมรับใช้คริสตจักรจีนและพันธกิจข้ามวัฒนธรรม","footer.c1":"วิทยาลัย","footer.c2":"การเรียน","footer.c3":"เริ่มต้น",
   "faq.title":"คำถามที่พบบ่อย","faq.items.0.q":"ไม่มีพื้นฐานศาสนศาสตร์ สมัครได้ไหม?","faq.items.0.a":"ได้ เราให้ความสำคัญกับการเรียนอย่างต่อเนื่อง การรักษาวินัยการเรียน และความตั้งใจรับการเตรียมมากกว่า","faq.items.1.q":"เรียนออนไลน์ทั้งหมดหรือไม่?","faq.items.1.a":"ยึดหลักเรียนยืดหยุ่น มีวิชาออนไลน์ พร้อมสนับสนุนให้ร่วมการฝึกสาวก ภาคปฏิบัติ และการเรียนแบบชุมชนที่เชียงใหม่","faq.items.2.q":"จบแล้วใครขึ้นทะเบียนสถานภาพและมอบปริญญา?","faq.items.2.a":"สถานภาพนักศึกษาขึ้นทะเบียนโดยการพิจารณาของวิทยาลัยหลัก AMAS และดำเนินการจบการศึกษาและปริญญาตามระบบทางการของวิทยาลัย","faq.items.3.q":"เริ่มสมัครอย่างไร?","faq.items.3.a":"กด「สมัครเข้าเรียน」กรอกข้อมูลพื้นฐานและแรงจูงใจ จากนั้นฝ่ายรับสมัครจะติดต่อและแนะนำขั้นตอนต่อไป",
@@ -625,6 +625,10 @@ function applyLanguage(lang){
   if(typeof refreshCountdown === "function") refreshCountdown();
   applyCourseVisibility();
   announceResourceCount();
+  // 上传规则提示：上限从常量算出来填进去，不在文案里写死数字 ——
+  // 改 UPLOAD_MAX_BYTES 时四种语言会一起跟着变，不会对不上。
+  const uh = $("#uploadHint");
+  if(uh && typeof UPLOAD_MAX_BYTES === "number") uh.textContent = t("upload.hint", { max: fmtSize(UPLOAD_MAX_BYTES) });
 }
 /* 四语言下拉切换 */
 const LANG_LABELS = { zh:"中文", en:"English", ko:"한국어", th:"ไทย" };
@@ -1398,6 +1402,108 @@ $("#uploadToggle")?.addEventListener("click", () => {
   $("#uploadToggle").setAttribute("aria-expanded", String(!f.hidden));
   if(!f.hidden) f.scrollIntoView({ behavior: "smooth", block: "center" });
 });
+
+/* ===== 上传已填写的申请表：提交前守卫 + 提交后反馈 =====
+   这张表单是原生 POST 到 formsubmit（action + target="_blank"），此前**一行 JS 都没有**，
+   于是有四个问题，每一个都会让访客白填一次：
+
+   一、accept=".doc,.docx,.pdf" 只是文件选择器的过滤条件，**不是校验**。
+       访客在选择框里切到「所有文件」就能挑 .zip / .exe 传出去。
+   二、没有任何体积上限。挑个几十 MB 的文件照样发出去，失败与否访客无从得知。
+   三、target="_blank" 意味着原页面从头到尾不变。新标签页**一旦被拦截**
+       （手机浏览器很常见），访客什么都看不到 —— 和资源中心那个静默失败一模一样。
+   四、没有防重复提交。连点两次就给学校发两封邮件。
+
+   **刻意不动投递路径**：站点别处用的是 formsubmit 的 ajax 端点，但那条路带附件能不能
+   工作我无法验证（本轮禁止任何真实外发），贸然换掉可能弄坏一条本来能用的路。
+   所以这里保持原生 POST 原样，只在它前后加守卫与反馈。 */
+
+/* 客户端体积上限。这是**本站自己的守卫值**，不是对任何外部服务限制的断言；
+   收件方是邮箱，附件太大本来就容易被退信。院方要调就改这一个常量。 */
+const UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
+const UPLOAD_ALLOWED_EXT = ["doc", "docx", "pdf"];
+
+function fmtSize(bytes){
+  if(bytes >= 1024 * 1024) return (bytes / 1048576).toFixed(1) + " MB";
+  return Math.max(1, Math.round(bytes / 1024)) + " KB";
+}
+
+/** 在上传表单里显示一条状态。kind 决定文案；ok=true 时是成功态。 */
+function showUploadStatus(form, kind, vars, isOk){
+  let box = form.querySelector(".upload-status");
+  if(!box){
+    box = document.createElement("p");
+    box.className = "upload-status";
+    box.setAttribute("role", "status");
+    box.setAttribute("tabindex", "-1");
+    form.appendChild(box);
+  }
+  box.classList.toggle("is-ok", !!isOk);
+  box.textContent = t(kind, vars || {});
+  try{ box.focus({ preventScroll: true }); }catch(e){ box.focus(); }
+  revealStatus(box);
+  return box;
+}
+function clearUploadStatus(form){
+  const box = form && form.querySelector(".upload-status");
+  if(box) box.remove();
+}
+
+(function(){
+  const form = $("#uploadForm");
+  if(!form) return;
+  const fileInput = form.querySelector('input[type="file"]');
+  const submitBtn = form.querySelector('button[type="submit"]');
+  let sending = false;
+
+  // 换了文件或改了任何输入，上一次的结论就不再成立，立刻撤掉
+  form.addEventListener("input", () => clearUploadStatus(form));
+  if(fileInput) fileInput.addEventListener("change", () => clearUploadStatus(form));
+
+  form.addEventListener("submit", (e) => {
+    // 防重复：在途期间的第二次提交直接吞掉，不再发一封
+    if(sending){ e.preventDefault(); return; }
+
+    const file = fileInput && fileInput.files && fileInput.files[0];
+    if(!file){ return; }                       // 交给 required 的原生校验
+
+    const ext = (file.name.split(".").pop() || "").toLowerCase();
+    if(UPLOAD_ALLOWED_EXT.indexOf(ext) < 0){
+      e.preventDefault();
+      showUploadStatus(form, "upload.badType", { types: UPLOAD_ALLOWED_EXT.join(" / ") });
+      return;                                   // 输入全部保留，访客换个文件即可
+    }
+    if(file.size > UPLOAD_MAX_BYTES){
+      e.preventDefault();
+      showUploadStatus(form, "upload.tooBig", {
+        size: fmtSize(file.size), max: fmtSize(UPLOAD_MAX_BYTES) });
+      return;
+    }
+
+    /* 先自己开一个具名窗口再把表单投进去 —— 这样才能知道新标签页是不是被拦了。
+       直接写 target="_blank" 的话，被拦截时页面毫无反应，访客以为没提交成功。 */
+    let win = null;
+    try{ win = window.open("", "amasUploadTarget"); }catch(err){ win = null; }
+    if(!win){
+      e.preventDefault();
+      showUploadStatus(form, "upload.popupBlocked");
+      return;
+    }
+    form.target = "amasUploadTarget";
+
+    sending = true;
+    submitBtn.disabled = true;
+    submitBtn.setAttribute("aria-busy", "true");
+    showUploadStatus(form, "upload.sent", {}, true);
+    // 原生 POST 打到新标签页，本页拿不到响应码。给一个可重试的窗口，
+    // 免得万一没成功访客被永久锁住。
+    setTimeout(() => {
+      sending = false;
+      submitBtn.disabled = false;
+      submitBtn.removeAttribute("aria-busy");
+    }, 8000);
+  });
+})();
 $("#chatClose").addEventListener("click", closeChat);
 document.addEventListener("keydown", e => {
   if(e.key === "Escape" && !openLayers.length &&

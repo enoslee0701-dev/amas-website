@@ -83,9 +83,9 @@
 })();
 </script>
 <script>(function(){var l=document.createElement("link");l.rel="preload";l.as="image";l.href="assets/img/hero-"+(document.documentElement.dataset.theme==="night"?"night":"day")+".webp";document.head.appendChild(l);})();</script>
-<script src="assets/js/supabase-config.js?v=202609120007"></script>
+<script src="assets/js/supabase-config.js?v=202609120915"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/main.css?v=202609120007">
+<link rel="stylesheet" href="assets/css/main.css?v=202609120915">
 </head>
 <body>
 <a class="skip-link" href="#main" data-i18n="actions.skip">跳到主要内容</a>
@@ -956,7 +956,7 @@
         <input type="hidden" name="_template" value="table">
         <label><span data-i18n="upload.name">姓名</span><input name="姓名" required></label>
         <label><span data-i18n="upload.contact">联系方式（邮箱 / 微信 / 电话）</span><input name="联系方式" required></label>
-        <label class="upload-full"><span data-i18n="upload.file">选择已填写的申请表（Word 或 PDF）</span><input type="file" name="attachment" accept=".doc,.docx,.pdf" required></label>
+        <label class="upload-full"><span data-i18n="upload.file">选择已填写的申请表（Word 或 PDF）</span><input type="file" name="attachment" accept=".doc,.docx,.pdf" aria-describedby="uploadHint" required><small class="upload-hint" id="uploadHint"></small></label>
         <div class="upload-actions">
           <button class="btn primary" type="submit" data-i18n="upload.submit">上传并提交</button>
           <span class="upload-note" data-i18n="upload.note">资料将直接发送至招生同工邮箱；提交后会在新页面显示确认。</span>
@@ -1226,6 +1226,6 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="assets/js/main.js?v=202609120007"></script>
+<script src="assets/js/main.js?v=202609120915"></script>
 </body>
 </html>
