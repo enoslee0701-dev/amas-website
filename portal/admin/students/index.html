@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>学籍管理 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609122329">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609122344">
 <style>
 .tabs{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap}
 .tabs button{min-height:40px;padding:0 16px;border:1.5px solid var(--line);border-radius:999px;background:#fff;
@@ -32,11 +32,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609122329"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609122329"></script>
-<script src="../../../assets/js/portal/api.js?v=202609122329"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609122329"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609122329"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609122344"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609122344"></script>
+<script src="../../../assets/js/portal/api.js?v=202609122344"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609122344"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609122344"></script>
 <script>
 /* PORTAL-2 学籍管理（教务侧）
    闭环：录取 → 记录总校审核确认 → 建档(pre_enrolled) → 正式注册(active)；学号可经专用通道更正。
@@ -188,10 +188,37 @@
   }
 
   // ---------- 服务端调用 ----------
+  /* 拿不到明确结论的三类 —— 它们共同的意思是「请求**可能已经生效**」：
+       network       连响应都没拿到（请求是否送达未知）
+       server_error  服务端回话了，但没给出结构化结论
+       unknown / 空  没有可读的结论
+     反过来，服务端给了错误码就是**确定没执行**，可以放心重来。
+     注意 session_unknown 属于后者：那是我们自己没发出去（第五包），
+     它自己的文案已经写明「这次没有发出请求」。 */
+  const UNKNOWN_CODES = { network: 1, server_error: 1, unknown: 1 };
+  const UNKNOWN_TEXT = "没有拿到这次操作的结果，无法确认它是否已经生效。" +
+    "在核实之前不要重复执行 —— 重复执行会写出第二条学籍记录。请刷新后核实当前状态。";
+
   async function call(body, okMsg){
     clearErr();
-    const { data, error } = await A.callFn("student-lifecycle", body);
-    if (error) { showErr(error.message); return null; }
+    /* 原来这里是 `const { data, error } = await A.callFn(...)` —— 而 auth.js 的
+       callFn 返回的是 `{ status, data }`，**根本没有 error 这个字段**。
+       于是 `if (error)` 那一支永远不执行；接着只判 `data.ok === false`，
+       而断网（`{status:0, data:{error:"network"}}`）、5xx、网关返回 HTML
+       （data 是 null）统统落不进去 —— 直接走到 `UI.toast(okMsg)`。
+       实测：这三种情况页面都弹「学籍已建立（待正式注册）」，
+       **写入根本没发生，却告诉管理员已经完成**。
+       改走 Api.fn：它返回 `{data,error}` 并把 HTTP 状态归一成错误码，
+       与 portal/admin/teachers/ 用的是同一层。 */
+    const { data, error } = await Api.fn("student-lifecycle", body);
+    if (error) {
+      const code = error.code || "";
+      if (!code || UNKNOWN_CODES[code]) { showErr(UNKNOWN_TEXT); return null; }
+      showErr(error.message || code);
+      return null;
+    }
+    // 200 但没有可读的 body（网关页、空响应）—— 同样不能断言生效
+    if (!data) { showErr(UNKNOWN_TEXT); return null; }
     if (data && data.ok === false) {
       showErr({
         hq_approval_required: "缺少 AMAS 总校审核确认记录，不能建档。",
