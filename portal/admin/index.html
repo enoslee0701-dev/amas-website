@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>管理后台 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609130107">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609130117">
 <style>
 table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 .list th,.list td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top}
@@ -66,8 +66,8 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609130107"></script>
-<script src="../../assets/js/portal/auth.js?v=202609130107"></script>
+<script src="../../assets/js/supabase-config.js?v=202609130117"></script>
+<script src="../../assets/js/portal/auth.js?v=202609130117"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
@@ -83,6 +83,11 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
   document.getElementById("btnOut").addEventListener("click", () => A.signOut());
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
+  /* 「结果不明」的统一判据（与 portal/admin/teachers/、portal/admin/students/
+     同一套）：连响应都没拿到、服务端回话但没给结论、或者 200 却拿不到可读 JSON。
+     这三种的共同含义是**请求可能已经生效**；服务端给了错误码才是确定没执行。 */
+  const unclearResult = (r) => !r || r.status === 0 || r.status >= 500 || (r.status === 200 && !r.data);
+
   // ---- ① 邀请 ----
   document.getElementById("invForm").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -94,10 +99,21 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
       staff_number: document.getElementById("ivStaff").value || null,
       expires_days: Number(document.getElementById("ivDays").value) || 14,
     });
+    /* 回执丢了 ≠ 没建成。status 0（连响应都没拿到）、5xx、以及 200 但拿不到
+       可读 JSON（网关页）这三种，邀请**可能已经建出来了**（一条 token 记录 +
+       审计）。原来一律说「创建失败」，管理员就会再建一份 —— 两份邀请，
+       而第一份的 token 还活着、没人管。
+       200 但 data 为 null 时，下面那行 r.data.link 还会直接抛 TypeError。 */
+    if (unclearResult(r)) {
+      err.textContent = "没能确认这份邀请是否已经创建 —— 可能已经建好了，也可能没有。" +
+        "请先重新载入页面核实，不要直接再建一份（重复创建会多出一个仍然有效的邀请码）。";
+      err.classList.add("show");
+      return;                                   // 刻意不解锁
+    }
     btn.disabled = false; btn.textContent = "生成邀请";
     if (r.status !== 200) {
       const M = { mfa_required: "需要先完成两步验证。", forbidden: "没有权限。", bad_email: "邮箱格式不正确。" };
-      err.textContent = M[(r.data && r.data.error) || ""] || "创建失败。"; err.classList.add("show"); return;
+      err.textContent = (M[(r.data && r.data.error) || ""] || "这次没有创建成功。") ; err.classList.add("show"); return;
     }
     const link = r.data.link || (location.origin + A.ROOT + "faculty/verify/?code=" + r.data.token);
     document.getElementById("ivLink").textContent = link + "\n（截止：" + new Date(r.data.expires_at).toLocaleString("zh-CN") + "）";
@@ -160,10 +176,25 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
     const r = await A.callFn("review-teacher-verification", {
       request_id: id, action, message, staff_number: staff, grant_mentor: mentor, internal_note: note,
     });
+    /* 审核是**不可逆**动作、写审计记录。teachers 页对同一个 Edge Function 早就
+       分好了「确定没执行」与「结果不明」，这一页一条都没有：原来先把按钮放开，
+       再 alert("操作失败。")。结果不明时那等于劝人再点一次，而重复审核会写下
+       两条审批记录。
+       错误也从 alert 改到页面自己的 #qErr 上 —— alert 一关就什么都不剩。 */
+    const qe = document.getElementById("qErr"); qe.classList.remove("show");
+    if (unclearResult(r)) {
+      qe.textContent = "没有拿到这次审核的结果，无法确认它是否已经生效。" +
+        "在核实之前不要重复执行 —— 重复审核会写下两条审批记录。请刷新后核实当前状态。";
+      qe.classList.add("show");
+      return;                                   // 这一行按钮刻意不解锁
+    }
     b.disabled = false;
     if (r.status !== 200) {
       const M = { mfa_required: "需要两步验证。", forbidden: "没有权限。", invalid_state: "当前状态不允许该操作。" };
-      alert(M[(r.data && r.data.error) || ""] || "操作失败。"); return;
+      const code = (r.data && r.data.error) || "";
+      // 服务端给了错误码 = 确定没执行，可以说死，并允许重来
+      qe.textContent = (M[code] || "请求被拒绝。") + "（这次没有执行任何操作。）";
+      qe.classList.add("show"); return;
     }
     await loadQueue();
   });
