@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>教师验证 | AMAS 亚洲宣教神学院</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609122312">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609122329">
 <style>
 .steps-mini{display:flex;gap:6px;margin:0 0 18px}
 .steps-mini i{flex:1;height:4px;border-radius:99px;background:var(--line)}
@@ -75,8 +75,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609122312"></script>
-<script src="../../assets/js/portal/auth.js?v=202609122312"></script>
+<script src="../../assets/js/supabase-config.js?v=202609122329"></script>
+<script src="../../assets/js/portal/auth.js?v=202609122329"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
@@ -126,8 +126,8 @@
     if (offline) document.getElementById("btnReload").addEventListener("click", () => location.reload());
   } else {
     // 已登录且已有验证记录 → 直接显示状态页
-    const session = await A.getSession();
-    if (session) { await renderStatus(); }
+    const s0 = await A.fetchSession();
+    if (s0.session) { await renderStatus(); }
     // URL 携带邀请码
     const qc = new URLSearchParams(location.search).get("code");
     if (qc) document.getElementById("fCode").value = qc;
@@ -138,7 +138,16 @@
     const err = document.getElementById("codeErr"); err.classList.remove("show");
     inviteToken = document.getElementById("fCode").value.trim();
     if (!inviteToken) { err.textContent = "请输入邀请码。"; err.classList.add("show"); return; }
-    const session = await A.getSession();
+    /* 读不到 ≠ 没登录。旧写法在读失败时把人直接 location.href 走，
+       表单里刚填的邀请码跟着一次跳转丢掉，而他其实登录好好的。
+       改为原地说清楚、可重试，**不跳转**。 */
+    const sv = await A.fetchSession();
+    if (sv.failed) {
+      err.textContent = "没能确认你的登录状态，可能是网络不稳或服务端短暂不可用。这不表示你没有登录 —— 请稍后重试。";
+      err.classList.add("show");
+      return;
+    }
+    const session = sv.session;
     if (!session) {
       // 必须先用与邀请一致的邮箱登录/注册（服务端会校验一致性）
       /* 回跳目标用共享构造拼，顺带过一次同源校验 —— 这里拼进去的是
@@ -177,6 +186,7 @@
       email_unverified: "请先完成邮箱验证再提交。",
       missing_required: "请填写所有必填项并勾选确认。",
       unauthenticated: "登录已失效，请重新登录。",
+      session_unknown: "没能确认你的登录状态，这次没有提交。请稍后重试。",
     };
     err.textContent = M[(r.data && r.data.error) || ""] || "提交失败，请稍后再试。";
     err.classList.add("show");

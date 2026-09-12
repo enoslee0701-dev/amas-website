@@ -464,7 +464,13 @@
       renderDisabled();
       return null;
     }
-    const session = await getSession();
+    /* 读不到 ≠ 没登录。读失败时 SDK 返回 `{ data:{session:null}, error }`，
+       旧写法只看 data.session，于是一个**登录仍然有效**的人被要求重新输密码；
+       而旧 getSession 连 try/catch 都没有，抛出时异常直接穿出守卫，页面一片空白。
+       这是**每一个门户页**的入口，所以先在这里收口。 */
+    const sess = await fetchSession();
+    if (sess.failed) { renderBlocked("session-unavailable"); return null; }
+    const session = sess.session;
     if (!session) {
       location.replace(withNext("login/"));
       return null;
@@ -525,6 +531,13 @@
         body: "你的登录是有效的，但学校还没有为它开通任何门户身份。" +
               "<br>正式学员与教师身份须经学校审核开通（规范 §5.2）；如有疑问，请通过官网联系招生同工。",
         retry: "重新检查",
+      },
+      "session-unavailable": {
+        icon: "🔌",
+        head: "没能确认你的登录状态",
+        body: "我们暂时读不到你的登录状态，可能是网络不稳或服务端短暂不可用。" +
+              "<br><b>这不表示你没有登录</b> —— 只是这一次没查到。请稍后重试。",
+        retry: "重试",
       },
       "aal-unavailable": {
         icon: "🔐",
@@ -675,7 +688,15 @@
 
   /** 调用受保护 Edge Function（自动携带用户 JWT） */
   async function callFn(name, payload) {
-    const session = await getSession();
+    /* 读不出登录状态时**请求一次都没发出去**。原来这里返回
+       `{status:401, error:"unauthenticated"}`，三处 UI 把它渲染成
+       「登录状态已失效，请重新登录。」—— 一句确定性的假话，
+       而且会让用户去做一件根本不需要做的事（重新登录）。
+       status 0 在本文件的既有约定里是「根本没拿到响应」；配一个独立错误码，
+       让 api.js 能说得更准（连发都没发出去，谈不上生效与否）。 */
+    const sess = await fetchSession();
+    if (sess.failed) return { status: 0, data: { error: "session_unknown" } };
+    const session = sess.session;
     if (!session) return { status: 401, data: { error: "unauthenticated" } };
     /* fetch 在网络层出错时是**抛异常**，不是返回失败响应。
        原来这里没有 try/catch，异常会一路穿过 Api.fn 和页面的 await——

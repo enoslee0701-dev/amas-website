@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>教师验证审核 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609122312">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609122329">
 <style>
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .tab{min-height:44px;padding:0 15px;border:1px solid var(--line);border-radius:99px;background:#fff;
@@ -37,11 +37,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609122312"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609122312"></script>
-<script src="../../../assets/js/portal/api.js?v=202609122312"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609122312"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609122312"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609122329"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609122329"></script>
+<script src="../../../assets/js/portal/api.js?v=202609122329"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609122329"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609122329"></script>
 <script>
 /* 管理端教师验证审核台。
 
@@ -255,6 +255,7 @@
       forbidden: "你的账号没有审核权限。这次没有执行任何操作。",
       bad_request: "请求参数不正确，没有执行任何操作。",
       unauthenticated: "登录状态已失效，这次没有执行任何操作。请重新登录。",
+      session_unknown: "没能确认你的登录状态，这次没有发出请求、没有执行任何操作。请稍后重试（不需要重新登录）。",
       invalid_state: "这份申请的状态已经变了（可能别人刚处理过），这次没有执行。请刷新后再看。",
       rate_limited: "操作过于频繁，这次没有执行。请稍后再试。",
     };

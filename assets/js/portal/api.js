@@ -13,6 +13,9 @@
   const MESSAGES = {
     not_configured: "系统尚未启用，请稍后再试。",
     unauthenticated: "登录状态已失效，请重新登录。",
+    // 「读不出登录状态」与「登录已失效」是两回事：前者请求根本没发出去，
+    // 用户不需要重新登录，只需要过一会儿再试。说错会让人白做一次登录。
+    session_unknown: "没能确认你的登录状态，这次没有发出请求。请稍后重试。",
     session_expired: "登录已过期，请重新登录。",
     forbidden: "你没有执行该操作的权限。",
     mfa_required: "该操作需要先完成两步验证。",
@@ -100,6 +103,11 @@
          status 0            根本没拿到响应（网络层出错）→ 请求可能已送达
          status>=500 且无 body 服务端回话了但没给结构化原因 → 同样不能断言未生效
          其余                服务端给了 error 码，如实转达 */
+    /* session_unknown 要在 status 0 之前认出来：它虽然也没拿到响应，
+       但原因是**我们自己没发**，不是网络把请求吞了。说成「网络连接异常」
+       会把用户引到错误的自救动作上。 */
+    if (r.data && r.data.error === "session_unknown")
+      return { data: null, error: { code: "session_unknown", message: msg("session_unknown") } };
     if (r.status === 0) return { data: null, error: { code: "network", message: msg("network") } };
     let code = (r.data && r.data.error) || null;
     if (!code) {
