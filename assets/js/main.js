@@ -101,7 +101,7 @@ try{
 const i18n = {
  zh: {
   "chat.open":"打开在线咨询","chat.title":"招生咨询助手","chat.subtitle":"即时解答 · 可留言给招生同工","chat.placeholder":"输入问题…","chat.send":"发送","chat.note":"自动应答基于本站信息；留言将转交招生同工回复。",
-  "chat.greeting":"平安！我是亚洲宣教神学院（AMAS）招生咨询助手，可以回答报名、学费、课程等问题；也可以直接给招生同工留言。想了解什么？","chat.fallback":"这个问题我暂时没有确切答案，建议留言给招生同工，他们会尽快回复你。",
+  "chat.greeting":"平安！我是亚洲宣教神学院（AMAS）招生咨询助手，可以回答报名、学费、课程等问题；也可以直接给招生同工留言。想了解什么？","chat.timeout":"这次没等到回应，可能是网络较慢。你的问题已经放回输入框，可以再试一次；也可以直接留言给招生同工。","chat.retry":"重试","chat.fallback":"这个问题我暂时没有确切答案，建议留言给招生同工，他们会尽快回复你。",
   "chat.chips.apply":"如何报名？","chat.chips.tuition":"学费多少？","chat.chips.courses":"有哪些课程？","chat.chips.mode":"怎么上课？","chat.chips.leave":"给招生老师留言",
   "chat.chips.human":"人工客服","chat.human.intro":"好的，你可以通过以下方式直接联系招生同工（一般当天回复）：","chat.human.wechat":"微信 {id} · 点击复制","chat.human.line":"Line {id} · 点击复制","chat.human.note":"添加好友时请注明「AMAS 咨询」。如果暂时联系不上，也可以在这里留言，同工会主动联系你。",
   "chat.kb.apply":"点击「申请入学」填写在线申请（约 3 分钟），提交后招生同工会主动联系你说明后续步骤；也可以在资源中心下载完整版 Word 申请表。",
@@ -222,7 +222,7 @@ const i18n = {
  },
  en: {
   "chat.open":"Open live chat","chat.title":"Admissions Assistant","chat.subtitle":"Instant answers · leave a message","chat.placeholder":"Type a question…","chat.send":"Send","chat.note":"Auto-replies are based on this site; messages are forwarded to the admissions team.",
-  "chat.greeting":"Peace! I am the AMAS admissions assistant. Ask me about applications, tuition or courses — or leave a message for the admissions team. How can I help?","chat.fallback":"I do not have a confident answer for that. Leave a message and the admissions team will get back to you.",
+  "chat.greeting":"Peace! I am the AMAS admissions assistant. Ask me about applications, tuition or courses — or leave a message for the admissions team. How can I help?","chat.timeout":"No reply came back this time — the network may be slow. Your question is back in the box, so you can try again; or leave a message for the admissions team.","chat.retry":"Try again","chat.fallback":"I do not have a confident answer for that. Leave a message and the admissions team will get back to you.",
   "chat.chips.apply":"How do I apply?","chat.chips.tuition":"Tuition fees?","chat.chips.courses":"What courses?","chat.chips.mode":"How are classes held?","chat.chips.leave":"Leave a message",
   "chat.chips.human":"Talk to a Person","chat.human.intro":"Sure — you can reach our admissions team directly (we usually reply the same day):","chat.human.wechat":"WeChat {id} · tap to copy","chat.human.line":"Line {id} · tap to copy","chat.human.note":"Please mention \u201cAMAS inquiry\u201d when adding us. You can also leave a message here and we will contact you.",
   "chat.kb.apply":"Click Apply and complete the online form (about 3 minutes). The admissions team will contact you with next steps. A full Word application form is also available in Resources.",
@@ -343,7 +343,7 @@ const i18n = {
  },
  ko: {
   "chat.open":"온라인 상담 열기","chat.title":"입학 상담 도우미","chat.subtitle":"즉시 답변 · 입학처에 메시지 남기기 가능","chat.placeholder":"질문을 입력하세요…","chat.send":"보내기","chat.note":"자동 응답은 본 사이트 정보를 기반으로 하며, 메시지는 입학 담당자에게 전달됩니다.",
-  "chat.greeting":"평안하세요! 아시아선교신학교(AMAS) 입학 상담 도우미입니다. 지원 방법, 등록금, 과정 등에 대해 답해 드리며, 입학 담당자에게 직접 메시지를 남기실 수도 있습니다. 무엇이 궁금하신가요?","chat.fallback":"이 질문에는 정확한 답을 드리기 어렵습니다. 입학 담당자에게 메시지를 남겨 주시면 빠르게 회신해 드리겠습니다.",
+  "chat.greeting":"평안하세요! 아시아선교신학교(AMAS) 입학 상담 도우미입니다. 지원 방법, 등록금, 과정 등에 대해 답해 드리며, 입학 담당자에게 직접 메시지를 남기실 수도 있습니다. 무엇이 궁금하신가요?","chat.timeout":"이번에는 응답을 받지 못했습니다. 네트워크가 느릴 수 있습니다. 질문은 입력창에 그대로 돌려놓았으니 다시 시도해 보세요. 입학 담당자에게 메시지를 남기셔도 됩니다.","chat.retry":"다시 시도","chat.fallback":"이 질문에는 정확한 답을 드리기 어렵습니다. 입학 담당자에게 메시지를 남겨 주시면 빠르게 회신해 드리겠습니다.",
   "chat.chips.apply":"어떻게 지원하나요?","chat.chips.tuition":"등록금은 얼마인가요?","chat.chips.courses":"어떤 과목이 있나요?","chat.chips.mode":"수업은 어떻게 진행되나요?","chat.chips.leave":"입학처에 메시지 남기기",
   "chat.chips.human":"상담원 연결","chat.human.intro":"네, 아래 방법으로 입학 담당자에게 직접 연락하실 수 있습니다(보통 당일 회신):","chat.human.wechat":"WeChat {id} · 눌러서 복사","chat.human.line":"Line {id} · 눌러서 복사","chat.human.note":"친구 추가 시 \u201cAMAS 문의\u201d라고 남겨 주세요. 연락이 어려우시면 여기에 메시지를 남기셔도 됩니다.",
   "chat.kb.apply":"「입학 지원」을 눌러 온라인 지원서를 작성하세요(약 3분). 제출 후 입학 담당자가 연락드려 다음 단계를 안내합니다. 자료실에서 Word 지원서 전체 양식을 내려받을 수도 있습니다.",
@@ -464,7 +464,7 @@ const i18n = {
  },
  th: {
   "chat.open":"เปิดแชทสอบถาม","chat.title":"ผู้ช่วยรับสมัคร","chat.subtitle":"ตอบทันที · ฝากข้อความถึงฝ่ายรับสมัครได้","chat.placeholder":"พิมพ์คำถาม…","chat.send":"ส่ง","chat.note":"คำตอบอัตโนมัติอ้างอิงข้อมูลในเว็บไซต์นี้ ข้อความจะถูกส่งต่อให้ฝ่ายรับสมัคร",
-  "chat.greeting":"สันติสุขครับ/ค่ะ! ฉันคือผู้ช่วยรับสมัครของวิทยาลัยพระคริสตธรรม AMAS ตอบคำถามเรื่องการสมัคร ค่าเล่าเรียน และรายวิชาได้ หรือจะฝากข้อความถึงฝ่ายรับสมัครโดยตรงก็ได้ อยากทราบเรื่องอะไรครับ/คะ?","chat.fallback":"คำถามนี้ยังไม่มีคำตอบที่แน่ชัด แนะนำให้ฝากข้อความถึงฝ่ายรับสมัคร แล้วจะติดต่อกลับโดยเร็ว",
+  "chat.greeting":"สันติสุขครับ/ค่ะ! ฉันคือผู้ช่วยรับสมัครของวิทยาลัยพระคริสตธรรม AMAS ตอบคำถามเรื่องการสมัคร ค่าเล่าเรียน และรายวิชาได้ หรือจะฝากข้อความถึงฝ่ายรับสมัครโดยตรงก็ได้ อยากทราบเรื่องอะไรครับ/คะ?","chat.timeout":"ครั้งนี้ไม่ได้รับการตอบกลับ เครือข่ายอาจช้า คำถามของคุณถูกใส่กลับในช่องแล้ว ลองอีกครั้งได้ หรือจะฝากข้อความถึงฝ่ายรับสมัครก็ได้","chat.retry":"ลองอีกครั้ง","chat.fallback":"คำถามนี้ยังไม่มีคำตอบที่แน่ชัด แนะนำให้ฝากข้อความถึงฝ่ายรับสมัคร แล้วจะติดต่อกลับโดยเร็ว",
   "chat.chips.apply":"สมัครอย่างไร?","chat.chips.tuition":"ค่าเล่าเรียนเท่าไร?","chat.chips.courses":"มีวิชาอะไรบ้าง?","chat.chips.mode":"เรียนอย่างไร?","chat.chips.leave":"ฝากข้อความถึงฝ่ายรับสมัคร",
   "chat.chips.human":"คุยกับเจ้าหน้าที่","chat.human.intro":"ได้เลย ติดต่อทีมงานรับสมัครได้โดยตรงทางช่องทางนี้ (ปกติตอบภายในวันเดียวกัน):","chat.human.wechat":"WeChat {id} · แตะเพื่อคัดลอก","chat.human.line":"Line {id} · แตะเพื่อคัดลอก","chat.human.note":"กรุณาระบุ \u201cสอบถาม AMAS\u201d เมื่อแอดเพื่อน หรือฝากข้อความไว้ที่นี่ ทีมงานจะติดต่อกลับ",
   "chat.kb.apply":"กด「สมัครเข้าเรียน」เพื่อกรอกใบสมัครออนไลน์ (ประมาณ 3 นาที) หลังส่งแล้วฝ่ายรับสมัครจะติดต่อกลับเพื่อแนะนำขั้นตอนต่อไป หรือดาวน์โหลดใบสมัครฉบับเต็ม (Word) ได้ที่ศูนย์ทรัพยากร",
@@ -632,6 +632,9 @@ function applyLanguage(lang){
   /* 切语言时把资源行的旧状态全部撤掉，并让在途的 HEAD 结果作废。
      否则：中文下点出的中文状态会留在英文页面上；更糟的是在途结果回来后
      会盖到新语言的行上，指向的还是上一个语言的文件。 */
+  // 切语言同样要作废在途的聊天请求：用上一个语言问出去的回答，
+  // 回来时插进已经换成新语言的会话里，只会让人莫名其妙。
+  if(typeof chatEpoch === "number"){ chatEpoch++; if(typeof setChatBusy === "function") setChatBusy(false); }
   if(typeof resourceEpoch === "number"){
     resourceEpoch++;
     $$(".resource-row").forEach(r => {
@@ -1410,12 +1413,16 @@ function chatChips(items){
 function chatAction(label, fn){ chatChips([{ label, fn }]); }
 
 function openChat(){
+  chatEpoch++;                               // 重开即新会话，旧回答不该再插进来
+  setChatBusy(false);
   document.documentElement.classList.add("chat-open");
   chatFab.setAttribute("aria-expanded", "true");
   if(!chatGreeted){ chatGreeted = true; chatGreet(); }
   setTimeout(() => chatText.focus(), 220);
 }
 function closeChat(){
+  chatEpoch++;                               // 关掉就把在途那次作废
+  setChatBusy(false);
   document.documentElement.classList.remove("chat-open");
   chatFab.setAttribute("aria-expanded", "false");
 }
@@ -1765,31 +1772,79 @@ async function advanceLeaveFlow(text){
   }
 }
 
+/* 一次问答最多等多久。没有上限的话，端点一挂住，「···」会永远转下去，
+   而用户的问题已经被清空了 —— 既等不到回答，也没法原样再问一次。 */
+const CHAT_TIMEOUT = 12000;
+
+/* 世代令牌。关闭聊天、重新打开、切换语言时都会 +1。
+   在途的回答回来时先比对，对不上就丢弃 —— 否则上一轮的回答会插进新会话里，
+   看起来就像助手答非所问。 */
+let chatEpoch = 0;
+let chatBusy = false;
+
+/** 提问期间锁住输入与发送键。不锁的话连按回车会并发出多个请求、多个「···」。 */
+function setChatBusy(on){
+  chatBusy = on;
+  if(chatSend){ chatSend.disabled = on; chatSend.setAttribute("aria-busy", on ? "true" : "false"); }
+  if(chatText){ chatText.readOnly = on; }
+}
+
+/** 超时/出错后把问题放回输入框，并给一个明确的「重试」按钮。
+    用户不用重新打字，也不用猜「刚才那句到底发出去没有」。 */
+function chatOfferRetry(question){
+  chatMsg(t("chat.timeout"), "bot");
+  chatChips([
+    { label: t("chat.retry"), fn: () => chatAsk(question) },
+    { label: t("chat.chips.leave"), fn: startLeaveFlow }
+  ]);
+  if(chatText && !chatText.value) chatText.value = question;   // 原样保留，可直接改了再问
+}
+
+/** 返回 "ok" / "fail"（可回退规则应答）/ "timeout"（等不到回应，明确告知并允许重试）。 */
 async function aiAnswer(q){
+  const epoch = chatEpoch;
   const typing = chatMsg("···", "typing bot");
+  const ctl = typeof AbortController === "function" ? new AbortController() : null;
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; if(ctl) ctl.abort(); }, CHAT_TIMEOUT);
   try{
     const res = await fetch(CONFIG.ai.endpoint, {
       method: "POST", headers: CONFIG.ai.headers,
-      body: JSON.stringify({ messages: chatHistory.slice(-12) })
+      body: JSON.stringify({ messages: chatHistory.slice(-12) }),
+      signal: ctl ? ctl.signal : undefined
     });
+    clearTimeout(timer);
     if(!res.ok) throw new Error("HTTP " + res.status);
     const j = await res.json();
+    // 令牌对不上：这次回答属于已经结束的那一轮会话，直接丢弃，不插进新会话
+    if(epoch !== chatEpoch){ typing.remove(); return "stale"; }
     typing.remove();
-    if(j.reply){ chatMsg(String(j.reply), "bot"); return true; }
+    if(j.reply){ chatMsg(String(j.reply), "bot"); return "ok"; }
     throw new Error("no reply");
   }catch(e){
+    clearTimeout(timer);
     typing.remove();
-    return false;
+    if(epoch !== chatEpoch) return "stale";
+    return timedOut ? "timeout" : "fail";
   }
 }
 
 async function chatAsk(text){
   text = text.trim();
   if(!text) return;
+  if(chatBusy) return;                      // 在途期间不再并发提问
   chatMsg(text, "user");
   chatText.value = "";
   if(leaveFlow){ advanceLeaveFlow(text); return; }
-  if(CONFIG.ai.endpoint && await aiAnswer(text)) return;
+  if(CONFIG.ai.endpoint){
+    setChatBusy(true);
+    let r;
+    try{ r = await aiAnswer(text); }
+    finally{ setChatBusy(false); }          // 无论如何都要解锁，不能把人锁死
+    if(r === "ok" || r === "stale") return; // stale：这轮已作废，什么都不做
+    if(r === "timeout"){ chatOfferRetry(text); return; }
+    // r === "fail"：端点答不了，照旧回退到规则应答
+  }
   if(!ruleAnswer(text)){
     chatMsg(t("chat.fallback"), "bot");
     chatChips([{ label: t("chat.chips.leave"), fn: startLeaveFlow }]);
