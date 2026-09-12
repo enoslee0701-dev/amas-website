@@ -473,6 +473,128 @@ try {
   // M5 外发审计
   ok("M5 全程零真实外发", externalHits === 0, `externalHits=${externalHits}`);
 
+  /* ════════════ S 学生空间：首页 / 课程目录 / 我的资料 ════════════
+     这三页此前只被降级态套件覆盖过，正常路径一条都没验过。
+     课程目录尤其要盯住一条产品纪律：**学分表尚未提供，页面不得显示任何学分数值，
+     也不得由课时推算**。my_learning() 返回的 credits 恒为 null，
+     页面必须显示「不显示学分信息」而不是 0 或空。 */
+  console.log("");
+  console.log("=== S 学生空间 ===");
+
+  const STUDENT_BASE = { session: SESSION, aal: "aal1" };
+  const STU_ROLES = { my_roles: { data: [{ role: "student" }] } };
+  /* 构造的课程行。credits 一律 null —— 与 my_learning() 的实际契约一致
+     （该函数注释写明 credits 恒为 null，前端不得显示 0）。 */
+  const LEARN = [
+    { code: "NT01", title_zh: "马太福音", category: "nt", level: "intro",
+      total_lessons: 12, availability: "available", credits: null, learning_state: "catalogued" },
+    { code: "OT01", title_zh: "创世记", category: "ot", level: "intro",
+      total_lessons: 10, availability: "in_development", credits: null, learning_state: "content_pending" },
+    { code: "TH01", title_zh: "系统神学导论", category: "theology", level: "core",
+      total_lessons: 16, availability: "in_development", credits: null, learning_state: "content_pending" },
+  ];
+
+  // S1 课程目录：正常读取与计数
+  await open("portal/student/courses/", Object.assign({}, STUDENT_BASE, {
+    rpc: Object.assign({}, STU_ROLES, {
+      my_learning: { data: LEARN },
+      my_student_capabilities: { data: { course_content_access: false } },
+    }) }));
+  const s1 = await txt();
+  ok("S1 课程目录进得去", /课程目录/.test(s1), s1.slice(0, 50));
+  ok("S1 列出了三门课", /马太福音/.test(s1) && /创世记/.test(s1) && /系统神学导论/.test(s1));
+  ok("S1 计数按 availability 分开（1 门已开放 / 2 门筹备中）",
+     /1/.test(s1) && /2/.test(s1) && /筹备中/.test(s1), s1.slice(0, 160));
+
+  // S2 **不编造学分** —— 这一条是产品纪律，必须钉死
+  ok("S2 页面不出现任何学分数值", !/\d+\s*学分/.test(s1), s1.slice(0, 200));
+  ok("S2 credits 为 null 时显示「不显示学分信息」", /不显示学分信息/.test(s1));
+  ok("S2 明说学分表尚未提供、不推算", /学分表尚未提供/.test(s1) && /不会根据课时/.test(s1));
+
+  // S3 筹备中的课如实标注，不假装可学
+  ok("S3 筹备中的课给出说明", /线上学习内容尚未开放/.test(s1));
+  ok("S3 course_content_access 为 false 时说明学习入口在 App",
+     /门户暂未接入学习记录/.test(s1), s1.slice(-200));
+
+  // S4 分类筛选
+  const catBtns = await cdp.ev(`[...document.querySelectorAll("[data-f]")].map(b=>b.dataset.f)`);
+  ok("S4 筛选按钮按实际存在的分类生成", catBtns.length >= 2 && catBtns[0] === "all",
+     JSON.stringify(catBtns));
+  await cdp.clickReal('[data-f="nt"]');
+  const s4 = await txt();
+  ok("S4 切到新约后只剩该分类的课", /马太福音/.test(s4) && !/创世记/.test(s4), s4.slice(0, 140));
+  await cdp.clickReal('[data-f="all"]');
+  ok("S4 切回全部后三门都在", /创世记/.test(await txt()));
+
+  // S5 空目录
+  await open("portal/student/courses/", Object.assign({}, STUDENT_BASE, {
+    rpc: Object.assign({}, STU_ROLES, {
+      my_learning: { data: [] },
+      my_student_capabilities: { data: { course_content_access: false } },
+    }) }));
+  const s5 = await txt();
+  ok("S5 目录为空时不崩，且计数为 0", /课程目录/.test(s5) && /0/.test(s5), s5.slice(0, 140));
+
+  // S6 读取失败
+  await open("portal/student/courses/", Object.assign({}, STUDENT_BASE, {
+    rpc: Object.assign({}, STU_ROLES, { my_learning: { error: { message: "boom" } } }) }));
+  ok("S6 读取失败给出载入失败与重试", /载入失败|重试/.test(await txt()));
+
+  // S7 学生我的资料：正常读取
+  const STU_PROFILE = {
+    self_editable: { display_name: "李学员", phone: "0866666666", contact_note: "wechat: x" },
+    registrar_managed: { email: "s@example.invalid", student_number: "S-2026-001",
+      status: "active", program_code: "bth", pathway: "bth",
+      created_at: "2026-01-02T02:00:00Z", activated_at: "2026-02-01T02:00:00Z",
+      hq_approval: { status: "approved", confirmed_at: "2026-01-20T02:00:00Z", reference: "HQ-001" } },
+    has_student_record: true,
+  };
+  await open("portal/student/profile/", Object.assign({}, STUDENT_BASE, {
+    rpc: Object.assign({}, STU_ROLES, { my_student_profile: { data: STU_PROFILE } }),
+    tables: { program_catalog: { data: [{ code: "bth", name_zh: "神学本科", short_label: "B.Th" }] } },
+  }));
+  const s7 = await txt();
+  ok("S7 学生资料页进得去", /我的资料/.test(s7), s7.slice(0, 50));
+  ok("S7 自维护字段填进输入框",
+     (await cdp.ev(`document.getElementById("nm").value`)) === "李学员");
+  ok("S7 教务维护字段只读显示（学号/学籍状态/项目）",
+     /S-2026-001/.test(s7) && /在读/.test(s7) && /神学本科/.test(s7), s7.slice(0, 200));
+  ok("S7 标注由教务维护", /由教务维护/.test(s7));
+  ok("S7 教务字段区没有可编辑控件",
+     (await cdp.ev(`(()=>{const f=document.getElementById("f");
+       return [...document.querySelectorAll("input,textarea")].every(el => f.contains(el));})()`)) === true);
+
+  // S8 学生资料保存走白名单
+  await cdp.ev(`(()=>{const i=document.getElementById("ph"); i.value="0877777777";
+    i.dispatchEvent(new Event("input",{bubbles:true})); return true;})()`);
+  await cdp.clickReal("#save");
+  await sleep(500);
+  const s8 = (await calls()).filter((c) => c.kind === "rpc" && c.name === "update_my_contact").pop();
+  ok("S8 保存走 update_my_contact", !!s8);
+  ok("S8 只传白名单三参数",
+     !!s8 && Object.keys(s8.args).sort().join(",") === "p_contact_note,p_display_name,p_phone",
+     s8 ? JSON.stringify(s8.args) : "");
+
+  // S9 尚无学籍记录时不编造
+  await open("portal/student/profile/", Object.assign({}, STUDENT_BASE, {
+    rpc: Object.assign({}, STU_ROLES, { my_student_profile: { data: {
+      self_editable: { display_name: "新学员" }, registrar_managed: {}, has_student_record: false } } }),
+    tables: { program_catalog: { data: [] } },
+  }));
+  const s9 = await txt();
+  ok("S9 没有学籍记录时如实说，不编造学号", /尚无学籍记录/.test(s9) && !/S-2026/.test(s9), s9.slice(0, 160));
+
+  // S10 越权：申请者打不开学生页
+  await open("portal/student/courses/", {
+    session: SESSION, aal: "aal1",
+    rpc: { my_roles: { data: [{ role: "applicant" }] }, my_learning: { data: LEARN },
+           my_student_capabilities: { data: {} } },
+  });
+  await sleep(700);
+  const s10 = await cdp.ev(`({ path: location.pathname, body:(document.body.textContent||"").slice(0,60) })`);
+  ok("S10 申请者不会停在学生课程页", !/student\/courses/.test(s10.path), JSON.stringify(s10));
+  ok("S10 越权时不渲染课程数据", !/马太福音/.test(s10.body), s10.body);
+
   /* ════════════ T 教师空间：工作台与我的资料 ════════════
      教师空间原来是四个空间里唯一**没有导航条**的（工作台直接用 requireRoleAal2，
      没走 Shell），于是新页面根本无从进入。本段同时验证迁移后的工作台与新资料页。 */
