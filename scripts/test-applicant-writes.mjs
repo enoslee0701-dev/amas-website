@@ -723,6 +723,75 @@ try {
   ok("Q1 结果不明时不把勾去掉（去掉等于断言「没生效」）", q1.checked === true, JSON.stringify(q1));
   ok("Q1b 并如实说没能确认", /无法确认|没能确认/.test(q1.toast || ""), JSON.stringify(q1));
 
+  // ════════ U 申请人这一侧：读不到不等于没有 ════════
+  console.log("\n=== U 申请人侧的「读不到当没有」===");
+  const bodyVis = async () => cdp.ev(`(()=>{const c=document.body.cloneNode(true);
+    c.querySelectorAll("script,style,template,[hidden]").forEach(n=>n.remove());
+    return (c.textContent||"").replace(/\\s+/g," ").trim();})()`);
+
+  /* U1：loadRequirements() 只解构 data，读失败时 reqs = []，
+         而 render() 是 `${reqs.length ? renderRequirements() : ""}` ——
+         **整张「需要补充的资料」卡片消失**。申请人看到的是：
+         状态「需补充资料 · 请按下方要求补充后重新提交」，下方空无一物；
+         点提交又会被服务端 requirements_pending 挡回来
+         （0008_applications.sql:243）。他被要求补一份自己看不见的材料。 */
+  const NEED_INFO = { ...DRAFT, status: "needs_information" };
+  await open({ tables: { ...BASE_TABLES,
+      application_requirements: { data:null, error:{ message:"boom" }, status:500 } },
+    rpc: { my_application: { data:[NEED_INFO] } } });
+  const u1 = await bodyVis();
+  ok("U1 前提：状态确实是「需补充资料」", /需补充资料/.test(u1 || ""), (u1 || "").slice(0, 160));
+  ok("U1b 补件清单读不到时，不把整块内容静默拿掉",
+     /需要补充的资料|补充的资料/.test(u1 || ""), (u1 || "").slice(0, 300));
+  ok("U1c 而是明说这一次没读到，别让他以为已经补完了",
+     /没能读到|没读到|未知/.test(u1 || ""), (u1 || "").slice(0, 300));
+
+  /* U2：createDraft() 在 insert 成功之后重读 my_application。
+         这一读若失败，app 被赋成 undefined，紧接着 render() 取 app.status
+         就抛 TypeError —— **草稿已经建出来了，页面却当场坏掉**。 */
+  pageErrors = [];
+  await open({ ...noApp, failReread: true,
+    writes: { applications: { data:[{ id:"app-fixture-1", updated_at:"2026-09-11T00:00:00Z" }], error:null } } });
+  ok("U2-0 前提：没有申请时显示创建入口",
+     (await cdp.ev(`!!document.querySelector('[data-act="new"]')`)) === true);
+  await cdp.clickReal('[data-act="new"]');
+  await sleep(1600);
+  ok("U2 草稿建好后重读失败，不抛异常把页面弄坏",
+     !pageErrors.some(e => /TypeError/.test(e)), JSON.stringify(pageErrors.slice(0, 2)));
+  const u2 = await bodyVis();
+  ok("U2b 页面不是一片空白", (u2 || "").length > 40, (u2 || "").slice(0, 200));
+  ok("U2c 如实告诉他草稿已经建好了", /草稿已创建|已经建好|已创建/.test(u2 || ""), (u2 || "").slice(0, 240));
+  ok("U2d 并说清楚这一次没读到最新内容、请刷新",
+     /没能读到|没读到|刷新/.test(u2 || ""), (u2 || "").slice(0, 240));
+
+  /* U3：withdraw() —— 撤回是不可逆的。
+         (a) 成功判据只看 error，没按契约验 data.ok（0008:283 返回 {'ok':true}）；
+         (b) 撤回成功之后重读失败 → renderStart()「还没有正式申请」。 */
+  await open({ ...withApp, rpc: { my_application:{ data:[DRAFT] },
+    withdraw_application:{ data:null, error:null, status:200 } } });
+  ok("U3-0 前提：草稿页有撤回入口",
+     (await cdp.ev(`!!document.getElementById("btnWithdraw")`)) === true);
+  await cdp.clickReal("#btnWithdraw");
+  await sleep(500);
+  await cdp.ev(`(()=>{const b=document.querySelector(".portal-modal [data-ok]"); if(b) b.click(); return !!b;})()`);
+  await sleep(1400);
+  const u3 = await toastNow();
+  ok("U3 服务端没给可读结论时，不咬定「申请已撤回」",
+     !/已撤回/.test((u3 && u3.text) || ""), JSON.stringify(u3));
+
+  pageErrors = [];
+  await open({ ...withApp, failReread: true, rpc: { my_application:{ data:[DRAFT] },
+    withdraw_application:{ data:{ ok:true }, error:null, status:200 } } });
+  await cdp.clickReal("#btnWithdraw");
+  await sleep(500);
+  await cdp.ev(`(()=>{const b=document.querySelector(".portal-modal [data-ok]"); if(b) b.click(); return !!b;})()`);
+  await sleep(1600);
+  const u4 = await bodyVis();
+  ok("U4 撤回成功后重读失败时，不说成「还没有正式申请」",
+     !/还没有正式申请/.test(u4 || ""), (u4 || "").slice(0, 240));
+  ok("U4b 而是说清楚已撤回、但最新状态这一次没读到",
+     /没能读到|没读到|刷新/.test(u4 || ""), (u4 || "").slice(0, 240));
+
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");

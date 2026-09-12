@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130439">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130450">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130439"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130439"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130439"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130439"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130439"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609130439"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130450"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130450"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130450"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130450"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130450"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609130450"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -38,7 +38,7 @@
   };
   const EDITABLE = ["draft","needs_information"];
 
-  let app = null, programs = [], reqs = [], dirty = false, saveTimer = null, step = 0;
+  let app = null, programs = [], reqs = [], reqsUnknown = false, dirty = false, saveTimer = null, step = 0;
 
   /* 这一页有四条写入：创建草稿、自动保存、标记补件完成、提交申请。
      判据与 portal/admin/*（第六包）同一套：
@@ -188,11 +188,17 @@
 
   async function loadRequirements(){
     if (!app) return;
-    const { data } = await Api.select("application_requirements", {
+    /* 原来只解构 data：读失败时 reqs = []，而 render() 是
+       `${reqs.length ? renderRequirements() : ""}` —— **整张「需要补充的资料」
+       卡片消失**。申请人看到的是状态「需补充资料 · 请按下方要求补充后重新提交」，
+       下方却空无一物；点提交又会被服务端 requirements_pending 挡回来
+       （0008_applications.sql:243）。他被要求补一份自己看不见的材料。 */
+    const { data, error } = await Api.select("application_requirements", {
       columns: "id,label,detail,resolved,created_at", eq: { application_id: app.id },
       order: { column: "created_at", asc: true },
     });
-    reqs = data || [];
+    reqsUnknown = !!error || !Array.isArray(data);
+    reqs = Array.isArray(data) ? data : [];
   }
 
   // ---------- 尚无申请 ----------
@@ -231,9 +237,20 @@
       return UI.toast(error.message, "err");
     }
     creating = false;
-    const { data: rows } = await Api.rpc("my_application");
-    app = rows && rows[0];
-    reqs = [];
+    /* 草稿**已经建出来了**。这一读若失败，原来 app 被赋成 null，紧接着
+       render() 取 app.status 就抛 TypeError，页面当场坏掉，回到
+       「还没有正式申请」—— 他很可能会再点一次，建出第二份。 */
+    const { data: rows, error: reErr } = await Api.rpc("my_application");
+    reqs = []; reqsUnknown = false;
+    if (reErr || !Array.isArray(rows) || !rows[0]) {
+      main.innerHTML = UI.box("📝", "草稿已创建，但这一次没读到它的内容",
+        "你的申请草稿已经建好了。这一次没能读到最新内容，所以这里暂时不显示表单。" +
+        "请刷新页面继续填写 —— 不要重新创建，否则会出现第二份申请。") +
+        '<button class="btn" type="button" id="btnDraftReload" style="width:auto;padding:0 22px;margin-top:12px">刷新页面</button>';
+      document.getElementById("btnDraftReload")?.addEventListener("click", () => location.reload());
+      return;
+    }
+    app = rows[0];
     render();
     UI.toast("草稿已创建，内容会自动保存");
   }
@@ -262,7 +279,10 @@
         ${app.applicant_visible_message ? `<div class="msg info show" style="margin-top:12px"><b>招生同工留言：</b>${UI.esc(app.applicant_visible_message)}</div>` : ""}
       </div>
 
-      ${reqs.length ? renderRequirements() : ""}
+      ${reqs.length ? renderRequirements()
+        /* 只在「需补充资料」这个状态下说 —— 别的状态本来就不该有这张卡，
+           那时候它不出现并不是在断言什么。 */
+        : (reqsUnknown && app.status === "needs_information" ? renderRequirementsUnknown() : "")}
 
       ${editable ? `
         <div class="steps" role="tablist" id="stepBar"></div>
@@ -283,6 +303,7 @@
       </div>`;
 
     if (editable) { buildSteps(); bindEditor(); }
+    document.getElementById("btnReqReload")?.addEventListener("click", () => location.reload());
     document.getElementById("btnWithdraw")?.addEventListener("click", withdraw);
     loadTimeline();
   }
@@ -300,6 +321,15 @@
       <h2 style="font-size:16px">需要补充的资料（未完成 ${pending} 项）</h2>
       <p class="sub">补充完成后勾选，全部完成才能重新提交。</p>
       <ul class="rqlist">${items}</ul>
+    </div>`;
+  }
+
+  function renderRequirementsUnknown(){
+    return `<div class="card" style="margin-bottom:18px;border-left:4px solid var(--gold)">
+      <h2 style="font-size:16px">需要补充的资料（这一次没能读到）</h2>
+      <p class="sub">教务要求你补充的项目这一次没能读出来 —— <b>这不表示已经补完了</b>。
+      在全部补件完成之前，提交会被退回。请刷新页面再看一次；若一直读不到，请联系招生同工。</p>
+      <button class="btn" type="button" id="btnReqReload" style="width:auto;padding:0 20px">刷新页面</button>
     </div>`;
   }
 
@@ -684,11 +714,28 @@
 
   async function withdraw(){
     if (!await UI.confirmDialog({ title: "撤回申请", text: "撤回后该申请将结束，如需再次申请须重新填写。", confirmLabel: "确认撤回", danger: true })) return;
-    const { error } = await Api.rpc("withdraw_application", { p_app: app.id, p_reason: null });
+    const { data: wd, error } = await Api.rpc("withdraw_application", { p_app: app.id, p_reason: null });
     if (error) return UI.toast(error.message, "err");
+    /* 撤回不可逆。服务端成功时返回 {'ok': true}（0008_applications.sql:283）——
+       原来只看 error，{data:null, error:null} 这种「没有可读结论」也被当成成功，
+       当场弹「申请已撤回」。结果不明就要说不明，不能替服务端断言。 */
+    if (!wd || wd.ok !== true) {
+      return UI.toast("没能确认这次撤回有没有生效。请刷新页面核实当前状态，不要重复撤回。", "err");
+    }
     UI.toast("申请已撤回");
-    const { data: rows } = await Api.rpc("my_application");
-    app = (rows && rows[0]) || null;
+    const { data: rows, error: reErr } = await Api.rpc("my_application");
+    /* 撤回**已经生效**。这一读若失败，原来会落到 renderStart()
+       「还没有正式申请 / 开始填写正式申请」—— 那是在替服务端断言，
+       而且正把他推向再建一份。 */
+    if (reErr || !Array.isArray(rows)) {
+      main.innerHTML = UI.box("🗂️", "申请已撤回，但最新状态这一次没读到",
+        "撤回已经生效。这一次没能读到你当前的申请状态，所以这里暂时不显示。" +
+        "请刷新页面核实之后，再决定要不要重新申请。") +
+        '<button class="btn" type="button" id="btnWdReload" style="width:auto;padding:0 22px;margin-top:12px">刷新页面</button>';
+      document.getElementById("btnWdReload")?.addEventListener("click", () => location.reload());
+      return;
+    }
+    app = rows[0] || null;
     app ? render() : renderStart();
   }
 
