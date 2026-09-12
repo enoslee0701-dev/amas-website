@@ -130,11 +130,21 @@ window.supabase = {
     function table(name){
       var mode = "select";
       var q = {
-        select:function(){ return q; }, eq:function(){ return q; }, in:function(){ return q; },
+        select:function(){ return q; },
+        eq:function(k, v){
+          if (mode === "update") {
+            try { var m = JSON.parse(sessionStorage.getItem("lastMatch") || "{}");
+                  m[k] = v; sessionStorage.setItem("lastMatch", JSON.stringify(m)); } catch (e) {}
+          }
+          return q;
+        },
+        in:function(){ return q; },
         match:function(){ return q; }, order:function(){ return q; }, limit:function(){ return q; },
         maybeSingle:function(){ return q; }, single:function(){ return q; },
         insert:function(){ mode = "insert"; bump("insert:" + name); return q; },
         update:function(){ mode = "update"; bump("update:" + name); return q; },
+        /* 记下每次 update 用的匹配条件 —— 乐观并发要证的就是
+           「保存时到底带没带 updated_at」。 */
         then:function(res, rej){
           var sc = S();
           var t = (mode === "select")
@@ -222,7 +232,7 @@ try {
   };
   const open = async (scen, wait) => {
     await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: "window.__SCEN = " + JSON.stringify(scen) + ";" });
-    await cdp.ev(`(()=>{try{sessionStorage.removeItem("wCalls");}catch(e){} return true;})()`).catch(()=>{});
+    await cdp.ev(`(()=>{try{["wCalls","lastMatch"].forEach(k=>sessionStorage.removeItem(k));}catch(e){} return true;})()`).catch(()=>{});
     pageErrors = [];
     await cdp.send("Page.navigate", { url: `${BASE}/portal/applicant/application/` });
     await sleep(wait || 2800);
@@ -395,6 +405,46 @@ try {
   await sleep(1400);
   ok("W4 保存被拒后连点两次，仍然一次 submit_application 都不发",
      ((await calls())["rpc:submit_application"] || 0) === 0, JSON.stringify(await calls()));
+
+  // ════════ K 乐观并发（blueprint §6「服务端 updated_at 乐观并发」）════════
+  console.log("\n=== K 乐观并发 ===");
+  const lastMatch = async () => (await cdp.ev(`(()=>{try{return JSON.parse(sessionStorage.getItem("lastMatch")||"{}");}catch(e){return{};}})()`)) || {};
+  const conflictBox = async () => cdp.ev(`(()=>{const b=document.getElementById("conflictBox");
+    return b ? { text:(b.textContent||"").trim(), hasReload: !!b.querySelector("button") } : null;})()`);
+  const DRAFT_TS = { ...DRAFT, updated_at: "2026-09-10T00:00:00Z" };
+
+  await open({ ...withApp,
+    writes: { applications: { data:[{ id:"app-fixture-1", updated_at:"2026-09-11T00:00:00Z" }], error:null } },
+    rpc: { my_application:{ data:[DRAFT_TS] } } });
+  ok("K0 前提：确实在表单里改了一个字段", (await touchForm()) === true);
+  await sleep(1500);
+  const k0 = await lastMatch();
+  ok("K1 保存时带上 updated_at 作为匹配条件（不再只按 id 覆盖）",
+     k0.id === "app-fixture-1" && k0.updated_at === "2026-09-10T00:00:00Z", JSON.stringify(k0));
+
+  // 命中 0 行 = 这条记录在别处被改过
+  await open({ ...withApp,
+    writes: { applications: { data:[], error:null } },
+    rpc: { my_application:{ data:[DRAFT_TS] } } });
+  await touchForm();
+  await sleep(1600);
+  const kc = await conflictBox();
+  const ks = await cdp.ev(`(document.getElementById("saveState")||{}).textContent||""`);
+  ok("K2 命中 0 行时不报「已保存」", !/已保存/.test(ks), JSON.stringify(ks));
+  ok("K3 明说这份申请在别处被改过", /别处被改过/.test(ks) || /别处被改过/.test((kc && kc.text) || ""), JSON.stringify({ ks, kc }));
+  ok("K4 给「重新载入」出口，且**不自动重载**（不冲掉当前编辑）",
+     !!kc && kc.hasReload === true, JSON.stringify(kc));
+  ok("K5 用户填的内容还在页面上",
+     (await cdp.ev(`(()=>{const i=document.querySelector("#appForm [data-f]"); return i?i.value:null;})()`)) === "FIXTURE-EDIT");
+
+  // 冲突之后不许提交（提交的会是过期版本）
+  await cdp.ev(`(()=>{try{sessionStorage.removeItem("wCalls");}catch(e){} return true;})()`);
+  await clickSubmit();
+  const k6 = await calls();
+  ok("K6 冲突之后点提交，一次 submit_application 都不发",
+     (k6["rpc:submit_application"] || 0) === 0, JSON.stringify(k6));
+  ok("K7 并说清楚是没保存成功所以没提交",
+     /没有保存成功/.test((await subState()).err || ""), JSON.stringify(await subState()));
 
   // ════════ Q 标记补件完成 ════════
   console.log("\n=== Q 标记补件完成 ===");

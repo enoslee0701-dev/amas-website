@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130205">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130215">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130205"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130205"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130205"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130205"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130205"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609130205"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130215"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130215"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130215"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130215"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130215"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609130215"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -365,7 +365,19 @@
       从来没存进去，而他以为交上去了。 */
   async function save(){
     if (!EDITABLE.includes(app.status)) return { ok: true, unclear: false, skipped: true };
-    const { error } = await Api.update("applications", { id: app.id },
+    /* PORTAL-blueprint §6 表单行为写明：「草稿本地 debounce 800ms +
+       **服务端 updated_at 乐观并发**」。乐观并发这一半此前完全没做 ——
+       保存只按 { id } 匹配，于是一个开着的旧标签页会拿它那份过期的
+       form_data **整包覆盖**掉别处刚写进去的内容，而且一声不响。
+       典型场景：教务把申请退回补充资料并解锁了某个字段（0011 精确解锁），
+       申请人另一个早就开着的标签页一到点自动保存，把解锁前的快照写了回去。
+
+       applications 上有 applications_set_updated_at 触发器（0008:51），
+       所以把上次读到的 updated_at 一并作为匹配条件：命中 0 行就说明
+       这条记录在别处被改过，这一次**确定没保存**。 */
+    const match = { id: app.id };
+    if (app.updated_at) match.updated_at = app.updated_at;
+    const { data: rows, error } = await Api.update("applications", match,
       { form_data: app.form_data, pathway: app.pathway });
     /* 自动保存失败也要分清楚：读不到结论时这一次可能其实已经存进去了，
        说死「保存失败」会让人以为刚才白填了。 */
@@ -375,9 +387,45 @@
                            : "保存失败：" + error.message);
       return { ok: false, unclear: unclear, message: error.message || "" };
     }
+    /* Api.update 末尾有 .select()，所以命中的行会回来。0 行 = 条件没匹配上，
+       也就是 updated_at 变了 —— 别人改过。这是**确定**的结果（没写进去），
+       但不能顺手重试：重试会把过期内容盖上去。留着用户当前的编辑，
+       只给「重新载入」这一条出路。 */
+    if (Array.isArray(rows) && rows.length === 0) {
+      setSaveState("这份申请在别处被改过，这一次没有保存");
+      showConflict();
+      return { ok: false, unclear: false, conflict: true,
+               message: "这份申请在别处被改过（可能是你在另一个标签页改的，或教务刚处理过）" };
+    }
+    // 保存成功：把服务端新的 updated_at 接上，下一次保存才比得对
+    if (Array.isArray(rows) && rows[0] && rows[0].updated_at) app.updated_at = rows[0].updated_at;
     dirty = false;
     setSaveState("已保存 " + new Date().toLocaleTimeString("zh-CN", { hour12: false }));
     return { ok: true, unclear: false };
+  }
+
+  /** 冲突提示：**不自动重新载入** —— 那会把用户正在编辑的内容冲掉。
+      把选择权交给他：要么先把内容抄走再载入，要么继续编辑别的字段。 */
+  function showConflict(){
+    let box = document.getElementById("conflictBox");
+    if (!box) {
+      box = document.createElement("div");
+      box.id = "conflictBox";
+      box.className = "msg err show";
+      box.setAttribute("role", "alert");
+      box.style.margin = "12px 0";
+      const host = document.getElementById("appForm") || main;
+      host.parentNode.insertBefore(box, host);
+    }
+    box.textContent = "这份申请在别处被改过，这一次没有保存 —— " +
+      "直接再存会把别处的改动覆盖掉。你现在填的内容还在页面上，" +
+      "请先记下需要保留的部分，再重新载入取回最新版本。 ";
+    if (!box.querySelector("button")) {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "link"; b.textContent = "重新载入";
+      b.addEventListener("click", () => location.reload());
+      box.appendChild(b);
+    }
   }
 
   // ---------- 提交 / 撤回 ----------
