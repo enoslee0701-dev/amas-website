@@ -83,9 +83,9 @@
 })();
 </script>
 <script>(function(){var l=document.createElement("link");l.rel="preload";l.as="image";l.href="assets/img/hero-"+(document.documentElement.dataset.theme==="night"?"night":"day")+".webp";document.head.appendChild(l);})();</script>
-<script src="assets/js/supabase-config.js?v=202609121233"></script>
+<script src="assets/js/supabase-config.js?v=202609121249"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/main.css?v=202609121233">
+<link rel="stylesheet" href="assets/css/main.css?v=202609121249">
 </head>
 <body>
 <a class="skip-link" href="#main" data-i18n="actions.skip">跳到主要内容</a>
@@ -653,6 +653,20 @@
           <li><span data-i18n="training.9">晨祷训练</span></li>
           <li><span data-i18n="training.10">开辟教会训练</span></li>
         </ul>
+      </div>
+
+      <!-- 课程区收尾出口。
+           实测（375px）：本区 2220px 高、67 张课程卡，**区内一个申请或招生入口都没有**；
+           看完课程想报名，要么往上回滚 7466px 回到首屏，要么再往下滚 1698px
+           （两个多屏）才碰到招生区那个「正式申请」。这里补一个就地出口。
+           文案只复述站内已有的事实（开课批次/修读年限/申请条件请咨询招生同工，
+           见 programs.note），**不新增任何课程、认证或招生承诺**。 -->
+      <div class="course-cta reveal">
+        <p data-i18n="courses.ctaNote">课程的开课批次、修读年限与申请条件，请咨询招生同工。</p>
+        <div class="course-cta-actions">
+          <a class="btn primary" href="#admissions"><span data-i18n="courses.ctaAdmissions">查看招生信息</span></a>
+          <button class="btn secondary" type="button" data-open-application><span data-i18n="actions.apply">申请入学</span></button>
+        </div>
       </div>
     </div>
   </section>
@@ -1226,6 +1240,6 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="assets/js/main.js?v=202609121233"></script>
+<script src="assets/js/main.js?v=202609121249"></script>
 </body>
 </html>

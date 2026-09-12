@@ -980,6 +980,13 @@ html[data-theme="night"] .copy-btn{background:rgba(255,255,255,.06)}
 .training-head h3{font-family:"Noto Serif SC","Songti SC",serif;font-size:22px;color:#fff;margin:6px 0 8px}
 .training-head p{margin:0 0 14px;font-size:13px;color:#c3bda9;line-height:1.7}
 .training-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;column-gap:36px}
+/* 课程区收尾出口：看完 67 门课之后就地给一条通往招生与申请的路。
+   两个按钮都吃站内既有的 .btn 尺寸（48px 高），不另立一套。 */
+.course-cta{margin-top:28px;padding:20px 22px;border:1px solid var(--line);border-radius:16px;background:var(--paper,#fbfaf7)}
+.course-cta p{margin:0 0 14px;font-size:13.5px;line-height:1.9;color:var(--muted)}
+.course-cta-actions{display:flex;flex-wrap:wrap;gap:12px}
+.course-cta-actions .btn{width:auto;min-width:160px;flex:1 1 200px}
+@media (max-width:480px){.course-cta-actions .btn{flex:1 1 100%}}
 .training-list li{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:10px 0;border-bottom:1px dashed rgba(255,255,255,.16);font-size:13.5px}
 .training-list b{color:#e9c46a;white-space:nowrap;font-weight:700}
 .training-list b i{font-style:normal;font-weight:400;font-size:11px;color:#b9b29c}

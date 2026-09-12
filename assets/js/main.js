@@ -162,7 +162,7 @@ const i18n = {
   "courseCards.63.title":"中国教会史","courseCards.63.body":"回顾福音入华与中国教会的成长之路。","courseCards.64.title":"希腊语","courseCards.64.body":"学习新约希腊文基础，直读原文经文。","courseCards.65.title":"希伯来语","courseCards.65.body":"掌握旧约希伯来文的入门要素。",
   "courseCards.66.title":"人工智能与教牧实践","courseCards.66.body":"善用 AI 工具辅助讲章预备、牧养与事工管理。",
   "courses.filters.nt":"新约书卷","courses.filters.ot":"旧约书卷","courses.filters.tools":"语言与工具",
-  "courses.title":"课程设置","courses.desc":"按学院最终课程表开设 67 门课程，分为新约书卷、旧约书卷、圣经基础与研经、神学与思想、实践神学与牧养、历史与文化、语言与工具七大类；学分制、按科修读。","courses.filterGroup":"课程筛选","courses.filters.all":"全部","courses.filters.bible":"圣经基础与研经","courses.filters.theology":"神学与思想","courses.filters.ministry":"实践神学与牧养","courses.count":"已显示 {n} 门课程","courses.more":"展开全部课程（还有 {n} 门）","courses.less":"收起课程列表",
+  "courses.title":"课程设置","courses.desc":"按学院最终课程表开设 67 门课程，分为新约书卷、旧约书卷、圣经基础与研经、神学与思想、实践神学与牧养、历史与文化、语言与工具七大类；学分制、按科修读。","courses.filterGroup":"课程筛选","courses.ctaNote":"课程的开课批次、修读年限与申请条件，请咨询招生同工。","courses.ctaAdmissions":"查看招生信息","courses.filters.all":"全部","courses.filters.bible":"圣经基础与研经","courses.filters.theology":"神学与思想","courses.filters.ministry":"实践神学与牧养","courses.count":"已显示 {n} 门课程","courses.more":"展开全部课程（还有 {n} 门）","courses.less":"收起课程列表",
   "programs.title":"培养项目","programs.desc":"学分制 · 按科修读、按科缴费：从神学学士到博士研究，修满学分即可毕业；2026 届 B.Th 招生已开放，欢迎咨询了解。",
   "programs.degree.title":"学位课程","programs.degree.sub":"学分制逐科修读，修满规定学分即毕业；学籍由 AMAS 总校审核建立","programs.equip.title":"证书与装备课程","programs.equip.sub":"面向在职牧者与平信徒的短期训练",
   "programs.items.laycert.badge":"证书","programs.items.laycert.name":"平信徒指导者课程","programs.items.laycert.desc":"36 学分 · 每 3 个月集中学习 10 天 · 修满即结业","programs.items.pdip.badge":"文凭","programs.items.pdip.name":"牧会训练课程","programs.items.pdip.desc":"60 学分 · 可在线按科学习 · 修毕获结业证","application.programs.laycert":"平信徒指导者课程（证书）","application.programs.pdip":"牧会训练课程（文凭）",
@@ -283,7 +283,7 @@ const i18n = {
   "courseCards.63.title":"Chinese Church History","courseCards.63.body":"The gospel's arrival in China and the growth of the Chinese church.","courseCards.64.title":"Greek","courseCards.64.body":"New Testament Greek basics for reading the original text.","courseCards.65.title":"Hebrew","courseCards.65.body":"Essentials of Old Testament Hebrew.",
   "courseCards.66.title":"AI & Pastoral Practice","courseCards.66.body":"Using AI tools wisely for sermon prep, care and ministry management.",
   "courses.filters.nt":"New Testament Books","courses.filters.ot":"Old Testament Books","courses.filters.tools":"Languages & Tools",
-  "courses.title":"Curriculum","courses.desc":"67 courses from the seminary's official catalogue in seven categories: New Testament books, Old Testament books, Bible foundations & study, theology & thought, practical theology & pastoral care, history & culture, languages & tools — credit-based, course by course.","courses.filterGroup":"Filter courses","courses.filters.all":"All","courses.filters.bible":"Bible Foundations & Study","courses.filters.theology":"Theology & Thought","courses.filters.ministry":"Practical Theology & Pastoral Care","courses.count":"{n} courses shown","courses.more":"Show all courses ({n} more)","courses.less":"Show fewer courses",
+  "courses.title":"Curriculum","courses.desc":"67 courses from the seminary's official catalogue in seven categories: New Testament books, Old Testament books, Bible foundations & study, theology & thought, practical theology & pastoral care, history & culture, languages & tools — credit-based, course by course.","courses.filterGroup":"Filter courses","courses.ctaNote":"For intake dates, length of study and entry requirements, please ask the admissions team.","courses.ctaAdmissions":"See admissions","courses.filters.all":"All","courses.filters.bible":"Bible Foundations & Study","courses.filters.theology":"Theology & Thought","courses.filters.ministry":"Practical Theology & Pastoral Care","courses.count":"{n} courses shown","courses.more":"Show all courses ({n} more)","courses.less":"Show fewer courses",
   "programs.title":"Programs","programs.desc":"Credit-based, course by course: from the B.Th to doctoral study, graduate on completing the required credits. The B.Th Class of 2026 intake is open — contact us to learn more.",
   "programs.degree.title":"Degree Programs","programs.degree.sub":"Credit-based study course by course; graduate on completing the required credits. Enrolment is verified by AMAS headquarters.","programs.equip.title":"Certificate & Equipping Programs","programs.equip.sub":"Short-term training for serving pastors and lay leaders",
   "programs.items.laycert.badge":"CERT","programs.items.laycert.name":"Lay Leader Course","programs.items.laycert.desc":"36 credits · a 10-day intensive every 3 months · complete on full credits","programs.items.pdip.badge":"DIP","programs.items.pdip.name":"Pastoral Training Diploma","programs.items.pdip.desc":"60 credits · online, course by course · certificate of completion","application.programs.laycert":"Lay Leader Course (Certificate)","application.programs.pdip":"Pastoral Training Diploma",
@@ -404,7 +404,7 @@ const i18n = {
   "courseCards.63.title":"중국 교회사","courseCards.63.body":"복음의 중국 전래와 중국 교회의 성장 과정을 돌아봅니다.","courseCards.64.title":"헬라어","courseCards.64.body":"신약 헬라어 기초를 배워 원문을 읽습니다.","courseCards.65.title":"히브리어","courseCards.65.body":"구약 히브리어 입문 요소를 익힙니다.",
   "courseCards.66.title":"인공지능과 목회 실천","courseCards.66.body":"AI 도구를 설교 준비, 목양, 사역 관리에 지혜롭게 활용합니다.",
   "courses.filters.nt":"신약 각 권","courses.filters.ot":"구약 각 권","courses.filters.tools":"언어와 도구",
-  "courses.title":"교육 과정","courses.desc":"학교 최종 과목표의 67개 과목을 신약 각 권, 구약 각 권, 성경 기초와 연구, 신학과 사상, 실천신학과 목양, 역사와 문화, 언어와 도구의 7개 분야로 개설합니다. 학점제·과목별 수강.","courses.filterGroup":"과목 필터","courses.filters.all":"전체","courses.filters.bible":"성경 기초와 연구","courses.filters.theology":"신학과 사상","courses.filters.ministry":"실천신학과 목양","courses.count":"{n}개 과목 표시 중","courses.more":"전체 과목 펼치기 (외 {n}과목)","courses.less":"과목 목록 접기",
+  "courses.title":"교육 과정","courses.desc":"학교 최종 과목표의 67개 과목을 신약 각 권, 구약 각 권, 성경 기초와 연구, 신학과 사상, 실천신학과 목양, 역사와 문화, 언어와 도구의 7개 분야로 개설합니다. 학점제·과목별 수강.","courses.filterGroup":"과목 필터","courses.ctaNote":"개강 시기, 수업 기간, 지원 조건은 입학 담당자에게 문의해 주세요.","courses.ctaAdmissions":"입학 안내 보기","courses.filters.all":"전체","courses.filters.bible":"성경 기초와 연구","courses.filters.theology":"신학과 사상","courses.filters.ministry":"실천신학과 목양","courses.count":"{n}개 과목 표시 중","courses.more":"전체 과목 펼치기 (외 {n}과목)","courses.less":"과목 목록 접기",
   "programs.title":"교육 프로그램","programs.desc":"학점제 · 과목별 수강·납부: 신학사부터 박사 연구까지, 필요 학점을 채우면 졸업합니다. 2026학년도 B.Th 모집 중입니다. 자세한 내용은 문의해 주세요.",
   "programs.degree.title":"학위 과정","programs.degree.sub":"학점제로 과목별 이수, 규정 학점을 채우면 졸업. 학적은 AMAS 본교 심사로 등록.","programs.equip.title":"자격·훈련 과정","programs.equip.sub":"현직 목회자와 평신도를 위한 단기 훈련",
   "programs.items.laycert.badge":"수료","programs.items.laycert.name":"평신도 지도자 과정","programs.items.laycert.desc":"36학점 · 3개월마다 10일 집중 과정 · 학점 이수 시 수료","programs.items.pdip.badge":"디플로마","programs.items.pdip.name":"목회 훈련 디플로마","programs.items.pdip.desc":"60학점 · 온라인 과목별 수강 · 수료증 발급","application.programs.laycert":"평신도 지도자 과정(수료)","application.programs.pdip":"목회 훈련 디플로마",
@@ -525,7 +525,7 @@ const i18n = {
   "courseCards.63.title":"ประวัติศาสตร์คริสตจักรจีน","courseCards.63.body":"การมาถึงของข่าวประเสริฐในจีนและการเติบโตของคริสตจักรจีน","courseCards.64.title":"ภาษากรีก","courseCards.64.body":"พื้นฐานภาษากรีกพันธสัญญาใหม่เพื่ออ่านต้นฉบับ","courseCards.65.title":"ภาษาฮีบรู","courseCards.65.body":"พื้นฐานภาษาฮีบรูพันธสัญญาเดิม",
   "courseCards.66.title":"ปัญญาประดิษฐ์กับการอภิบาล","courseCards.66.body":"ใช้เครื่องมือ AI อย่างชาญฉลาดในการเตรียมเทศนา การดูแล และการบริหารพันธกิจ",
   "courses.filters.nt":"พระธรรมพันธสัญญาใหม่","courses.filters.ot":"พระธรรมพันธสัญญาเดิม","courses.filters.tools":"ภาษาและเครื่องมือ",
-  "courses.title":"รายวิชา","courses.desc":"67 วิชาจากตารางวิชาทางการ แบ่งเป็น 7 หมวด: พระธรรมพันธสัญญาใหม่ พันธสัญญาเดิม พื้นฐานและการศึกษาพระคัมภีร์ ศาสนศาสตร์และความคิด ศาสนศาสตร์ภาคปฏิบัติ ประวัติศาสตร์และวัฒนธรรม ภาษาและเครื่องมือ — ระบบหน่วยกิต เรียนรายวิชา","courses.filterGroup":"กรองรายวิชา","courses.filters.all":"ทั้งหมด","courses.filters.bible":"พื้นฐานและการศึกษาพระคัมภีร์","courses.filters.theology":"ศาสนศาสตร์และความคิด","courses.filters.ministry":"ศาสนศาสตร์ภาคปฏิบัติและการอภิบาล","courses.count":"แสดง {n} รายวิชา","courses.more":"ดูรายวิชาทั้งหมด (อีก {n} วิชา)","courses.less":"ย่อรายการวิชา",
+  "courses.title":"รายวิชา","courses.desc":"67 วิชาจากตารางวิชาทางการ แบ่งเป็น 7 หมวด: พระธรรมพันธสัญญาใหม่ พันธสัญญาเดิม พื้นฐานและการศึกษาพระคัมภีร์ ศาสนศาสตร์และความคิด ศาสนศาสตร์ภาคปฏิบัติ ประวัติศาสตร์และวัฒนธรรม ภาษาและเครื่องมือ — ระบบหน่วยกิต เรียนรายวิชา","courses.filterGroup":"กรองรายวิชา","courses.ctaNote":"รอบเปิดเรียน ระยะเวลาศึกษา และเงื่อนไขการสมัคร กรุณาสอบถามฝ่ายรับสมัคร","courses.ctaAdmissions":"ดูข้อมูลการรับสมัคร","courses.filters.all":"ทั้งหมด","courses.filters.bible":"พื้นฐานและการศึกษาพระคัมภีร์","courses.filters.theology":"ศาสนศาสตร์และความคิด","courses.filters.ministry":"ศาสนศาสตร์ภาคปฏิบัติและการอภิบาล","courses.count":"แสดง {n} รายวิชา","courses.more":"ดูรายวิชาทั้งหมด (อีก {n} วิชา)","courses.less":"ย่อรายการวิชา",
   "programs.title":"หลักสูตร","programs.desc":"ระบบหน่วยกิต เรียนและชำระรายวิชา: จากปริญญาตรีถึงปริญญาเอก ครบหน่วยกิตก็จบการศึกษา เปิดรับ B.Th รุ่นปี 2026 สอบถามเพิ่มเติมได้",
   "programs.degree.title":"หลักสูตรปริญญา","programs.degree.sub":"เรียนรายวิชาแบบหน่วยกิต ครบตามกำหนดก็จบ ทะเบียนนักศึกษาตรวจสอบโดย AMAS สำนักงานใหญ่","programs.equip.title":"ประกาศนียบัตรและการอบรม","programs.equip.sub":"การอบรมระยะสั้นสำหรับศิษยาภิบาลและฆราวาส",
   "programs.items.laycert.badge":"ใบรับรอง","programs.items.laycert.name":"หลักสูตรผู้นำฆราวาส","programs.items.laycert.desc":"36 หน่วยกิต · เรียนเข้ม 10 วันทุก 3 เดือน · ครบหน่วยกิตรับใบสำเร็จ","programs.items.pdip.badge":"ประกาศนียบัตร","programs.items.pdip.name":"ประกาศนียบัตรการฝึกศิษยาภิบาล","programs.items.pdip.desc":"60 หน่วยกิต · เรียนออนไลน์รายวิชา · รับใบสำเร็จ","application.programs.laycert":"หลักสูตรผู้นำฆราวาส","application.programs.pdip":"ประกาศนียบัตรศิษยาภิบาล",
@@ -1129,7 +1129,9 @@ async function sendPayload(kind, payload){
     clearTimeout(timer);
     /* 超时与普通网络错要分开抛，但**两者都属于「无法确认是否已送达」**：
        走到这里说明根本没拿到回应，请求可能已经送到了。
-       只有拿到非 2xx（下面那个 kind="http"）才是能证明的失败。
+       至于拿到了回应的情况，见下面按状态码分流：**只有 4xx 业务拒绝
+       （kind="rejected"）才是能证明的失败**；5xx 与 408 归 kind="server"，
+       服务端可能写入后才失败，同样只能说无法确认。
        分开抛只为让文案能说清成因，不是为了给网络错配「直接重投」的建议。 */
     const err = new Error(timedOut ? "submit_timeout" : "submit_network");
     err.kind = timedOut ? "timeout" : "network";
@@ -1356,8 +1358,10 @@ $("#contactForm").addEventListener("submit", async e => {
     toast(t(r.demo ? "toast.inquiryDemo" : "toast.inquiry"));
     form.reset();
   }catch(err){
-    /* 与申请表同一判据：只有拿到非 2xx 才是能证明的失败；
-       超时与网络错都没拿到回应，咨询**可能已经送到了**，不能一概说失败。 */
+    /* 与申请表同一判据：**只有 4xx 业务拒绝（kind="rejected"）才能说确实没送达**。
+       5xx / 408（kind="server"）是服务端自己出错，内容可能已经写进去才失败；
+       超时与网络错更是连回应都没拿到。这三者一律只说「无法确认」——
+       咨询**可能已经送到了**，一概说失败会让访客白交第二份。 */
     // 只有 4xx 业务拒绝才算「能证明没送达」；5xx 与网络异常都只能说无法确认
     const proven = err && err.kind === "rejected";
     status.dataset.state = proven ? "error" : "warn";
@@ -1482,7 +1486,9 @@ $("#givingForm")?.addEventListener("submit", async e => {
     st.textContent = t("giving.ok");
     form.reset();
   }catch(err){
-    // 同一判据：拿到非 2xx 才算确定没送达
+    /* 同一判据：只有 4xx 业务拒绝才算确定没送达；5xx / 408 与网络异常
+       都只能说无法确认。（注：#givingForm 目前不在任何页面上，这段是死代码，
+       保持判据一致是为了将来若重新启用时不走回头路。） */
     // 只有 4xx 业务拒绝才算「能证明没送达」；5xx 与网络异常都只能说无法确认
     const proven = err && err.kind === "rejected";
     st.dataset.state = proven ? "error" : "warn";
@@ -1800,9 +1806,10 @@ async function submitLeaveMessage(payload){
     return;
   }
   /* 按**能证明的**程度给反馈，与站内其余提交路径一致：
-       http            服务器回了非 2xx —— 确实没送出去，可以放心劝重发
-       timeout/network 没拿到回应       —— 留言**可能已经送到了**，
-                                          不能说「发送失败」，更不该让人闷头重发。 */
+       rejected        4xx 业务拒绝 —— 请求没被接受，确实没送出去，可以放心劝重发
+       server          5xx / 408    —— 服务端自己出错，留言**可能已经写进去了**，
+                                       断言没送出会让学校收到同一条的两份
+       timeout/network 没拿到回应   —— 同上，只能说无法确认，不该让人闷头重发 */
   // 只有 4xx 业务拒绝才算「能证明没送达」；5xx 与网络异常都只能说无法确认
     const proven = err && err.kind === "rejected";
   chatMsg(t(proven ? "chat.leave.fail" : "chat.leave.unsure"), "bot");
