@@ -6,9 +6,9 @@
 <meta name="robots" content="noindex,nofollow">
 <title>与我们同工 | AMAS</title>
 <link rel="icon" href="assets/img/favicon.png">
-<script src="assets/js/supabase-config.js?v=202609121206"></script>
+<script src="assets/js/supabase-config.js?v=202609121233"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/main.css?v=202609121206">
+<link rel="stylesheet" href="assets/css/main.css?v=202609121233">
 <style>
   body{background:var(--bg,#f7f1e6)}
   .gv-wrap{max-width:760px;margin:0 auto;padding:34px 18px 70px}
@@ -305,7 +305,13 @@ $("#gvForm").addEventListener("submit",async e=>{
     clearTimeout(timer);
     /* 拿到了回应但状态码不是 2xx —— 这一类才是**能证明的失败**：
        服务器明确拒绝了，没有送达，可以放心劝重试。 */
-    if(!res.ok){ const e3=new Error("http "+res.status); e3.kind="fail"; throw e3; }
+    if(!res.ok){
+      /* 同 main.js 的判据：4xx 业务拒绝才算确定没送达；
+         5xx 是服务端自己出错，可能已经写入后才失败，只能说无法确认。 */
+      const e3=new Error("http "+res.status); e3.status=res.status;
+      e3.kind=(res.status>=400 && res.status<500 && res.status!==408) ? "fail" : "unsure";
+      throw e3;
+    }
     try{
       const S=window.SUPA||{};
       if(S.url&&S.anonKey){

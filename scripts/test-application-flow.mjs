@@ -479,44 +479,60 @@ try {
   results.push([afterTimeout.按钮解锁 === true && afterTimeout.弹窗还开着 === true && afterTimeout.姓名还在 === "超时测试",
     "A19 超时后按钮解锁、弹窗不关、填写内容原样保留", JSON.stringify(afterTimeout)]);
 
-  // A20 负向控制：换成**立刻失败的普通网络错**（不是超时）。
-  // 若 warn 状态是随便哪种失败都会出现，那 A17 就是假绿。
-  // 正确行为是：普通失败走 error，只有超时走 warn。
+  /* A20–A23 三种失败的区分。
+     早先这里是**层层嵌套替换 window.fetch**（每段再包一层），结果：
+       - 哪一层真正生效难以确定，A22 的 422 被前面某层吃掉了；
+       - 更糟的是 server 与 network 两支的**文案完全相同**，
+         A21 看起来绿，其实分不出它走的是 5xx 还是网络错 —— 那是假绿。
+     改成只装一个 wrapper，由 window.__mode 驱动，并且**直接断言 err.kind**，
+     不再只看文案。 */
   await cdp.ev(`(()=>{
+    CONFIG.formEndpoint = "/__mode-mock";
     const orig = window.fetch;
+    window.__mode = "neterr";
     window.fetch = function(u){
-      if(String(u).indexOf("never-answers") > -1) return Promise.reject(new TypeError("Failed to fetch"));
-      return orig.apply(this, arguments);
+      if(String(u).indexOf("__mode-mock") < 0) return orig.apply(this, arguments);
+      const m = window.__mode;
+      if(m === "neterr") return Promise.reject(new TypeError("Failed to fetch"));
+      return Promise.resolve({ ok:false, status: Number(m), json:()=>Promise.resolve({}) });
     };
-    const st=document.querySelector('#applicationStatus');
-    st.textContent=''; st.removeAttribute('data-state'); return true;})()`);
-  await cdp.ev(`document.querySelector('#applicationForm').requestSubmit()`);
-  await sleep(1200);
-  const neg = await cdp.ev(`(()=>{const st=document.querySelector('#applicationStatus');
-    return { state: st.dataset.state || "", text:(st.textContent||'').trim() };})()`);
-  // 纠正：普通网络错**同样可能已经送达**，所以它和超时同属「无法确认」(warn)，
-  // 只有拿到非 2xx 回应才是能证明的失败(error)。早先这条断言写反了。
-  results.push([neg.state === "warn" && /无法确认/.test(neg.text),
-    "A20 普通网络错也归为无法确认（可能已送达），不谎称失败",
-    `state=${neg.state || "(空)"} text=${neg.text.slice(0,30)}`]);
+    return true;})()`);
 
-  // A21 负向控制：服务器明确回了非 2xx —— 这才该是 error
-  await cdp.ev(`(()=>{
-    const orig = window.fetch;
-    window.fetch = function(u){
-      if(String(u).indexOf("never-answers") > -1)
-        return Promise.resolve({ ok:false, status:500, json:()=>Promise.resolve({}) });
-      return orig.apply(this, arguments);
-    };
-    const st=document.querySelector('#applicationStatus');
-    st.textContent=''; st.removeAttribute('data-state'); return true;})()`);
-  await cdp.ev(`document.querySelector('#applicationForm').requestSubmit()`);
-  await sleep(1200);
-  const neg2 = await cdp.ev(`(()=>{const st=document.querySelector('#applicationStatus');
-    return { state: st.dataset.state || "", text:(st.textContent||'').trim() };})()`);
-  results.push([neg2.state === "error",
-    "A21 负向控制：拿到非 2xx 才判 error（证明 warn 不是一锅端）",
-    `state=${neg2.state || "(空)"}`]);
+  // 直接问 sendPayload 抛出的 kind —— 这是判据的源头，比看文案可靠
+  const kindOf = async (mode) => cdp.ev(`(async()=>{
+    window.__mode = ${JSON.stringify(mode)};
+    try{ await sendPayload("application", { probe:1 }); return "没抛错"; }
+    catch(e){ return String(e.kind); } })()`);
+
+  const k422 = await kindOf("422");
+  const k500 = await kindOf("500");
+  const k408 = await kindOf("408");
+  const kNet = await kindOf("neterr");
+  results.push([k422 === "rejected", "A20 4xx 业务拒绝判为 rejected（确定未被接受）", `422 → ${k422}`]);
+  results.push([k500 === "server",
+    "A21 HTTP 500 判为 server 而非 rejected（服务端可能写入后才失败，不能断言没送达）", `500 → ${k500}`]);
+  results.push([k408 === "server",
+    "A22 408 按保守原则也归 server（含义模糊，宁可让人先核实）", `408 → ${k408}`]);
+  results.push([kNet === "network", "A23 网络异常判为 network", `neterr → ${kNet}`]);
+  results.push([k422 !== k500,
+    "A24 负向控制：422 与 500 判出不同 kind（证明不是一锅端）", `422=${k422} 500=${k500}`]);
+
+  // 再验 UI 层：只有 rejected 才显示 error，其余都是 warn
+  const uiFor = async (mode) => {
+    await cdp.ev(`(()=>{ window.__mode = ${JSON.stringify(mode)};
+      const st=document.querySelector('#applicationStatus');
+      st.textContent=''; st.removeAttribute('data-state'); return true;})()`);
+    await cdp.ev(`document.querySelector('#applicationForm').requestSubmit()`);
+    await sleep(1100);
+    return cdp.ev(`(()=>{const st=document.querySelector('#applicationStatus');
+      return { state: st.dataset.state || "", text:(st.textContent||'').trim() };})()`);
+  };
+  const u422 = await uiFor("422");
+  const u500 = await uiFor("500");
+  results.push([u422.state === "error" && /拒绝/.test(u422.text),
+    "A25 UI：422 显示 error 并说明确实没送达", `state=${u422.state} ${u422.text.slice(0,22)}`]);
+  results.push([u500.state === "warn" && /无法确认/.test(u500.text),
+    "A26 UI：500 显示 warn 并只说无法确认", `state=${u500.state} ${u500.text.slice(0,22)}`]);
 
   // ════ B1–B5 咨询表单（#contactForm）的三态一致性 ════
   // 整合前核查时发现：咨询表单的 catch 一概说「提交失败」，与申请表已纠正的判据不一致。
@@ -538,6 +554,8 @@ try {
         window.__cHits++;
         if(${JSON.stringify("http500")} === ${JSON.stringify(mode)})
           return Promise.resolve({ ok:false, status:500, json:()=>Promise.resolve({}) });
+        if(${JSON.stringify("http422")} === ${JSON.stringify(mode)})
+          return Promise.resolve({ ok:false, status:422, json:()=>Promise.resolve({}) });
         return Promise.reject(new TypeError("Failed to fetch"));
       };
       const f = document.getElementById('contactForm');
@@ -564,13 +582,17 @@ try {
   results.push([cNet.姓名 === "咨询测试" && cNet.内容 === "这是咨询内容",
     "B3 咨询表单：失败后填写内容原样保留", JSON.stringify(cNet)]);
 
-  const cHttp = await contactRun("http500");
-  results.push([cHttp.state === "error" && /没有送达/.test(cHttp.text),
-    "B4 咨询表单：拿到非 2xx 才判 error 并说明确实没送达",
-    `state=${cHttp.state} text=${cHttp.text.slice(0, 30)}`]);
-  results.push([cHttp.state !== cNet.state,
-    "B5 负向控制：两种失败判出不同状态（证明三态不是一锅端）",
-    `http500=${cHttp.state} neterr=${cNet.state}`]);
+  const c500 = await contactRun("http500");
+  results.push([c500.state === "warn" && /无法确认/.test(c500.text),
+    "B4 咨询表单：HTTP 500 归为无法确认（服务端可能写入后才失败）",
+    `state=${c500.state} text=${c500.text.slice(0, 26)}`]);
+  const c422 = await contactRun("http422");
+  results.push([c422.state === "error" && /拒绝/.test(c422.text),
+    "B5 咨询表单：4xx 业务拒绝才判 error 并说明确实没送达",
+    `state=${c422.state} text=${c422.text.slice(0, 26)}`]);
+  results.push([c500.state !== c422.state,
+    "B6 负向控制：500 与 422 判出不同状态（证明不是一锅端）",
+    `500=${c500.state} 422=${c422.state}`]);
 
   cdp.ws.close();
 } finally {

@@ -323,6 +323,8 @@ try {
         window.__formHits++;
         if(${JSON.stringify("http500")} === ${JSON.stringify(mode)})
           return Promise.resolve({ ok:false, status:500, json:()=>Promise.resolve({}) });
+        if(${JSON.stringify("http422")} === ${JSON.stringify(mode)})
+          return Promise.resolve({ ok:false, status:422, json:()=>Promise.resolve({}) });
         if(${JSON.stringify("neterr")} === ${JSON.stringify(mode)})
           return Promise.reject(new TypeError("Failed to fetch"));
         return Promise.resolve({ ok:true, status:200, json:()=>Promise.resolve({}) });
@@ -339,8 +341,8 @@ try {
     await sleep(900);
   };
 
-  // J1 服务器明确拒绝 → 能证明的失败
-  await leaveRun("http500");
+  // J1 4xx 业务拒绝 → 能证明的失败（5xx 另见 J5）
+  await leaveRun("http422");
   const j1 = await body();
   const j1chips = await cdp.ev(`[...document.querySelectorAll('#chatBody .chat-chips button')]
     .map(x=>(x.textContent||'').trim())`);
@@ -369,6 +371,13 @@ try {
   // J4 成功路径不受影响
   await leaveRun("okres");
   ok("J4 成功时照常回执", /留言已送出|留言已保存/.test((await body()).全文), (await body()).末条.slice(0, 40));
+
+  /* J5 HTTP 500：服务端自己出错，留言**可能已经写进去了**。
+     断言「没有送出」会让访客重发，学校就收到同一条的两份。 */
+  await leaveRun("http500");
+  const j5 = await body();
+  ok("J5 500 归为无法确认，不说「没有送出」", !/没有送出/.test(j5.全文.split("|").pop()), j5.末条.slice(0, 40));
+  ok("J5 500 文案明说无法确认", /无法确认/.test(j5.全文), j5.末条.slice(0, 40));
 
   // ════ I 负向控制 ════
   console.log("\n=== I 负向控制：绿必须能转红 ===");

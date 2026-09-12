@@ -146,6 +146,7 @@ try {
         window.__hits++;
         if(MODE === "neterr")  return Promise.reject(new TypeError("Failed to fetch"));
         if(MODE === "http500") return Promise.resolve({ ok:false, status:500, json:()=>Promise.resolve({}) });
+        if(MODE === "http422") return Promise.resolve({ ok:false, status:422, json:()=>Promise.resolve({}) });
         if(MODE === "okres")   return Promise.resolve({ ok:true, status:200, json:()=>Promise.resolve({}) });
         // hang：永不 settle，只有 abort 能结束它
         return new Promise((res, rej)=>{
@@ -203,17 +204,33 @@ try {
   ok("网络错文案不承诺「发送失败」", !/发送失败/.test(sC.文案), sC.文案.slice(0, 50));
   ok("网络错后内容保留", vC.name === "测试访客", JSON.stringify(vC));
 
-  // ════ D 服务器明确拒绝 ════
-  console.log("\n=== D 服务器回了非 2xx（这才是能证明的失败）===");
+  /* D 判据已收窄：**5xx 不算「能证明的失败」**。服务端自己出错时，内容完全可能
+     已经写进去/排进队列之后才失败；断言没送达会诱导访客重投，造成重复。
+     只有 4xx 业务拒绝（参数不合法、被限流、被禁止…）才是请求没被接受。 */
+  console.log("");
+  console.log("=== D1 HTTP 500：服务端自己出错 → 无法确认 ===");
   await load("zh", "http500");
   await fillForm();
   await cdp.clickReal("#gvForm button[type=submit]");
   await sleep(900);
+  const s500 = await st(); const v500 = await vals();
+  ok("500 归为无法确认而非确定失败", s500.state === "warn", `state=${s500.state}`);
+  ok("500 文案不断言没送达", !/没有送达/.test(s500.文案), s500.文案.slice(0, 40));
+  ok("500 后内容保留", v500.name === "测试访客", JSON.stringify(v500));
+
+  console.log("");
+  console.log("=== D2 HTTP 422：业务拒绝 → 这才能证明没送达 ===");
+  await load("zh", "http422");
+  await fillForm();
+  await cdp.clickReal("#gvForm button[type=submit]");
+  await sleep(900);
   const sD = await st(); const vD = await vals();
-  ok("拿到回应的失败用 error", sD.state === "error", `state=${sD.state}`);
-  ok("文案说明确实没有送达", /没有送达|没送达|拒绝/.test(sD.文案), sD.文案.slice(0, 50));
-  ok("确定失败时才劝重试", /再试|重试/.test(sD.文案), sD.文案.slice(0, 50));
-  ok("失败后内容保留", vD.name === "测试访客", JSON.stringify(vD));
+  ok("422 用 error", sD.state === "error", `state=${sD.state}`);
+  ok("422 文案说明确实没有送达", /没有送达|没送达|拒绝/.test(sD.文案), sD.文案.slice(0, 50));
+  ok("422 时才劝重试", /再试|重试/.test(sD.文案), sD.文案.slice(0, 50));
+  ok("422 后内容保留", vD.name === "测试访客", JSON.stringify(vD));
+  ok("500 与 422 判出不同状态（不是一锅端）", s500.state !== sD.state,
+     `500=${s500.state} 422=${sD.state}`);
 
   // ════ E 成功 ════
   console.log("\n=== E 服务器确认收到 ===");
@@ -255,8 +272,8 @@ try {
   // ════ H 负向控制 ════
   console.log("\n=== H 负向控制：绿必须能转红 ===");
   // H1 三种失败必须**真的**被区分开，而不是恰好都叫 warn
-  ok("H1 http500 与 neterr 判出不同状态（证明三态不是一锅端）",
-     sD.state === "error" && sC.state === "warn", `http500=${sD.state} neterr=${sC.state}`);
+  ok("H1 422 与网络错判出不同状态（证明三态不是一锅端）",
+     sD.state === "error" && sC.state === "warn", `422=${sD.state} neterr=${sC.state}`);
   // H2 超时与网络错文案不同（两者都无法确认，但成因不同，应各自说清）
   ok("H2 超时与网络错给的是不同文案", sB.文案 !== sC.文案,
      "两者文案完全一样，说明超时分支其实没走到");
