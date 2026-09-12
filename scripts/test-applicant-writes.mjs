@@ -186,8 +186,11 @@ window.supabase = {
           return reply({ data:{ display_name:"测试申请人", email:"a@example.invalid" }, error:null, status:200 });
         var r = (S().rpc && S().rpc[name]) || { data:null, error:null };
         if (typeof r === "string") r = { data:null, error:null };
-        return reply({ data:r.data, error:r.error||null,
-          status: r.status != null ? r.status : (r.error ? 500 : 200) });
+        var out = { data:r.data, error:r.error||null,
+          status: r.status != null ? r.status : (r.error ? 500 : 200) };
+        var dl = r.delay || 0;
+        return dl ? new Promise(function(res){ setTimeout(function(){ res(out); }, dl); })
+                  : reply(out);
       },
       functions: { invoke: function(){ return reply({ data:null, error:null }); } }
     };
@@ -791,6 +794,44 @@ try {
      !/还没有正式申请/.test(u4 || ""), (u4 || "").slice(0, 240));
   ok("U4b 而是说清楚已撤回、但最新状态这一次没读到",
      /没能读到|没读到|刷新/.test(u4 || ""), (u4 || "").slice(0, 240));
+
+  // ════════ V 返修 b915a5e（监督两条）════════
+  console.log("\n=== V 返修：重读在途的创建窗口 / error 带 data ===");
+
+  /* V1：监督指出 reqsUnknown 与 reqs 同时成立时，render() 是
+         `${reqs.length ? renderRequirements() : (reqsUnknown ? ... : "")}` ——
+         reqs 一旦非空就短路，那条「没读到」永远不显示，等于把 error 忽略掉了。
+         服务端给了 error 就说明这份清单不能当作完整的。 */
+  await open({ tables: { ...BASE_TABLES, application_requirements: {
+      data: [{ id:"req-1", label:"补一份受洗证明", detail:"", resolved:false, created_at:"2026-09-10T00:00:00Z" }],
+      error: { message:"partial read" }, status: 500 } },
+    rpc: { my_application: { data:[{ ...DRAFT, status:"needs_information" }] } } });
+  const v1 = await bodyVis();
+  ok("V1 读到的那几项照常显示（不丢已经拿到的信息）",
+     /补一份受洗证明/.test(v1 || ""), (v1 || "").slice(0, 300));
+  ok("V1b 但同时说明这份清单这一次没读全，不当成完整的",
+     /没读全|不完整|没能读到|没读到/.test(v1 || ""), (v1 || "").slice(0, 300));
+
+  /* V2：监督指出 createDraft() 在 insert 成功后先 creating=false，再 await
+         重读 my_application。那一段窗口里旧的创建入口还在页面上 ——
+         若它此刻仍可点，就会 insert 出第二份申请。
+         这里把重读拖慢，在窗口正中间再点一次。 */
+  await open({ tables: BASE_TABLES,
+    rpc: { my_application: { data: [], delay: 2400 } },
+    writes: { applications: { data:[{ id:"app-fixture-1", updated_at:"2026-09-11T00:00:00Z" }], error:null } } }, 4200);
+  ok("V2-0 前提：创建入口在",
+     (await cdp.ev(`!!document.querySelector('[data-act="new"]')`)) === true);
+  await cdp.clickReal('[data-act="new"]');
+  await sleep(900);                              // 此刻 insert 已回、重读还在途
+  const midway = await cdp.ev(`(()=>{const b=document.querySelector('[data-act="new"]');
+    return b ? { present:true, disabled:!!b.disabled } : { present:false };})()`);
+  ok("V2 重读在途时，旧的创建入口已经封住",
+     midway.present === false || midway.disabled === true, JSON.stringify(midway));
+  await cdp.ev(`(()=>{const b=document.querySelector('[data-act="new"]'); if(b) b.click(); return !!b;})()`);
+  await sleep(2600);
+  const v2calls = await calls();
+  ok("V2b 那一下没有再建出第二份申请",
+     (v2calls["insert:applications"] || 0) === 1, JSON.stringify(v2calls));
 
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");

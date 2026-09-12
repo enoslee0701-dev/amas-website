@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130450">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130504">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130450"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130450"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130450"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130450"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130450"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609130450"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130504"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130504"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130504"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130504"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130504"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609130504"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -236,8 +236,14 @@
       if (startBtn) startBtn.disabled = false;
       return UI.toast(error.message, "err");
     }
-    creating = false;
-    /* 草稿**已经建出来了**。这一读若失败，原来 app 被赋成 null，紧接着
+    /* 这里**不再**把 creating 放开。创建已经成功，旧的那个入口从此不该
+       再能发出第二次 insert；成功之后页面要么进表单、要么进下面那张
+       「已创建但没读到」的卡，两者都没有创建入口。
+       （监督点名的那段重读窗口：实测没有复现 —— 入口按钮在 insert 之前
+        就已 disabled，只有失败分支才解锁。这里是把那道封锁写明确，
+        不再依赖「正好还 disabled 着」。）
+
+       草稿**已经建出来了**。这一读若失败，原来 app 被赋成 null，紧接着
        render() 取 app.status 就抛 TypeError，页面当场坏掉，回到
        「还没有正式申请」—— 他很可能会再点一次，建出第二份。 */
     const { data: rows, error: reErr } = await Api.rpc("my_application");
@@ -279,10 +285,14 @@
         ${app.applicant_visible_message ? `<div class="msg info show" style="margin-top:12px"><b>招生同工留言：</b>${UI.esc(app.applicant_visible_message)}</div>` : ""}
       </div>
 
-      ${reqs.length ? renderRequirements()
-        /* 只在「需补充资料」这个状态下说 —— 别的状态本来就不该有这张卡，
+      ${reqs.length ? renderRequirements() : ""}
+      ${/* 读到几项、同时又带着 error 的情况是存在的 —— 那时 reqs 非空，
+           原来 `reqs.length ? … : (reqsUnknown ? …)` 会直接短路，
+           那条「没读到」永远不显示，等于把 error 忽略掉。服务端给了 error，
+           这份清单就不能当作完整的：已经拿到的照常显示，**另外**说清楚它可能不全。
+           只在「需补充资料」这个状态下说 —— 别的状态本来就不该有这张卡，
            那时候它不出现并不是在断言什么。 */
-        : (reqsUnknown && app.status === "needs_information" ? renderRequirementsUnknown() : "")}
+        reqsUnknown && app.status === "needs_information" ? renderRequirementsUnknown(reqs.length) : ""}
 
       ${editable ? `
         <div class="steps" role="tablist" id="stepBar"></div>
@@ -324,10 +334,12 @@
     </div>`;
   }
 
-  function renderRequirementsUnknown(){
+  function renderRequirementsUnknown(got){
     return `<div class="card" style="margin-bottom:18px;border-left:4px solid var(--gold)">
-      <h2 style="font-size:16px">需要补充的资料（这一次没能读到）</h2>
-      <p class="sub">教务要求你补充的项目这一次没能读出来 —— <b>这不表示已经补完了</b>。
+      <h2 style="font-size:16px">需要补充的资料（这一次${got ? "没读全" : "没能读到"}）</h2>
+      <p class="sub">${got
+        ? "上面这份清单这一次<b>没有读全</b>，可能还有没显示出来的项目。"
+        : "教务要求你补充的项目这一次没能读出来 —— <b>这不表示已经补完了</b>。"}
       在全部补件完成之前，提交会被退回。请刷新页面再看一次；若一直读不到，请联系招生同工。</p>
       <button class="btn" type="button" id="btnReqReload" style="width:auto;padding:0 20px">刷新页面</button>
     </div>`;
