@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>两步验证 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609122010">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609122046">
 <style>
 .qr{display:grid;place-items:center;margin:14px 0;padding:14px;border:1px solid var(--line);border-radius:12px;background:#fff}
 .qr svg,.qr img{width:190px;height:190px}
@@ -27,18 +27,26 @@
   <!-- 注册 TOTP -->
   <div class="card" id="cardEnroll" hidden>
     <h2>启用两步验证</h2>
-    <p class="sub">教师与管理人员必须启用两步验证后才能进入工作台（规范 §5.3/§6.4）。请用身份验证器 App（如 Microsoft/Google Authenticator、1Password）扫描二维码。</p>
-    <div class="qr" id="qrBox"></div>
-    <p class="hint">无法扫码？在验证器中手动输入密钥：</p>
-    <div class="secret" id="secretBox"></div>
+    <p class="sub" id="enrollIntro">教师与管理人员必须启用两步验证后才能进入工作台（规范 §5.3/§6.4）。请用身份验证器 App（如 Microsoft/Google Authenticator、1Password）扫描二维码。</p>
+    <!-- 上次开了头没做完时显示这一段；文案由脚本填，避免两处各写一遍 -->
+    <p class="sub" id="enrollResume" hidden></p>
+    <div id="enrollQr">
+      <div class="qr" id="qrBox"></div>
+      <p class="hint">无法扫码？在验证器中手动输入密钥：</p>
+      <div class="secret" id="secretBox"></div>
+    </div>
     <form id="enrollForm" class="code" novalidate>
       <div class="field">
         <label for="enCode">输入验证器上的 6 位动态码</label>
         <input id="enCode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="——————" required>
       </div>
       <button class="btn" id="btnEnroll" type="submit">确认并启用</button>
-      <div class="msg err" id="enErr" role="alert"></div>
     </form>
+    <!-- 提示与重试放在表单**外面**：初始化就失败时表单要整个藏掉
+         （留着它最坏——它没有 submit 监听，点下去会触发原生表单提交，
+           页面静默重载，用户以为自己点坏了），提示不能跟着一起没。 -->
+    <div class="msg err" id="enErr" role="alert"></div>
+    <button class="btn" id="enRetry" type="button" hidden>重新尝试</button>
   </div>
 
   <!-- 已注册：挑战验证 -->
@@ -60,8 +68,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609122010"></script>
-<script src="../../assets/js/portal/auth.js?v=202609122010"></script>
+<script src="../../assets/js/supabase-config.js?v=202609122046"></script>
+<script src="../../assets/js/portal/auth.js?v=202609122046"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
@@ -76,11 +84,16 @@
   if (!session) return location.replace(A.withNext("login/"));
   document.getElementById("btnOut").addEventListener("click", () => A.signOut());
 
+  const $ = (id) => document.getElementById(id);
+  const say = (el, msg) => { el.textContent = msg; el.classList.add("show"); };
+  const clear = (el) => { el.textContent = ""; el.classList.remove("show"); };
+  const RESET_HINT = "请联系教务同工（amasthai2026@gmail.com）人工核验身份后由系统管理员重置两步验证；重置操作会记录审计日志。";
+
   // 同源收口走共享层：`//evil.example` 也以 "/" 开头，旧判据会把刚过完
   // 两步验证的已登录用户送到站外去。nextFromQuery 在同源校验之外还拒绝
   // 指回本页的 next —— 否则过完验证又回到验证页，原地打转。
   const next = A.nextFromQuery() || (A.ROOT + "portal/");
-  const show = (id) => { for (const s of ["cardLoading","cardEnroll","cardChallenge"]) document.getElementById(s).hidden = (s !== id); };
+  const show = (id) => { for (const s of ["cardLoading","cardEnroll","cardChallenge"]) $(s).hidden = (s !== id); };
   /* 回跳前问一次会话还在不在。这一页每条路都是 await 之后才跳：
      aal2 直接回跳要等 getAal，验证成功要等 mfa.verify。会话在那段时间里断掉，
      返回的那一刻照样 replace 进受保护区域 —— 拿死会话做导航决策。
@@ -92,43 +105,172 @@
 
   const { data: factorData } = await A.client.auth.mfa.listFactors();
   if (A.sessionEnded()) return;            // 晚返回的渲染同样让位
-  const totp = (factorData && factorData.totp && factorData.totp[0]) || null;
 
-  if (!totp) {
-    // ---- 注册流程 ----
-    const { data: enroll, error } = await A.client.auth.mfa.enroll({ factorType: "totp", friendlyName: "AMAS TOTP" });
-    if (A.sessionEnded()) return;          // 会话已断，别再摆出一个注册不成的表单
-    if (error) { show("cardEnroll"); document.getElementById("enErr").textContent = "无法初始化两步验证：" + error.message; document.getElementById("enErr").classList.add("show"); return; }
-    document.getElementById("qrBox").innerHTML = enroll.totp.qr_code;       // Supabase 返回内联 SVG
-    document.getElementById("secretBox").textContent = enroll.totp.secret;
-    show("cardEnroll");
-    document.getElementById("enrollForm").addEventListener("submit", async (e) => {
+  /* listFactors().totp 在 supabase-js 2.116.0 里**只含已验证**的因子
+     （产物已核，不是文档推测）：
+       for (t of user.factors) { all.push(t);
+         t.status === "verified" && Array.isArray(n[t.factor_type]) && n[t.factor_type].push(t) }
+     所以上次开了头没做完的那个 unverified 因子，**只在 all 里**。
+
+     原来这里只看 totp[0]，看不见它，于是每次进来都再 enroll 一个新的。
+     而服务端对同名因子有唯一性约束，再 enroll 就直接失败，页面又只把英文
+     原文抛给用户 —— 人被锁在这一页：进不去工作台，也没有任何出路。 */
+  const all = (factorData && factorData.all) || [];
+  const totp = (factorData && factorData.totp && factorData.totp[0]) || null;
+  const pending = all.find((f) => f && f.factor_type === "totp" && f.status === "unverified") || null;
+
+  /* ── 共用：challenge → verify ────────────────────────────────────────
+     两个表单（补完注册 / 日常挑战）做的事一模一样，原来各写一遍，
+     于是同样的毛病各犯一次。收成一处，四件事一起做对：
+
+       ① try/catch。2.116.0 的 mfa.* 是
+            catch(e){ if (isAuthError(e)) return {data:null,error:e}; throw e }
+          —— 断网那种 TypeError 是**重新抛出**的，不是返回 {error}。
+          原来没有 try/catch，异常一路穿出 submit 处理器：按钮停在原地、
+          一句话都不说，用户只看到自己点了一下什么也没发生。
+       ② 不把「连不上」说成「动态码不正确」。判据复用 A.classifyAuthError，
+          与登录/注册同一份。说错的代价很实：用户在网络抖动时反复重打验证码，
+          很快撞上限流，被自己的工作台锁在门外 —— 而他什么都没做错。
+       ③ 一次只跑一遍。TOTP 码是一次性的：连点两次，第二次 verify 必然失败，
+          于是明明第一次已经成功，用户看到的却是「动态码不正确」。
+          闸放在处理器里，不只靠按钮 disabled —— 回车、自动填充、脚本
+          触发的提交都绕得开按钮。
+       ④ 超时兜底。一直没有回音时说「还不确定」，不说「失败了」，
+          也不把按钮永远留在「验证中…」。 */
+  const TIMEOUT_MS = 15000;
+  const TIMED_OUT = { reason: "timeout" };
+  const UNCLEAR = { reason: "unclear" };
+  function withTimeout(p) {
+    let t;
+    const q = Promise.resolve(p);
+    q.catch(() => {});                     // 超时先赢之后 p 再失败，不要变成未处理的拒绝
+    return Promise.race([
+      q.finally(() => clearTimeout(t)),
+      new Promise((_, rej) => { t = setTimeout(() => rej(TIMED_OUT), TIMEOUT_MS); }),
+    ]);
+  }
+  function verifyErrText(e) {
+    if (e === TIMED_OUT) return "等了太久还没有结果，这一次验证有没有完成还不确定。请稍后再试（这不是动态码的问题）。";
+    if (e === UNCLEAR) return "没能确认验证结果，请稍后再试（这不是动态码的问题）。";
+    const c = A.classifyAuthError(e);
+    if (c.kind === "rejected") {
+      // 429 与「码不对」是两回事。说成码不对，用户只会一遍遍重打，越打越被限。
+      if (e && e.status === 429) return "尝试太频繁，请稍等一会儿再试（这不是动态码的问题）。";
+      return "动态码不正确或已过期。请用验证器上当前显示的那一组再试一次。";
+    }
+    if (c.reason === "network" || c.reason === "exception") return "网络连不上，没能完成验证（这不是动态码的问题）。请检查网络后重试。";
+    if (c.reason === "server") return "服务器暂时出错，没能完成验证（这不是动态码的问题）。请稍后再试。";
+    return "没能确认验证结果，请稍后再试（这不是动态码的问题）。";
+  }
+
+  let busy = false;
+  async function runVerify(factorId, codeId, errEl, btn, label) {
+    if (busy) return;                                        // ③
+    clear(errEl);
+    const code = String($(codeId).value || "").trim();
+    if (!/^\d{6}$/.test(code)) { say(errEl, "请输入 6 位数字。"); return; }
+    busy = true; btn.disabled = true; btn.textContent = "验证中…";
+    try {
+      const ch = await withTimeout(A.client.auth.mfa.challenge({ factorId }));
+      if (ch && ch.error) throw ch.error;
+      const cid = ch && ch.data && ch.data.id;
+      if (!cid) throw UNCLEAR;                               // 形状不对＝结果不明，别顺手当成码错
+      const vr = await withTimeout(A.client.auth.mfa.verify({ factorId, challengeId: cid, code }));
+      if (vr && vr.error) throw vr.error;
+      if (A.sessionEnded()) return;                          // 晚返回：会话已断就别再往受保护区走
+      return goBack();                                       // 成功：不解锁，页面正在跳走
+    } catch (e) {
+      say(errEl, verifyErrText(e));
+    }
+    btn.disabled = false; btn.textContent = label; busy = false;   // 错误不是单向门
+  }
+
+  // ---- 已有可用因子：日常挑战 ----
+  if (totp) {
+    show("cardChallenge");
+    $("chForm").addEventListener("submit", (e) => {
       e.preventDefault();
-      const err = document.getElementById("enErr"); err.classList.remove("show");
-      const code = document.getElementById("enCode").value.trim();
-      if (!/^\d{6}$/.test(code)) { err.textContent = "请输入 6 位数字。"; err.classList.add("show"); return; }
-      const { data: ch, error: e1 } = await A.client.auth.mfa.challenge({ factorId: enroll.id });
-      if (e1) { err.textContent = "验证失败，请重试。"; err.classList.add("show"); return; }
-      const { error: e2 } = await A.client.auth.mfa.verify({ factorId: enroll.id, challengeId: ch.id, code });
-      if (e2) { err.textContent = "动态码不正确或已过期。"; err.classList.add("show"); return; }
-      goBack();
+      runVerify(totp.id, "chCode", $("chErr"), $("btnCh"), "验证");
     });
     return;
   }
 
-  // ---- 挑战流程 ----
-  show("cardChallenge");
-  document.getElementById("chForm").addEventListener("submit", async (e) => {
+  // ---- 上次开了头没做完：**续做那一个**，不新建、不删除 ----
+  if (pending) {
+    /* 补完注册走的就是 challenge → verify 这同一条路（verify 通过之后该因子
+       才变成 verified），所以这里不需要新的二维码 —— 密钥也只在 enroll 那一刻
+       返回一次，拿不回来了。
+       如果用户的验证器里已经没有这一条，唯一的出路是人工核验后由管理员重置：
+       页面如实这么说，**不替用户删因子**。 */
+    $("enrollIntro").hidden = true;
+    $("enrollQr").hidden = true;
+    $("enrollResume").textContent =
+      "你上次已经开始过一次两步验证设置，但没有完成，所以这里不会再生成新的二维码。" +
+      "如果身份验证器 App 里还留着 AMAS 这一条，直接输入它当前显示的 6 位动态码就能完成设置。" +
+      "如果那一条已经被删掉了，" + RESET_HINT;
+    $("enrollResume").hidden = false;
+    show("cardEnroll");
+    $("enrollForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      runVerify(pending.id, "enCode", $("enErr"), $("btnEnroll"), "确认并启用");
+    });
+    return;
+  }
+
+  // ---- 全新注册 ----
+  let enroll = null, enrollError = null;
+  try {
+    const r = await withTimeout(A.client.auth.mfa.enroll({ factorType: "totp", friendlyName: "AMAS TOTP" }));
+    enroll = r && r.data; enrollError = (r && r.error) || null;
+  } catch (e) { enrollError = e; }                            // enroll 同样会抛非 AuthError
+  if (A.sessionEnded()) return;
+
+  if (enrollError || !enroll || !enroll.totp) {
+    $("enrollIntro").hidden = true;
+    $("enrollQr").hidden = true;
+    $("enrollForm").hidden = true;                            // 见 HTML 里那段注释：留着它最坏
+    say($("enErr"), enrollErrText(enrollError));
+    $("enRetry").hidden = false;
+    $("enRetry").addEventListener("click", () => location.reload());
+    show("cardEnroll");
+    return;
+  }
+
+  showQr(enroll.totp.qr_code);
+  $("secretBox").textContent = enroll.totp.secret;
+  show("cardEnroll");
+  $("enrollForm").addEventListener("submit", (e) => {
     e.preventDefault();
-    const err = document.getElementById("chErr"); err.classList.remove("show");
-    const code = document.getElementById("chCode").value.trim();
-    if (!/^\d{6}$/.test(code)) { err.textContent = "请输入 6 位数字。"; err.classList.add("show"); return; }
-    const { data: ch, error: e1 } = await A.client.auth.mfa.challenge({ factorId: totp.id });
-    if (e1) { err.textContent = "验证失败，请重试。"; err.classList.add("show"); return; }
-    const { error: e2 } = await A.client.auth.mfa.verify({ factorId: totp.id, challengeId: ch.id, code });
-    if (e2) { err.textContent = "动态码不正确或已过期。"; err.classList.add("show"); return; }
-    goBack();
+    runVerify(enroll.id, "enCode", $("enErr"), $("btnEnroll"), "确认并启用");
   });
+
+  function enrollErrText(e) {
+    if (e === TIMED_OUT) return "等了太久，没能取到两步验证的设置信息。请稍后重试。";
+    const c = A.classifyAuthError(e);
+    if (c.kind === "rejected")
+      return "没能开始两步验证设置。如果你之前已经设置过、或者开过一半没做完，" + RESET_HINT;
+    if (c.reason === "network" || c.reason === "exception") return "网络连不上，没能开始两步验证设置。请检查网络后重试。";
+    return "服务器暂时出错，没能开始两步验证设置。请稍后重试。";
+  }
+
+  /* supabase-js 2.116.0 的 enroll 把二维码包成 **data URI**：
+       a.totp.qr_code = `data:image/svg+xml;utf-8,${svg}`
+     原来这里 innerHTML 直接塞，于是 `data:image/svg+xml;utf-8,` 这段前缀
+     被当文本画在二维码上方（页面注释还写着「Supabase 返回内联 SVG」，是错的）。
+     改成 <img src>：既是 SDK 设计的用法（CSS 里 `.qr img` 早就备好了），
+     也顺手去掉一个把服务端返回的串当 HTML 解析的注入点。
+     万一将来 SDK 改回返回裸 SVG，这里自己包成 data URI，一样不经过 HTML 解析。 */
+  function showQr(qr) {
+    const raw = String(qr == null ? "" : qr);
+    const src = /^data:image\//.test(raw) ? raw : "data:image/svg+xml;utf-8," + encodeURIComponent(raw);
+    const img = document.createElement("img");
+    img.alt = "两步验证二维码";
+    img.width = 190; img.height = 190;
+    img.src = src;
+    const box = $("qrBox");
+    box.textContent = "";
+    box.appendChild(img);
+  }
 })();
 </script>
 </body>

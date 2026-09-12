@@ -654,6 +654,9 @@
     CONFIGURED, CONFIG_STATE, ROOT, client,
     getSession, getRoles, fetchRoles, getProfile, homeForRoles, isSigningOut,
     watchSession, sessionEnded, withNext, nextFromQuery, currentNext,
+    // 错误分类是**共享判据**：登录、注册、两步验证对「连不上 ≠ 被拒绝」
+    // 必须是同一套口径，各写一遍迟早各走各的。
+    classifyAuthError,
     signIn, signUp, resetPassword, signOut, requireRole, renderDisabled, renderBlocked, safePath,
     getAal, requireRoleAal2, callFn,
   };
