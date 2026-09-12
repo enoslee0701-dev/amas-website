@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>学员中心 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609130335">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609130343">
 <style>
 .idcard{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);color:#fff;border-radius:16px;padding:20px 22px;margin-bottom:18px}
 .idcard h2{margin:0;font-size:19px;color:#fff}
@@ -31,11 +31,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609130335"></script>
-<script src="../../assets/js/portal/auth.js?v=202609130335"></script>
-<script src="../../assets/js/portal/api.js?v=202609130335"></script>
-<script src="../../assets/js/portal/ui.js?v=202609130335"></script>
-<script src="../../assets/js/portal/shell.js?v=202609130335"></script>
+<script src="../../assets/js/supabase-config.js?v=202609130343"></script>
+<script src="../../assets/js/portal/auth.js?v=202609130343"></script>
+<script src="../../assets/js/portal/api.js?v=202609130343"></script>
+<script src="../../assets/js/portal/ui.js?v=202609130343"></script>
+<script src="../../assets/js/portal/shell.js?v=202609130343"></script>
 <script>
 /* PORTAL-2 学员中心（V1）
    原则：状态机与 DB 是权威源，UI 不模拟业务状态；没有真实数据就显示真实空态，绝不填充假数据。
@@ -54,7 +54,12 @@
   };
 
   UI.loading(main, 4);
-  const [{ data: recRows, error }, { data: tl }, { data: pc }, { data: acts }, { data: cap }, { data: learn }] =
+  /* 这几路读取原来只解构 data，把各自的 error 丢掉 —— 读不到就当成「没有」。
+     后果很具体：my_action_items 挂掉时页面写「目前没有需要你处理的事项。」，
+     一个正被教务要求补件的学员会以为没事要做；my_learning 挂掉时写
+     「AMAS 正式课程共 0 门」，而学校有 67 门。 */
+  const [{ data: recRows, error }, { data: tl }, { data: pc }, { data: acts, error: actsErr },
+         { data: cap }, { data: learn, error: learnErr }] =
     await Promise.all([
       Api.rpc("my_student_record"),
       Api.rpc("my_student_timeline"),
@@ -82,6 +87,7 @@
 
   const s = ST[rec.status] || { t: rec.status, d: "" };
   const isActive = rec.status === "active";
+  const learnUnknown = !!learnErr || !Array.isArray(learn);
   const learnCount = (learn || []).length;
   const learnOpen = (learn || []).filter(c => c.availability === "available").length;
 
@@ -105,7 +111,10 @@
           (a.status === "waiting" ? "" :
             '<a class="link" href="' + A.ROOT + UI.esc(a.target_url) + '">去处理 →</a>') +
         '</div>').join("")
-    : '<p class="none">目前没有需要你处理的事项。</p>';
+    : (actsErr || !Array.isArray(acts)
+        ? '<p class="none">这一次没能读到你的待办事项（可能是网络不稳或服务端暂时不可用）。' +
+          '这不表示你没有待办 —— 请稍后刷新再看。</p>'
+        : '<p class="none">目前没有需要你处理的事项。</p>');
 
   main.innerHTML =
     '<h1>学员中心</h1>' +
@@ -134,8 +143,11 @@
       '<div class="card mod"><h3>我的学习</h3>' +
         // 「正在学习」「已完成」只有存在真实数据源时才出现——当前门户读不到学习进度，
         // 因此如实说明它在哪里，而不是渲染一个空的进度条。
-        '<p class="none">AMAS 正式课程共 <b>' + learnCount + '</b> 门，其中 <b>' + learnOpen +
-          '</b> 门已有线上学习内容。</p>' +
+        (learnUnknown
+          ? '<p class="none">这一次没能读到课程目录（可能是网络不稳或服务端暂时不可用），' +
+            '所以这里暂时不显示课程数。请稍后刷新再看。</p>'
+          : '<p class="none">AMAS 正式课程共 <b>' + learnCount + '</b> 门，其中 <b>' + learnOpen +
+            '</b> 门已有线上学习内容。</p>') +
         '<p class="none">课程学习与进度目前保存在「AMAS 神学院」App 中，门户暂未接入，' +
           '因此这里不显示学习进度。</p>' +
         '<a class="link" href="' + A.ROOT + 'portal/student/courses/">查看课程目录 →</a></div>' +
