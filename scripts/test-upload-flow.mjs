@@ -21,6 +21,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
+import { launchOwnChrome } from "./lib/chrome-launcher.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -55,19 +56,15 @@ const F_OK_PDF   = mk("ok-small.pdf", "%PDF-1.4\n", 2048);
 const F_BAD_TYPE = mk("wrong-type.zip", "PK\x03\x04", 64);
 const F_TOO_BIG  = mk("too-big.pdf", "%PDF-1.4\n", 11 * 1024 * 1024);
 
-const prof = fs.mkdtempSync(path.join(os.tmpdir(), "amas-upload-"));
-const port = 9394;
-const CHROME = process.env.CHROME_PATH || "C:/Program Files/Google/Chrome/Application/chrome.exe";
-// 三重阻断，缺一不可：
-//  ① 浏览器级：formsubmit.co 解析到 0.0.0.0，任何 target（含 window.open 出来的弹窗）
-//     发起的请求都不可能真的送达。CDP 的 Fetch 拦截只覆盖已附着的 target，挡不住弹窗，
-//     所以这一条才是真正的保证。
-//  ② CDP Fetch：本页发起的 formsubmit 请求直接 failRequest。
-//  ③ 页面内哨兵：在表单上挂最后一个 submit 监听器，一律 preventDefault。
-const chrome = spawn(CHROME, ["--headless=new", `--remote-debugging-port=${port}`,
-  `--user-data-dir=${prof}`, "--no-first-run", "--no-default-browser-check",
-  "--host-resolver-rules=MAP formsubmit.co 0.0.0.0, MAP *.formsubmit.co 0.0.0.0",
-  "--disable-gpu", "--hide-scrollbars", "about:blank"], { stdio: "ignore" });
+/* 端口与 profile 由本次实例真正拥有（见 lib/chrome-launcher.mjs）：
+   端口交给操作系统分配，再从自己那个 Chrome 的 DevToolsActivePort 读回来，
+   不写死、不按 pid 猜、不连已经开着的浏览器。 */
+const { chrome, port, profileDir: prof } = await launchOwnChrome({
+  profilePrefix: "amas-upload-",
+  extraArgs: [
+    "--host-resolver-rules=MAP formsubmit.co 0.0.0.0, MAP *.formsubmit.co 0.0.0.0",
+  ],
+});
 
 let outboundBlocked = 0, outboundAllowed = 0;
 

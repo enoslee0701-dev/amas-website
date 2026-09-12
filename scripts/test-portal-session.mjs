@@ -37,6 +37,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
+import { launchOwnChrome } from "./lib/chrome-launcher.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -59,13 +60,15 @@ const server = http.createServer((req, res) => {
 await new Promise((r) => server.listen(0, "127.0.0.1", r));
 const BASE = `http://127.0.0.1:${server.address().port}`;
 
-const prof = fs.mkdtempSync(path.join(os.tmpdir(), "amas-session-"));
-const port = 9416;
-const CHROME = process.env.CHROME_PATH || process.env.CHROME || "C:/Program Files/Google/Chrome/Application/chrome.exe";
-const chrome = spawn(CHROME, ["--headless=new", `--remote-debugging-port=${port}`,
-  `--user-data-dir=${prof}`, "--no-first-run", "--no-default-browser-check",
-  "--host-resolver-rules=MAP *.supabase.co 0.0.0.0, MAP *.supabase.in 0.0.0.0",
-  "--disable-gpu", "--hide-scrollbars", "about:blank"], { stdio: "ignore" });
+/* 端口与 profile 由本次实例真正拥有（见 lib/chrome-launcher.mjs）：
+   端口交给操作系统分配，再从自己那个 Chrome 的 DevToolsActivePort 读回来，
+   不写死、不按 pid 猜、不连已经开着的浏览器。 */
+const { chrome, port, profileDir: prof } = await launchOwnChrome({
+  profilePrefix: "amas-session-",
+  extraArgs: [
+    "--host-resolver-rules=MAP *.supabase.co 0.0.0.0, MAP *.supabase.in 0.0.0.0",
+  ],
+});
 
 let externalHits = 0;
 

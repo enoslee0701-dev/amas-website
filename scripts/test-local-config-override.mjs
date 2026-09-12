@@ -19,6 +19,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
+import { launchOwnChrome } from "./lib/chrome-launcher.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -72,16 +73,15 @@ const server = http.createServer((req, res) => {
 await new Promise((r) => server.listen(0, "0.0.0.0", r));
 const PORT = server.address().port;
 
-const prof = fs.mkdtempSync(path.join(os.tmpdir(), "amas-lcfg-"));
-const port = 9408;
-const CHROME = process.env.CHROME_PATH || "C:/Program Files/Google/Chrome/Application/chrome.exe";
-/* 关键：把一个假域名解析到 127.0.0.1，用它来模拟「发布站点」——
-   页面拿到的 location.hostname 是那个域名，不是 127.0.0.1，
-   于是旁路的回环判据应当不成立。同时把真 supabase 域名钉死，确保零外发。 */
-const chrome = spawn(CHROME, ["--headless=new", `--remote-debugging-port=${port}`,
-  `--user-data-dir=${prof}`, "--no-first-run", "--no-default-browser-check",
-  "--host-resolver-rules=MAP amas-published.test 127.0.0.1, MAP *.supabase.co 0.0.0.0",
-  "--disable-gpu", "--hide-scrollbars", "about:blank"], { stdio: "ignore" });
+/* 端口与 profile 由本次实例真正拥有（见 lib/chrome-launcher.mjs）：
+   端口交给操作系统分配，再从自己那个 Chrome 的 DevToolsActivePort 读回来，
+   不写死、不按 pid 猜、不连已经开着的浏览器。 */
+const { chrome, port, profileDir: prof } = await launchOwnChrome({
+  profilePrefix: "amas-lcfg-",
+  extraArgs: [
+    "--host-resolver-rules=MAP amas-published.test 127.0.0.1, MAP *.supabase.co 0.0.0.0",
+  ],
+});
 
 let externalHits = 0;
 
