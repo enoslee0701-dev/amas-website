@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130248">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130256">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130248"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130248"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130248"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130248"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130248"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609130248"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130256"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130256"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130256"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130256"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130256"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609130256"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -67,11 +67,17 @@
       reloads=1、saved=false）。配额满、隐私模式、存储被禁用都会走到这里。
       写完还要读回来确认：有的浏览器 setItem 不抛错，但也没真的存下。 */
   function stashDraft(){
+    /* **序列化一次**，然后把读回来的字节与它精确比对。
+       只判 `!!getItem(...)` 是不够的：键上可能还留着上一次的旧草稿，
+       而这一次静默没写进去 —— 读回来是旧值、真值为 true，于是判成功并重载，
+       新编辑照样丢（监督反例 event277：ok=true / stored=old / intended=new）。
+       `at: Date.now()` 也必须只算一次，否则写入与比对的串天生不同。 */
+    const payload = JSON.stringify({
+      id: app.id, uid: uid, at: Date.now(),
+      form_data: app.form_data, pathway: app.pathway });
     try {
-      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({
-        id: app.id, uid: uid, at: Date.now(),
-        form_data: app.form_data, pathway: app.pathway }));
-      return !!sessionStorage.getItem(DRAFT_KEY);
+      sessionStorage.setItem(DRAFT_KEY, payload);
+      return sessionStorage.getItem(DRAFT_KEY) === payload;
     } catch (e) { return false; }
   }
   function readStash(){

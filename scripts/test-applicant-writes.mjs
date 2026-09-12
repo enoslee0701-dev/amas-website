@@ -563,6 +563,12 @@ try {
     const k = ${JSON.stringify("mode")};
     if (${JSON.stringify(mode)} === "throw") {
       sessionStorage.setItem = function(){ const e = new Error("quota"); e.name = "QuotaExceededError"; throw e; };
+    } else if (${JSON.stringify(mode)} === "stale") {
+      /* 键上先留一份**旧**草稿，然后让 setItem 静默失效。
+         只判「有没有东西」的读回会拿到旧值，误判成功。 */
+      sessionStorage.setItem("amas.draft.application", JSON.stringify({
+        id:"app-fixture-1", uid:"u-appl", at:1, form_data:{ name_zh:"OLD-STALE" }, pathway:"undecided" }));
+      sessionStorage.setItem = function(){};
     } else {   // 不抛错但也不存（有些隐私模式就是这样）
       sessionStorage.setItem = function(){};
     }
@@ -570,7 +576,8 @@ try {
   const navCount = [];
   cdp.on("Page.frameNavigated", (p) => { if (p.frame && !p.frame.parentId) navCount.push(String(p.frame.url||"")); });
 
-  for (const [label, mode] of [["setItem 抛配额错","throw"], ["不抛错但没真的存下","silent"]]) {
+  for (const [label, mode] of [["setItem 抛配额错","throw"], ["不抛错但没真的存下","silent"],
+                              ["键上留着旧草稿、本次静默没写","stale"]]) {
     await open({ ...withApp, writes: { applications: { data:[], error:null } },
       rpc: { my_application:{ data:[{ ...DRAFT, updated_at:"2026-09-10T00:00:00Z" }] } } });
     await touchForm();
@@ -594,6 +601,12 @@ try {
        !!fb && fb.ta === true && fb.taVal.indexOf("FIXTURE-EDIT") > -1, JSON.stringify(fb && fb.taVal.slice(0,80)));
     ok("D 暂存失败（" + label + "）→ 重新载入改成由他自己点",
        !!fb && fb.buttons.some(t => /重新载入/.test(t)), JSON.stringify(fb && fb.buttons));
+    if (mode === "stale") {
+      ok("D 键上那份旧草稿没有被当成「这次存好了」",
+         (await stash() || "").indexOf("FIXTURE-EDIT") === -1 &&
+         (await stash() || "").indexOf("OLD-STALE") > -1,
+         JSON.stringify((await stash() || "").slice(0, 90)));
+    }
   }
 
   // ════════ X 跨账号与不可编辑边界 ════════
