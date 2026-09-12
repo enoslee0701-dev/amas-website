@@ -149,7 +149,7 @@ window.supabase = {
           var sc = S();
           var t = (mode === "select")
             ? ((sc.tables && sc.tables[name]) || { data: [], error: null })
-            : ((sc.writes && sc.writes[name]) || { data: { id: "app-fixture-1" }, error: null });
+            : ((sc.writes && sc.writes[name]) || { data: [{ id: "app-fixture-1", updated_at: "2026-09-11T00:00:00Z" }], error: null });
           var out = { data:t.data, error:t.error||null,
             status: t.status != null ? t.status : (t.error ? 500 : 200) };
           var d = t.delay || 0;
@@ -321,7 +321,7 @@ try {
      原代码的 btn.disabled 是在 `await save()` 之后才设的，所以这段时间
      按钮是活的，真人双击同样打得进来。 */
   await open({ ...withApp,
-    writes: { applications: { data:{ id:"app-fixture-1" }, error:null, delay:1200 } },
+    writes: { applications: { data:[{ id:"app-fixture-1", updated_at:"2026-09-11T00:00:00Z" }], error:null, delay:1200 } },
     rpc: { my_application:{ data:[DRAFT] },
            submit_application:{ data:{ ok:true }, error:null, status:200 } } });
   await cdp.clickReal("#btnSubmit");
@@ -387,7 +387,7 @@ try {
 
   // W3 保存正常 → 照常提交
   await open({ ...withApp,
-    writes: { applications: { data:{ id:"app-fixture-1" }, error:null } },
+    writes: { applications: { data:[{ id:"app-fixture-1", updated_at:"2026-09-11T00:00:00Z" }], error:null } },
     rpc: { my_application:{ data:[DRAFT] }, submit_application:{ data:{ ok:true }, error:null, status:200 } } });
   await touchForm();
   await clickSubmit();
@@ -445,6 +445,44 @@ try {
      (k6["rpc:submit_application"] || 0) === 0, JSON.stringify(k6));
   ok("K7 并说清楚是没保存成功所以没提交",
      /没有保存成功/.test((await subState()).err || ""), JSON.stringify(await subState()));
+
+  // ════════ F 失败要朝安全那边关（返修 eventf982）════════
+  console.log("\n=== F 拿不到证据就不宣布成功 ===");
+  const saveState = async () => cdp.ev(`(document.getElementById("saveState")||{}).textContent||""`);
+  const isDirty = async () => cdp.ev(`(()=>{const b=document.getElementById("btnSubmit"); return !!b;})()`);
+
+  // F1 Api.update 返回 {data:null,error:null}：没有任何记录证明写进去了
+  await open({ ...withApp,
+    writes: { applications: { data:null, error:null } },
+    rpc: { my_application:{ data:[{ ...DRAFT, updated_at:"2026-09-10T00:00:00Z" }] } } });
+  ok("F0 前提：改了一个字段", (await touchForm()) === true);
+  await sleep(1600);
+  ok("F1 拿不到写入记录时**不**显示「已保存」", !/已保存/.test(await saveState()), JSON.stringify(await saveState()));
+  ok("F1b 而是说没能确认", /没能确认/.test(await saveState()), JSON.stringify(await saveState()));
+  await cdp.ev(`(()=>{try{sessionStorage.removeItem("wCalls");}catch(e){} return true;})()`);
+  await clickSubmit();
+  ok("F1c 提交被拦住（结果不明不能提交）",
+     ((await calls())["rpc:submit_application"] || 0) === 0, JSON.stringify(await calls()));
+
+  // F2 有记录但没有新 updated_at：没法继续做并发比对
+  await open({ ...withApp,
+    writes: { applications: { data:[{ id:"app-fixture-1" }], error:null } },
+    rpc: { my_application:{ data:[{ ...DRAFT, updated_at:"2026-09-10T00:00:00Z" }] } } });
+  await touchForm();
+  await sleep(1600);
+  ok("F2 有记录但没有新版本号时也不宣布成功",
+     !/已保存/.test(await saveState()) && /没能确认/.test(await saveState()), JSON.stringify(await saveState()));
+
+  // F3 基准缺失：绝不发无条件覆盖
+  await open({ ...withApp,
+    writes: { applications: { data:[{ id:"app-fixture-1", updated_at:"2026-09-12T00:00:00Z" }], error:null } },
+    rpc: { my_application:{ data:[{ ...DRAFT, updated_at: null }] } } });
+  await touchForm();
+  await sleep(1600);
+  const f3m = await lastMatch();
+  ok("F3 没有版本基准时**一次写入都不发**（不做无条件覆盖）",
+     Object.keys(f3m).length === 0, JSON.stringify(f3m));
+  ok("F3b 并如实说这一次没有保存", /没有保存|没能确认/.test(await saveState()), JSON.stringify(await saveState()));
 
   // ════════ Q 标记补件完成 ════════
   console.log("\n=== Q 标记补件完成 ===");

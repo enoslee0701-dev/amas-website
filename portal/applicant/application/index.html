@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130215">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130226">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130215"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130215"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130215"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130215"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130215"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609130215"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130226"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130226"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130226"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130226"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130226"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609130226"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -375,9 +375,18 @@
        applications 上有 applications_set_updated_at 触发器（0008:51），
        所以把上次读到的 updated_at 一并作为匹配条件：命中 0 行就说明
        这条记录在别处被改过，这一次**确定没保存**。 */
-    const match = { id: app.id };
-    if (app.updated_at) match.updated_at = app.updated_at;
-    const { data: rows, error } = await Api.update("applications", match,
+    /* 没有版本基准就**不发这次写入**。原来这里 `if (app.updated_at)` 静默退成
+       只按 { id } 匹配 —— 那就是一次无条件整包覆盖，正是本包要防的事。
+       失败要朝安全那边关：宁可这一次不保存，也不要盖掉别处的改动。 */
+    if (!app.updated_at) {
+      setSaveState("没能确认当前版本，这一次没有保存");
+      showConflict("没能确认这份申请当前是哪一版，所以这一次没有保存 —— " +
+        "直接写会有覆盖别处改动的风险。你填的内容还在页面上，请重新载入取回版本信息。");
+      return { ok: false, unclear: false, conflict: true,
+               message: "没有可比对的版本基准" };
+    }
+    const { data: rows, error } = await Api.update("applications",
+      { id: app.id, updated_at: app.updated_at },
       { form_data: app.form_data, pathway: app.pathway });
     /* 自动保存失败也要分清楚：读不到结论时这一次可能其实已经存进去了，
        说死「保存失败」会让人以为刚才白填了。 */
@@ -391,14 +400,30 @@
        也就是 updated_at 变了 —— 别人改过。这是**确定**的结果（没写进去），
        但不能顺手重试：重试会把过期内容盖上去。留着用户当前的编辑，
        只给「重新载入」这一条出路。 */
-    if (Array.isArray(rows) && rows.length === 0) {
+    /* 成功必须有**确凿的证据**：一条回来的记录，外加一个新的 updated_at。
+       监督独立反例（eventf982）：Api.update 返回 {data:null,error:null} 时，
+       原来的判据只拦 []，null 直接穿过去 —— 结果 ok:true、dirty:false、
+       页面显示「已保存 02:17:02」，而根本没有任何记录证明写进去了。
+       拿不到记录或拿不到新版本号，一律按**结果不明**处理：
+       保留 dirty（下次编辑还会再存一次）、并让提交门禁拦住。 */
+    if (!Array.isArray(rows)) {
+      setSaveState("没能确认是否保存成功，请稍后再看");
+      return { ok: false, unclear: true, message: "没有拿到写入结果" };
+    }
+    if (rows.length === 0) {
       setSaveState("这份申请在别处被改过，这一次没有保存");
       showConflict();
       return { ok: false, unclear: false, conflict: true,
                message: "这份申请在别处被改过（可能是你在另一个标签页改的，或教务刚处理过）" };
     }
-    // 保存成功：把服务端新的 updated_at 接上，下一次保存才比得对
-    if (Array.isArray(rows) && rows[0] && rows[0].updated_at) app.updated_at = rows[0].updated_at;
+    // 保存成功：把服务端新的 updated_at 接上，下一次保存才比得对。
+    // 拿不到新版本号就没法继续做并发比对，同样算结果不明，不能宣布成功。
+    const nextVersion = rows[0] && rows[0].updated_at;
+    if (!nextVersion) {
+      setSaveState("没能确认是否保存成功，请稍后再看");
+      return { ok: false, unclear: true, message: "没有拿到新的版本号" };
+    }
+    app.updated_at = nextVersion;
     dirty = false;
     setSaveState("已保存 " + new Date().toLocaleTimeString("zh-CN", { hour12: false }));
     return { ok: true, unclear: false };
@@ -406,7 +431,7 @@
 
   /** 冲突提示：**不自动重新载入** —— 那会把用户正在编辑的内容冲掉。
       把选择权交给他：要么先把内容抄走再载入，要么继续编辑别的字段。 */
-  function showConflict(){
+  function showConflict(customText){
     let box = document.getElementById("conflictBox");
     if (!box) {
       box = document.createElement("div");
@@ -417,9 +442,9 @@
       const host = document.getElementById("appForm") || main;
       host.parentNode.insertBefore(box, host);
     }
-    box.textContent = "这份申请在别处被改过，这一次没有保存 —— " +
+    box.textContent = (customText || ("这份申请在别处被改过，这一次没有保存 —— " +
       "直接再存会把别处的改动覆盖掉。你现在填的内容还在页面上，" +
-      "请先记下需要保留的部分，再重新载入取回最新版本。 ";
+      "请先记下需要保留的部分，再重新载入取回最新版本。")) + " ";
     if (!box.querySelector("button")) {
       const b = document.createElement("button");
       b.type = "button"; b.className = "link"; b.textContent = "重新载入";
