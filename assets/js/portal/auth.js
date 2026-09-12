@@ -310,9 +310,19 @@
     return {};
   }
 
+  /* 主动退出会让 SDK 触发 SIGNED_OUT，而门户外壳正是靠这个事件判「会话失效」。
+     两者不加区分的话，**自己点退出的人会被告知「登录已过期」**，
+     而且外壳会带上 ?next=<刚退出的那一页>，下次登录又被悄悄拖回去。
+     用这个标志把「我自己走的」和「被踢出去的」分开。 */
+  let leavingOnPurpose = false;
+  function isSigningOut() { return leavingOnPurpose; }
+
   async function signOut() {
-    if (client) await client.auth.signOut();
-    location.href = ROOT + "login/";
+    leavingOnPurpose = true;
+    // 退出是**不带 next 的**：用户刚刚明确表示要离开那一页。
+    try { if (client) await client.auth.signOut(); }
+    catch (e) { /* 本地会话已清，网络回执失败不该把人卡在页面上 */ }
+    location.replace(ROOT + "login/");
   }
 
   /** 门户页守卫：未配置→引导页真实状态；未登录→/login；角色不符→自己的首页（§5.4 禁止越权切换） */
@@ -509,7 +519,7 @@
 
   window.AmasAuth = {
     CONFIGURED, CONFIG_STATE, ROOT, client,
-    getSession, getRoles, fetchRoles, getProfile, homeForRoles,
+    getSession, getRoles, fetchRoles, getProfile, homeForRoles, isSigningOut,
     signIn, signUp, resetPassword, signOut, requireRole, renderDisabled, renderBlocked, safePath,
     getAal, requireRoleAal2, callFn,
   };

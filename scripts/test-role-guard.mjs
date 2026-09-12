@@ -129,12 +129,35 @@ window.supabase = {
        恢复场景根本没被构造出来。 */
     return {
       auth: {
-        getSession: function(){ return reply({ data: { session: S().session || null } }); },
+        /* 会话一旦失效或登出，getSession 必须**真的**返回 null。
+           先前 stub 始终返回有效会话，于是失效后跳到登录页、登录页发现
+           「还登着」又把人送回门户 —— 一个来回，最终位置看起来没动，
+           像是跳转没发生。真实的过期不会这样。 */
+        getSession: function(){
+          var dead = false;
+          try { dead = sessionStorage.getItem("sessionDead") === "1"; } catch (e) {}
+          return reply({ data: { session: dead ? null : (S().session || null) } });
+        },
         mfa: { getAuthenticatorAssuranceLevel: function(){
           var a = S().aal || "aal1";
           return reply({ data: { currentLevel: a, nextLevel: a } }); } },
-        onAuthStateChange: function(){ return { data: { subscription: { unsubscribe: function(){} } } }; },
-        signOut: function(){ window.__signedOut = true; return reply({}); },
+        /* 记下订阅者，让测试能从外部真的触发一次认证事件 ——
+           会话失效走的就是这条路，不能只 stub 结果对象。 */
+        onAuthStateChange: function(cb){
+          window.__authSubs = window.__authSubs || [];
+          window.__authSubs.push(cb);
+          window.__fireAuth = function(ev, sess){
+            // SIGNED_OUT 意味着 SDK 已经清掉会话，stub 也要照做
+            if (ev === "SIGNED_OUT") { try { sessionStorage.setItem("sessionDead", "1"); } catch (e) {} }
+            (window.__authSubs || []).forEach(function(f){ try { f(ev, sess || null); } catch (e) {} });
+          };
+          return { data: { subscription: { unsubscribe: function(){} } } };
+        },
+        signOut: function(){
+          window.__signedOut = true;
+          try { sessionStorage.setItem("sessionDead", "1"); } catch (e) {}
+          return reply({});
+        },
         signInWithPassword: function(){ return reply({ data: { user: { id: "u-1" },
           session: { access_token: "stub", user: { id: "u-1" } } }, error: null }); }
       },
@@ -216,6 +239,8 @@ try {
          要清理就在用例之间用一次性的 ev 调用做。 */
       source: "window.__SCEN = " + JSON.stringify(scen) + "; window.__signedOut = false;",
     });
+    // 复活会话：用一次性 ev，**不要**写进注入脚本（那是累积的，会抹掉后续用例的状态）
+    await cdp.ev(`(()=>{try{sessionStorage.removeItem("sessionDead");}catch(e){} return true;})()`).catch(() => {});
     navLog.length = 0;
     await cdp.send("Page.navigate", { url: `${BASE}/${page}` });
     await sleep(wait || 2600);
@@ -399,6 +424,91 @@ try {
      navLog.some((u) => /portal\/applicant\//.test(u)) && n0 >= 1,
      "新增导航 " + n0 + " 次: " + JSON.stringify(navLog.slice(0, 3)));
   ok("N0 而真实实现在同一场景下零跳转（G1/G2 的断言因此有意义）", true);
+
+  // ════════════ S 会话失效 / 主动退出 / 返回入口 ════════════
+  console.log("\n=== S 会话失效与返回入口 ===");
+  /* 门户外壳靠 SIGNED_OUT 判「会话失效」。两件事以前混在一起：
+       · 还监听了 TOKEN_REFRESHED_FAILED —— 2.116.0 根本没有这个事件，死代码；
+       · 用户**自己点退出**也会触发 SIGNED_OUT，于是被告知「登录已过期」（不实），
+         还被带上 ?next=<刚退出的那一页>，下次登录又被悄悄拖回去。 */
+
+  // S1 真的失效：外部触发 SIGNED_OUT（不是用户点的退出）
+  await open("portal/student/", { session: SESSION, rolesMode: ["student"],
+    rpc: { my_learning: { data: [] }, my_student_capabilities: { data: {} },
+           my_profile: { data: { display_name: "测试", email: "a@example.invalid" } } } });
+  ok("S1 前提：正常进入了学员空间", !/没能确认你的权限/.test(await txt()));
+  navLog.length = 0;
+  const fired = await cdp.ev(`(() => {
+    window.__fireAuth("SIGNED_OUT");
+    return { toast: /登录已过期/.test(document.body.textContent || "") };
+  })()`);
+  ok("S1 会话失效时明确提示，不静默", fired.toast === true, JSON.stringify(fired));
+  await sleep(2200);
+  /* 断言看**导航序列**而不是最终位置：失效后会先落到 /login/?next=...，
+     之后登录页自己还会再判一次会话。只看最终位置会把中间那一跳漏掉。 */
+  const s1nav = navLog.find((u) => /\/login\//.test(u)) || "";
+  ok("S1 会话失效后回到登录页", !!s1nav, JSON.stringify(navLog.slice(0, 3)));
+  ok("S1 带上了 next，回来能接着原来那一页", /next=/.test(s1nav), s1nav);
+  ok("S1 next 指回学员空间", /portal%2Fstudent/i.test(s1nav), s1nav);
+
+  // S2 next 要连 query 与 hash 一起带（丢了就回不到原来的位置）
+  await open("portal/student/courses/?cat=nt#c3", { session: SESSION, rolesMode: ["student"],
+    rpc: { my_learning: { data: [] }, my_student_capabilities: { data: {} },
+           my_profile: { data: { display_name: "测试", email: "a@example.invalid" } } } });
+  await cdp.ev(`(() => { window.__fireAuth && window.__fireAuth("SIGNED_OUT"); return true; })()`);
+  await sleep(2000);
+  const s2nav = navLog.find((u) => /\/login\//.test(u)) || "";
+  ok("S2 next 保留了 query", /cat%3Dnt/i.test(s2nav) || /cat=nt/.test(decodeURIComponent(s2nav)),
+     s2nav);
+
+  // S3 主动退出：**不该**说成「登录已过期」，也不该带 next
+  await open("portal/student/", { session: SESSION, rolesMode: ["student"],
+    rpc: { my_learning: { data: [] }, my_student_capabilities: { data: {} },
+           my_profile: { data: { display_name: "测试", email: "a@example.invalid" } } } });
+  navLog.length = 0;
+  await cdp.ev(`(() => { window.AmasAuth.signOut(); return true; })()`);
+  await sleep(2200);
+  const s3nav = navLog.find((u) => /\/login\//.test(u)) || "";
+  ok("S3 主动退出后到登录页", !!s3nav, JSON.stringify(navLog.slice(0, 3)));
+  ok("S3 **不带 next** —— 用户刚明确表示要离开那一页", !/next=/.test(s3nav), s3nav);
+
+  // S4 主动退出时不弹「登录已过期」
+  await open("portal/student/", { session: SESSION, rolesMode: ["student"],
+    rpc: { my_learning: { data: [] }, my_student_capabilities: { data: {} },
+           my_profile: { data: { display_name: "测试", email: "a@example.invalid" } } } });
+  /* 观测结果要写进 sessionStorage 再读 —— signOut 会让页面跳走，
+     在 cdp.ev 里跨导航 await 的话，求值目标直接没了（Inspected target navigated）。 */
+  await cdp.ev(`(() => {
+    try { sessionStorage.removeItem("sawExpiredToast"); } catch (e) {}
+    const obs = new MutationObserver(() => {
+      if (/登录已过期/.test(document.body.textContent || "")) {
+        try { sessionStorage.setItem("sawExpiredToast", "1"); } catch (e) {}
+      }
+    });
+    obs.observe(document.body, { childList: true, subtree: true, characterData: true });
+    window.AmasAuth.signOut();
+    return true;
+  })()`);
+  await sleep(2200);
+  const toastSeen = await cdp.ev(`(function(){
+    try { return sessionStorage.getItem("sawExpiredToast") === "1"; } catch (e) { return null; }
+  })()`);
+  ok("S4 主动退出不谎称「登录已过期」", toastSeen === false, "toast 出现=" + toastSeen);
+
+  // S5 死事件已移除
+  const deadEvt = await cdp.ev(`(async () => {
+    const r = await fetch("${BASE}/assets/js/portal/shell.js");
+    const t = await r.text();
+    /* 查的是「有没有在**监听**」，不是「文件里有没有出现过这个词」——
+       解释为什么删掉它的注释里当然会写到这个名字，那不该判红。
+       代码里引用事件名一定带引号，注释里是反引号。 */
+    return { listening: t.indexOf(String.fromCharCode(34) + "TOKEN_REFRESHED_FAILED") > -1,
+             mentionedInComment: t.indexOf("TOKEN_REFRESHED_FAILED") > -1 };
+  })()`);
+  ok("S5 shell.js 不再监听并不存在的 TOKEN_REFRESHED_FAILED",
+     deadEvt.listening === false, JSON.stringify(deadEvt));
+  ok("S5 但注释里留了说明，免得后人又把它加回去",
+     deadEvt.mentionedInComment === true, JSON.stringify(deadEvt));
 
   // ════════════ G7 外发 ════════════
   console.log("\n=== G7 外发 ===");
