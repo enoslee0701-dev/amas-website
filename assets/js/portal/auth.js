@@ -364,11 +364,31 @@
     // D-AUTH-R2：canonical recovery route 统一为 /auth/recovery。
     // 旧的 auth/callback/?type=recovery 仅在迁移期由兼容层识别，不再作为签发目标。
     // production 的精确 allow list 见 docs/operations/AUTH-production-auth-config.md。
-    const { error } = await client.auth.resetPasswordForEmail(String(email || "").trim().toLowerCase(), {
-      redirectTo: location.origin + ROOT + "auth/recovery/",
-    });
-    if (error) return { error: "reset_failed" };
-    return {};
+    /* 返回 `{}` 表示**请求被接受**（不代表邮件已经投递）；失败时返回分类过的码。
+
+       分类只看传输层，**不看账号是否存在**：resetPasswordForEmail 对未注册的
+       邮箱本来就返回成功（Supabase 的反枚举设计），所以区分 network / server /
+       rate_limited 不会泄漏任何账号信息（§5.3 的统一文案仍由调用方保证）。
+
+       原来一律折叠成 "reset_failed"，而调用方把返回值整个丢掉，于是断网、5xx、
+       被限流时页面都说「重置链接已发送」—— 用户坐等一封永远不会来的邮件。 */
+    let res;
+    try {
+      res = await client.auth.resetPasswordForEmail(String(email || "").trim().toLowerCase(), {
+        redirectTo: location.origin + ROOT + "auth/recovery/",
+      });
+    } catch (e) {
+      /* 非 AuthError 是**抛出**的。原来没有 try/catch，异常一路穿出调用方的
+         submit 处理器，按钮永远停在「发送中…」，一句话都不说。 */
+      return { error: "network" };
+    }
+    const error = res && res.error;
+    if (!error) return {};
+    if (error.status === 429) return { error: "rate_limited" };
+    const c = classifyAuthError(error);
+    if (c.reason === "network" || c.reason === "exception") return { error: "network" };
+    if (c.reason === "server") return { error: "server" };
+    return { error: "unknown" };
   }
 
   /* 主动退出会让 SDK 触发 SIGNED_OUT，而门户外壳正是靠这个事件判「会话失效」。
