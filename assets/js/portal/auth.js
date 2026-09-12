@@ -95,7 +95,31 @@
     let u;
     try { u = new URL(String(raw), location.origin); } catch (e) { return null; }
     if (u.origin !== location.origin) return null;
-    return u.pathname + u.search + u.hash;
+
+    /* ── 只查一次 origin 是不够的 ────────────────────────────────────────
+       上一版到这里就 return 了 `u.pathname + u.search + u.hash`。
+       但**真正交给 location 的是这个重新拼出来的串，不是 u**，
+       而它再解析一次可能落到完全不同的地方：
+
+         "/.//evil.example"       → 首轮同源，pathname 是 "//evil.example"
+         "/%2e//evil.example"     → 同上（编码过的点段）
+         "/a/../..//evil.example" → 同上（多级回退越过根）
+         "https://<本站>//evil.example" → 同源绝对 URL，pathname 仍是 "//evil.example"
+
+       这些串首轮 origin 全是本站，可是 "//evil.example" 交给 location
+       就是协议相对 URL —— 人直接到了站外。
+       校验输入、却把另一个串交出去，等于没校验。
+
+       所以判据改成**不动点**：把真正要交出去的那个串再解析一次，
+       必须仍然同源，而且必须落到跟第一次完全相同的地方（href 相等）。
+       对不上就说明这个串换个上下文会变意思，一律拒绝。
+       仍然全部交给 URL 解析器判，不手写前缀模式去猜。 */
+    const out = u.pathname + u.search + u.hash;
+    let again;
+    try { again = new URL(out, location.origin); } catch (e) { return null; }
+    if (again.origin !== location.origin) return null;
+    if (again.href !== u.href) return null;
+    return out;
   }
 
   /** 登录失败的分类。判据与注册共用 classifyAuthError（同一份 SDK 错误契约），

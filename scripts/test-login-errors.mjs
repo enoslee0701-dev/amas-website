@@ -129,6 +129,13 @@ window.supabase = {
     return {
       auth: {
         getSession: function(){ return reply({ data: { session: S().session || null } }); },
+        mfa: {
+          getAuthenticatorAssuranceLevel: function(){
+            var a = S().aal || "aal1";
+            return reply({ data: { currentLevel: a, nextLevel: a } });
+          },
+          listFactors: function(){ return reply({ data: { totp: [] } }); }
+        },
         onAuthStateChange: function(){ return { data: { subscription: { unsubscribe: function(){} } } }; },
         signOut: function(){ return reply({}); },
         setSession: function(){ return reply({ error: null }); },
@@ -391,13 +398,22 @@ try {
     return navLog.filter((u) => !/\/login\/?(\?|$)/.test(u));
   };
 
+  /* 二次解析逃逸：这批串**首轮 origin 全是本站**，可是 safePath 交出去的
+     pathname 再解析一次就成了站外。校验输入却把另一个串交出去，等于没校验。 */
   const offsite = [
+    ["/.//evil.example/steal", "点段（首轮同源，pathname 却是 //evil.example）"],
+    ["/%2e//evil.example/steal", "编码点段 %2e"],
+    ["/%2E//evil.example/steal", "编码点段 %2E（大写）"],
+    ["/a/../..//evil.example/steal", "多级回退越过根"],
+    ["/././/evil.example/steal", "连续点段"],
     ["//evil.example/steal", "协议相对 URL"],
     ["https://evil.example/steal", "绝对 URL"],
     ["\\\\evil.example/steal", "反斜杠开头"],
     ["/\\evil.example/steal", "斜杠加反斜杠"],
     ["//evil.example\\@127.0.0.1/x", "夹带 @ 的混淆写法"],
   ];
+  // 同源绝对 URL + 双斜杠路径：origin 得用运行时的 BASE 拼，不能写死
+  offsite.push([BASE + "//evil.example/steal", "同源绝对 URL 但路径以 // 开头"]);
   for (const [raw, label] of offsite) {
     const nav = await loginWithNext(raw);
     /* 判据要的是「**没离开本站**」，而不是「URL 里没出现 evil.example」。
@@ -451,6 +467,14 @@ try {
     带查询和锚点: "/portal/?a=1#b",
     空串: "",
     解析不了: "http://",
+    点段: "/.//evil.example",
+    点段带路径: "/.//evil.example/x",
+    编码点段小写: "/%2e//evil.example",
+    编码点段大写: "/%2E//evil.example",
+    多级回退越根: "/a/../..//evil.example",
+    连续点段: "/././/evil.example",
+    同源绝对URL双斜杠: BASE + "//evil.example",
+    编码斜杠: "/./%2f/evil.example",
   };
   // 先自证探针确实是我以为的那几个串，否则下面全是空转
   ok("L11 探针自证：双反斜杠确实含两个反斜杠",
@@ -495,6 +519,138 @@ try {
   ok("L11 safePath：空值判 null", sp["空串"].v === null, JSON.stringify(sp["空串"]));
   ok("L11 safePath：真正解析不了的串判 null（不抛错穿出去）",
      sp["解析不了"].v === null, JSON.stringify(sp["解析不了"]));
+
+  /* ── 二次解析逃逸 ──────────────────────────────────────────────────
+     这批的共同点：`new URL(raw, origin).origin` **是本站**，
+     所以只查一次 origin 的实现会放行；而它交出去的 pathname
+     （"//evil.example"）再解析一次就是站外。
+     下面的 stays 字段正是拿返回值**再解析一次**算出来的，
+     也就是直接针对这个缺陷。 */
+  for (const k of ["点段", "点段带路径", "编码点段小写", "编码点段大写",
+                   "多级回退越根", "连续点段", "同源绝对URL双斜杠"]) {
+    ok("L11 二次解析逃逸被挡住 —— " + k, sp[k].v === null, JSON.stringify(sp[k]));
+  }
+  ok("L11 编码斜杠 %2f 不构成逃逸，按同源路径放行（别把安全的也一起挡掉）",
+     sp["编码斜杠"].v === "/%2f/evil.example" && sp["编码斜杠"].stays === true,
+     JSON.stringify(sp["编码斜杠"]));
+
+  // 自证：这批串在**只查一次 origin** 的旧判据下确实会被放行，否则这组断言是空转
+  const wouldPass = await cdp.ev(`(() => {
+    const probes = ${JSON.stringify(PROBES)};
+    const out = {};
+    for (const k of Object.keys(probes)) {
+      try {
+        const u = new URL(probes[k], location.origin);
+        out[k] = { 首轮同源: u.origin === location.origin,
+                   交出去的串: u.pathname + u.search + u.hash };
+      } catch (e) { out[k] = { 首轮同源: false, 交出去的串: null }; }
+    }
+    return out;
+  })()`);
+  for (const k of ["点段", "编码点段小写", "多级回退越根", "同源绝对URL双斜杠"]) {
+    ok("L11 自证：" + k + " 在旧判据下首轮同源（所以会被放行）",
+       wouldPass[k].首轮同源 === true, JSON.stringify(wouldPass[k]));
+    ok("L11 自证：" + k + " 交出去的串再解析确实出站",
+       (() => { try { return new URL(wouldPass[k].交出去的串, BASE).origin !== BASE; }
+                catch (e) { return false; } })(), JSON.stringify(wouldPass[k]));
+  }
+
+  // ════════════ L12 MFA 页的实际回跳 ════════════
+  console.log("\n=== L12 MFA 页 ?next= 回跳 ===");
+  /* MFA 页用的是同一份 safePath。它比登录页更要紧：
+     走到 goBack() 的是**刚过完两步验证的已登录用户**。
+     这里用 aal2 直接走 goBack() 这条最短路径。 */
+  const mfaGo = async (rawNext) => {
+    await cdp.send("Page.addScriptToEvaluateOnNewDocument", {
+      source: "window.__SCEN = " + JSON.stringify({
+        session: { user: { id: "u-1" } }, aal: "aal2" }) + "; window.__calls = [];",
+    });
+    navLog.length = 0;
+    await cdp.send("Page.navigate", {
+      url: `${BASE}/portal/mfa/?next=` + encodeURIComponent(rawNext) });
+    await sleep(1900);
+    return navLog.filter((u) => u.indexOf("/portal/mfa/") === -1);
+  };
+
+  /* 注意：下面几组的 nav 可能很长且全是同一个 URL —— 那是**另一处真缺陷**：
+     会话有效但 my_roles 返回空（或 RPC 出错，getRoles 出错时也返回 []）时，
+     homeForRoles([]) 给出 portal/applicant/，而该页守卫要求 applicant 角色，
+     不满足就又 replace 到同一个地址 —— 无限重定向。
+     本轮不在范围内，已记入交接的下一工作包。这里只断言安全性质。 */
+  const mfaIn = await mfaGo("/portal/student/courses/");
+  ok("L12 MFA 站内 next 正常跟随", mfaIn.some((u) => /portal\/student\/courses\//.test(u)),
+     JSON.stringify(mfaIn));
+
+  for (const [raw, label] of offsite) {
+    const nav = await mfaGo(raw);
+    const stayed = nav.every((u) => u.indexOf(BASE) === 0);
+    ok("L12 MFA 站外 next 不跟随，全程没离开本站 —— " + label, stayed, JSON.stringify(nav));
+    ok("L12 MFA 站外 next 时停在门户空间内 —— " + label,
+       nav.length > 0 && nav.every((u) => u.indexOf(BASE + "/portal/") === 0),
+       JSON.stringify(nav.slice(0, 3)) + " …共 " + nav.length + " 次");
+    ok("L12 MFA 站外 next 的主机名一次都没出现在导航里 —— " + label,
+       !nav.some((u) => /evil\.example/i.test(u)), JSON.stringify(nav.slice(0, 3)));
+  }
+
+  // ════════════ N 内置反向对照：证明上面那批断言不是空转 ════════════
+  console.log("\n=== N 反向对照（把 safePath 换回只查一次 origin）===");
+  /* 这一节不改任何文件 —— 在页面里把 A.safePath 替换成旧实现，
+     直接看同一批串会不会真的把人送出站。
+     旧实现 = 校验输入的 origin，然后返回重新拼出来的 pathname。
+
+     为什么要内置：先前用「整份回退 auth.js」做对照是错的 ——
+     那连 safePath 的存在都撤掉了，页面调用直接抛错，
+     跑出来是一堆无关的连锁失败，证明不了本次改动的价值。
+     作用域必须只覆盖这一处判据。 */
+  const OLD_IMPL = `window.AmasAuth.safePath = function (raw) {
+    if (!raw) return null;
+    var u; try { u = new URL(String(raw), location.origin); } catch (e) { return null; }
+    if (u.origin !== location.origin) return null;
+    return u.pathname + u.search + u.hash;
+  };`;
+
+  // N1 纯判据层面：旧实现对这批串会返回一个「再解析就出站」的串
+  await openLogin({ login: { mode: "ok" } });
+  const nOld = await cdp.ev(`(() => {
+    ${OLD_IMPL}
+    const probes = ${JSON.stringify(PROBES)};
+    const keys = ["点段","点段带路径","编码点段小写","编码点段大写",
+                  "多级回退越根","连续点段","同源绝对URL双斜杠"];
+    const out = {};
+    for (const k of keys) {
+      const v = window.AmasAuth.safePath(probes[k]);
+      let escaped = false;
+      if (v !== null) { try { escaped = new URL(v, location.origin).origin !== location.origin; }
+                        catch (e) { escaped = false; } }
+      out[k] = { v: v, escaped: escaped };
+    }
+    return out;
+  })()`);
+  for (const k of Object.keys(nOld)) {
+    ok("N1 旧实现对「" + k + "」确实交出一个再解析就出站的串（所以 L11 那条不是空转）",
+       nOld[k].escaped === true, JSON.stringify(nOld[k]));
+  }
+
+  // N2 页面层面：旧实现下，登录成功后人**真的离开了本站**
+  await cdp.send("Page.addScriptToEvaluateOnNewDocument", {
+    source: "window.__SCEN = " + JSON.stringify({ login: { mode: "ok" },
+      rpc: { my_roles: { data: [{ role: "student" }] } } }) + "; window.__calls = [];",
+  });
+  navLog.length = 0;
+  await cdp.send("Page.navigate", {
+    url: `${BASE}/login/?next=` + encodeURIComponent("/.//evil.example/steal") });
+  await sleep(1700);
+  await cdp.ev(`(() => { ${OLD_IMPL} return true; })()`);
+  await login("a@example.invalid");
+  await sleep(1400);
+  const nNav = navLog.filter((u) => !/\/login\/?(\?|$)/.test(u));
+  ok("N2 旧实现下登录后确实离开了本站（证明这是真漏洞，不是理论问题）",
+     nNav.length > 0 && nNav.some((u) => u.indexOf(BASE) !== 0), JSON.stringify(nNav));
+
+  // N3 同一条串，用真实（未被替换的）实现再走一次 —— 必须留在本站
+  const nFixed = await loginWithNext("/.//evil.example/steal");
+  ok("N3 真实实现下同一条串留在本站",
+     nFixed.length > 0 && nFixed.every((u) => u.indexOf(BASE) === 0), JSON.stringify(nFixed));
 
   // ════════════ L10 外发 ════════════
   console.log("\n=== L10 外发 ===");
