@@ -337,7 +337,7 @@ try {
              modalOpen: document.querySelector('#applicationModal').getAttribute('aria-hidden') === 'false',
              canRetry: !document.querySelector('#submitApplication').disabled };
   })()`);
-  check(failView.state === "error" && failView.inView && failView.clipped === 0 &&
+  check(["error","warn"].includes(failView.state) && failView.inView && failView.clipped === 0 &&
         failView.modalOpen && failView.canRetry,
     "A12 提交失败：错误提示被带进卡片可视区，弹窗不关、可以重试",
     `state=${failView.state} 文案="${failView.text}…" 在卡片可视区内=${failView.inView} ` +
@@ -351,7 +351,7 @@ try {
     f.value = f.value + '改'; f.dispatchEvent(new Event('input', { bubbles: true }));
     return { before, after: st.dataset.state || '', text: (st.textContent || '').trim() };
   })()`);
-  check(stale.before === "error" && stale.after === "" && stale.text === "",
+  check(["error","warn"].includes(stale.before) && stale.after === "" && stale.text === "",
     "A13 结果提示不过期：一改表单，上一次的提交结果立刻清掉",
     `改动前 state=${stale.before} 改动后 state="${stale.after}" 残留文字="${stale.text}"`);
 
@@ -402,7 +402,7 @@ try {
              inView: s.top >= c.top - 0.5 && s.bottom <= c.bottom + 0.5,
              clipped: Math.max(0, Math.round(s.bottom - c.bottom)) };
   })()`);
-  check(revView.state === "error" && !revView.inView && revView.clipped > 0,
+  check(["error","warn"].includes(revView.state) && !revView.inView && revView.clipped > 0,
     "A14 负向控制：把提示滚动还原成空操作后，错误提示重新落到卡片可视区之外",
     `state=${revView.state} 在卡片可视区内=${revView.inView} 被裁掉=${revView.clipped}px`);
 
@@ -494,9 +494,29 @@ try {
   await sleep(1200);
   const neg = await cdp.ev(`(()=>{const st=document.querySelector('#applicationStatus');
     return { state: st.dataset.state || "", text:(st.textContent||'').trim() };})()`);
-  results.push([neg.state === "error",
-    "A20 负向控制：普通网络错走 error 而非 warn（证明 warn 专属于超时）",
-    `state=${neg.state || "(空)"}`]);
+  // 纠正：普通网络错**同样可能已经送达**，所以它和超时同属「无法确认」(warn)，
+  // 只有拿到非 2xx 回应才是能证明的失败(error)。早先这条断言写反了。
+  results.push([neg.state === "warn" && /无法确认/.test(neg.text),
+    "A20 普通网络错也归为无法确认（可能已送达），不谎称失败",
+    `state=${neg.state || "(空)"} text=${neg.text.slice(0,30)}`]);
+
+  // A21 负向控制：服务器明确回了非 2xx —— 这才该是 error
+  await cdp.ev(`(()=>{
+    const orig = window.fetch;
+    window.fetch = function(u){
+      if(String(u).indexOf("never-answers") > -1)
+        return Promise.resolve({ ok:false, status:500, json:()=>Promise.resolve({}) });
+      return orig.apply(this, arguments);
+    };
+    const st=document.querySelector('#applicationStatus');
+    st.textContent=''; st.removeAttribute('data-state'); return true;})()`);
+  await cdp.ev(`document.querySelector('#applicationForm').requestSubmit()`);
+  await sleep(1200);
+  const neg2 = await cdp.ev(`(()=>{const st=document.querySelector('#applicationStatus');
+    return { state: st.dataset.state || "", text:(st.textContent||'').trim() };})()`);
+  results.push([neg2.state === "error",
+    "A21 负向控制：拿到非 2xx 才判 error（证明 warn 不是一锅端）",
+    `state=${neg2.state || "(空)"}`]);
 
   cdp.ws.close();
 } finally {

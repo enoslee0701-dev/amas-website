@@ -216,7 +216,7 @@ const i18n = {
   "application.programs.bth":"神学学士 B.Th（2026 届招生）","application.programs.gdip":"教牧学研究硕士 G.DIP","application.programs.mdiv":"道学硕士 M.DIV","application.programs.dmin":"教牧学博士 D.MIN","application.programs.pastor":"牧会者进修","application.programs.preaching":"讲道学校","application.programs.missionary":"宣教士训练",
   "application.modes.online":"线上为主","application.modes.onsite":"线下为主","application.modes.hybrid":"线上 + 线下",
   "application.consent":"我确认以上资料真实，并愿意接受学校后续联系与入学说明。","application.back":"上一步","application.next":"下一步","application.submit":"提交申请",
-  "application.okDemo":"申请已保存在本机演示数据中。正式上线时需要接入后端/数据库。","application.ok":"申请已送出，招生同工会尽快与你联络。","application.error":"提交失败：网络或服务器异常。请稍后重试，或用下方联系方式联络我们。","application.timeout":"等待服务器回应超时，无法确认申请是否已送达。你填的内容都还在，弹窗也没有关闭。建议先用下方联系方式向招生同工核实是否收到，确认没收到再重新提交，以免重复递交同一份申请。",
+  "application.okDemo":"申请已保存在本机演示数据中。正式上线时需要接入后端/数据库。","application.ok":"申请已送出，招生同工会尽快与你联络。","application.error":"提交失败：网络或服务器异常。请稍后重试，或用下方联系方式联络我们。","application.unsure":"没能拿到服务器的回应，无法确认申请是否已送达。你填的内容都还在，弹窗也没有关闭。建议先用下方联系方式向招生同工核实是否收到，确认没收到再重新提交，以免重复递交同一份申请。","application.timeout":"等待服务器回应超时，无法确认申请是否已送达。你填的内容都还在，弹窗也没有关闭。建议先用下方联系方式向招生同工核实是否收到，确认没收到再重新提交，以免重复递交同一份申请。",
   "application.stepOf":"第 {n} 步，共 4 步",
   "review.fullName":"中文姓名","review.englishName":"英文姓名","review.gender":"性别","review.birth":"出生年月","review.nationality":"国籍","review.language":"使用语言","review.phone":"手机","review.email":"Email / QQ / 微信","review.location":"城市 / 国家","review.church":"教会","review.churchType":"教会类型","review.conversionDate":"初信日期","review.baptismDate":"受洗日期","review.role":"服事 / 角色","review.referrer":"介绍人","review.program":"申请项目","review.eduLevel":"最高学历","review.eduSchool":"毕业学校","review.mode":"学习方式","review.gifts":"恩赐","review.motivation":"异象与见证"
  },
@@ -337,7 +337,7 @@ const i18n = {
   "application.programs.bth":"Bachelor of Theology B.Th (2026 first intake)","application.programs.gdip":"Master of Ministry Studies G.Dip","application.programs.mdiv":"Master of Divinity M.DIV","application.programs.dmin":"Doctor of Ministry D.MIN","application.programs.pastor":"Pastoral Continuing Education","application.programs.preaching":"School of Preaching","application.programs.missionary":"Missionary Training",
   "application.modes.online":"Mainly online","application.modes.onsite":"Mainly in-person","application.modes.hybrid":"Online + in-person",
   "application.consent":"I confirm the information above is accurate and agree to be contacted regarding admissions.","application.back":"Back","application.next":"Next","application.submit":"Submit Application",
-  "application.okDemo":"Application saved locally for demo. Connect a backend/database for production.","application.ok":"Application sent. Our admissions team will contact you soon.","application.error":"Submission failed: network or server error. Please retry, or reach us with the contact details below.","application.timeout":"Timed out waiting for the server, so we cannot confirm whether your application arrived. Everything you filled in is still here and this window stays open. Please check with the admissions team using the contact details below before submitting again, so you do not send the same application twice.",
+  "application.okDemo":"Application saved locally for demo. Connect a backend/database for production.","application.ok":"Application sent. Our admissions team will contact you soon.","application.error":"Submission failed: network or server error. Please retry, or reach us with the contact details below.","application.unsure":"We did not get a reply from the server, so we cannot confirm whether your application arrived. Everything you filled in is still here and this window stays open. Please check with the admissions team using the contact details below before submitting again, so you do not send the same application twice.","application.timeout":"Timed out waiting for the server, so we cannot confirm whether your application arrived. Everything you filled in is still here and this window stays open. Please check with the admissions team using the contact details below before submitting again, so you do not send the same application twice.",
   "application.stepOf":"Step {n} of 4",
   "review.fullName":"Name (Chinese)","review.englishName":"Name (English)","review.gender":"Gender","review.birth":"Date of Birth","review.nationality":"Nationality","review.language":"Language","review.phone":"Mobile","review.email":"Email / QQ / WeChat","review.location":"City / Country","review.church":"Church","review.churchType":"Church Type","review.conversionDate":"Conversion","review.baptismDate":"Baptism","review.role":"Ministry / Role","review.referrer":"Referrer","review.program":"Program","review.eduLevel":"Highest Education","review.eduSchool":"School","review.mode":"Study Mode","review.gifts":"Gifts","review.motivation":"Vision & Testimony"
  },
@@ -458,7 +458,7 @@ const i18n = {
   "application.programs.bth":"신학사 B.Th(2026학년도 모집)","application.programs.gdip":"목회연구석사 G.Dip","application.programs.mdiv":"목회학석사 M.DIV","application.programs.dmin":"목회학박사 D.MIN","application.programs.pastor":"목회자 연수","application.programs.preaching":"설교학교","application.programs.missionary":"선교사 훈련",
   "application.modes.online":"온라인 중심","application.modes.onsite":"오프라인 중심","application.modes.hybrid":"온라인 + 오프라인",
   "application.consent":"위 정보가 사실임을 확인하며, 학교의 후속 연락과 입학 안내를 받는 데 동의합니다.","application.back":"이전","application.next":"다음","application.submit":"지원서 제출",
-  "application.okDemo":"지원서가 데모 데이터로 저장되었습니다. 정식 오픈 시 백엔드 연동이 필요합니다.","application.ok":"지원서가 전송되었습니다. 입학 담당자가 곧 연락드리겠습니다.","application.error":"제출 실패: 네트워크 또는 서버 오류입니다. 잠시 후 다시 시도하시거나 아래 연락처로 문의해 주세요.","application.timeout":"서버 응답 대기 시간이 초과되어 지원서가 접수되었는지 확인할 수 없습니다. 입력하신 내용은 그대로 남아 있고 창도 닫히지 않았습니다. 같은 지원서를 두 번 보내지 않도록, 다시 제출하기 전에 아래 연락처로 입학 담당자에게 접수 여부를 확인해 주세요.",
+  "application.okDemo":"지원서가 데모 데이터로 저장되었습니다. 정식 오픈 시 백엔드 연동이 필요합니다.","application.ok":"지원서가 전송되었습니다. 입학 담당자가 곧 연락드리겠습니다.","application.error":"제출 실패: 네트워크 또는 서버 오류입니다. 잠시 후 다시 시도하시거나 아래 연락처로 문의해 주세요.","application.unsure":"서버 응답을 받지 못해 지원서가 접수되었는지 확인할 수 없습니다. 입력하신 내용은 그대로 남아 있고 창도 닫히지 않았습니다. 같은 지원서를 두 번 보내지 않도록, 다시 제출하기 전에 아래 연락처로 입학 담당자에게 접수 여부를 확인해 주세요.","application.timeout":"서버 응답 대기 시간이 초과되어 지원서가 접수되었는지 확인할 수 없습니다. 입력하신 내용은 그대로 남아 있고 창도 닫히지 않았습니다. 같은 지원서를 두 번 보내지 않도록, 다시 제출하기 전에 아래 연락처로 입학 담당자에게 접수 여부를 확인해 주세요.",
   "application.stepOf":"4단계 중 {n}단계",
   "review.fullName":"이름(중문)","review.englishName":"이름(영문)","review.gender":"성별","review.birth":"생년월","review.nationality":"국적","review.language":"사용 언어","review.phone":"휴대전화","review.email":"Email / QQ / 위챗","review.location":"도시 / 국가","review.church":"교회","review.churchType":"교회 유형","review.conversionDate":"신앙 시작","review.baptismDate":"세례","review.role":"섬김 / 역할","review.referrer":"추천인","review.program":"지원 과정","review.eduLevel":"최종 학력","review.eduSchool":"출신 학교","review.mode":"학습 방식","review.gifts":"은사","review.motivation":"비전과 간증"
  },
@@ -579,7 +579,7 @@ const i18n = {
   "application.programs.bth":"ศาสนศาสตรบัณฑิต B.Th (รุ่นปี 2026)","application.programs.gdip":"G.Dip","application.programs.mdiv":"ศาสนศาสตรมหาบัณฑิต M.DIV","application.programs.dmin":"ดุษฎีบัณฑิต D.MIN","application.programs.pastor":"อบรมศิษยาภิบาล","application.programs.preaching":"โรงเรียนเทศนา","application.programs.missionary":"อบรมมิชชันนารี",
   "application.modes.online":"ออนไลน์เป็นหลัก","application.modes.onsite":"ออนไซต์เป็นหลัก","application.modes.hybrid":"ออนไลน์ + ออนไซต์",
   "application.consent":"ข้าพเจ้ายืนยันว่าข้อมูลข้างต้นเป็นความจริง และยินดีรับการติดต่อและคำแนะนำการเข้าเรียนจากวิทยาลัย","application.back":"ย้อนกลับ","application.next":"ถัดไป","application.submit":"ส่งใบสมัคร",
-  "application.okDemo":"ใบสมัครถูกบันทึกเป็นข้อมูลสาธิตในเครื่องนี้ เวอร์ชันจริงต้องเชื่อมระบบหลังบ้าน","application.ok":"ส่งใบสมัครแล้ว ฝ่ายรับสมัครจะติดต่อกลับโดยเร็ว","application.error":"ส่งไม่สำเร็จ: เครือข่ายหรือเซิร์ฟเวอร์ขัดข้อง โปรดลองใหม่ หรือติดต่อตามช่องทางด้านล่าง","application.timeout":"หมดเวลารอการตอบกลับจากเซิร์ฟเวอร์ จึงยืนยันไม่ได้ว่าใบสมัครส่งถึงหรือไม่ ข้อมูลที่กรอกไว้ยังอยู่ครบและหน้าต่างยังไม่ปิด กรุณาติดต่อฝ่ายรับสมัครตามช่องทางด้านล่างเพื่อตรวจสอบก่อนส่งใหม่ เพื่อไม่ให้ส่งใบสมัครซ้ำ",
+  "application.okDemo":"ใบสมัครถูกบันทึกเป็นข้อมูลสาธิตในเครื่องนี้ เวอร์ชันจริงต้องเชื่อมระบบหลังบ้าน","application.ok":"ส่งใบสมัครแล้ว ฝ่ายรับสมัครจะติดต่อกลับโดยเร็ว","application.error":"ส่งไม่สำเร็จ: เครือข่ายหรือเซิร์ฟเวอร์ขัดข้อง โปรดลองใหม่ หรือติดต่อตามช่องทางด้านล่าง","application.unsure":"ไม่ได้รับการตอบกลับจากเซิร์ฟเวอร์ จึงยืนยันไม่ได้ว่าใบสมัครส่งถึงหรือไม่ ข้อมูลที่กรอกไว้ยังอยู่ครบและหน้าต่างยังไม่ปิด กรุณาติดต่อฝ่ายรับสมัครตามช่องทางด้านล่างเพื่อตรวจสอบก่อนส่งใหม่ เพื่อไม่ให้ส่งใบสมัครซ้ำ","application.timeout":"หมดเวลารอการตอบกลับจากเซิร์ฟเวอร์ จึงยืนยันไม่ได้ว่าใบสมัครส่งถึงหรือไม่ ข้อมูลที่กรอกไว้ยังอยู่ครบและหน้าต่างยังไม่ปิด กรุณาติดต่อฝ่ายรับสมัครตามช่องทางด้านล่างเพื่อตรวจสอบก่อนส่งใหม่ เพื่อไม่ให้ส่งใบสมัครซ้ำ",
   "application.stepOf":"ขั้นตอนที่ {n} จาก 4",
   "review.fullName":"ชื่อ (จีน)","review.englishName":"ชื่อ (อังกฤษ)","review.gender":"เพศ","review.birth":"เดือน/ปีเกิด","review.nationality":"สัญชาติ","review.language":"ภาษาที่ใช้","review.phone":"มือถือ","review.email":"Email / QQ / WeChat","review.location":"เมือง / ประเทศ","review.church":"คริสตจักร","review.churchType":"ประเภทคริสตจักร","review.conversionDate":"เริ่มเชื่อ","review.baptismDate":"บัพติศมา","review.role":"งานรับใช้","review.referrer":"ผู้แนะนำ","review.program":"หลักสูตร","review.eduLevel":"วุฒิสูงสุด","review.eduSchool":"สถาบัน","review.mode":"รูปแบบเรียน","review.gifts":"ของประทาน","review.motivation":"นิมิตและคำพยาน"
  }
@@ -1270,11 +1270,19 @@ appForm.addEventListener("submit", async e => {
        告诉访客「提交失败，请重试」是不诚实的，照做还可能造成重复申请。
        所以这一支明说无法确认，并建议联系招生同工核实，而不是盲目重投。
        两种情况下填写的内容都原样保留，弹窗不关。 */
-    const timedOut = err && err.kind === "timeout";
-    status.dataset.state = timedOut ? "warn" : "error";
-    status.textContent = t(timedOut ? "application.timeout" : "application.error");
+    /* 三态，按**能证明的**程度给反馈：
+         http    服务器回了非 2xx —— 拿到了回应，确实没送达，可以放心劝重试
+         timeout 等不到回应       —— 无法确认，可能已经送到
+         network 网络层出错       —— 同上。普通网络错一样可能已经送达，
+                                     一概说「提交失败，请重试」会造成重复递交。 */
+    const kind = (err && err.kind) || "network";
+    const proven = kind === "http";
+    status.dataset.state = proven ? "error" : "warn";
+    status.textContent = t(proven ? "application.error"
+                         : kind === "timeout" ? "application.timeout"
+                         : "application.unsure");
     revealStatus(status);
-    toast(t(timedOut ? "toast.timeout" : "toast.failed"));
+    toast(t(proven ? "toast.failed" : "toast.timeout"));
   }finally{
     setBusy(btn, false, label);
   }
