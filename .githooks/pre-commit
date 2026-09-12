@@ -21,8 +21,23 @@
 
 set -u
 
+# ── Python 解释器：按名字找，不写死 ─────────────────────────────────
+# 原先直接调 `python`。macOS 上**没有** `python` 这个命令（只有 `python3`），
+# 于是 hook 在 Mac 检出上每次都以 127 失败，整个缓存戳契约等于没设防。
+# 反过来在 Git for Windows 里 `python3` 又常常不存在。
+# 所以按顺序探一遍，取第一个能用的；两个都没有就明说，不要静默跳过校验。
+PY=""
+for c in python3 python py; do
+  if command -v "$c" >/dev/null 2>&1; then PY="$c"; break; fi
+done
+if [ -z "$PY" ]; then
+  echo "pre-commit: no Python interpreter found (tried python3, python, py); aborted." >&2
+  echo "  This hook enforces the cache-bust contract and will not silently skip it." >&2
+  exit 1
+fi
+
 # ── 1+2. GUARD 与打戳（bump.py 内部保证顺序）─────────────────────────
-if ! STAMPED=$(python scripts/bump.py 2>&1); then
+if ! STAMPED=$("$PY" scripts/bump.py 2>&1); then
   echo "pre-commit: aborted." >&2
   printf '%s\n' "$STAMPED" >&2
   exit 1
@@ -34,14 +49,14 @@ if ! printf '%s\n' "$STAMPED" | sed -n 's/^stamped //p' | tr '\n' '\0' | xargs -
 fi
 
 # ── 3. 校验进入提交的内容 ───────────────────────────────────────────
-if ! python scripts/check-cache-bust.py --from-index; then
+if ! "$PY" scripts/check-cache-bust.py --from-index; then
   echo "" >&2
   echo "pre-commit: cache-bust contract failed; commit aborted." >&2
   echo "  The verdict above is about the INDEX, i.e. what would actually be committed." >&2
   echo "  This hook performed no undo-style operation." >&2
-  echo "  Recheck:        python scripts/check-cache-bust.py --from-index" >&2
-  echo "  Contract cases: python scripts/test-cache-bust-contract.py" >&2
-  echo "  Gate cases:     python scripts/test-hook-gate.py" >&2
+  echo "  Recheck:        python3 scripts/check-cache-bust.py --from-index" >&2
+  echo "  Contract cases: python3 scripts/test-cache-bust-contract.py" >&2
+  echo "  Gate cases:     python3 scripts/test-hook-gate.py" >&2
   exit 1
 fi
 
