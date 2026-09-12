@@ -223,6 +223,8 @@ try {
                                 headers:{ "Content-Type":"application/json" } }));
       if (k === "html")    return Promise.resolve(new Response("<html>502</html>", { status:502,
                                 headers:{ "Content-Type":"text/html" } }));
+      if (k === "malformed") return Promise.resolve(new Response(JSON.stringify({}), { status:200,
+                                headers:{ "Content-Type":"application/json" } }));
       if (k === "refuse")  return Promise.resolve(new Response(JSON.stringify({ error:"invalid_state" }),
                                 { status:409, headers:{ "Content-Type":"application/json" } }));
       return Promise.resolve(new Response(JSON.stringify({ ok:true }), { status:200,
@@ -420,6 +422,24 @@ try {
   const o4 = await outcome();
   ok("S4 真的成功时照常报「学籍已建立（待正式注册）」（没改坏）",
      o4.toastShown === true && /学籍已建立/.test(o4.toast || ""), JSON.stringify(o4));
+
+  /* 200 但结构对不上契约。这几条写入的服务端契约都是
+     jsonb_build_object('ok', true, …)（0004/0008/0012）。只判 ok === false
+     或只看 data 真值的话，合成的 200 {} 会被当成成功 —— 监督 event7e06。 */
+  console.log("\n=== M 畸形 200 ===");
+  await runLifecycle("malformed");
+  const om = await outcome();
+  ok("M1 学籍写入收到 200 {} → 不报成功（契约是 ok:true）",
+     om.toastShown !== true, JSON.stringify(om));
+  ok("M1b 而是说无法确认", /没能确认|无法确认/.test((om.err || "") + (om.toast || "")), JSON.stringify(om));
+
+  await open("portal/admin/admissions/", { tables: TABLES }, 3000);
+  await openDetail();
+  await installFetch("malformed");
+  await actOn("start_review");
+  const am = await vis("#dErr");
+  ok("M2 招生审核收到 200 {} → 不当成成功，说无法确认",
+     /无法确认/.test(am || ""), JSON.stringify(am));
 
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");

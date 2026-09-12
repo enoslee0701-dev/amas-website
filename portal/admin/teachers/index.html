@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>教师验证审核 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130131">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130139">
 <style>
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .tab{min-height:44px;padding:0 15px;border:1px solid var(--line);border-radius:99px;background:#fff;
@@ -37,11 +37,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130131"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130131"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130131"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130131"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130131"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130139"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130139"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130139"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130139"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130139"></script>
 <script>
 /* 管理端教师验证审核台。
 
@@ -270,8 +270,10 @@
       lockUnresolved(id, UNKNOWN_TEXT);
       return;
     }
-    if (!data || data.ok === false) {
-      // 200 但没有 ok:true —— 同样不能断言生效
+    /* 契约是 jsonb_build_object('ok', true, 'status', …)。原来判的是
+       `data.ok === false`，于是合成的 200 {} 会**当成成功**溜过去。
+       改成必须明确等于 true。 */
+    if (!data || data.ok !== true) {
       lockUnresolved(id, UNKNOWN_TEXT);
       return;
     }

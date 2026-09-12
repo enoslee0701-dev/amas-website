@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>招生审核 | AMAS 管理后台</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130131">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130139">
 <style>
 .qtable{width:100%;border-collapse:collapse;font-size:13px}
 .qtable th,.qtable td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:top}
@@ -34,12 +34,12 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130131"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130131"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130131"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130131"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130131"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609130131"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130139"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130139"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130139"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130139"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130139"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609130139"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -304,8 +304,8 @@
       if (!code || UNKNOWN_CODES[code]) return settle(UNKNOWN_TEXT, true);
       return settle((error.message || code) + "（这次没有执行任何操作。）", false);
     }
-    // 200 但没有可读的 body —— 同样不能断言生效
-    if (!data) return settle(UNKNOWN_TEXT, true);
+    // 200 但没有可读的 body，或者结构对不上契约（ok:true）—— 都不能断言生效
+    if (!data || data.ok !== true) return settle(UNKNOWN_TEXT, true);
 
     setActionsDisabled(appId, false);
     UI.toast("已执行：" + action);

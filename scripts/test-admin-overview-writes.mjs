@@ -205,6 +205,8 @@ try {
                                 headers:{ "Content-Type":"application/json" } }));
       if (k === "html")    return Promise.resolve(new Response("<html>502</html>", { status:200,
                                 headers:{ "Content-Type":"text/html" } }));
+      if (k === "malformed") return Promise.resolve(new Response(JSON.stringify({}), { status:200,
+                                headers:{ "Content-Type":"application/json" } }));
       if (k.indexOf("refuse:") === 0)
         return Promise.resolve(new Response(JSON.stringify({ error:k.slice(7) }),
                { status:403, headers:{ "Content-Type":"application/json" } }));
@@ -260,6 +262,21 @@ try {
        !pageErrors.some(e => /TypeError/.test(e)), JSON.stringify(pageErrors.slice(0,2)));
   }
 
+  /* 200 但结构对不上契约。create-teacher-invitation 成功必带 token 与
+     expires_at（见 supabase/functions/…）。只看 data 真值的判据会把 {} 当成功，
+     于是页面输出 code=undefined 与 Invalid Date —— 监督 event7e06 就是这么打的。 */
+  await open({ tables: TABLES });
+  await installFetch("malformed");
+  await sendInvite();
+  const im = await invState();
+  ok("I6 畸形 200（{}）→ 不当成成功，不输出伪链接",
+     im.outHidden === true, JSON.stringify(im));
+  ok("I6b 说返回内容不完整、结果未明", im.errShown === true && /不完整|看不出/.test(im.err || ""), JSON.stringify(im));
+  ok("I6c 按钮不解锁", im.btnDisabled === true, JSON.stringify(im));
+  ok("I6d 页面上不出现 undefined / Invalid Date",
+     !/undefined|Invalid Date/.test(await cdp.ev(`(document.getElementById("ivLink")||{}).textContent||""`)),
+     JSON.stringify(await cdp.ev(`(document.getElementById("ivLink")||{}).textContent||""`)));
+
   await open({ tables: TABLES });
   await installFetch("refuse:bad_email");
   await sendInvite();
@@ -298,6 +315,15 @@ try {
   ok("V1b 结果不明 → 该行按钮不解锁，避免顺手再点一次",
      ((await rowBtn("reject")) || {}).disabled === true, JSON.stringify(await rowBtn("reject")));
   ok("V1c 只发出一次 review-teacher-verification", (await fnHits()) === 1, "命中 " + (await fnHits()) + " 次");
+
+  await open({ tables: TABLES });
+  await installFetch("malformed");
+  await review("reject");
+  const vm = await qErr();
+  const vmall = ((vm && vm.text) || "") + " " + dialogs.join(" ");
+  ok("V3 审核收到畸形 200（{}）→ 不当成成功（契约是 ok:true）",
+     /不完整|看不出|无法确认/.test(vmall), JSON.stringify({ vm, dialogs }));
+  ok("V3b 该行按钮不解锁", ((await rowBtn("reject")) || {}).disabled === true, JSON.stringify(await rowBtn("reject")));
 
   await open({ tables: TABLES });
   await installFetch("refuse:invalid_state");

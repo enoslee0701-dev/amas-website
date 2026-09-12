@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>管理后台 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609130131">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609130139">
 <style>
 table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 .list th,.list td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top}
@@ -66,8 +66,8 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609130131"></script>
-<script src="../../assets/js/portal/auth.js?v=202609130131"></script>
+<script src="../../assets/js/supabase-config.js?v=202609130139"></script>
+<script src="../../assets/js/portal/auth.js?v=202609130139"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
@@ -110,13 +110,33 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
       err.classList.add("show");
       return;                                   // 刻意不解锁
     }
-    btn.disabled = false; btn.textContent = "生成邀请";
     if (r.status !== 200) {
+      btn.disabled = false; btn.textContent = "生成邀请";
       const M = { mfa_required: "需要先完成两步验证。", forbidden: "没有权限。", bad_email: "邮箱格式不正确。" };
       err.textContent = (M[(r.data && r.data.error) || ""] || "这次没有创建成功。") ; err.classList.add("show"); return;
     }
-    const link = r.data.link || (location.origin + A.ROOT + "faculty/verify/?code=" + r.data.token);
-    document.getElementById("ivLink").textContent = link + "\n（截止：" + new Date(r.data.expires_at).toLocaleString("zh-CN") + "）";
+    /* 成功也要按**函数的实际契约**验，不能只看 data 是不是真值。
+       这四条写入的服务端契约都是 jsonb_build_object('ok', true, …)
+       （supabase/migrations/0004、0008、0012；Edge Function 原样透传）。
+       合成的 200 {} 在只看真值的判据下会被当成成功 —— 监督 event7e06 正是
+       这么打出来的：页面显示 code=undefined 与 Invalid Date，还把按钮放开。
+       结构对不上就按**结果未明**处理。 */
+    /* create-teacher-invitation 成功时返回
+       { invitation_id, token, link（没有 origin 时为 null）, expires_at }
+       —— 见 supabase/functions/create-teacher-invitation/index.ts。
+       页面真正要用的是 token 与 expires_at（link 缺失时自己拼）。 */
+    const inv = r.data;
+    const invOk = !!inv && typeof inv.token === "string" && inv.token.length > 0 &&
+      !!inv.expires_at && !Number.isNaN(Date.parse(inv.expires_at));
+    if (!invOk) {
+      err.textContent = "拿到的回应看不出这份邀请是否创建成功（返回内容不完整）。" +
+        "请先重新载入页面核实，不要直接再建一份。";
+      err.classList.add("show");
+      return;                                   // 不解锁、**不输出任何链接**
+    }
+    btn.disabled = false; btn.textContent = "生成邀请";
+    const link = inv.link || (location.origin + A.ROOT + "faculty/verify/?code=" + inv.token);
+    document.getElementById("ivLink").textContent = link + "\n（截止：" + new Date(inv.expires_at).toLocaleString("zh-CN") + "）";
     document.getElementById("ivOut").hidden = false;
     document.getElementById("btnCopy").onclick = () => navigator.clipboard?.writeText(link);
   });
@@ -188,14 +208,21 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
       qe.classList.add("show");
       return;                                   // 这一行按钮刻意不解锁
     }
-    b.disabled = false;
     if (r.status !== 200) {
+      b.disabled = false;
       const M = { mfa_required: "需要两步验证。", forbidden: "没有权限。", invalid_state: "当前状态不允许该操作。" };
       const code = (r.data && r.data.error) || "";
       // 服务端给了错误码 = 确定没执行，可以说死，并允许重来
       qe.textContent = (M[code] || "请求被拒绝。") + "（这次没有执行任何操作。）";
       qe.classList.add("show"); return;
     }
+    // 契约是 { ok: true, status } —— 对不上同样是结果未明，不解锁
+    if (!r.data || r.data.ok !== true) {
+      qe.textContent = "拿到的回应看不出这次审核是否已经生效（返回内容不完整）。" +
+        "请刷新后核实当前状态，不要重复执行。";
+      qe.classList.add("show"); return;
+    }
+    b.disabled = false;
     await loadQueue();
   });
 })();
