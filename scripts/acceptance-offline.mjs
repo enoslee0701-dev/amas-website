@@ -89,13 +89,19 @@ export const KNOWN_BASELINE_FAIL = {
   },
 };
 
+/** 断言名的规范化：只做空白归一。
+    每次都会变的实测数值在 `|` / `←` 之后，failedAssertions 已经把那一段切掉了；
+    断言名里剩下的数字（例如黄金值 64x27）是名字的一部分，**不能抹掉** ——
+    抹掉就会让 T0 和 T5 这种只差编号的断言互相冒充。 */
+export const normalizeAssertion = (x) => String(x || "").replace(/\s+/g, " ").trim();
+
 /** 从 stdout 里取出失败断言的名字。两种格式都认：
       「FAIL <名字> | <细节>」与「  FAIL  <名字>  ← <细节>」 */
 export const failedAssertions = (out) =>
   String(out || "").split(/\r?\n/)
     .filter((l) => /^\s*FAIL\b/.test(l))
     .map((l) => l.replace(/^\s*FAIL\b[:\s]*/, ""))
-    .map((l) => l.split("  ← ")[0].split(" | ")[0].trim())
+    .map((l) => normalizeAssertion(l.split("  ← ")[0].split(" | ")[0]))
     .filter(Boolean);
 
 /* 这些事情这支脚本**做不到**，谁也不要把全绿当成做到了。 */
@@ -107,20 +113,41 @@ const NOT_RUN = [
   "真机与生产环境",
 ];
 
+/* 一份汇总只有自洽才算数：计数必须是非负整数，通过数加失败数要等于总数，
+   而且总数不能是 0（一条断言都没跑过不叫通过）。
+   「5/3 通过」这种不可能的总数会算出 fail = -2，`fail > 0` 就拦不住它。 */
+const valid = (s) => {
+  const int = (n) => Number.isInteger(n) && n >= 0;
+  if (!int(s.pass) || !int(s.fail) || !int(s.total))
+    return { ...s, valid: false, why: `计数不是非负整数（${s.text}）` };
+  if (s.pass + s.fail !== s.total)
+    return { ...s, valid: false, why: `通过数与失败数加起来不等于总数（${s.text}）` };
+  if (s.total === 0)
+    return { ...s, valid: false, why: "一条断言都没跑过" };
+  return { ...s, valid: true, why: "" };
+};
+
 /* 汇总行两种形状都认：「PASS 33  FAIL 0」与「112/112 通过」。
    认不出来就如实写「未汇总」—— 不猜。 */
 export const summarize = (out) => {
   const a = out.match(/PASS\s+(\d+)\s+FAIL\s+(\d+)/g);
   if (a && a.length) {
     const m = a[a.length - 1].match(/PASS\s+(\d+)\s+FAIL\s+(\d+)/);
-    return { pass: +m[1], fail: +m[2], text: `${m[1]}/${+m[1] + +m[2]}`, parsed: true };
+    return valid({ pass: +m[1], fail: +m[2], total: +m[1] + +m[2],
+                   text: `${m[1]}/${+m[1] + +m[2]}`, parsed: true });
   }
-  const b = out.match(/(\d+)\/(\d+)\s*通过/g);
+  /* 「18/20 通过」与「=== TOUCH TARGETS: 18/20 PASSED ===」是同一个意思。
+     后一种有 13 个套件在用（public 整组、application-flow 等），原来两个正则
+     都不认它 —— 它们的汇总一直是「未汇总」，只是当时 code===0 就判通过，
+     所以没人看见。 */
+  const b = out.match(/(\d+)\s*\/\s*(\d+)\s*(?:通过|PASSED)/gi);
   if (b && b.length) {
-    const m = b[b.length - 1].match(/(\d+)\/(\d+)/);
-    return { pass: +m[1], fail: +m[2] - +m[1], text: `${m[1]}/${m[2]}`, parsed: true };
+    const m = b[b.length - 1].match(/(\d+)\s*\/\s*(\d+)/);
+    return valid({ pass: +m[1], fail: +m[2] - +m[1], total: +m[2],
+                   text: `${m[1]}/${m[2]}`, parsed: true });
   }
-  return { pass: null, fail: null, text: "未汇总", parsed: false };
+  return { pass: null, fail: null, total: null, text: "未汇总", parsed: false,
+           valid: false, why: "读不出汇总行" };
 };
 
 /** 一个套件跑完之后，凭它的退出码与 stdout 判定成什么状态。
@@ -130,31 +157,40 @@ export function classify(r, baselines) {
   const s = summarize(r.out || "");
   if (r.missing) return { ...s, state: "缺文件", reason: "scripts/test-<name>.mjs 不存在" };
 
+  /* **任何分支都先要求一份成立的汇总。**
+     跑到一半崩掉、改了输出格式、或者数字自相矛盾，都说明这一轮没有正常跑完 ——
+     没正常跑完就什么都不能断言，既不能说通过，更不能拿既有基线去豁免它。 */
+  if (!s.valid) {
+    return { ...s, state: "未判定",
+      reason: "没有一份成立的汇总（" + (s.why || "读不出汇总行") + "），这一轮没有正常跑完" };
+  }
+
   if (r.code !== 0) {
     const reg = (baselines || {})[r.suite];
     if (reg && Array.isArray(reg.assertions)) {
+      const known = reg.assertions.map(normalizeAssertion);
       const seen = failedAssertions(r.out);
-      /* 登记之外的失败一条都不豁免。一条都解析不出来时也不豁免 ——
-         那说明它不是以我们认得的方式失败的，更该看一眼。 */
-      const unknown = seen.filter((a) => !reg.assertions.some((k) => a === k || a.startsWith(k)));
-      if (seen.length && unknown.length === 0) {
-        const gone = reg.assertions.filter((k) => !seen.some((a) => a === k || a.startsWith(k)));
+      /* 规范化之后**整名精确相等**才算数。用前缀放行会让
+         「<已登记的名字> NEW regression」这种新回归混进来。 */
+      const unknown = seen.filter((a) => !known.includes(a));
+      /* 还要对得上数：解析出来的失败条数必须等于汇总里报的失败数，
+         否则说明有失败没被打印成我们认得的 FAIL 行，那就不能豁免。 */
+      const counted = seen.length === s.fail;
+      if (seen.length && unknown.length === 0 && counted) {
+        const gone = known.filter((k) => !seen.includes(k));
         return { ...s, state: "既有基线",
           reason: "只复现了登记过的断言" + (gone.length ? "（其中 " + gone.length + " 条这次没有复现）" : "") };
       }
       return { ...s, state: "失败",
-        reason: seen.length
-          ? "出现了没有登记的失败断言：" + unknown.slice(0, 3).join("；")
-          : "退出码非 0，但一条失败断言都解析不出来" };
+        reason: !seen.length ? "退出码非 0，但一条失败断言都解析不出来"
+          : unknown.length ? "出现了没有登记的失败断言：" + unknown.slice(0, 3).join("；")
+          : "解析到 " + seen.length + " 条失败断言，汇总却说挂了 " + s.fail + " 条，对不上" };
     }
     return { ...s, state: "失败", reason: "退出码 " + r.code };
   }
 
-  /* 退出码 0 还不够。认不出汇总、汇总自相矛盾、或者一条断言都没跑过，
-     都只能说「未判定」—— 未判定不是成功。 */
-  if (!s.parsed) return { ...s, state: "未判定", reason: "退出码 0，但读不出汇总行" };
+  /* 退出码 0，汇总也成立，但汇总自己报了失败 —— 两边矛盾，不算通过。 */
   if (s.fail > 0) return { ...s, state: "未判定", reason: "退出码 0，汇总却报了 " + s.fail + " 条失败" };
-  if (!s.pass) return { ...s, state: "未判定", reason: "退出码 0，但一条断言都没跑过" };
   return { ...s, state: "通过", reason: "" };
 }
 /** 哪些状态算这一轮没过。**未判定也算没过** —— 不明不能当成功。 */
@@ -163,8 +199,18 @@ export const isFailure = (state) =>
 
 /** 这一轮的结果能不能归属到某个 SHA：运行前后必须一模一样。
     跑到一半有人改了工作树或切了分支，这批数字就不属于任何一个 SHA。 */
+const LOOKS_LIKE_SHA = (x) => /^[0-9a-f]{40}$/.test(String(x || ""));
+
 export function attribution(before, after) {
   if (!before || !after) return { ok: false, reason: "没有可比对的前后状态" };
+  if (before.ok === false || after.ok === false) {
+    return { ok: false, reason: "读不到 git 状态（" +
+      ((before.ok === false ? before.why : after.why) || "") + "），无法把结果归属到任何 SHA" };
+  }
+  if (!LOOKS_LIKE_SHA(before.head) || !LOOKS_LIKE_SHA(after.head)) {
+    return { ok: false, reason: "HEAD 不是一个合法的 40 位 SHA（" + before.head + " / " + after.head +
+      "），无法归属 —— 不能拿一个看起来干净的假状态当作某个提交" };
+  }
   if (before.head !== after.head) {
     return { ok: false, reason: "运行当中 HEAD 变了（" + before.head + " → " + after.head +
       "），这一轮的结果不归属任何一个 SHA" };
@@ -200,15 +246,27 @@ if (has("--list")) {
 }
 
 // ── 1. 把这一轮钉在一个确定的 SHA 上
+/* 读不到就说读不到。原来失败时返回 { head:"(不是 git 仓库)", dirty:"" } ——
+   一个**看起来干净**的假状态，attribution 会照单全收，把结果挂到一个
+   根本不存在的 SHA 上。 */
 const readGit = () => {
   try {
-    return {
-      head: execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT }).toString().trim(),
-      dirty: execFileSync("git", ["status", "--porcelain"], { cwd: ROOT }).toString().trim(),
-    };
-  } catch (e) { return { head: "(不是 git 仓库)", dirty: "" }; }
+    const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT }).toString().trim();
+    const dirty = execFileSync("git", ["status", "--porcelain"], { cwd: ROOT }).toString().trim();
+    if (!/^[0-9a-f]{40}$/.test(head)) {
+      return { ok: false, head: null, dirty: null, why: "git rev-parse 没给出合法的 HEAD：" + head };
+    }
+    return { ok: true, head, dirty };
+  } catch (e) {
+    return { ok: false, head: null, dirty: null, why: "读不到 git 状态：" + ((e && e.message) || "") };
+  }
 };
 const before = readGit();
+if (!before.ok) {
+  console.error(before.why);
+  console.error("这支入口的全部意义就是把结论钉在一个确定的 SHA 上；读不到 HEAD 就没有可钉的东西。");
+  process.exit(2);
+}
 const head = before.head, dirty = before.dirty;
 if (dirty && !has("--allow-dirty")) {
   console.error("工作树有未提交的改动，这一轮就不是「固定 SHA 的验收」了：\n" + dirty);

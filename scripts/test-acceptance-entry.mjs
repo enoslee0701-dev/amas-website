@@ -92,6 +92,59 @@ ok("C5 全程没变、但一直带着未提交改动：同样不归属那个 SHA
 ok("C4 拒绝时说得出是哪一项变了",
    !!(c2 && typeof c2.reason === "string" && /HEAD/.test(c2.reason)), JSON.stringify(c2));
 
+console.log("\n=== D 返修 89c2702（监督 event4867 独立复现的三条，另加两条同源的）===");
+
+/* 监督用独立隔离导入实际 classify 跑出来的三条，逐条对上。 */
+
+const d1 = call("classify", { suite: "x", code: 0, out: "\n5/3 通过" }, B);
+ok("D1 不可能的总数（5/3 → fail = -2）不算通过", stateOf(d1) !== "通过", JSON.stringify(d1));
+
+const PREFIXED =
+  "FAIL T5 跳转链接聚焦后出现在屏幕上、完整可见、且合格（>= 44x44） NEW regression | 新坏的";
+const d2 = call("classify", { suite: "touch-targets", code: 1,
+  out: [T0, T5, PREFIXED, "", "17/20 通过"].join("\n") }, B);
+ok("D2 以登记断言名**开头**的新回归不再被豁免", stateOf(d2) === "失败", JSON.stringify(d2));
+
+const d3 = call("classify", { suite: "touch-targets", code: 1,
+  out: [T0, "TypeError: Cannot read properties of null (reading 'x')"].join("\n") }, B);
+ok("D3 打了一条登记内的 FAIL 之后崩溃、没有汇总：不豁免",
+   stateOf(d3) !== "既有基线", JSON.stringify(d3));
+ok("D3b 而且计入没过",
+   typeof M.isFailure === "function" && M.isFailure(stateOf(d3)) === true, stateOf(d3));
+
+const d4 = call("classify", { suite: "touch-targets", code: 1,
+  out: [T0, "", "15/20 通过"].join("\n") }, B);
+ok("D4 只解析出 1 条失败断言、汇总却说挂了 5 条：对不上就不豁免",
+   stateOf(d4) === "失败", JSON.stringify(d4));
+
+const dead = { ok: false, head: null, dirty: null, why: "读不到 git 状态：spawn git ENOENT" };
+const d5 = call("attribution", dead, dead);
+ok("D5 readGit 失败时不能归属（原来会返回一个看起来干净的假 HEAD）",
+   d5 && d5.ok === false, JSON.stringify(d5));
+
+const fakeClean = { head: "(不是 git 仓库)", dirty: "" };
+const d6 = call("attribution", fakeClean, fakeClean);
+ok("D6 HEAD 不是合法 40 位 SHA 时也拒绝归属", d6 && d6.ok === false, JSON.stringify(d6));
+
+/* 对照：真实世界里第三种汇总格式（13 个套件在用，含 public 整组）必须认得出来，
+   否则这一轮收紧会把它们统统判成「未判定」—— 那是我自己造的假红。 */
+const REAL_TT = [T0, T5, "", "=== TOUCH TARGETS: 18/20 PASSED ==="].join("\n");
+const d7 = call("classify", { suite: "touch-targets", code: 1, out: REAL_TT }, B);
+ok("D7 对照：touch-targets 真实的汇总行认得出来，两条既有失败仍判既有基线",
+   stateOf(d7) === "既有基线", JSON.stringify(d7));
+
+const d8 = call("classify", { suite: "header-layout", code: 0,
+  out: "=== HEADER LAYOUT: 12/12 PASSED ===" }, B);
+ok("D8 对照：同一种格式全过时判通过", stateOf(d8) === "通过", JSON.stringify(d8));
+
+/* D9 用的是**真实跑出来的那一行**：89c2702 上 writes 组跑 application-flow 时，
+   旧的两个正则都不认它的汇总，入口把它记成了「未判定 / 未汇总」。 */
+const d9 = call("classify", { suite: "application-flow", code: 0,
+  out: ["PASS B6 负向控制：500 与 422 判出不同状态 | 500=warn 422=error", "",
+        "=== APPLICATION FLOW: 33/33 PASSED ==="].join("\n") }, B);
+ok("D9 对照：application-flow 实跑那一行现在认得出来，判通过",
+   stateOf(d9) === "通过" && d9.text === "33/33", JSON.stringify(d9));
+
 console.log(`\n  PASS ${pass}  FAIL ${fail}`);
 console.log("本套件全程离线：只喂合成的 stdout 与退出码，未启动浏览器、未跑任何被测套件。");
 process.exit(fail ? 1 : 0);
