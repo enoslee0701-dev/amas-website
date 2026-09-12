@@ -489,6 +489,78 @@ try {
   const e5 = await drawer();
   ok("E5 读得到时照常显示内部备注（没改坏）", /fixture 内部备注/.test(e5 || ""), (e5 || "").slice(0, 200));
 
+  // ════════ F 返修 56ed794（监督两条）════════
+  console.log("\n=== F 返修：未验证数组仍被 .map / 证据不明仍可写 ===");
+  /* F1：我加了 hqUnknown = !Array.isArray(hq)，下一行却仍然 (hq || []).map(...)。
+         hq 是非数组真值（例如 {}）时，.map 不是函数 —— 先抛 TypeError，
+         根本走不到那句「未知」。判据写对了，执行不到就等于没写。
+     F2：本包已经查明 confirm_hq_approval 是 on conflict do update，HQ 未知时
+         再记一次会覆盖已有结论；却仍然渲染可点的写入口。监督裁定：未知时
+         禁用该入口并给重试，读到之后才恢复。 */
+  const acceptedTab = async () => {
+    await cdp.ev(`(()=>{const b=document.querySelector('[data-tab="accepted"]'); if(b) b.click(); return !!b;})()`);
+    await sleep(1200);
+  };
+  const panelVis = async () => cdp.ev(`(()=>{const p=document.getElementById("panel");
+    if(!p) return null; const k=p.cloneNode(true); k.querySelectorAll("[hidden]").forEach(n=>n.remove());
+    return (k.textContent||"").replace(/\\s+/g," ").trim();})()`);
+  const hqBtn = async () => cdp.ev(`(()=>{const b=document.querySelector("[data-hq]");
+    return b ? { disabled: !!b.disabled, text:(b.textContent||"").trim() } : null;})()`);
+
+  await open("portal/admin/students/", { tables: Object.assign({}, TABLES, {
+    application_hq_approvals: { data: {} } }),
+    rpc: { admissions_ready_for_enrollment: { data: [] } } }, 3000);
+  await acceptedTab();
+  const f1 = await panelVis();
+  ok("F1 hq 是非数组真值时不炸，仍然给出未知提示",
+     /没能读到|没读到|未知/.test(f1 || ""), (f1 || "（页面没渲染出内容）").slice(0, 240));
+  ok("F1b 并且没有把它当成「一条记录都没有」", !/未记录/.test(f1 || ""), (f1 || "").slice(0, 240));
+
+  await open("portal/admin/students/", { tables: Object.assign({}, TABLES, {
+    application_hq_approvals: { data:null, error:{ message:"boom" }, status:500 } }),
+    rpc: { admissions_ready_for_enrollment: { data: [] } } }, 3000);
+  await acceptedTab();
+  await installFetch("ok");
+  const f2 = await hqBtn();
+  ok("F2 总校结论未知时「记录总校确认」被禁用", !!f2 && f2.disabled === true, JSON.stringify(f2));
+  try { await cdp.clickReal("[data-hq]"); } catch (e) {}
+  await sleep(500);
+  const f3open = await cdp.ev(`!!document.querySelector(".portal-modal")`);
+  /* 如果对话框真的开了，就把这条路走完 —— 只有走到「记录为已确认」才真的证明
+     「证据不明时覆盖得出去」。停在弹窗前面会让这条断言空转变绿。 */
+  await cdp.ev(`(()=>{const b=document.querySelector(".portal-modal [data-act='0']");
+    if(b) b.click(); return !!b;})()`);
+  await sleep(900);
+  const f3hits = await fnHits();
+  ok("F3 证据不明时根本走不到写入请求", f3hits === 0, "fnHits=" + f3hits);
+  ok("F3b 也不会弹出记录对话框", f3open === false, "modal=" + f3open);
+  /* 「刷新」两个字在那条横幅里本来就有，光看文本会空转变绿；
+     要的是一个**真的能点**的重试控件。 */
+  const f4 = await cdp.ev(`(()=>{const b=document.querySelector("[data-hqretry]");
+    return b ? { text:(b.textContent||"").trim(), disabled:!!b.disabled } : null;})()`);
+  ok("F4 未知时给得出可点的重试入口", !!f4 && f4.disabled === false, JSON.stringify(f4));
+
+  await open("portal/admin/students/", { tables: TABLES,
+    rpc: { admissions_ready_for_enrollment: { data: [] } } }, 3000);
+  await acceptedTab();
+  const f5 = await hqBtn();
+  ok("F5 读得到总校结论时该按钮照常可用（没锁死正常工作）",
+     !!f5 && f5.disabled === false, JSON.stringify(f5));
+
+  /* F6：同一文件里同一形状的第二处 —— 学籍列表的 profiles 也是拿未验证的读取
+         结果建 Map，读不到时姓名写「—」，而那一行挂着身份级的不可逆动作。 */
+  await open("portal/admin/students/", { tables: Object.assign({}, TABLES, {
+    student_records: { data: [{ id:"sr-1", user_id:"u-appl", student_number:"2026001",
+      program_code:"bth", status:"pre_enrolled", created_at:"2026-09-01T02:00:00Z" }] },
+    profiles: { data: {} } }) }, 3000);
+  await cdp.ev(`(()=>{const b=document.querySelector('[data-tab="students"]'); if(b) b.click(); return !!b;})()`);
+  await sleep(1200);
+  const f6 = await panelVis();
+  ok("F6 profiles 是非数组真值时不炸，学籍列表照常渲染",
+     /2026001/.test(f6 || ""), (f6 || "（页面没渲染出内容）").slice(0, 240));
+  ok("F6b 姓名读不到时说未读到，而不是「—」",
+     /未读到/.test(f6 || ""), (f6 || "").slice(0, 240));
+
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");

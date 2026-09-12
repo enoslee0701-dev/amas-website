@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>学籍管理 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130409">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130427">
 <style>
 .tabs{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap}
 .tabs button{min-height:40px;padding:0 16px;border:1.5px solid var(--line);border-radius:999px;background:#fff;
@@ -32,11 +32,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130409"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130409"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130409"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130409"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130409"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130427"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130427"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130427"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130427"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130427"></script>
 <script>
 /* PORTAL-2 学籍管理（教务侧）
    闭环：录取 → 记录总校审核确认 → 建档(pre_enrolled) → 正式注册(active)；学号可经专用通道更正。
@@ -113,16 +113,31 @@
     const { data: hq, error: hqErr } = await Api.select("application_hq_approvals", {
       columns: "application_id,status,approval_reference,confirmed_at",
     });
+    /* 判据写对了、执行不到，等于没写：上一版判了 !Array.isArray(hq)，下一行却仍然
+       对未验证的值 .map —— hq 是 {} 这类非数组真值时先抛 TypeError，那句「未知」
+       根本渲染不出来。Map 一律用已验证过的数组来建。 */
     const hqUnknown = !!hqErr || !Array.isArray(hq);
-    const hqMap = Object.fromEntries((hq || []).map(h => [h.application_id, h]));
+    const hqRows = Array.isArray(hq) ? hq : [];
+    const hqMap = Object.fromEntries(hqRows.map(h => [h.application_id, h]));
     const rows = hqUnknown ? data : data.filter(a => (hqMap[a.id] || {}).status !== "approved");
 
-    if (!rows.length) return panel.innerHTML = UI.box("✅", "没有待确认的录取", "已录取的申请都已记录总校审核结论。");
+    if (!rows.length) {
+      return panel.innerHTML = hqUnknown
+        ? UI.box("—", "没有已录取待处理的申请", "总校审核结论这一次没能读到，所以这里不作「都已记录」的判断。")
+        : UI.box("✅", "没有待确认的录取", "已录取的申请都已记录总校审核结论。");
+    }
 
+    /* confirm_hq_approval 是 on conflict (application_id) do update
+       （0012_student_core.sql:331）—— 再记一次会**覆盖**已有的总校结论。
+       既然已经知道这一点，就不能在读不到旧结论时还把写入口摆在那里：
+       带着缺失的证据去覆盖一个可能已经存在的决定，比不让他记更糟。
+       所以未知时停用入口、给一个重试；读到之后自动恢复。 */
     const hqWarn = hqUnknown
       ? '<div class="msg warn show" style="margin-bottom:12px"><b>这一次没能读到总校审核结论（未知）。</b>' +
         '因此下面每一行的总校状态都显示不出来，列表也可能包含<b>已经确认过</b>的申请。' +
-        '再记一次会覆盖已有的总校结论 —— 请刷新核实之后再操作。</div>'
+        '再记一次会覆盖已有的总校结论，所以「记录总校确认」已暂时停用。' +
+        '<div style="margin-top:10px"><button class="btn ghost" data-hqretry ' +
+        'style="width:auto;padding:0 18px">重新读取总校审核结论</button></div></div>'
       : "";
 
     panel.innerHTML = hqWarn + '<div class="card"><div class="scroller"><table class="tbl">' +
@@ -134,11 +149,19 @@
           '<td>' + UI.esc(progName((d.programs || [])[0])) + '</td>' +
           '<td>' + (a.decided_at ? new Date(a.decided_at).toLocaleDateString("zh-CN") : "—") + '</td>' +
           '<td>' + UI.esc(hqUnknown ? "未知" : (h ? (HQ[h.status] || h.status) : "未记录")) + '</td>' +
-          '<td><div class="acts2"><button class="pri" data-hq="' + a.id + '">记录总校确认</button></div></td></tr>';
+          '<td><div class="acts2"><button class="pri" data-hq="' + a.id + '"' +
+            (hqUnknown ? ' disabled title="总校审核结论这一次没读到，读到之前不记录，以免覆盖已有决定"' : "") +
+            '>记录总校确认</button></div></td></tr>';
       }).join("") + '</tbody></table></div></div>';
 
+    /* disabled 之外再拦一道：这是覆盖已有审批结论的写入口，不靠一个属性兜底。 */
     panel.querySelectorAll("[data-hq]").forEach(b =>
-      b.addEventListener("click", () => promptHq(b.dataset.hq)));
+      b.addEventListener("click", () => { if (hqUnknown) return; promptHq(b.dataset.hq); }));
+    const retry = panel.querySelector("[data-hqretry]");
+    if (retry) retry.addEventListener("click", () => {
+      retry.disabled = true; retry.textContent = "读取中…";
+      renderAccepted();
+    });
   }
 
   // ---------- 2. 总校已确认、等待建档 ----------
@@ -173,16 +196,22 @@
     if (!data || !data.length) {
       return panel.innerHTML = UI.box("🎓", "还没有学籍记录", "完成建档后，学生会出现在这里。");
     }
-    const { data: profs } = await Api.select("profiles", {
+    /* 同一形状的第二处：也是拿未验证的读取结果建 Map。读不到时姓名原本写「—」，
+       而这一行上挂着正式注册 / 换发学号 / 申请纠正误录这些身份级动作 ——
+       「—」看起来像这个人没有名字，实际是我们没读到。动作的对象是已验证的
+       s.id，不是这个名字，所以按钮不停用；但名字要如实说未知。 */
+    const { data: profs, error: profsErr } = await Api.select("profiles", {
       columns: "id,display_name,email", in: { id: data.map(s => s.user_id) },
     });
-    const pm = Object.fromEntries((profs || []).map(p => [p.id, p]));
+    const profsUnknown = !!profsErr || !Array.isArray(profs);
+    const pm = Object.fromEntries((Array.isArray(profs) ? profs : []).map(p => [p.id, p]));
 
     panel.innerHTML = '<div class="card"><div class="scroller"><table class="tbl">' +
       '<thead><tr><th>姓名</th><th>学号</th><th>项目</th><th>状态</th><th>操作</th></tr></thead><tbody>' +
       data.map(s => {
         const p = pm[s.user_id] || {};
-        return '<tr><td><b>' + UI.esc(p.display_name || p.email || "—") + '</b></td>' +
+        return '<tr><td><b>' + UI.esc(p.display_name || p.email ||
+            (profsUnknown ? "姓名未读到" : "—")) + '</b></td>' +
           '<td class="num">' + UI.esc(s.student_number || "待录入") + '</td>' +
           '<td>' + UI.esc(progName(s.program_code)) + '</td>' +
           '<td><span class="st ' + s.status + '">' + (ST[s.status] || s.status) + '</span></td>' +
