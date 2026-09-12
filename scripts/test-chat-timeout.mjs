@@ -179,6 +179,26 @@ try {
     b=document.getElementById('chatSend');
     return { 输入框:i.value, 只读:i.readOnly, 发送禁用:b.disabled, busy:b.getAttribute('aria-busy') };})()`);
 
+  /* 按文字定位并真实点击。#chatBody 里通常有多组 chips（问候语那组排在最前），
+     用 querySelector('.chat-chips button') 会打到问候语的第一个按钮上 ——
+     症状是「点了没反应」，其实是点错了人。 */
+  const clickChipByText = async (re) => {
+    const pt = await cdp.ev(`(()=>{
+      const b=[...document.querySelectorAll('#chatBody .chat-chips button')]
+        .filter(x=>${re}.test((x.textContent||'').trim())).pop();
+      if(!b) return null;
+      b.scrollIntoView({block:'center'});
+      const r=b.getBoundingClientRect(); const x=r.left+r.width/2,y=r.top+r.height/2;
+      const hit=document.elementFromPoint(x,y);
+      return {x,y,ok:!!hit&&(hit===b||b.contains(hit)),txt:(b.textContent||'').trim()};})()`);
+    if(!pt) throw new Error("找不到匹配的 chip");
+    if(!pt.ok) throw new Error("chip 没命中: " + pt.txt);
+    for(const type of ["mousePressed","mouseReleased"])
+      await cdp.send("Input.dispatchMouseEvent",{type,x:pt.x,y:pt.y,button:"left",clickCount:1});
+    await sleep(300);
+    return pt.txt;
+  };
+
   // ════ A 超时上限 ════
   console.log("\n=== A 超时上限 ===");
   await load("zh", "hang");
@@ -211,9 +231,7 @@ try {
   // ════ C 重试可用 ════
   console.log("\n=== C 点重试能再问一次 ===");
   const beforeHits = await cdp.ev(`window.__aiHits`);
-  await cdp.ev(`(()=>{const b=[...document.querySelectorAll('#chatBody .chat-chips button')]
-    .find(x=>/重试/.test(x.textContent||'')); if(b) b.scrollIntoView({block:'center'}); return !!b;})()`);
-  await cdp.clickReal("#chatBody .chat-chips button");
+  await clickChipByText("/重试/");
   await sleep(700);
   ok("重试真的发起了新的一次请求", (await cdp.ev(`window.__aiHits`)) > beforeHits,
      `之前 ${beforeHits} 次，现在 ${await cdp.ev(`window.__aiHits`)} 次`);
@@ -288,6 +306,69 @@ try {
        h.打字中 === 0 && h.全文.length > 0 && chips.length >= 1, JSON.stringify(chips));
     console.log(`     ${lang}: ${h.末条.slice(0, 40)} | chips=${JSON.stringify(chips)}`);
   }
+
+  // ════ J 留言流程：失败不丢内容、可一键重发 ════
+  // 改前 leaveFlow 在**发送之前**就被置 null，一旦失败，姓名/联系方式/正文全没了，
+  // 访客得把三步问答重走一遍；而且不论超时还是服务器拒绝，一律说「发送失败」。
+  console.log("");
+  console.log("=== J 聊天留言：失败不丢内容、可重发 ===");
+  const leaveRun = async (mode) => {
+    await load("zh", "okres");                   // AI 端点不参与，这里只走留言
+    await cdp.ev(`(()=>{
+      CONFIG.formEndpoint = "/__local-form-mock";
+      const orig = window.fetch;
+      window.__formHits = 0;
+      window.fetch = function(u, opt){
+        if(String(u).indexOf("__local-form-mock") < 0) return orig.apply(this, arguments);
+        window.__formHits++;
+        if(${JSON.stringify("http500")} === ${JSON.stringify(mode)})
+          return Promise.resolve({ ok:false, status:500, json:()=>Promise.resolve({}) });
+        if(${JSON.stringify("neterr")} === ${JSON.stringify(mode)})
+          return Promise.reject(new TypeError("Failed to fetch"));
+        return Promise.resolve({ ok:true, status:200, json:()=>Promise.resolve({}) });
+      };
+      startLeaveFlow();
+      return true;})()`);
+    await sleep(300);
+    for (const step of ["张三", "zhangsan@example.invalid", "这是留言正文"]) {
+      await cdp.ev(`(()=>{const i=document.getElementById('chatText');
+        i.value=${JSON.stringify(step)}; i.focus(); return true;})()`);
+      await cdp.clickReal("#chatSend");
+      await sleep(350);
+    }
+    await sleep(900);
+  };
+
+  // J1 服务器明确拒绝 → 能证明的失败
+  await leaveRun("http500");
+  const j1 = await body();
+  const j1chips = await cdp.ev(`[...document.querySelectorAll('#chatBody .chat-chips button')]
+    .map(x=>(x.textContent||'').trim())`);
+  ok("J1 服务器拒绝时说「没有送出」", /没有送出/.test(j1.全文), j1.末条.slice(0, 40));
+  ok("J1 提供重发入口", j1chips.some(x => /重发|重试/.test(x)), JSON.stringify(j1chips));
+  ok("J1 说明内容还在", /都还在/.test(j1.全文), j1.末条.slice(0, 40));
+
+  // J2 重发用的是同一份内容，不用重走三步
+  const hitsBefore = await cdp.ev(`window.__formHits`);
+  const clicked = await clickChipByText("/重发|重试/");
+  await sleep(900);
+  ok("J2 一键重发真的又发了一次（不用重走三步问答）",
+     (await cdp.ev(`window.__formHits`)) > hitsBefore,
+     `之前 ${hitsBefore} 次，现在 ${await cdp.ev(`window.__formHits`)} 次`);
+  ok("J2 重发后没有回到「请问怎么称呼」那一步",
+     !/怎么称呼|您的称呼/.test((await body()).全文.split("|").slice(-3).join(" ")),
+     "又从第一步开始问了");
+
+  // J3 网络错 → 不谎称失败
+  await leaveRun("neterr");
+  const j3 = await body();
+  ok("J3 网络错时说「无法确认是否已送到」", /无法确认/.test(j3.全文), j3.末条.slice(0, 40));
+  ok("J3 网络错时不说「没有送出」", !/没有送出/.test(j3.全文.split("|").pop()), j3.末条.slice(0, 40));
+  ok("J3 提醒重发可能造成第二份", /第二份/.test(j3.全文), j3.末条.slice(0, 50));
+
+  // J4 成功路径不受影响
+  await leaveRun("okres");
+  ok("J4 成功时照常回执", /留言已送出|留言已保存/.test((await body()).全文), (await body()).末条.slice(0, 40));
 
   // ════ I 负向控制 ════
   console.log("\n=== I 负向控制：绿必须能转红 ===");

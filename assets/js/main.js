@@ -113,7 +113,7 @@ const i18n = {
   "chat.kb.location":"学院教学中心位于泰国清迈（Chiang Mai, Thailand），同时提供线上学习。",
   "chat.kb.video":"我们准备了学院介绍视频，可以点击观看。",
   "chat.leave.askName":"好的，我来帮你转达。请问怎么称呼你？","chat.leave.askContact":"留下你的联系方式（微信 / 邮箱 / 电话均可）：","chat.leave.askContent":"想对招生同工说什么？请输入留言内容：",
-  "chat.leave.done":"留言已送出，招生同工会尽快回复你。还有其他问题吗？","chat.leave.doneDemo":"留言已保存（当前为演示模式，正式上线后将直达招生同工）。还有其他问题吗？","chat.leave.fail":"抱歉，留言发送失败，请稍后再试，或使用页面底部的咨询表单。",
+  "chat.leave.done":"留言已送出，招生同工会尽快回复你。还有其他问题吗？","chat.leave.doneDemo":"留言已保存（当前为演示模式，正式上线后将直达招生同工）。还有其他问题吗？","chat.leave.fail":"抱歉，服务器拒绝了这条留言，没有送出。可以直接重发，内容都还在。","chat.leave.unsure":"没能拿到服务器的回应，无法确认这条留言是否已送到。内容都还在，可以重发；但如果招生同工已经收到，重发会是同一条的第二份。","chat.leave.resend":"重发这条留言","chat.leave.useForm":"改用申请表",
   "brand.sub":"亚洲宣教神学院 · 清迈教学中心","brand.zoom":"查看校标大图","brand.sealSub":"AMAS 亚洲宣教神学院 · 泰国",
   "announce.brand":"AMAS 亚洲宣教神学院 · 清迈教学中心","announce.verse":"“我可以差遣谁呢？谁肯为我们去呢？”“我在这里，请差遣我！”— 以赛亚书 6:8","announce.moto":"装备今日的门徒 · 差遣明日的使者","announce.hot":"2026 届神学学士 B.Th 招生","announce.link":"查看招生信息 →",
   "nav.home":"首页","nav.about":"关于我们","nav.courses":"课程设置","nav.admissions":"招生信息","nav.tuition":"学费与支持","nav.life":"学院生活","nav.resources":"资源中心","nav.contact":"联系我们",
@@ -234,7 +234,7 @@ const i18n = {
   "chat.kb.location":"The teaching center is in Chiang Mai, Thailand, with online study available.",
   "chat.kb.video":"We have an introduction video you can watch.",
   "chat.leave.askName":"Happy to pass that on. What is your name?","chat.leave.askContact":"Please leave your contact (WeChat / email / phone):","chat.leave.askContent":"What would you like to tell the admissions team?",
-  "chat.leave.done":"Message sent — the admissions team will reply soon. Anything else?","chat.leave.doneDemo":"Message saved (demo mode; it will reach the admissions team once the site goes live). Anything else?","chat.leave.fail":"Sorry, sending failed. Please try again later or use the inquiry form at the bottom of the page.",
+  "chat.leave.done":"Message sent — the admissions team will reply soon. Anything else?","chat.leave.doneDemo":"Message saved (demo mode; it will reach the admissions team once the site goes live). Anything else?","chat.leave.fail":"Sorry, the server rejected this message, so it was not sent. You can resend it — nothing was lost.","chat.leave.unsure":"We did not get a reply from the server, so we cannot confirm whether this message arrived. Nothing was lost and you can resend; but if the admissions team already received it, resending makes a second copy.","chat.leave.resend":"Resend this message","chat.leave.useForm":"Use the application form",
   "brand.sub":"CHIANG MAI TEACHING CENTER","brand.zoom":"View the school seal","brand.sealSub":"Asia Missionary Association Seminary · Thailand",
   "announce.brand":"AMAS · Chiang Mai Teaching Center","announce.verse":"\"Whom shall I send? And who will go for us?\" \"Here am I. Send me!\" — Isaiah 6:8","announce.moto":"Equipping disciples today · Sending missionaries tomorrow","announce.hot":"2026 B.Th Admissions","announce.link":"Admissions Info →",
   "nav.home":"Home","nav.about":"About","nav.courses":"Courses","nav.admissions":"Admissions","nav.tuition":"Tuition","nav.life":"Student Life","nav.resources":"Resources","nav.contact":"Contact",
@@ -355,7 +355,7 @@ const i18n = {
   "chat.kb.location":"본교 교육센터는 태국 치앙마이(Chiang Mai)에 있으며, 온라인 학습도 함께 제공합니다.",
   "chat.kb.video":"학교 소개 영상을 준비했습니다. 클릭하여 시청하세요.",
   "chat.leave.askName":"네, 전달해 드리겠습니다. 성함이 어떻게 되시나요?","chat.leave.askContact":"연락처를 남겨 주세요(위챗 / 이메일 / 전화 모두 가능):","chat.leave.askContent":"입학 담당자에게 전할 내용을 입력해 주세요:",
-  "chat.leave.done":"메시지가 전송되었습니다. 입학 담당자가 곧 회신드리겠습니다. 다른 질문이 있으신가요?","chat.leave.doneDemo":"메시지가 저장되었습니다(현재 데모 모드). 다른 질문이 있으신가요?","chat.leave.fail":"죄송합니다. 전송에 실패했습니다. 잠시 후 다시 시도하시거나 페이지 하단의 문의 양식을 이용해 주세요.",
+  "chat.leave.done":"메시지가 전송되었습니다. 입학 담당자가 곧 회신드리겠습니다. 다른 질문이 있으신가요?","chat.leave.doneDemo":"메시지가 저장되었습니다(현재 데모 모드). 다른 질문이 있으신가요?","chat.leave.fail":"죄송합니다. 서버가 이 메시지를 거부하여 전송되지 않았습니다. 내용은 그대로 남아 있으니 다시 보내실 수 있습니다.","chat.leave.unsure":"서버 응답을 받지 못해 이 메시지가 전달되었는지 확인할 수 없습니다. 내용은 그대로 남아 있어 다시 보낼 수 있지만, 이미 전달되었다면 같은 내용이 두 번 전달됩니다.","chat.leave.resend":"이 메시지 다시 보내기","chat.leave.useForm":"지원서 양식 사용",
   "brand.sub":"아시아선교신학교 · 치앙마이 교육센터","brand.zoom":"학교 문장 크게 보기","brand.sealSub":"AMAS 아시아선교신학교 · 태국",
   "announce.brand":"AMAS 아시아선교신학교 · 치앙마이 교육센터","announce.verse":"“내가 누구를 보내며 누가 우리를 위하여 갈꼬” “내가 여기 있나이다 나를 보내소서” — 이사야 6:8","announce.moto":"오늘의 제자를 세우고 · 내일의 사역자를 보냅니다","announce.hot":"2026학년도 신학사 B.Th 신입생 모집","announce.link":"모집 안내 보기 →",
   "nav.home":"홈","nav.about":"학교 소개","nav.courses":"교육 과정","nav.admissions":"입학 안내","nav.tuition":"등록금·지원","nav.life":"학교 생활","nav.resources":"자료실","nav.contact":"문의하기",
@@ -476,7 +476,7 @@ const i18n = {
   "chat.kb.location":"ศูนย์การศึกษาตั้งอยู่ที่เชียงใหม่ ประเทศไทย พร้อมการเรียนออนไลน์",
   "chat.kb.video":"เรามีวิดีโอแนะนำวิทยาลัย กดเพื่อรับชมได้",
   "chat.leave.askName":"ยินดีส่งต่อให้ครับ/ค่ะ ขอทราบชื่อของคุณ?","chat.leave.askContact":"ฝากช่องทางติดต่อ (WeChat / อีเมล / โทรศัพท์ ได้ทั้งหมด):","chat.leave.askContent":"ต้องการบอกอะไรกับฝ่ายรับสมัคร? พิมพ์ข้อความได้เลย:",
-  "chat.leave.done":"ส่งข้อความแล้ว ฝ่ายรับสมัครจะติดต่อกลับโดยเร็ว มีคำถามอื่นอีกไหมครับ/คะ?","chat.leave.doneDemo":"บันทึกข้อความแล้ว (โหมดสาธิต) มีคำถามอื่นอีกไหม?","chat.leave.fail":"ขออภัย ส่งไม่สำเร็จ โปรดลองใหม่ภายหลัง หรือใช้แบบฟอร์มสอบถามท้ายหน้า",
+  "chat.leave.done":"ส่งข้อความแล้ว ฝ่ายรับสมัครจะติดต่อกลับโดยเร็ว มีคำถามอื่นอีกไหมครับ/คะ?","chat.leave.doneDemo":"บันทึกข้อความแล้ว (โหมดสาธิต) มีคำถามอื่นอีกไหม?","chat.leave.fail":"ขออภัย เซิร์ฟเวอร์ปฏิเสธข้อความนี้ จึงยังไม่ได้ส่ง ข้อมูลยังอยู่ครบ ส่งใหม่ได้เลย","chat.leave.unsure":"ไม่ได้รับการตอบกลับจากเซิร์ฟเวอร์ จึงยืนยันไม่ได้ว่าข้อความนี้ส่งถึงหรือไม่ ข้อมูลยังอยู่ครบและส่งใหม่ได้ แต่หากฝ่ายรับสมัครได้รับแล้ว การส่งใหม่จะกลายเป็นฉบับที่สอง","chat.leave.resend":"ส่งข้อความนี้อีกครั้ง","chat.leave.useForm":"ใช้แบบฟอร์มใบสมัคร",
   "brand.sub":"วิทยาลัยพระคริสตธรรม · ศูนย์เชียงใหม่","brand.zoom":"ดูตราวิทยาลัยขนาดใหญ่","brand.sealSub":"AMAS วิทยาลัยพระคริสตธรรม · ประเทศไทย",
   "announce.brand":"AMAS วิทยาลัยพระคริสตธรรม · ศูนย์เชียงใหม่","announce.verse":"“เราจะใช้ผู้ใดไป และผู้ใดจะไปแทนเรา” “ข้าพระองค์อยู่นี่ ขอทรงใช้ข้าพระองค์เถิด” — อิสยาห์ 6:8","announce.moto":"เตรียมสาวกวันนี้ · ส่งผู้รับใช้ในวันพรุ่งนี้","announce.hot":"รับสมัคร B.Th รุ่นปี 2026","announce.link":"ดูข้อมูลการรับสมัคร →",
   "nav.home":"หน้าแรก","nav.about":"เกี่ยวกับเรา","nav.courses":"รายวิชา","nav.admissions":"การรับสมัคร","nav.tuition":"ค่าเล่าเรียน","nav.life":"ชีวิตในวิทยาลัย","nav.resources":"ศูนย์ทรัพยากร","nav.contact":"ติดต่อเรา",
@@ -1744,6 +1744,38 @@ function startLeaveFlow(){
   chatMsg(t("chat.leave.askName"), "bot");
   chatText.focus();
 }
+/** 真正把一条留言发出去。失败时**不丢内容**，给一键重发。
+    抽成独立函数就是为了让「重发」能原样再来一次，而不用让访客把三步重走一遍。 */
+async function submitLeaveMessage(payload){
+  const epoch = chatEpoch;
+  const typing = chatMsg("···", "typing bot");
+  setChatBusy(true);
+  let r = null, err = null;
+  try{ r = await sendPayload("chat", payload); }
+  catch(e){ err = e; }
+  finally{ setChatBusy(false); }
+
+  // 关闭重开 / 切语言之后，这条结果已经不属于眼前这个会话了
+  if(epoch !== chatEpoch){ typing.remove(); return; }
+  typing.remove();
+
+  if(!err){
+    chatMsg(t(r && r.demo ? "chat.leave.doneDemo" : "chat.leave.done"), "bot");
+    return;
+  }
+  /* 按**能证明的**程度给反馈，与站内其余提交路径一致：
+       http            服务器回了非 2xx —— 确实没送出去，可以放心劝重发
+       timeout/network 没拿到回应       —— 留言**可能已经送到了**，
+                                          不能说「发送失败」，更不该让人闷头重发。 */
+  const proven = err && err.kind === "http";
+  chatMsg(t(proven ? "chat.leave.fail" : "chat.leave.unsure"), "bot");
+  // 无论哪种，内容都还在 payload 里；重发用的是同一份，不用重走三步
+  chatChips([
+    { label: t(proven ? "chat.retry" : "chat.leave.resend"), fn: () => submitLeaveMessage(payload) },
+    { label: t("chat.leave.useForm"), fn: () => { closeChat(); openApplication(); } }
+  ]);
+}
+
 async function advanceLeaveFlow(text){
   if(leaveFlow.step === 1){
     leaveFlow.name = text; leaveFlow.step = 2;
@@ -1760,15 +1792,7 @@ async function advanceLeaveFlow(text){
       submittedAt: new Date().toISOString(), lang: currentLang
     };
     leaveFlow = null;
-    const typing = chatMsg("···", "typing bot");
-    try{
-      const r = await sendPayload("chat", data);
-      typing.remove();
-      chatMsg(t(r.demo ? "chat.leave.doneDemo" : "chat.leave.done"), "bot");
-    }catch(e){
-      typing.remove();
-      chatMsg(t("chat.leave.fail"), "bot");
-    }
+    await submitLeaveMessage(data);
   }
 }
 
