@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>登录 | AMAS 亚洲宣教神学院</title>
 <link rel="icon" href="../assets/img/favicon.png">
-<link rel="stylesheet" href="../assets/css/portal.css?v=202609130328">
+<link rel="stylesheet" href="../assets/css/portal.css?v=202609130335">
 </head>
 <body>
 <div class="wrap">
@@ -61,8 +61,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../assets/js/supabase-config.js?v=202609130328"></script>
-<script src="../assets/js/portal/auth.js?v=202609130328"></script>
+<script src="../assets/js/supabase-config.js?v=202609130335"></script>
+<script src="../assets/js/portal/auth.js?v=202609130335"></script>
 <script>
 (function(){
   const A = window.AmasAuth;
@@ -104,7 +104,16 @@
       if (!s) return;
       const back = safeNext();
       if (back) return location.replace(back);
-      location.replace(A.homeForRoles(await A.getRoles()));
+      /* 这一支是**身份切换的决策点**：要决定把人送进哪个空间。
+         原来用 A.getRoles()，它读不到时也只回一个空数组，
+         于是 homeForRoles([]) → portal/applicant/ —— 一个学员或教师
+         会被送进申请者空间，落地之后才被那一页的守卫拦下。
+         下面的提交分支早就改用 fetchRoles 了（§84.1 的纪律），
+         这一支是 c5f3ed6 那一批里最后一个还用旧签名的入口。
+         读不到就**留在这一页**如实说，不猜。 */
+      const rs = await A.fetchRoles();
+      if (rs.failed) { showErr("roles_unavailable"); return; }
+      location.replace(A.homeForRoles(rs.roles));
     });
   }
 

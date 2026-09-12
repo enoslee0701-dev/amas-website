@@ -197,7 +197,11 @@ window.supabase = {
         then:function(r){ return Promise.resolve({ data: [], error: null }).then(r); } }; return q; },
       rpc: function(name){
         var sc = S();
-        if (name === "my_roles") return reply({ data: (sc.roles || []).map(function(r){ return { role: r }; }), error: null });
+        if (name === "my_roles") {
+          // 读不到角色的形态：和「确实没有角色」必须分得开
+          if (sc.rolesFail) return reply({ data: null, error: { message: "boom" }, status: 500 });
+          return reply({ data: (sc.roles || []).map(function(r){ return { role: r }; }), error: null });
+        }
         if (name === "my_profile") return reply({ data: { display_name: "测试用户", email: "a@example.invalid" }, error: null });
         var r = (sc.rpc && sc.rpc[name]) || { data: null, error: null };
         return reply({ data: r.data, error: r.error || null });
@@ -320,6 +324,19 @@ try {
   await open("login/", { ...STU, session: { user: { id: "u-1" } } }, 2600);
   ok("L2 没有 next 时仍按角色进自己的首页（既有行为没被改坏）",
      /\/portal\/student\//.test(await where()), "落点=" + (await where()));
+
+  /* 登录页「其实还登着」那一支是**身份切换的决策点**：它要决定把人送进哪个空间。
+     读不到角色时原来走 A.getRoles()，拿到 [] 就 homeForRoles([]) → portal/applicant/
+     —— 一个教师或管理员会被送进申请者空间。而同一页的提交分支早就改用
+     fetchRoles，并在读不到时留在登录页如实说（§84.1 定下的纪律）。
+     这是 c5f3ed6 那一批里最后一个还用旧签名的入口。 */
+  await open("login/", { ...STU, session: { user: { id: "u-1" } }, rolesFail: true }, 3000);
+  const l3 = await cdp.ev(`(()=>{const c=document.body.cloneNode(true);
+    c.querySelectorAll("script,style,template,[hidden]").forEach(n=>n.remove());
+    return { text:(c.textContent||"").replace(/\\s+/g," ").trim(), here: location.pathname };})()`);
+  ok("L3 已登录但读不到角色 → 不猜空间，留在登录页", l3.here === "/login/", "落点=" + l3.here);
+  ok("L3b 并如实说读不到权限（复用本页既有文案）",
+     /读不到你的账号权限|没能确定该进哪个空间/.test(l3.text), l3.text.slice(0, 200));
 
   // ════════ V faculty/verify：邀请码入口 ════════
   console.log("\n=== V 教师邀请码入口 ===");
