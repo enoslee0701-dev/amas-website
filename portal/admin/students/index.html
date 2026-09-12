@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>学籍管理 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130427">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130439">
 <style>
 .tabs{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap}
 .tabs button{min-height:40px;padding:0 16px;border:1.5px solid var(--line);border-radius:999px;background:#fff;
@@ -32,11 +32,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130427"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130427"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130427"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130427"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130427"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130439"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130439"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130439"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130439"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130439"></script>
 <script>
 /* PORTAL-2 学籍管理（教务侧）
    闭环：录取 → 记录总校审核确认 → 建档(pre_enrolled) → 正式注册(active)；学号可经专用通道更正。
@@ -206,29 +206,60 @@
     const profsUnknown = !!profsErr || !Array.isArray(profs);
     const pm = Object.fromEntries((Array.isArray(profs) ? profs : []).map(p => [p.id, p]));
 
-    panel.innerHTML = '<div class="card"><div class="scroller"><table class="tbl">' +
+    /* 正式注册 / 换发学号 / 申请纠正误录都是不可逆的身份级写入，三个弹窗原来
+       只说「该学生」「这名学生」—— 姓名、学号、项目一个都不给。管理员在表格里
+       点错一行，弹窗里没有任何东西能让他发现，而换发学号会把旧号记为 retired
+       **永久占用**。所以弹窗要带上他在行里看到的那份身份。
+       描述在**绑定事件时**就定死，之后列表重绘也不会换掉对象。 */
+    const whoOf = (s) => {
+      const p = pm[s.user_id] || {};
+      const name = p.display_name || p.email || "";
+      const num = s.student_number || "";
+      return {
+        line: [name || (profsUnknown ? "姓名这一次没读到" : "未登记姓名"),
+               num ? "学号 " + num : "学号尚未录入",
+               progName(s.program_code)].join(" · "),
+        number: num,
+        /* 姓名和学号都没有时，**没有任何东西**能让人认出这是谁 ——
+           内部的 s.id 用户看不到也认不出，不能拿它当「对象明确」。 */
+        identifiable: !!(name || num),
+      };
+    };
+    const whoMap = {};
+    data.forEach(s => { whoMap[s.id] = whoOf(s); });
+    const blind = data.filter(s => !whoMap[s.id].identifiable).length;
+    const blindWarn = blind
+      ? '<div class="msg warn show" style="margin-bottom:12px">有 <b>' + blind +
+        '</b> 名学生这一次既没读到姓名、也还没有学号 —— <b>认不出是谁</b>，' +
+        '所以这几行的身份级操作暂时停用。请刷新后再试。</div>'
+      : "";
+
+    panel.innerHTML = blindWarn + '<div class="card"><div class="scroller"><table class="tbl">' +
       '<thead><tr><th>姓名</th><th>学号</th><th>项目</th><th>状态</th><th>操作</th></tr></thead><tbody>' +
       data.map(s => {
         const p = pm[s.user_id] || {};
+        const w = whoMap[s.id];
+        const noId = w.identifiable ? "" :
+          ' disabled title="这一行既没读到姓名也没有学号，认不出是对谁操作"';
         return '<tr><td><b>' + UI.esc(p.display_name || p.email ||
             (profsUnknown ? "姓名未读到" : "—")) + '</b></td>' +
           '<td class="num">' + UI.esc(s.student_number || "待录入") + '</td>' +
           '<td>' + UI.esc(progName(s.program_code)) + '</td>' +
           '<td><span class="st ' + s.status + '">' + (ST[s.status] || s.status) + '</span></td>' +
           '<td><div class="acts2">' +
-            (s.status === "pre_enrolled" ? '<button class="pri" data-activate="' + s.id + '">正式注册</button>' : "") +
-            '<button data-fixnum="' + s.id + '">换发学号</button>' +
+            (s.status === "pre_enrolled" ? '<button class="pri" data-activate="' + s.id + '"' + noId + '>正式注册</button>' : "") +
+            '<button data-fixnum="' + s.id + '"' + noId + '>换发学号</button>' +
             (s.status === "pre_enrolled" && s.student_number
-              ? '<button data-void="' + s.id + '">申请纠正误录</button>' : "") +
+              ? '<button data-void="' + s.id + '"' + noId + '>申请纠正误录</button>' : "") +
           '</div></td></tr>';
       }).join("") + '</tbody></table></div></div>';
 
     panel.querySelectorAll("[data-activate]").forEach(b =>
-      b.addEventListener("click", () => doActivate(b.dataset.activate)));
+      b.addEventListener("click", () => doActivate(b.dataset.activate, whoMap[b.dataset.activate])));
     panel.querySelectorAll("[data-fixnum]").forEach(b =>
-      b.addEventListener("click", () => promptFixNumber(b.dataset.fixnum)));
+      b.addEventListener("click", () => promptFixNumber(b.dataset.fixnum, whoMap[b.dataset.fixnum])));
     panel.querySelectorAll("[data-void]").forEach(b =>
-      b.addEventListener("click", () => promptVoid(b.dataset.void)));
+      b.addEventListener("click", () => promptVoid(b.dataset.void, whoMap[b.dataset.void])));
   }
 
   // ---------- 服务端调用 ----------
@@ -324,10 +355,15 @@
     });
   }
 
-  function promptFixNumber(sid){
+  function promptFixNumber(sid, who){
+    /* 认不出是谁就不做。disabled 之外再拦一道 —— 这是身份级的不可逆写入。 */
+    if (!who || !who.identifiable) {
+      return UI.toast("这一行既没读到姓名、也没有学号，认不出是对谁操作 —— 这一次不执行，请刷新后再试。", "err");
+    }
     modal({
       title: "换发学号",
-      desc: "用于学号确实换发的情形：旧学号会记为 retired，作为历史身份标识**永久占用**，" +
+      desc: "对象：" + who.line + "。现学号 " + (who.number || "尚未录入") + " 会记为 retired。" +
+            "用于学号确实换发的情形：旧学号会记为 retired，作为历史身份标识**永久占用**，" +
             "不会再分配给任何人。若是纯粹的录入手误（该号从未真正属于这名学生），" +
             "请改用「申请纠正误录」，那条通道需要第二名管理员确认。",
       fields: [
@@ -340,10 +376,15 @@
     });
   }
 
-  async function doActivate(sid){
+  async function doActivate(sid, who){
+    /* 认不出是谁就不做。disabled 之外再拦一道 —— 这是身份级的不可逆写入。 */
+    if (!who || !who.identifiable) {
+      return UI.toast("这一行既没读到姓名、也没有学号，认不出是对谁操作 —— 这一次不执行，请刷新后再试。", "err");
+    }
     const ok = await UI.confirmDialog({
       title: "正式注册",
-      text: "确认将该学生的学籍状态从「待正式注册」改为「在读」？该操作会写入状态历史与审计记录。",
+      text: "对象：" + who.line + "。确认把这名学生的学籍状态从「待正式注册」改为「在读」？" +
+            "该操作会写入状态历史与审计记录。",
       confirmLabel: "确认注册",
     });
     if (!ok) return;
@@ -351,10 +392,15 @@
   }
 
   // ---------- 4. 学号纠错（双人控制）----------
-  function promptVoid(sid){
+  function promptVoid(sid, who){
+    /* 认不出是谁就不做。disabled 之外再拦一道 —— 这是身份级的不可逆写入。 */
+    if (!who || !who.identifiable) {
+      return UI.toast("这一行既没读到姓名、也没有学号，认不出是对谁操作 —— 这一次不执行，请刷新后再试。", "err");
+    }
     modal({
       title: "申请纠正误录学号",
-      desc: "仅适用于纯行政误录：该学号从未真正属于这名学生（例如总校分配的是 A，录入时写成了 B）。" +
+      desc: "对象：" + who.line + "。要纠正的误录号是 " + (who.number || "（尚未录入）") + "。" +
+            "仅适用于纯行政误录：该学号从未真正属于这名学生（例如总校分配的是 A，录入时写成了 B）。" +
             "提交后需要另一名管理员确认，且两人之中必须有 super_admin；同一人不能既发起又确认。" +
             "确认后误录号会保留完整历史，但不再占用分配资格，可以给真正的持有人使用。",
       fields: [

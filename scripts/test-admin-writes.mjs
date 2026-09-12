@@ -561,6 +561,82 @@ try {
   ok("F6b 姓名读不到时说未读到，而不是「—」",
      /未读到/.test(f6 || ""), (f6 || "").slice(0, 240));
 
+  // ════════ H 身份级动作：弹窗里得说清楚是对谁（监督在 02cdeda 上追加）════════
+  console.log("\n=== H 不可逆的身份级动作，对象要可辨识 ===");
+  /* 我在上一包主张「动作对象是已验证的 s.id，所以不必停用」，监督驳回了 ——
+     s.id 是内部标识，用户看不到也认不出。实际去读那三个弹窗：
+       正式注册   「确认将**该学生**的学籍状态从「待正式注册」改为「在读」？」
+       换发学号   「用于学号确实换发的情形…」
+       申请纠正误录「仅适用于纯行政误录：该学号从未真正属于**这名学生**…」
+     三个都不含姓名、学号、项目中的任何一个。管理员在表格里点错一行，
+     弹窗里没有任何东西能让他发现 —— 而换发学号会把旧号 retired **永久占用**。
+     另按监督要求覆盖「学号也为空」：那时姓名和学号都没有，就真的无从辨认。 */
+  const STU_ROW = { id:"sr-1", user_id:"u-appl", student_number:"2026001",
+    program_code:"bth", status:"pre_enrolled", created_at:"2026-09-01T02:00:00Z" };
+  const PROFILE_ROW = { id:"u-appl", display_name:"测试学生", email:"s@example.invalid" };
+  const openStudents = async (profiles, row) => {
+    await open("portal/admin/students/", { tables: Object.assign({}, TABLES, {
+      student_records: { data: [row || STU_ROW] }, profiles }) }, 3000);
+    await cdp.ev(`(()=>{const b=document.querySelector('[data-tab="students"]'); if(b) b.click(); return !!b;})()`);
+    await sleep(1200);
+  };
+  const dlgText = async () => cdp.ev(`(()=>{const m=document.querySelector(".portal-modal");
+    return m ? (m.textContent||"").replace(/\\s+/g," ").trim() : null;})()`);
+  const closeDlg = async () => cdp.ev(`(()=>{document.querySelectorAll(".portal-modal").forEach(m=>m.remove());
+    return true;})()`);
+
+  await openStudents({ data: [PROFILE_ROW] });
+  await cdp.ev(`(()=>{const b=document.querySelector("[data-activate]"); if(b) b.click(); return !!b;})()`);
+  await sleep(600);
+  const h1 = await dlgText();
+  ok("H1 正式注册的确认弹窗里说得出是谁（姓名）", /测试学生/.test(h1 || ""), (h1 || "（没弹出来）").slice(0, 200));
+  ok("H1b 也说得出学号", /2026001/.test(h1 || ""), (h1 || "").slice(0, 200));
+  await closeDlg();
+
+  await cdp.ev(`(()=>{const b=document.querySelector("[data-fixnum]"); if(b) b.click(); return !!b;})()`);
+  await sleep(600);
+  const h2 = await dlgText();
+  ok("H2 换发学号的弹窗里说得出对象与现学号",
+     /测试学生/.test(h2 || "") && /2026001/.test(h2 || ""), (h2 || "（没弹出来）").slice(0, 240));
+  await closeDlg();
+
+  await cdp.ev(`(()=>{const b=document.querySelector("[data-void]"); if(b) b.click(); return !!b;})()`);
+  await sleep(600);
+  const h3 = await dlgText();
+  ok("H3 申请纠正误录的弹窗里说得出对象与误录的那个号",
+     /测试学生/.test(h3 || "") && /2026001/.test(h3 || ""), (h3 || "（没弹出来）").slice(0, 240));
+  await closeDlg();
+
+  /* H4：姓名读不到、但学号在 —— 学号是稳定且可辨识的，按监督的意见不该一概停用。 */
+  await openStudents({ data:null, error:{ message:"boom" }, status:500 });
+  const h4btn = await cdp.ev(`(()=>{const b=document.querySelector("[data-activate]");
+    return b ? { disabled:!!b.disabled } : null;})()`);
+  ok("H4 姓名读不到但学号还在时，动作不被一概停用", !!h4btn && h4btn.disabled === false, JSON.stringify(h4btn));
+  await cdp.ev(`(()=>{const b=document.querySelector("[data-activate]"); if(b) b.click(); return !!b;})()`);
+  await sleep(600);
+  const h4 = await dlgText();
+  ok("H4b 弹窗用学号把对象认出来", /2026001/.test(h4 || ""), (h4 || "（没弹出来）").slice(0, 240));
+  ok("H4c 并且说明姓名这一次没读到，不装作没这回事",
+     /没读到|未读到|未知/.test(h4 || ""), (h4 || "").slice(0, 240));
+  await closeDlg();
+
+  /* H5：姓名读不到、学号也是空的 —— 这时候真的无从辨认，不能让他盲着写。 */
+  await openStudents({ data:null, error:{ message:"boom" }, status:500 },
+    Object.assign({}, STU_ROW, { student_number: null }));
+  await installFetch("ok");
+  const h5btn = await cdp.ev(`(()=>{const b=document.querySelector("[data-activate]");
+    return b ? { disabled:!!b.disabled } : null;})()`);
+  ok("H5 姓名和学号都没有时，身份级动作停用", !!h5btn && h5btn.disabled === true, JSON.stringify(h5btn));
+  try { await cdp.clickReal("[data-activate]"); } catch (e) {}
+  await cdp.ev(`(()=>{const b=document.querySelector(".portal-modal [data-ok], .portal-modal [data-act]");
+    if(b) b.click(); return !!b;})()`);
+  await sleep(900);
+  const h5hits = await fnHits();
+  ok("H5b 点它也不会写出去", h5hits === 0, "fnHits=" + h5hits);
+  const h5panel = await panelVis();
+  ok("H5c 并说明为什么停用（认不出是谁）",
+     /认不出|无法确认是谁|没读到/.test(h5panel || ""), (h5panel || "").slice(0, 240));
+
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
