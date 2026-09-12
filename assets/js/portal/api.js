@@ -96,8 +96,18 @@
     }
     const r = await A.callFn(name, body);
     if (r.status === 200) return { data: r.data, error: null };
-    const code = (r.data && r.data.error) || (r.status === 401 ? "unauthenticated" : "unknown");
-    return { data: null, error: { code, message: msg(code) } };
+    /* 三种「没拿到明确结论」要分开，因为调用方据此决定能不能劝重试：
+         status 0            根本没拿到响应（网络层出错）→ 请求可能已送达
+         status>=500 且无 body 服务端回话了但没给结构化原因 → 同样不能断言未生效
+         其余                服务端给了 error 码，如实转达 */
+    if (r.status === 0) return { data: null, error: { code: "network", message: msg("network") } };
+    let code = (r.data && r.data.error) || null;
+    if (!code) {
+      code = r.status === 401 ? "unauthenticated"
+           : r.status >= 500 ? "server_error"
+           : "unknown";
+    }
+    return { data: null, error: { code, message: msg(code), status: r.status } };
   }
 
   window.AmasApi = { select, update, insert, rpc, fn, msg, normalize, MESSAGES };

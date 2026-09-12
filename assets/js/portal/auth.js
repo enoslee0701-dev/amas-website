@@ -236,17 +236,31 @@
   async function callFn(name, payload) {
     const session = await getSession();
     if (!session) return { status: 401, data: { error: "unauthenticated" } };
-    const res = await fetch(SUPA.url + "/functions/v1/" + name, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: SUPA.anonKey,
-        Authorization: "Bearer " + session.access_token,
-      },
-      body: JSON.stringify(payload || {}),
-    });
+    /* fetch 在网络层出错时是**抛异常**，不是返回失败响应。
+       原来这里没有 try/catch，异常会一路穿过 Api.fn 和页面的 await——
+       调用方 `await` 之后的代码（解锁按钮、显示提示）全都不会执行，
+       结果就是按钮永远卡在禁用态、一句话都不说。六个调用方无一自己 try/catch，
+       所以在这里兜住，统一返回结构化结果。
+
+       status 用 0 表示「**根本没拿到 HTTP 响应**」——它和 5xx 不是一回事：
+       5xx 是服务端回话了（说自己出错了），0 是连回话都没有，
+       请求是否已经送达完全未知。调用方据此决定要不要劝重试。 */
+    let res;
+    try {
+      res = await fetch(SUPA.url + "/functions/v1/" + name, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: SUPA.anonKey,
+          Authorization: "Bearer " + session.access_token,
+        },
+        body: JSON.stringify(payload || {}),
+      });
+    } catch (e) {
+      return { status: 0, data: { error: "network" } };
+    }
     let data = null;
-    try { data = await res.json(); } catch (e) { /* noop */ }
+    try { data = await res.json(); } catch (e) { /* 响应不是 JSON（网关 HTML 页等） */ }
     return { status: res.status, data };
   }
 

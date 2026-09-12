@@ -473,6 +473,150 @@ try {
   // M5 外发审计
   ok("M5 全程零真实外发", externalHits === 0, `externalHits=${externalHits}`);
 
+  /* ════════════ P 沿**真实链路**验证未知结果 ════════════
+     前面 M 段是直接 stub A.callFn 的返回值 —— 那只测了页面对 error 对象的反应，
+     跳过了 auth.js 的 callFn 与 api.js 的 fn 两层。真正的坑恰恰在那两层：
+       · callFn 的 fetch 原本**没有 try/catch**，网络异常会一路抛穿页面的 await，
+         按钮卡在禁用态、一句提示都没有；
+       · 非 JSON 响应（网关 HTML）会让 data 为 null，走到 unknown 「请稍后再试」——
+         对不可逆的审核动作，这是错误建议。
+     这一段把真实 callFn 留在链路里，只替换最底层的 window.fetch 来造夹具。 */
+  console.log("");
+  console.log("=== P 真实链路 callFn → Api.fn → 页面（网络异常 / 非 JSON / 未知状态）===");
+
+  /** 只换最底层 fetch，callFn 与 Api.fn 都保持真身。kind 决定这次 fetch 怎么失败。 */
+  const armFetch = async (kind) => cdp.ev(`(()=>{
+    window.__fetchHits = 0;
+    const orig = window.fetch;
+    window.fetch = function(u, opt){
+      if (String(u).indexOf("/functions/v1/") < 0) return orig.apply(this, arguments);
+      window.__fetchHits++;
+      const k = ${JSON.stringify(kind)};
+      if (k === "throw")  return Promise.reject(new TypeError("Failed to fetch"));
+      if (k === "html")   return Promise.resolve(new Response("<html>502 Bad Gateway</html>",
+                              { status: 502, headers: { "Content-Type": "text/html" } }));
+      if (k === "empty")  return Promise.resolve(new Response("", { status: 200 }));
+      if (k === "ok")     return Promise.resolve(new Response(JSON.stringify({ ok: true }),
+                              { status: 200, headers: { "Content-Type": "application/json" } }));
+      if (k === "refuse") return Promise.resolve(new Response(JSON.stringify({ error: "forbidden" }),
+                              { status: 403, headers: { "Content-Type": "application/json" } }));
+      return orig.apply(this, arguments);
+    };
+    return true;})()`);
+  const fetchHits = async () => cdp.ev(`window.__fetchHits || 0`);
+  const cardState = async () => cdp.ev(`(()=>{
+    const c = document.querySelector(".rq");
+    if (!c) return { 无卡片: true };
+    return {
+      动作按钮数: c.querySelectorAll("[data-act]").length,
+      有刷新核实: !!c.querySelector("[data-verify]"),
+      有理由框: !!c.querySelector("textarea"),
+      提示: (c.querySelector(".msg.err, .msg.warn") || {}).textContent || "",
+    };})()`);
+
+  const openReview = async () => {
+    await open("portal/admin/teachers/", {
+      session: SESSION, aal: "aal2",
+      rpc: { my_roles: { data: [{ role: "super_admin" }] } },
+      tables: { teacher_verification_requests: { data: TVR } },
+    });
+    await cdp.ev(`window.AmasUI.confirmDialog = function(){ return Promise.resolve(true); };`);
+  };
+  const doReject = async () => {
+    await cdp.ev(`(()=>{const t=document.querySelector(".rq textarea");
+      if(t){ t.value="材料与邀请信息不符"; t.dispatchEvent(new Event("input",{bubbles:true})); }
+      return true;})()`);
+    await cdp.clickReal('[data-act="reject"]');
+    await sleep(700);
+  };
+
+  // P1 网络异常：fetch 直接抛
+  await openReview();
+  await armFetch("throw");
+  await doReject();
+  const p1 = await cardState();
+  ok("P1 网络异常时页面没有僵死（给出了结论）", p1.提示.length > 0, JSON.stringify(p1));
+  ok("P1 明说无法确认是否已生效", /无法确认/.test(p1.提示), p1.提示.slice(0, 50));
+  ok("P1 不再是「请稍后再试」那句通用文案",
+     !/请稍后再试/.test(p1.提示), p1.提示.slice(0, 50));
+  ok("P1 动作按钮已撤掉（不能直接重复同一审核）", p1.动作按钮数 === 0, JSON.stringify(p1));
+  ok("P1 给出「刷新核实」入口", p1.有刷新核实 === true);
+  ok("P1 只发了一次请求", (await fetchHits()) === 1, `发了 ${await fetchHits()} 次`);
+
+  // P2 非 JSON 响应（网关 HTML）
+  await openReview();
+  await armFetch("html");
+  await doReject();
+  const p2 = await cardState();
+  ok("P2 非 JSON 响应同样归为无法确认", /无法确认/.test(p2.提示), p2.提示.slice(0, 50));
+  ok("P2 动作按钮已撤掉", p2.动作按钮数 === 0);
+  ok("P2 给出「刷新核实」入口", p2.有刷新核实 === true);
+
+  // P3 200 但空响应
+  await openReview();
+  await armFetch("empty");
+  await doReject();
+  const p3 = await cardState();
+  ok("P3 200 空响应不当成成功", !/已执行/.test(p3.提示) && p3.提示.length > 0, p3.提示.slice(0, 50));
+  ok("P3 同样锁住并给核实入口", p3.动作按钮数 === 0 && p3.有刷新核实 === true, JSON.stringify(p3));
+
+  // P4 锁住之后：核实前不能再对同一条执行审核
+  const beforeVerify = await fetchHits();
+  await cdp.ev(`(()=>{const b=document.querySelector(".rq [data-act]"); if(b) b.click(); return true;})()`);
+  await sleep(400);
+  ok("P4 核实前无法再触发同一条审核", (await fetchHits()) === beforeVerify,
+     `又发了 ${(await fetchHits()) - beforeVerify} 次`);
+
+  // P5 点「刷新核实」后重新按真实状态渲染，解除锁定
+  await cdp.clickReal("[data-verify]");
+  await sleep(700);
+  const p5 = await cardState();
+  ok("P5 核实后恢复按状态给出的动作", p5.动作按钮数 > 0 && p5.有刷新核实 === false, JSON.stringify(p5));
+
+  // P6 明确拒绝（403）：这是能证明「没执行」的，允许直接重来
+  await openReview();
+  await armFetch("refuse");
+  await doReject();
+  const p6 = await cardState();
+  ok("P6 403 如实说没有权限且未执行", /没有审核权限/.test(p6.提示), p6.提示.slice(0, 50));
+  ok("P6 明确拒绝不锁死（可以改条件再来）", p6.动作按钮数 > 0 && p6.有刷新核实 === false, JSON.stringify(p6));
+
+  // P7 真实链路下的成功
+  await openReview();
+  await armFetch("ok");
+  await doReject();
+  ok("P7 真实链路成功时给出 toast 回执",
+     /审核已执行/.test(await cdp.ev(`(document.getElementById("amas-toast")||{}).textContent||""`)));
+
+  // P8 在途竞态：审核在途时切筛选，旧结果不得盖掉新列表
+  console.log("");
+  console.log("=== P8 切筛选的在途竞态 ===");
+  await open("portal/admin/teachers/", {
+    session: SESSION, aal: "aal2",
+    rpc: { my_roles: { data: [{ role: "super_admin" }] } },
+    tables: { teacher_verification_requests: { data: TVR } },
+  });
+  // 让 select 变慢，然后在它回来之前切筛选
+  await cdp.ev(`(()=>{
+    window.__slow = true;
+    const c = window.AmasApi;
+    const origSelect = c.select;
+    c.select = function(t, b){
+      if (window.__slow) {
+        window.__slow = false;                       // 只慢第一次
+        return new Promise(res => setTimeout(() => res(origSelect(t, b)), 1200));
+      }
+      return origSelect(t, b);
+    };
+    return true;})()`);
+  await cdp.ev(`(()=>{const b=document.querySelector('[data-f="approved"]'); if(b) b.click(); return true;})()`);
+  await sleep(2200);
+  const p8 = await cdp.ev(`(()=>{
+    const on = document.querySelector('.tab[aria-pressed="true"]');
+    return { 选中的筛选: on ? on.dataset.f : "", 卡片数: document.querySelectorAll(".rq").length };})()`);
+  ok("P8 慢响应回来后，显示的筛选与选中的一致（旧结果没盖新的）",
+     p8.选中的筛选 === "approved", JSON.stringify(p8));
+
   // ════════════ N 负向控制 ════════════
   console.log("");
   console.log("=== N 负向控制：绿必须能转红 ===");
@@ -486,6 +630,30 @@ try {
   });
   ok("N2 没有数据时确实不会凭空渲染出条目",
      !/正式 B\.Th 申请/.test(await txt()));
+
+  /* N3 把 callFn 的 try/catch 还原成「不兜住」，网络异常就会抛穿页面的 await——
+     按钮停在禁用态、没有任何提示。这条证明 P1 的绿来自共享层那个修复，
+     而不是别的什么东西顺手救了场。 */
+  await open("portal/admin/teachers/", {
+    session: SESSION, aal: "aal2",
+    rpc: { my_roles: { data: [{ role: "super_admin" }] } },
+    tables: { teacher_verification_requests: { data: TVR } },
+  });
+  await cdp.ev(`window.AmasUI.confirmDialog = function(){ return Promise.resolve(true); };`);
+  await cdp.ev(`(()=>{
+    // 还原成「抛出去」的老行为
+    window.AmasAuth.callFn = function(){ return Promise.reject(new TypeError("Failed to fetch")); };
+    return true;})()`);
+  await cdp.ev(`(()=>{const t=document.querySelector(".rq textarea");
+    if(t){ t.value="x"; t.dispatchEvent(new Event("input",{bubbles:true})); } return true;})()`);
+  await cdp.clickReal('[data-act="reject"]');
+  await sleep(700);
+  const n3 = await cdp.ev(`(()=>{const c=document.querySelector(".rq");
+    const b=c.querySelector('[data-act="reject"]');
+    return { 按钮仍禁用: !!b && b.disabled,
+             无任何提示: !(c.querySelector(".msg.err,.msg.warn")||{}).textContent };})()`);
+  ok("N3 还原成抛异常后，页面确实僵死（证明 P1 的绿来自 callFn 的修复）",
+     n3.按钮仍禁用 === true && n3.无任何提示 === true, JSON.stringify(n3));
 
   cdp.ws.close();
 } catch (e) {

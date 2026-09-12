@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>教师验证审核 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609121359">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609121413">
 <style>
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .tab{min-height:44px;padding:0 15px;border:1px solid var(--line);border-radius:99px;background:#fff;
@@ -37,11 +37,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609121359"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609121359"></script>
-<script src="../../../assets/js/portal/api.js?v=202609121359"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609121359"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609121359"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609121413"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609121413"></script>
+<script src="../../../assets/js/portal/api.js?v=202609121413"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609121413"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609121413"></script>
 <script>
 /* 管理端教师验证审核台。
 
@@ -94,7 +94,17 @@
 
   let filter = "submitted";
 
+  /* 世代令牌。切筛选、重载、以及审核后的自动刷新都会 +1。
+     在途的列表结果回来时先比对：对不上就丢弃 ——
+     否则「点了待审→立刻切到已通过」时，先发出的那批待审数据会后到，
+     把已通过的列表盖掉，页面显示的和筛选器选的对不上。 */
+  let listEpoch = 0;
+  /* 已经发出、但没拿到明确结论的审核。键是 request id。
+     在人工核实之前，**不允许对同一条再执行任何审核动作**。 */
+  const unresolved = new Map();
+
   async function load() {
+    const epoch = ++listEpoch;
     UI.loading(main, 3);
     const build = {
       columns: "id,user_id,status,submitted_data,submitted_at,reviewed_at,applicant_visible_message,created_at",
@@ -102,8 +112,12 @@
     };
     if (filter !== "all") build.eq = { status: filter };
     const { data, error } = await Api.select("teacher_verification_requests", build);
-    if (error) return UI.error(main, { message: Api.msg ? Api.msg(error) : error.message,
-                                       onRetry: load });
+    if (epoch !== listEpoch) return;          // 这批结果已经过期，丢弃
+    if (error) {
+      // Api.msg 收的是 code 字符串，不是 error 对象 —— 传对象会一律落到 unknown
+      return UI.error(main, { message: error.message || Api.msg(error && error.code),
+                              onRetry: load });
+    }
     render(data || []);
   }
 
@@ -138,7 +152,12 @@
         (r.reviewed_at ? '<div class="kv"><span>上次审核</span><b>' + dt(r.reviewed_at) + '</b></div>' : '') +
         (r.applicant_visible_message
           ? '<div class="kv"><span>已告知对方</span><b>' + UI.esc(r.applicant_visible_message) + '</b></div>' : '') +
-        (acts.length
+        (unresolved.has(r.id)
+          ? '<div class="msg warn show" role="alert" style="margin-top:12px">' +
+              UI.esc(unresolved.get(r.id)) +
+              '</div><div class="acts"><button class="btn" type="button" data-verify="' + UI.esc(r.id) + '">' +
+              '刷新核实这条的当前状态</button></div>'
+          : acts.length
           ? '<div class="rsn"><label for="m-' + UI.esc(r.id) + '">审核说明（对方可见）</label>' +
               '<textarea id="m-' + UI.esc(r.id) + '" maxlength="500" ' +
                 'placeholder="不通过、暂停、撤销与要求补充资料必须填写理由"></textarea>' +
@@ -154,7 +173,31 @@
     }).join("");
   }
 
+  /** 把一条锁进「待核实」：动作按钮全部撤掉，只留刷新核实。 */
+  function lockUnresolved(id, text) {
+    unresolved.set(id, text);
+    const card = main.querySelector('.rq[data-id="' + CSS.escape(id) + '"]');
+    if (!card) return;
+    card.querySelectorAll("[data-act]").forEach((b) => b.remove());
+    const rsn = card.querySelector(".rsn");
+    if (rsn) rsn.remove();
+    const box = card.querySelector(".msg.err");
+    if (box) { box.textContent = text; box.hidden = false; }
+    let acts = card.querySelector(".acts");
+    if (!acts) { acts = document.createElement("div"); acts.className = "acts"; card.appendChild(acts); }
+    acts.innerHTML = '<button class="btn" type="button" data-verify="' + UI.esc(id) + '">' +
+                     '刷新核实这条的当前状态</button>';
+  }
+
   main.addEventListener("click", async (e) => {
+    const v = e.target.closest("[data-verify]");
+    if (v) {
+      /* 核实 = 重新向服务端要一次当前状态。拿到之后这条就不再是「未知」，
+         解锁与否由它回来的真实状态决定（render 会按状态重新给按钮）。 */
+      unresolved.delete(v.dataset.verify);
+      return load();
+    }
+
     const tab = e.target.closest("[data-f]");
     if (tab) { filter = tab.dataset.f; return load(); }
 
@@ -194,30 +237,48 @@
     });
 
     btn.removeAttribute("aria-busy");
-    all.forEach((b) => { b.disabled = false; });
+    /* 注意：这里**不**无条件解锁。明确拒绝的分支会在下面自己解锁；
+       未知结果的分支要把这一条锁死，交给「刷新核实」。 */
+    const unlockActions = () => all.forEach((b) => { b.disabled = false; });
+
+    /* 审核是**不可逆**动作。结论分两类，处理方式完全不同：
+
+         明确拒绝（服务端告诉我们「没有执行」）—— 可以放心重来：
+           mfa_required / forbidden / bad_request / invalid_state
+         未知结果（拿不到明确结论）—— **请求可能已经生效**：
+           network（连响应都没拿到）/ server_error / 非 JSON / 空响应
+
+       对未知结果，只说「不要重试」是不够的 —— 按钮还摆在那儿就还是会被点。
+       所以把这一条**锁住**，只留「刷新核实」这一个出口，核实完才解锁。 */
+    const PROVEN_REFUSAL = {
+      mfa_required: "需要先完成两步验证（MFA）才能执行审核。这次没有执行任何操作。",
+      forbidden: "你的账号没有审核权限。这次没有执行任何操作。",
+      bad_request: "请求参数不正确，没有执行任何操作。",
+      unauthenticated: "登录状态已失效，这次没有执行任何操作。请重新登录。",
+      invalid_state: "这份申请的状态已经变了（可能别人刚处理过），这次没有执行。请刷新后再看。",
+      rate_limited: "操作过于频繁，这次没有执行。请稍后再试。",
+    };
+    const UNKNOWN_TEXT = "没有拿到这次审核的结果，**无法确认它是否已经生效**。" +
+      "在核实之前不要重复执行 —— 重复审核会写下两条审批记录。请先刷新核实当前状态。";
 
     if (error) {
-      /* 审核是不可逆动作：**绝不自动重发**，也绝不在拿不到确认时说成功。
-         Edge 的错误码各有确切含义，逐个如实转达。 */
-      const code = (error && (error.code || error.message)) || "";
-      const MSG = {
-        mfa_required: "需要先完成两步验证（MFA）才能执行审核。",
-        forbidden: "你的账号没有审核权限。",
-        invalid_state: "这份申请的状态已经变了（可能别人刚处理过）。请刷新后再看。",
-        bad_request: "请求参数不正确，没有执行任何操作。",
-        server_error: "服务端出错，**无法确认这次审核是否已经生效**。请刷新查看当前状态，不要直接重试。",
-      };
-      showErr(MSG[code] || (Api.msg ? Api.msg(error) : "审核没有完成，请刷新查看当前状态。"));
+      // Api.msg 收的是 code 字符串。原来这里传了整个 error 对象，
+      // 于是一律落到 unknown「操作未能完成，请稍后再试」—— 对不可逆动作是错误建议。
+      const code = (error && error.code) || "";
+      if (PROVEN_REFUSAL[code]) { unlockActions(); showErr(PROVEN_REFUSAL[code]); return; }
+      lockUnresolved(id, UNKNOWN_TEXT);
       return;
     }
     if (!data || data.ok === false) {
-      showErr("服务端没有确认这次审核。请刷新查看当前状态，不要直接重试。");
+      // 200 但没有 ok:true —— 同样不能断言生效
+      lockUnresolved(id, UNKNOWN_TEXT);
       return;
     }
     /* 回执要活过列表重渲染。只写 ok.textContent 的话，900ms 后 load() 把 main
        整个换掉，提示随之消失 —— 万一刷新回来的那条状态没变（服务端延迟、
        读到旧副本），审核员就什么确认都没看到。toast 挂在 document.body 上，
        不受 main 重渲染影响。两处都给：卡内提示 + toast。 */
+    unlockActions();
     ok.textContent = "已执行。";
     ok.hidden = false;
     UI.toast("审核已执行。");
