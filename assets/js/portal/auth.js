@@ -55,11 +55,30 @@
     return data.session || null;
   }
 
+  /** 角色读取的**真实结果**：`{ roles, failed }`。
+
+      旧的 `getRoles()` 出错时也返回 `[]`，于是「读不到角色」和「确实没有角色」
+      在调用方眼里完全一样。这一个字符不差的等价，配上
+      `homeForRoles([])` → `portal/applicant/` 而该页又要求 applicant 角色，
+      就是门户页之间的**无限重定向**：replace 到同一地址、守卫再不通过、再 replace。
+
+      而且触发面比「新用户还没角色」宽得多 —— `my_roles` 抖一下、
+      RLS 改一次、RPC 短暂不可用，都会走到同一条死路。
+
+      这和注册/登录反复修的是同一条纪律：**不确定不能当成确定**。 */
+  async function fetchRoles() {
+    if (!client) return { roles: [], failed: true };
+    let res;
+    try { res = await client.rpc("my_roles"); }
+    catch (e) { return { roles: [], failed: true }; }
+    if (!res || res.error) return { roles: [], failed: true };
+    return { roles: (res.data || []).map((r) => r.role), failed: false };
+  }
+
+  /** 兼容旧签名：只要数组。**新代码别用** —— 它没法表达「读不到」。 */
   async function getRoles() {
-    if (!client) return [];
-    const { data, error } = await client.rpc("my_roles");
-    if (error) return [];
-    return (data || []).map((r) => r.role);
+    const r = await fetchRoles();
+    return r.roles;
   }
 
   async function getProfile() {
@@ -307,13 +326,90 @@
       location.replace(ROOT + "login/?next=" + encodeURIComponent(location.pathname));
       return null;
     }
-    const roles = await getRoles();
+    const { roles, failed } = await fetchRoles();
+
+    // 读不到角色 ≠ 没有角色。这时候什么都不能断定，更不能把人弹走。
+    if (failed) { renderBlocked("roles-unavailable"); return null; }
+
+    // 读到了，确实一个角色都没有：如实说，给出口，**不跳转**。
+    if (roles.length === 0) { renderBlocked("no-roles"); return null; }
+
     const ok = allowedRoles.some((r) => roles.includes(r));
     if (!ok) {
-      location.replace(homeForRoles(roles));
+      /* 有角色但不匹配：回自己的首页。
+         但**跳向自己就是死循环**，所以先比一次目标和当前位置；
+         相同就停下来如实说，不再 replace。
+         这是最后一道闸 —— 即使将来 homeForRoles 又算出一个指向本页的地址，
+         也只会停在一个说明页，不会把浏览器卡死。 */
+      const target = homeForRoles(roles);
+      const here = location.pathname.replace(/index\.html$/, "");
+      const to = String(target).replace(/index\.html$/, "");
+      if (to === here) { renderBlocked("forbidden"); return null; }
+      location.replace(target);
       return null;
     }
     return { session, roles };
+  }
+
+  /** 权限相关的整页停靠。**它存在的意义是「停下来」** ——
+      这三种情况以前都会变成一次 location.replace，而其中两种会跳回自己。
+
+        roles-unavailable —— 读不到角色。不代表没有权限，所以话不能说死，
+                             给的是「重试」。
+        no-roles          —— 确实一个角色都没有。登录有效但学校还没开通身份，
+                             用户自己刷新一百次也变不出权限，所以给的是联系方式。
+        forbidden         —— 有角色但不含本页，而且「回自己首页」算出来就是本页。
+
+      一律不提权、不放行、不猜测用户该有什么身份。 */
+  function renderBlocked(kind) {
+    const BTN = "display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;" +
+      "min-height:44px;margin-top:14px;padding:10px 22px;border-radius:999px;font-size:14px;" +
+      "text-decoration:none;border:0;cursor:pointer;font-family:inherit";
+    const SOLID = BTN + ";background:#102f55;color:#fff";
+    const GHOST = BTN + ";background:#fff;color:#102f55;border:1px solid #c3ccdb";
+
+    const M = {
+      "roles-unavailable": {
+        icon: "🔌",
+        head: "没能确认你的权限",
+        body: "我们暂时读不到这个账号的门户权限，可能是网络不稳或服务端短暂不可用。" +
+              "<br><b>这不表示你没有权限</b> —— 只是这一次没查到。请稍后重试。",
+        retry: "重试",
+      },
+      "no-roles": {
+        icon: "🕗",
+        head: "这个账号还没有门户权限",
+        body: "你的登录是有效的，但学校还没有为它开通任何门户身份。" +
+              "<br>正式学员与教师身份须经学校审核开通（规范 §5.2）；如有疑问，请通过官网联系招生同工。",
+        retry: "重新检查",
+      },
+      forbidden: {
+        icon: "🚫",
+        head: "你没有访问这个页面的权限",
+        body: "当前账号的身份不包含这个页面。<br>如果你认为这是错的，请通过官网联系招生同工。",
+        retry: "重新检查",
+      },
+    };
+    const m = M[kind] || M["roles-unavailable"];
+
+    document.body.innerHTML =
+      '<div style="max-width:520px;margin:16vh auto;padding:34px;border:1px solid #d9dee8;border-radius:14px;background:#fff;font-family:\'Microsoft YaHei\',sans-serif;text-align:center;color:#202735">' +
+      '<div style="font-size:34px" aria-hidden="true">' + m.icon + "</div>" +
+      '<h1 id="portalBlockedTitle" tabindex="-1" style="font-size:19px;color:#102f55;margin:10px 0;outline:none">' + m.head + "</h1>" +
+      "<p style='font-size:13.5px;line-height:1.9;color:#5e6879'>" + m.body + "</p>" +
+      '<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center">' +
+      '<button type="button" id="blockRetry" style="' + SOLID + '">' + m.retry + "</button>" +
+      '<button type="button" id="blockOut" style="' + GHOST + '">退出登录</button>' +
+      '<a href="' + ROOT + 'index.html" style="' + GHOST + '">返回官网</a></div></div>';
+    document.body.style.background = "#f4f6f9";
+    // 标题栏还写着「学员中心」之类的话，等于对着一个进不去的页面宣称它是学员中心
+    document.title = m.head + " | AMAS";
+
+    document.getElementById("blockRetry").addEventListener("click", () => location.reload());
+    document.getElementById("blockOut").addEventListener("click", () => signOut());
+    // body 被整段换掉，焦点会掉回 body；交给标题，读屏才会念出真实状态
+    const h = document.getElementById("portalBlockedTitle");
+    if (h) { try { h.focus({ preventScroll: true }); } catch (e) { h.focus(); } }
   }
 
   /** 门户不可用时的整页降级。state 省略时按当前实际情况判断。
@@ -413,8 +509,8 @@
 
   window.AmasAuth = {
     CONFIGURED, CONFIG_STATE, ROOT, client,
-    getSession, getRoles, getProfile, homeForRoles,
-    signIn, signUp, resetPassword, signOut, requireRole, renderDisabled, safePath,
+    getSession, getRoles, fetchRoles, getProfile, homeForRoles,
+    signIn, signUp, resetPassword, signOut, requireRole, renderDisabled, renderBlocked, safePath,
     getAal, requireRoleAal2, callFn,
   };
 })();

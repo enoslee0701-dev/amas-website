@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>登录 | AMAS 亚洲宣教神学院</title>
 <link rel="icon" href="../assets/img/favicon.png">
-<link rel="stylesheet" href="../assets/css/portal.css?v=202609121717">
+<link rel="stylesheet" href="../assets/css/portal.css?v=202609121814">
 </head>
 <body>
 <div class="wrap">
@@ -61,8 +61,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../assets/js/supabase-config.js?v=202609121717"></script>
-<script src="../assets/js/portal/auth.js?v=202609121717"></script>
+<script src="../assets/js/supabase-config.js?v=202609121814"></script>
+<script src="../assets/js/portal/auth.js?v=202609121814"></script>
 <script>
 (function(){
   const A = window.AmasAuth;
@@ -78,6 +78,8 @@
     network: "网络连不上，没能完成登录。请检查网络后重试（这不是账号或密码的问题）。",
     server: "服务器暂时出错，没能完成登录。请稍后再试（这不是账号或密码的问题）。",
     unknown: "没能确认登录结果，请稍后再试（这不是账号或密码的问题）。",
+    /* 密码已经验过了，卡在读权限这一步。别说成登录失败，也别把人送进门户去弹。 */
+    roles_unavailable: "已登录，但暂时读不到你的账号权限，没能确定该进哪个空间。请稍后重试。",
   };
   /* 兜底**绝不能**是 bad_credentials：那等于一遇到没见过的状况就指责用户密码错。
      认不出来的就老实说认不出来。 */
@@ -102,8 +104,17 @@
     btn.disabled = true; btn.textContent = "登录中…";
     const r = await A.signIn(document.getElementById("fId").value, document.getElementById("fPw").value);
     if (r.error) { showErr(r.error); btn.disabled = !A.CONFIGURED ? true : false; btn.textContent = "进入 AMAS"; return; }
-    const roles = await A.getRoles();
-    location.replace(safeNext() || A.homeForRoles(roles));
+    /* 登录成功之后还要知道去哪。以前这里用 A.getRoles()，
+       而它读不到角色时也返回 []，于是 homeForRoles([]) 把人送进
+       portal/applicant/ —— 那页守卫又不放行，来回弹。
+       改用 fetchRoles：读不到就**留在登录页**如实说，不瞎送。 */
+    const rs = await A.fetchRoles();
+    if (rs.failed) {
+      showErr("roles_unavailable");
+      btn.disabled = false; btn.textContent = "进入 AMAS";
+      return;
+    }
+    location.replace(safeNext() || A.homeForRoles(rs.roles));
   });
 })();
 </script>
