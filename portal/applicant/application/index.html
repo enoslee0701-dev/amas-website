@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130343">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130352">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130343"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130343"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130343"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130343"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130343"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609130343"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130352"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130352"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130352"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130352"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130352"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609130352"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -667,8 +667,19 @@
       return;
     }
     UI.toast("申请已提交");
-    const { data: rows } = await Api.rpc("my_application");
-    app = rows && rows[0]; dirty = false; await loadRequirements(); render();
+    /* 提交**已经成功**了，接下来只是重读最新状态。这一读若失败，原来
+       `app = rows && rows[0]` 会把 app 置空，紧接着 render() 取 app.status 就抛
+       TypeError —— 页面停在「草稿 · 尚未提交」上，等于告诉他没交成。
+       不能就地崩，也不能让那句「尚未提交」留在屏幕上。 */
+    const { data: rows, error: reErr } = await Api.rpc("my_application");
+    dirty = false;
+    if (reErr || !Array.isArray(rows) || !rows[0]) {
+      btn.disabled = true; btn.textContent = "已提交";   // 已经交过了，别让他再点
+      sayUnknown(err, "你的申请已经提交成功。但这一次没能读到最新状态，" +
+        "页面上显示的可能还是提交前的样子 —— 请刷新核实，不要重复提交。");
+      return;
+    }
+    app = rows[0]; await loadRequirements(); render();
   }
 
   async function withdraw(){

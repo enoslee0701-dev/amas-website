@@ -174,6 +174,12 @@ window.supabase = {
       from: table,
       rpc: function(name, args){
         bump("rpc:" + name);
+        if (name === "my_application" && S().failReread) {
+          /* 只让**重读**失败：第一次载入照常成功，提交之后那一次才挂。 */
+          try { var seen = sessionStorage.getItem("reread"); 
+                if (seen) return reply({ data:null, error:{ message:"boom" }, status:500 });
+                sessionStorage.setItem("reread","1"); } catch (e) {}
+        }
         if (name === "my_roles" && !(S().rpc||{}).my_roles)
           return reply({ data:[{ role:"applicant" }], error:null, status:200 });
         if (name === "my_profile" && !(S().rpc||{}).my_profile)
@@ -236,7 +242,7 @@ try {
   };
   const open = async (scen, wait) => {
     await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: "window.__SCEN = " + JSON.stringify(scen) + ";" });
-    await cdp.ev(`(()=>{try{["wCalls","lastMatch"].forEach(k=>sessionStorage.removeItem(k));}catch(e){} return true;})()`).catch(()=>{});
+    await cdp.ev(`(()=>{try{["wCalls","lastMatch","reread"].forEach(k=>sessionStorage.removeItem(k));}catch(e){} return true;})()`).catch(()=>{});
     pageErrors = [];
     await cdp.send("Page.navigate", { url: `${BASE}/portal/applicant/application/` });
     await sleep(wait || 2800);
@@ -673,6 +679,31 @@ try {
   ok("X4b 但如实说明这份草稿写不回去了，并让他能丢弃",
      !!x4 && /不能再改|已不可编辑|无法写回/.test(x4.text) && x4.buttons.some(t => /丢弃/.test(t)),
      JSON.stringify(x4));
+
+  // ════════ P2 提交成功之后重读失败，不能把页面弄坏 ════════
+  console.log("\n=== P2 提交成功后重读失败 ===");
+  /* 提交成功 → UI.toast("申请已提交") → 重读 my_application。
+     这一读若失败，rows 是 null，app 被赋成 undefined，
+     紧接着 loadRequirements() 对 app.id 取值就抛 TypeError ——
+     **申请已经交上去了，页面却当场坏掉**，用户不知道自己到底交没交成。 */
+  pageErrors = [];
+  await open({ ...withApp, failReread: true,
+    writes: { applications: { data:[{ id:"app-fixture-1", updated_at:"2026-09-11T00:00:00Z" }], error:null } },
+    rpc: { my_application:{ data:[{ ...DRAFT, updated_at:"2026-09-10T00:00:00Z" }] },
+           submit_application:{ data:{ ok:true }, error:null, status:200 } } });
+  ok("P2-0 前提：草稿页正常打开", (await cdp.ev(`!!document.getElementById("btnSubmit")`)) === true);
+  await clickSubmit();
+  await sleep(1200);
+  ok("P2-1 提交成功后重读失败，不抛异常把页面弄坏",
+     !pageErrors.some(e => /TypeError/.test(e)), JSON.stringify(pageErrors.slice(0,2)));
+  const p2 = await cdp.ev(`(()=>{const c=document.body.cloneNode(true);
+    c.querySelectorAll("script,style,template,[hidden]").forEach(n=>n.remove());
+    const t=document.getElementById("amas-toast");
+    return { text:(c.textContent||"").replace(/\\s+/g," ").trim(),
+             toast:t?(t.textContent||"").trim():null };})()`);
+  ok("P2-2 仍然如实告诉他申请已提交", /申请已提交/.test((p2.toast || "") + p2.text), JSON.stringify(p2.toast));
+  ok("P2-3 并说清楚最新状态这一次没读到、请刷新再看",
+     /没能读到|没能确认|刷新/.test(p2.text), p2.text.slice(0, 220));
 
   // ════════ Q 标记补件完成 ════════
   console.log("\n=== Q 标记补件完成 ===");
