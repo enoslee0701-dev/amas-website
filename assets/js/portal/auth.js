@@ -141,6 +141,62 @@
     return out;
   }
 
+  /* ── 回跳目标的统一构造与统一收口 ───────────────────────────────────
+     门户里生产 ?next= 的地方有四处，口径是三样的：
+
+       requireRole / requireRoleAal2   只取 location.pathname —— query 与 hash 全丢
+       watchSession                    pathname + search + hash（对的）
+       faculty/verify                  手拼字符串，没经过任何同源校验
+
+     消费侧两处（登录页、MFA 页）也各写一遍，而且各自漏了一条路：
+     登录页「其实还登着」那一支整个忽略 next；MFA 页没有会话时直接跳
+     login/，next 整个丢掉。
+
+     用户看到的就是：在 portal/student/courses/?cat=nt#c3 上被要求重新登录，
+     登完回来只剩 /portal/student/courses/ —— 同一个页面，但不是同一个状态，
+     筛选条件和页内定位都得重新弄一遍。教师被 MFA 闸拦下后同理。
+
+     所以构造与校验都收到这里：**产生 next 一律 withNext()，读取 next 一律
+     nextFromQuery()**，两边共用同一份同源判据（safePath 的不动点校验）。 */
+
+  /** 当前页在回跳参数里的表示。**必须连 query 与 hash 一起** ——
+      否则回来的是同一个页面、却不是同一个状态。 */
+  function currentNext() { return location.pathname + location.search + location.hash; }
+
+  /** 一个地址的「页面身份」：只看路径，并把 index.html 归一掉。
+      /portal/ 与 /portal/index.html 是同一页，判自指时不能算成两页。 */
+  function pageKey(u) {
+    let p;
+    try { p = new URL(String(u), location.origin).pathname; } catch (e) { return null; }
+    return p.replace(/index\.html$/, "");
+  }
+  function samePage(a, b) { const x = pageKey(a), y = pageKey(b); return !!x && x === y; }
+
+  /** 构造一个带 ?next= 的站内入口地址。target 是相对站点根的入口
+      （"login/" 或 "portal/mfa/"）；back 省略时取当前页。
+
+      两道闸：
+        · back 一律先过 safePath —— 连自己拼出来的回跳目标也校验。
+          不给「反正是自己拼的」留口子：faculty/verify 原先就是手拼未校验，
+          而它拼进去的是用户在输入框里敲的邀请码。
+        · back 指向入口**自己**时不带 next。否则登录页的 next 指回登录页，
+          登完再跳登录页、再登再跳 —— 无限套娃，人永远到不了目的地。 */
+  function withNext(target, back) {
+    const url = ROOT + target;
+    const safe = safePath(back == null ? currentNext() : back);
+    if (!safe || samePage(safe, url)) return url;
+    return url + "?next=" + encodeURIComponent(safe);
+  }
+
+  /** 读当前页的 ?next= 并收口。除 safePath 的同源不动点校验之外，
+      再拒绝指回**本页**的 next（同样是防无限套娃）。
+      读不到就返回 null —— 默认去处由调用方决定，这里不替调用方猜。 */
+  function nextFromQuery() {
+    const safe = safePath(new URLSearchParams(location.search).get("next"));
+    if (!safe || samePage(safe, location.pathname)) return null;
+    return safe;
+  }
+
   /** 登录失败的分类。判据与注册共用 classifyAuthError（同一份 SDK 错误契约），
       但结论不同：**登录失败没有副作用** —— 没建账号、没发信、没写任何东西，
       所以「结果不明」不必锁住按钮，用户可以直接再试。
@@ -394,12 +450,9 @@
       sessionOver = true;
       if (leavingOnPurpose) return;            // 自己走的，signOut 负责去向
       try { notify("登录已过期，正在返回登录页…"); } catch (e) {}
-      // next 连 query 与 hash 一起带上，否则回来时页内位置与筛选条件都没了。
-      // 同源收口仍由登录页的 safePath 把关。
-      const back = location.pathname + location.search + location.hash;
-      setTimeout(function () {
-        location.replace(ROOT + "login/?next=" + encodeURIComponent(back));
-      }, delay);
+      // 位置在事件发生那一刻就取定，不等到定时器才读 location。
+      const back = currentNext();
+      setTimeout(function () { location.replace(withNext("login/", back)); }, delay);
     });
     sessionWatch = (res && res.data && res.data.subscription) || { unsubscribe: function () {} };
     return sessionWatch;
@@ -413,7 +466,7 @@
     }
     const session = await getSession();
     if (!session) {
-      location.replace(ROOT + "login/?next=" + encodeURIComponent(location.pathname));
+      location.replace(withNext("login/"));
       return null;
     }
     const { roles, failed } = await fetchRoles();
@@ -559,7 +612,7 @@
     if (!ctx) return null;
     const aal = await getAal();
     if (aal.current !== "aal2") {
-      location.replace(ROOT + "portal/mfa/?next=" + encodeURIComponent(location.pathname));
+      location.replace(withNext("portal/mfa/"));
       return null;
     }
     return ctx;
@@ -600,7 +653,7 @@
   window.AmasAuth = {
     CONFIGURED, CONFIG_STATE, ROOT, client,
     getSession, getRoles, fetchRoles, getProfile, homeForRoles, isSigningOut,
-    watchSession, sessionEnded,
+    watchSession, sessionEnded, withNext, nextFromQuery, currentNext,
     signIn, signUp, resetPassword, signOut, requireRole, renderDisabled, renderBlocked, safePath,
     getAal, requireRoleAal2, callFn,
   };

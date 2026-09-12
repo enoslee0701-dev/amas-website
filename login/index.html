@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>登录 | AMAS 亚洲宣教神学院</title>
 <link rel="icon" href="../assets/img/favicon.png">
-<link rel="stylesheet" href="../assets/css/portal.css?v=202609121942">
+<link rel="stylesheet" href="../assets/css/portal.css?v=202609122010">
 </head>
 <body>
 <div class="wrap">
@@ -61,8 +61,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../assets/js/supabase-config.js?v=202609121942"></script>
-<script src="../assets/js/portal/auth.js?v=202609121942"></script>
+<script src="../assets/js/supabase-config.js?v=202609122010"></script>
+<script src="../assets/js/portal/auth.js?v=202609122010"></script>
 <script>
 (function(){
   const A = window.AmasAuth;
@@ -83,8 +83,10 @@
   };
   /* 兜底**绝不能**是 bad_credentials：那等于一遇到没见过的状况就指责用户密码错。
      认不出来的就老实说认不出来。 */
-  // next 的同源收口在共享层（A.safePath），登录页与 MFA 页共用同一份判据
-  const safeNext = () => A.safePath(new URLSearchParams(location.search).get("next"));
+  /* next 的构造与收口都在共享层（A.withNext / A.nextFromQuery），
+     登录页与 MFA 页共用同一份判据：同源不动点校验，外加拒绝指回本页
+     （next 指回登录页的话，登完再跳登录页、再登再跳，无限套娃）。 */
+  const safeNext = () => A.nextFromQuery();
   function showErr(code){ err.textContent = ERR[code] || ERR.unknown; err.classList.add("show"); }
 
   if (!A.CONFIGURED) {
@@ -93,8 +95,17 @@
     document.getElementById("btnLogin").disabled = true;
     if (offline) document.getElementById("btnReload").addEventListener("click", () => location.reload());
   } else {
-    // 已登录直接进入工作空间
-    A.getSession().then(async s => { if (s) location.replace(A.homeForRoles(await A.getRoles())); });
+    /* 已登录直接进入工作空间 —— 但**先看 next**。
+       原来这一支整个忽略 next，一律送 role home。那条路真实会走到：
+       会话在受限页上失效 → 带 next 来登录页 → 期间令牌在别处刷新成功／
+       另一个标签页已经登上了 → 这里发现「其实还登着」→ 把人丢回 role home，
+       他原来那一页的筛选条件和位置就没了。密码都不用输，位置却丢了。 */
+    A.getSession().then(async s => {
+      if (!s) return;
+      const back = safeNext();
+      if (back) return location.replace(back);
+      location.replace(A.homeForRoles(await A.getRoles()));
+    });
   }
 
   document.getElementById("loginForm").addEventListener("submit", async (e) => {

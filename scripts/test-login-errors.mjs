@@ -609,6 +609,17 @@ try {
     return u.pathname + u.search + u.hash;
   };`;
 
+  /* ★ 页面层的对照还得覆盖**页面真正调用的那个接缝**。
+     登录页与 MFA 页现在读 next 走的是 A.nextFromQuery()，它内部引用的是
+     模块闭包里的 safePath —— 只换掉导出的 A.safePath，页面根本够不到，
+     N2 就会变成一条什么都没测的绿灯（本轮改完确实先红了一次，就是这个原因）。
+     这正是 §83.4 第 6 条那个教训的同一形态：**对照的作用域必须覆盖被测路径**。
+     所以这里把 nextFromQuery 也换回旧语义：只做一次 origin 校验、
+     不做不动点校验、也不拒绝指回本页。 */
+  const OLD_PAGE_SEAM = `window.AmasAuth.nextFromQuery = function () {
+    return window.AmasAuth.safePath(new URLSearchParams(location.search).get("next"));
+  };`;
+
   // N1 纯判据层面：旧实现对这批串会返回一个「再解析就出站」的串
   await openLogin({ login: { mode: "ok" } });
   const nOld = await cdp.ev(`(() => {
@@ -640,7 +651,7 @@ try {
   await cdp.send("Page.navigate", {
     url: `${BASE}/login/?next=` + encodeURIComponent("/.//evil.example/steal") });
   await sleep(1700);
-  await cdp.ev(`(() => { ${OLD_IMPL} return true; })()`);
+  await cdp.ev(`(() => { ${OLD_IMPL} ${OLD_PAGE_SEAM} return true; })()`);
   await login("a@example.invalid");
   await sleep(1400);
   const nNav = navLog.filter((u) => !/\/login\/?(\?|$)/.test(u));

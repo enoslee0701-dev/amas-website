@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>两步验证 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609121942">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609122010">
 <style>
 .qr{display:grid;place-items:center;margin:14px 0;padding:14px;border:1px solid var(--line);border-radius:12px;background:#fff}
 .qr svg,.qr img{width:190px;height:190px}
@@ -60,8 +60,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609121942"></script>
-<script src="../../assets/js/portal/auth.js?v=202609121942"></script>
+<script src="../../assets/js/supabase-config.js?v=202609122010"></script>
+<script src="../../assets/js/portal/auth.js?v=202609122010"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
@@ -69,12 +69,17 @@
   // 这一页同样不走 Shell.mount：监听自己挂，否则会话失效在这里是静默的（§5.6）
   A.watchSession();
   const session = await A.getSession();
-  if (!session) return location.replace(A.ROOT + "login/");
+  /* 没有会话 → 去登录页。**要把当前位置连同 next 一起带上**：
+     原来直接 replace 到 login/，用户原本要去的那一页（就在自己的 ?next= 里）
+     被整个丢掉，登完只能落到 role home。withNext 会把本页连 query 一起编进去，
+     所以登完先回 MFA、过完两步验证再去目的地，一步不少。 */
+  if (!session) return location.replace(A.withNext("login/"));
   document.getElementById("btnOut").addEventListener("click", () => A.signOut());
 
   // 同源收口走共享层：`//evil.example` 也以 "/" 开头，旧判据会把刚过完
-  // 两步验证的已登录用户送到站外去。
-  const next = A.safePath(new URLSearchParams(location.search).get("next")) || (A.ROOT + "portal/");
+  // 两步验证的已登录用户送到站外去。nextFromQuery 在同源校验之外还拒绝
+  // 指回本页的 next —— 否则过完验证又回到验证页，原地打转。
+  const next = A.nextFromQuery() || (A.ROOT + "portal/");
   const show = (id) => { for (const s of ["cardLoading","cardEnroll","cardChallenge"]) document.getElementById(s).hidden = (s !== id); };
   /* 回跳前问一次会话还在不在。这一页每条路都是 await 之后才跳：
      aal2 直接回跳要等 getAal，验证成功要等 mfa.verify。会话在那段时间里断掉，
