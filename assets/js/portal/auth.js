@@ -400,6 +400,18 @@
 
   async function signOut() {
     leavingOnPurpose = true;
+    /* 页面在会话期间放进 sessionStorage 的东西，退出时一并清掉。
+       约定前缀 "amas."：目前是申请草稿暂存（姓名、教会、见证这类个人资料）。
+       公用电脑上，下一个人不该还能在这个标签页里翻到前一个人的资料。
+       只清本站自己放的这一批，不碰 SDK 或别人的键。 */
+    try {
+      const doomed = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const k = sessionStorage.key(i);
+        if (k && k.indexOf("amas.") === 0) doomed.push(k);
+      }
+      doomed.forEach((k) => sessionStorage.removeItem(k));
+    } catch (e) { /* 存储不可用时无事可清 */ }
     // 退出是**不带 next 的**：用户刚刚明确表示要离开那一页。
     try { if (client) await client.auth.signOut(); }
     catch (e) { /* 本地会话已清，网络回执失败不该把人卡在页面上 */ }

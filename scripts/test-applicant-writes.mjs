@@ -497,7 +497,11 @@ try {
   const banner = async (id) => cdp.ev(`(()=>{const b=document.getElementById(${JSON.stringify(id)});
     return b ? { text:(b.textContent||"").trim(), buttons:[...b.querySelectorAll("button")].map(x=>(x.textContent||"").trim()) } : null;})()`);
   const fieldVal = async () => cdp.ev(`(()=>{const i=document.querySelector("#appForm [data-f]"); return i?i.value:null;})()`);
-  const stash = async () => cdp.ev(`(()=>{try{return sessionStorage.getItem("amasDraftStash");}catch(e){return null;}})()`);
+  /* 键名带命名空间（amas.draft.*），别写死成旧名字 —— 上一轮就是这么误红的。 */
+  const stash = async () => cdp.ev(`(()=>{try{
+    for (var i=0;i<sessionStorage.length;i++){ var k=sessionStorage.key(i);
+      if (k && k.indexOf("amas.draft.") === 0) return sessionStorage.getItem(k); }
+    return null;}catch(e){return null;}})()`);
   const localKeys = async () => cdp.ev(`(()=>{try{return Object.keys(localStorage);}catch(e){return [];}})()`);
 
   const DRAFT_T0 = { ...DRAFT, updated_at: "2026-09-10T00:00:00Z" };
@@ -591,6 +595,71 @@ try {
     ok("D 暂存失败（" + label + "）→ 重新载入改成由他自己点",
        !!fb && fb.buttons.some(t => /重新载入/.test(t)), JSON.stringify(fb && fb.buttons));
   }
+
+  // ════════ X 跨账号与不可编辑边界 ════════
+  console.log("\n=== X 暂存的跨账号与锁定边界 ===");
+  /* 暂存里装的是姓名、教会、见证这些个人资料。它跟着标签页走，
+     所以两件事必须成立：
+       ① 换一个账号绝不能把上一个人的草稿恢复出来（哪怕 app.id 撞上）；
+       ② 主动退出时就该清掉 —— 神学院的公用电脑上，下一个人不该还能
+          在这个标签页里翻到前一个人的申请资料。
+     另外申请一旦不可编辑（已提交/已录取），「恢复」就写不回去了，
+     这时候提供恢复等于骗他一次。 */
+  const stashRaw = async () => cdp.ev(`(()=>{try{
+    var out=null; for (var i=0;i<sessionStorage.length;i++){ var k=sessionStorage.key(i);
+      if (/draft/i.test(k)) out = { key:k, val:sessionStorage.getItem(k) }; }
+    return out;}catch(e){return null;}})()`);
+  // DRAFT_T0 / DRAFT_T1 已在 R 段声明，这里直接复用
+  const conflictAndKeep = async (scen) => {
+    await open({ ...scen, writes: { applications: { data:[], error:null } },
+      rpc: { my_application:{ data:[DRAFT_T0] } } });
+    await touchForm();
+    await sleep(1600);
+    await cdp.ev(`(()=>{const b=[...document.querySelectorAll("#conflictBox button")].find(x=>/保留/.test(x.textContent||"")); if(b) b.click(); return !!b;})()`);
+    await sleep(400);
+  };
+
+  // X1 暂存带上用户身份
+  await conflictAndKeep({ ...withApp, uid:"user-AAA" });
+  const x1 = await stashRaw();
+  ok("X1 暂存里带上用户身份（不只是 app.id）",
+     !!x1 && /user-AAA/.test(x1.val || ""), JSON.stringify(x1));
+
+  // X2 换一个账号：同一个 app.id 也不许恢复
+  await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: "window.__SCEN = " + JSON.stringify({
+    ...withApp, uid:"user-BBB",
+    writes: { applications: { data:[{ id:"app-fixture-1", updated_at:"2026-09-12T00:00:00Z" }], error:null } },
+    rpc: { my_application:{ data:[DRAFT_T1] } } }) + ";" });
+  await cdp.send("Page.navigate", { url: `${BASE}/portal/applicant/application/` });
+  await sleep(3000);
+  ok("X2 换一个账号后不提供恢复（上一个人的草稿不能露给下一个人）",
+     (await cdp.ev(`!document.getElementById("restoreBox")`)) === true);
+  ok("X2b 表单里也不含上一个人填的内容",
+     (await cdp.ev(`(()=>{const i=document.querySelector("#appForm [data-f]"); return i?i.value:null;})()`)) !== "FIXTURE-EDIT");
+
+  // X3 主动退出要清掉暂存
+  await conflictAndKeep({ ...withApp, uid:"user-AAA" });
+  await sleep(2600);
+  ok("X3 前提：此刻暂存确实在", !!(await stashRaw()));
+  await cdp.ev(`(()=>{ window.AmasAuth.signOut(); return true; })()`);
+  await sleep(2200);
+  ok("X3b 主动退出后暂存被清掉，不留在这个标签页里",
+     !(await stashRaw()), JSON.stringify(await stashRaw()));
+
+  // X4 申请已不可编辑时不提供恢复
+  await conflictAndKeep({ ...withApp, uid:"user-AAA" });
+  await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: "window.__SCEN = " + JSON.stringify({
+    ...withApp, uid:"user-AAA",
+    rpc: { my_application:{ data:[{ ...DRAFT_T1, status:"submitted" }] } } }) + ";" });
+  await cdp.send("Page.navigate", { url: `${BASE}/portal/applicant/application/` });
+  await sleep(3000);
+  const x4 = await cdp.ev(`(()=>{const b=document.getElementById("restoreBox");
+    return b ? { text:(b.textContent||"").trim(), buttons:[...b.querySelectorAll("button")].map(x=>(x.textContent||"").trim()) } : null;})()`);
+  ok("X4 申请已不可编辑时**不给**「恢复」（写不回去，给了就是骗他一次）",
+     !x4 || !x4.buttons.some(t => /恢复/.test(t)), JSON.stringify(x4));
+  ok("X4b 但如实说明这份草稿写不回去了，并让他能丢弃",
+     !!x4 && /不能再改|已不可编辑|无法写回/.test(x4.text) && x4.buttons.some(t => /丢弃/.test(t)),
+     JSON.stringify(x4));
 
   // ════════ Q 标记补件完成 ════════
   console.log("\n=== Q 标记补件完成 ===");
