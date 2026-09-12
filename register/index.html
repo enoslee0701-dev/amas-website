@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>注册 | AMAS 亚洲宣教神学院</title>
 <link rel="icon" href="../assets/img/favicon.png">
-<link rel="stylesheet" href="../assets/css/portal.css?v=202609121519">
+<link rel="stylesheet" href="../assets/css/portal.css?v=202609121547">
 </head>
 <body>
 <div class="wrap">
@@ -43,9 +43,11 @@
         <input id="rPw" name="password" type="password" autocomplete="new-password" placeholder="至少 8 位，含字母与数字" minlength="8" required>
         <div class="hint">注册即表示同意我们仅将你的信息用于招生与学习服务（见官网隐私说明）。</div>
       </div>
-      <button class="btn" id="btnReg" type="submit">注册并发送验证邮件</button>
+      <button class="btn" id="btnReg" type="submit">创建账号</button>
       <div class="msg err" id="err" role="alert"></div>
       <div class="msg ok" id="ok"></div>
+      <div class="msg info" id="pending" role="status"></div>
+      <div class="msg warn" id="unsure" role="alert"></div>
     </form>
   </div>
 
@@ -53,17 +55,25 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../assets/js/supabase-config.js?v=202609121519"></script>
-<script src="../assets/js/portal/auth.js?v=202609121519"></script>
+<script src="../assets/js/supabase-config.js?v=202609121547"></script>
+<script src="../assets/js/portal/auth.js?v=202609121547"></script>
 <script>
 (function(){
   const A = window.AmasAuth;
-  const err = document.getElementById("err"), ok = document.getElementById("ok");
+  const $ = (id) => document.getElementById(id);
+  const err = $("err"), ok = $("ok"), pending = $("pending"), unsure = $("unsure");
+  const btn = $("btnReg"), form = $("regForm");
+  const BTN_LABEL = "创建账号";
+  const esc = (t) => String(t == null ? "" : t)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const hideAll = () => [err, ok, pending, unsure].forEach((n) => n.classList.remove("show"));
+  const show = (node, html) => { node.innerHTML = html; node.classList.add("show"); };
+
   if (!A.CONFIGURED) {
     const offline = A.CONFIG_STATE === "sdk-unavailable";
-    document.getElementById(offline ? "offlineNotice" : "disabledNotice").hidden = false;
-    document.getElementById("btnReg").disabled = true;
-    if (offline) document.getElementById("btnReload").addEventListener("click", () => location.reload());
+    $(offline ? "offlineNotice" : "disabledNotice").hidden = false;
+    btn.disabled = true;
+    if (offline) $("btnReload").addEventListener("click", () => location.reload());
   }
   const ERR = {
     not_configured: "系统尚未启用，暂不可注册。",
@@ -71,21 +81,69 @@
     weak_password: "密码强度不足：至少 8 位，建议包含字母与数字。",
     signup_failed: "注册失败，请稍后再试。",
   };
-  document.getElementById("regForm").addEventListener("submit", async (e) => {
+
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    err.classList.remove("show"); ok.classList.remove("show");
+    hideAll();
     const f = e.currentTarget;
     if (!f.checkValidity()) return f.reportValidity();
-    const btn = document.getElementById("btnReg");
+    const mail = f.email.value.trim();
     btn.disabled = true; btn.textContent = "提交中…";
-    const r = await A.signUp(f.email.value, f.password.value, f.name.value.trim());
-    if (r.error) {
-      err.textContent = ERR[r.error] || ERR.signup_failed; err.classList.add("show");
-      btn.disabled = !A.CONFIGURED; btn.textContent = "注册并发送验证邮件"; return;
+    const r = await A.signUp(mail, f.password.value, f.name.value.trim());
+    const restore = () => { btn.disabled = !A.CONFIGURED; btn.textContent = BTN_LABEL; };
+
+    /* 四种结果分开说。以前只要 signUp 不报错就一律写
+       「验证邮件已发送至 X」—— 而当前环境开着 mailer_autoconfirm，
+       根本不会发任何邮件，这句话是实实在在的假话。 */
+    if (r.status === "error") {
+      show(err, "<p>" + (ERR[r.error] || ERR.signup_failed) + "</p>");
+      restore();
+      return;
     }
-    f.hidden = true;
-    ok.textContent = "验证邮件已发送至 " + f.email.value.trim() + "。请打开邮件完成验证后再登录；未收到时请检查垃圾邮件。";
-    ok.classList.add("show");
+
+    if (r.status === "session") {
+      /* 有 session = 已登录：服务端没要求邮箱验证，也就没发邮件。
+         另一件不能混：登录 ≠ 拿到门户角色，更 ≠ 入学申请已通过。
+         角色由 my_roles 决定，门户守卫自己会判，这里不替它下结论。 */
+      form.hidden = true;
+      show(ok,
+        "<p><b>账号已创建，并且已登录。</b>" +
+        "当前环境没有要求邮箱验证，因此<b>没有发送验证邮件</b>，不用等邮件。</p>" +
+        "<p>注册本身只建立账号，<b>不代表已获得学员或教师身份，也不代表入学申请已通过</b>（规范 §5.2）。</p>" +
+        '<p><a class="link" href="../portal/">进入门户</a></p>');
+      return;
+    }
+
+    if (r.status === "pending") {
+      /* 服务端受理了但没给 session：需先完成邮箱验证。
+         两件事不能说满：
+         ① 我们无法证明邮件真的已发出去（SMTP 是否配好是另一回事）；
+         ② 开启邮箱验证时，「邮箱已被注册」也落在这一支（GoTrue 故意不区分，
+           防账号枚举），所以不能断言「新账号已创建」。 */
+      form.hidden = true;
+      show(pending,
+        "<p><b>注册请求已受理。</b>该邮箱需要先完成邮箱验证才能登录。</p>" +
+        "<p>验证邮件应发往 <b>" + esc(mail) + "</b>，请一并查看垃圾邮件箱。" +
+        "若长时间未收到，<b>请不要反复提交</b>，通过官网" +
+        '<a class="link" href="../index.html#contact">联系招生同工</a>确认即可。</p>' +
+        "<p>若该邮箱此前已注册过，出于安全考虑这里不会另行提示；" +
+        '可直接<a class="link" href="../login/">登录</a>或' +
+        '<a class="link" href="../forgot-password/">找回密码</a>。</p>');
+      return;
+    }
+
+    /* 结果不明：没报错，但既没 session 也没 user。
+       不能报成功，也不能报失败。按「先核实、不直接重发」处理：
+       表单留着（填过的内容不丢），但提交按钮保持禁用，另给明确的核实入口。 */
+    show(unsure,
+      "<p><b>注册结果未能确认。</b>服务器没有报错，但也没有返回可确认的结果，" +
+      "因此<b>无法判定账号是否已创建</b>。</p>" +
+      "<p>请先去登录页核实，不要直接重复提交：" +
+      '<a class="link" href="../login/">去登录页确认</a>。' +
+      '若登录不了，请<a class="link" href="../index.html#contact">联系招生同工</a>。</p>' +
+      '<p class="hint">您填的内容已保留。确认账号确实未创建后，重新载入本页再试。</p>');
+    // 按钮不恢复：未核实之前不该让它被再点一次。
+    btn.textContent = BTN_LABEL;
   });
 })();
 </script>

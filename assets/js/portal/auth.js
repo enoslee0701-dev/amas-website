@@ -114,22 +114,50 @@
     }
   }
 
+  /** 注册。
+      以前这里只解构 `{ error }`，把「没报错」一律当成「验证邮件已发出」——
+      这是错的。supabase-js v2（当前 CDN 上 `@2` 解析到 2.116.0）的 `signUp`
+      返回 `{ data: { user, session }, error }`，**成功分支有两种完全不同的结果**：
+
+        · `data.session` 非空 —— 账号已建立**并且已经登录**。
+          服务端没有要求邮箱验证（本项目 staging 就是 `mailer_autoconfirm = true`），
+          因此**根本没有发任何验证邮件**。此时跟用户说「请查收验证邮件」是纯粹的谎话。
+        · `data.session` 为空、`data.user` 非空 —— 服务端受理了，需先完成邮箱验证才能登录。
+          注意这一支**不能断言「新账号已创建」**：开启邮箱验证时，GoTrue 对
+          「邮箱已被注册」会故意返回一个不带 identity 的 user 且不报错（防账号枚举），
+          与真正的新注册在客户端无法区分——也不应该区分。
+
+      另外 `data.session` 只意味着「登录了」，不意味着拿到门户角色、更不意味着申请通过。
+      角色由 `my_roles` 决定，页面守卫自己会判。这里不替它下结论。 */
   async function signUp(email, password, displayName) {
-    if (!CONFIGURED) return { error: "not_configured" };
-    const { error } = await client.auth.signUp({
-      email: String(email || "").trim().toLowerCase(),
-      password,
-      options: {
-        data: { display_name: displayName || "" },
-        emailRedirectTo: location.origin + ROOT + "auth/callback/",
-      },
-    });
-    if (error) {
-      if (/registered/i.test(error.message)) return { error: "exists" };
-      if (/password/i.test(error.message)) return { error: "weak_password" };
-      return { error: "signup_failed" };
+    if (!CONFIGURED) return { status: "error", error: "not_configured" };
+    let res;
+    try {
+      res = await client.auth.signUp({
+        email: String(email || "").trim().toLowerCase(),
+        password,
+        options: {
+          data: { display_name: displayName || "" },
+          emailRedirectTo: location.origin + ROOT + "auth/callback/",
+        },
+      });
+    } catch (e) {
+      // SDK 正常情况下会把网络异常包成 AuthError 返回而不是抛出，
+      // 但抛出时绝不能让异常穿过去——调用方会永远停在「提交中…」。
+      return { status: "error", error: "signup_failed" };
     }
-    return {};
+    const data = res && res.data;
+    const error = res && res.error;
+    if (error) {
+      if (/registered/i.test(error.message)) return { status: "error", error: "exists" };
+      if (/password/i.test(error.message)) return { status: "error", error: "weak_password" };
+      return { status: "error", error: "signup_failed" };
+    }
+    if (data && data.session) return { status: "session" };
+    if (data && data.user) return { status: "pending" };
+    // 没报错，却既没有 session 也没有 user：结果不明。
+    // 不能报成功，也不能报失败——更不能自动重发。
+    return { status: "unknown" };
   }
 
   async function resetPassword(email) {
