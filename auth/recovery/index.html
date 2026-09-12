@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>重设密码 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609130020">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609130029">
 </head>
 <body>
 <div class="wrap">
@@ -56,9 +56,9 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609130020"></script>
-<script src="../../assets/js/portal/auth.js?v=202609130020"></script>
-<script src="../../assets/js/portal/api.js?v=202609130020"></script>
+<script src="../../assets/js/supabase-config.js?v=202609130029"></script>
+<script src="../../assets/js/portal/auth.js?v=202609130029"></script>
+<script src="../../assets/js/portal/api.js?v=202609130029"></script>
 <script>
 /* AMAS canonical recovery route（D-AUTH-R2）：/auth/recovery
  *
@@ -108,14 +108,21 @@
 
     // ---- Supabase credential validation：真正的认证 ----
     // supabase-js 会在加载时消费 URL 中的 recovery 凭据并建立 session。
-    let session = null;
+    let session = null, readFailed = false;
     for (let i = 0; i < 20 && !session; i++) {
-      session = await A.getSession();
+      const s = await A.fetchSession();
+      readFailed = s.failed;        // 只记最后一次：能读出来就说明不是「读不到」
+      session = s.session;
       if (!session) await new Promise(r => setTimeout(r, 200));
     }
     scrubUrl();                     // 无论成败，先把凭据从 URL 上抹掉
     if (!session) {
-      bail("恢复链接无效或已过期。请重新申请一封重设邮件。");
+      /* 读不出来 ≠ 链接失效。说成「链接无效或已过期，请重新申请一封重设邮件」，
+         等于把人推向一条现在还走不通的路（邮件投递是独立阻塞项），
+         而他手里那个链接其实可能好好的。 */
+      bail(readFailed
+        ? "没能确认这个重设链接的状态，可能是网络不稳或服务端暂时不可用。请稍后用同一个链接重试。"
+        : "恢复链接无效或已过期。请重新申请一封重设邮件。");
       return;
     }
 
@@ -142,12 +149,26 @@
     // 双击保护的第一道：立即禁用。真正的保护在服务端的原子 claim。
     btn.disabled = true; btn.textContent = "正在保存…";
 
-    const { data, error } = await A.callFn("recovery-finalize", { flow_id: flowId, password: p1 });
+    /* A.callFn 返回的是 { status, data } —— **没有 error 字段**（与第六包在
+       portal/admin/students 修的是同一个误解构）。原来写成
+       `const { data, error } = …`，于是 error 永远 undefined，
+       `error && error.message` 是死代码；断网（status 0）、5xx、网关 HTML
+       （data 是 null）全都落到 code="network"/"unknown"，显示
+       「保存失败，请稍后重试。」——**而密码很可能已经改掉了**。
+       用户照这句话去用旧密码登录，就把自己锁在门外了。
+
+       这一页的**重试本身是安全的**（服务端有原子 claim，重复提交会回
+       already_completed），所以按钮照常放开；要改掉的是那句假话。 */
+    const res = await A.callFn("recovery-finalize", { flow_id: flowId, password: p1 });
+    const data = res && res.data;
+    const status = res ? res.status : 0;
+    // 结果不明：连响应都没拿到 / 服务端回话但没给结论 / 拿不到可读的 JSON
+    const unclear = status === 0 || status >= 500 || !data;
     // 表单里的明文不再需要，尽早清掉
     $("pw1").value = ""; $("pw2").value = "";
 
-    if (error || !data || data.ok !== true) {
-      const code = (data && data.error) || (error && error.message) || "unknown";
+    if (!data || data.ok !== true) {
+      const code = (data && data.error) || "unknown";
       const MSG = {
         already_completed: "这个重设流程已经完成过了。请直接用新密码登录。",
         already_processing: "上一次提交还在处理中，请稍候再试。",
@@ -158,7 +179,9 @@
         auth_update_failed: "保存失败，请稍后重试。",
       };
       if (code === "already_completed") { show("cardDone"); return; }
-      err.textContent = MSG[code] || "保存失败，请稍后重试。";
+      err.textContent = unclear
+        ? "没能确认新密码是否已经保存。请先用新密码试着登录；如果登录不上，再回到这个链接重试。"
+        : (MSG[code] || "保存失败，请稍后重试。");
       err.classList.add("show");
       btn.disabled = false; btn.textContent = "保存新密码";
       return;
