@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>招生审核 | AMAS 管理后台</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130645">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130656">
 <style>
 .qtable{width:100%;border-collapse:collapse;font-size:13px}
 .qtable th,.qtable td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:top}
@@ -34,12 +34,12 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130645"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130645"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130645"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130645"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130645"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609130645"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130656"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130656"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130656"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130656"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130656"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609130656"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -489,8 +489,14 @@
     if (!data || typeof data !== "object") return settle(UNKNOWN_TEXT, true);
 
     if (data.ok !== true) {
-      if (data.error === "terminal_state") {
-        return settle("这份申请已经处于终态，不能再更改审核人。请刷新查看当前状态。", false);
+      if (data.error === "not_assignable") {
+        /* 服务端在行锁之后判的，带回了当时的真实状态 —— 用它说清楚原因，
+           不要只说一句「不能改」。 */
+        const st = data.status;
+        return settle(st === "draft"
+          ? "这份申请还没有提交，不能指派审核人。"
+          : "这份申请现在是「" + (ST[st] || st || "终态") + "」，不能再新指派、重指派或取消。请刷新查看当前状态。",
+          false);
       }
       if (data.error === "reassigned") {
         return settle("这一份的审核人刚被别人改过（现在是「" +

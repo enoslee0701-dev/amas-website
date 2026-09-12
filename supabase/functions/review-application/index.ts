@@ -22,7 +22,10 @@ const fail = (s: number, c: string, extra?: Record<string, unknown>) =>
     status: s, headers: { ...CORS, "Content-Type": "application/json" },
   });
 
-const ACTIONS = ["start_review", "needs_information", "accept", "reject"];
+/* 请求形状校验单独成文件，好让它能被离线执行、被反例打 ——
+   scripts/test-edge-validate.mjs import 的就是这一个文件，不是抄一份。 */
+import { validateBody } from "./validate.mjs";
+
 const REVIEWER_ROLES = ["registrar", "academic_admin", "super_admin"];
 
 Deno.serve(async (req) => {
@@ -45,63 +48,37 @@ Deno.serve(async (req) => {
   const names = (roles ?? []).map((r: { role: string }) => r.role);
   if (!names.some((n) => REVIEWER_ROLES.includes(n))) return fail(403, "forbidden");
 
-  let body: {
-    application_id?: string; action?: string; message?: string;
-    // field 可选：填写后该表单字段在 needs_information 阶段解锁，供申请人修改（见 0011）
-    requirements?: Array<{ label: string; detail?: string; field?: string }>; internal_note?: string;
-    // G1 指派分支（与 action 互斥）
-    op?: string; reviewer_id?: string | null; expected_reviewer?: string | null; note?: string;
-  };
-  try { body = await req.json(); } catch { return fail(400, "bad_request"); }
-  if (!body.application_id) return fail(400, "bad_request");
+  let raw: unknown;
+  try { raw = await req.json(); } catch { return fail(400, "bad_request"); }
 
-  const has = (k: string) => Object.prototype.hasOwnProperty.call(body, k);
-  /* 两个分支**严格互斥**：同时带 op 与 action 一律拒绝，不允许「猜哪个是他想要的」。
-     op 只认 "assign"，别的值也拒绝。 */
-  const wantsAssign = has("op");
-  const wantsAction = has("action") && body.action !== undefined && body.action !== null;
-  if (wantsAssign && wantsAction) return fail(400, "bad_request");
-  if (wantsAssign && body.op !== "assign") return fail(400, "bad_request");
+  /* 形状不对是**确定的拒绝**，一律 400。不能让它退化成异常 → 500 ——
+     客户端按既有判据会把 500 当「结果不明」并永久锁住那一条。 */
+  const v = validateBody(raw);
+  if (!v.ok) return fail(v.status, v.code);
 
-  if (wantsAssign) {
-    /* expected_reviewer 必须**显式提供**（null 表示「我看到的是未指派」）。
-       缺这个键就不能当 null —— 那等于让调用方在不知道当前值的情况下盲写。 */
-    if (!has("expected_reviewer")) return fail(400, "expected_required");
-    if (!has("reviewer_id")) return fail(400, "bad_request");
-    const rid = body.reviewer_id ?? null;
-    const exp = body.expected_reviewer ?? null;
-    if (rid !== null && typeof rid !== "string") return fail(400, "bad_request");
-    if (exp !== null && typeof exp !== "string") return fail(400, "bad_request");
-
+  if (v.mode === "assign") {
     const { data, error } = await admin.rpc("assign_application_reviewer", {
-      p_app: body.application_id,
+      p_app: v.application_id,
       p_actor: userData.user.id,
-      p_reviewer: rid,
-      p_expected: exp,
-      p_note: body.note ?? null,
+      p_reviewer: v.reviewer_id,
+      p_expected: v.expected_reviewer,
+      p_note: v.note,
     });
     if (error) {
       if (/not_found/i.test(error.message)) return fail(404, "not_found");
       return fail(500, "server_error");
     }
-    // 业务性拒绝（terminal_state / reassigned / not_a_reviewer）由 RPC 以 {ok:false} 200 返回
+    // 业务性拒绝（not_assignable / reassigned / not_a_reviewer）由 RPC 以 {ok:false} 200 返回
     return new Response(JSON.stringify(data), { headers: { ...CORS, "Content-Type": "application/json" } });
   }
 
-  if (!ACTIONS.includes(String(body.action))) return fail(400, "bad_request");
-
-  // 要求补充资料时必须给出至少一条条目（避免空要求让申请人无从下手）
-  if (body.action === "needs_information" && (!body.requirements || body.requirements.length === 0)) {
-    return fail(400, "requirements_required");
-  }
-
   const { data, error } = await admin.rpc("review_application", {
-    p_app: body.application_id,
+    p_app: v.application_id,
     p_reviewer: userData.user.id,
-    p_action: body.action,
-    p_message: body.message ?? null,
-    p_requirements: body.requirements ?? null,
-    p_internal_note: body.internal_note ?? null,
+    p_action: v.action,
+    p_message: v.message,
+    p_requirements: v.requirements,
+    p_internal_note: v.internal_note,
   });
 
   if (error) {

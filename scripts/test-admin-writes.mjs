@@ -874,6 +874,23 @@ try {
   await sleep(700);
   ok("L7b 再点一次不会再发出去（这一条已锁）", (await fnHits()) === hits1, "第一次=" + hits1 + " 现在=" + (await fnHits()));
 
+  // ── 服务端说「这个状态不能指派」（0027 行锁后判 draft 与终态，同一个 not_assignable）
+  await open("portal/admin/admissions/", { tables: asTables(asApp("submitted")) }, 3000);
+  await openDetail();
+  await fnBody({ ok: false, error: "not_assignable", status: "draft" });
+  await saveAssignAs("u-ok1");
+  const l8 = await vis("#dErr");
+  ok("L8 服务端说草稿不可指派时，按它带回的状态说清楚原因",
+     /还没有提交/.test(l8 || ""), JSON.stringify(l8));
+
+  await open("portal/admin/admissions/", { tables: asTables(asApp("submitted")) }, 3000);
+  await openDetail();
+  await fnBody({ ok: false, error: "not_assignable", status: "accepted" });
+  await saveAssignAs("u-ok1");
+  const l9 = await vis("#dErr");
+  ok("L9 终态同理，且说出是哪个状态",
+     /已录取/.test(l9 || "") && /不能再/.test(l9 || ""), JSON.stringify(l9));
+
   console.log("  NOT_RUN  0027 的 assign_application_reviewer 与 Edge 的 op=assign 分支：");
   console.log("           本轮没有 apply、没有 deploy、没有对任何真实数据库执行 —— 上面验的全是客户端行为。");
 

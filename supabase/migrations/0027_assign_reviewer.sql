@@ -4,8 +4,9 @@
 -- 语义（由项目负责人裁定，保守口径）：
 --   · 指派**只记录分工** —— 不扩大任何人的访问权，也不减少其他审核人的权限；
 --     谁本来能审，指派之后照样能审。
---   · accepted / rejected / withdrawn 三个**终态**：不允许新指派、重指派或取消。
---     检查放在**行锁之后**（见下），不另设归档更正流程。
+--   · 只有 submitted / under_review / needs_information 可以改指派。
+--     accepted / rejected / withdrawn（终态）与 draft（未提交）一律拒绝，
+--     检查放在**行锁之后**，不另设归档更正流程。
 --   · 只写 audit_logs，**不写 application_status_history** ——
 --     my_application_timeline(p_app) 返回该申请全部 history 行且不按类型过滤
 --     （0008_applications.sql:211-218），写进去申请人时间线就会多出一条，
@@ -34,9 +35,14 @@ begin
   select * into a from public.applications where id = p_app for update;
   if not found then raise exception 'not_found'; end if;
 
-  -- 终态：锁之后立刻判。新指派 / 重指派 / 取消一律不允许。
-  if a.status::text in ('accepted','rejected','withdrawn') then
-    return jsonb_build_object('ok', false, 'error', 'terminal_state', 'status', a.status::text);
+  -- 可指派的状态只有「在审」这三个。锁之后立刻判。
+  --   draft      —— 还没提交，指派没有意义；而且这一次 update 会触发
+  --                 applications_set_updated_at（0008:51）bump updated_at，
+  --                 正在编辑草稿的申请人下一次保存就会撞上一次**无谓的版本冲突**。
+  --   accepted / rejected / withdrawn —— 终态，新指派、重指派、取消一律不允许。
+  -- 返回里带上 status，让调用方能说清楚「因为它现在是什么状态所以不能指派」。
+  if a.status::text not in ('submitted','under_review','needs_information') then
+    return jsonb_build_object('ok', false, 'error', 'not_assignable', 'status', a.status::text);
   end if;
 
   v_old := a.assigned_reviewer;
