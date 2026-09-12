@@ -202,6 +202,13 @@ try {
     } catch (e) {}
   });
 
+  /* 表单一变脏，UI.formGuard 会挂 beforeunload —— 这是正确的产品行为，
+     但它会把 Page.navigate 卡住等用户确认。量具要接住这个对话框，
+     否则套件自己超时退出，看起来像是产品挂了。 */
+  cdp.on("Page.javascriptDialogOpening", async () => {
+    try { await cdp.send("Page.handleJavaScriptDialog", { accept: true }); } catch (e) {}
+  });
+
   let pageErrors = [];
   cdp.on("Runtime.exceptionThrown", (p) => {
     pageErrors.push(String(p?.exceptionDetails?.exception?.description || p?.exceptionDetails?.text || ""));
@@ -313,6 +320,81 @@ try {
   const s5 = await calls();
   ok("S5 自动保存还没回来的那段窗口里，两次真实点击只发出一次 submit_application",
      (s5["rpc:submit_application"] || 0) === 1, JSON.stringify(s5));
+
+  // ════════ W 保存 → 提交这条链路（event9dbe 返修）════════
+  console.log("\n=== W 没保存成功就不能提交 ===");
+  /* submit() 会先做一次 save()。原来 save() 什么都不返回，submit() 于是
+     直接往下走 —— 保存被明确拒绝之后照样发 submit_application 并弹
+     「申请已提交」，交上去的是服务端那份**旧表单**。 */
+  /* 编辑器容器是 #appForm，字段带 data-f。选错选择器的话 touchForm 返回 false，
+     「用户编辑」这个前提根本没构造出来，W1d/W2d 就变成读 null 的空转。 */
+  const touchForm = async () => cdp.ev(`(()=>{
+    const i = document.querySelector("#appForm [data-f]");
+    if (!i || i.tagName === "DIV") return false;
+    i.value = "FIXTURE-EDIT";
+    i.dispatchEvent(new Event("input", { bubbles: true }));
+    i.dispatchEvent(new Event("change", { bubbles: true }));
+    return true;})()`);
+  const subState = async () => cdp.ev(`(()=>{
+    const e=document.getElementById("subErr"), b=document.getElementById("btnSubmit");
+    const t=document.getElementById("amas-toast");
+    const i=document.querySelector("#appForm [data-f]");
+    return { err:e?(e.textContent||"").trim():null, shown:!!(e&&e.classList.contains("show")),
+             btnDisabled:!!(b&&b.disabled),
+             toast:t?(t.textContent||"").trim():null, toastShown:!!(t&&t.classList.contains("show")),
+             kept: i ? i.value : null };})()`);
+
+  // W1 明确拒绝（42501 权限不足）
+  await open({ ...withApp,
+    writes: { applications: { data:null, error:{ message:"permission denied for table applications", code:"42501" }, status:403 } },
+    rpc: { my_application:{ data:[DRAFT] }, submit_application:{ data:{ ok:true }, error:null, status:200 } } });
+  ok("W0 前提：确实在表单里改了一个字段（否则 W1d/W2d 是空转）",
+     (await touchForm()) === true);
+  await clickSubmit();
+  const w1 = await calls();
+  ok("W1 保存被明确拒绝后，**一次 submit_application 都不发**",
+     (w1["rpc:submit_application"] || 0) === 0, JSON.stringify(w1));
+  const w1s = await subState();
+  ok("W1b 不弹「申请已提交」", !/申请已提交/.test((w1s.toast || "")), JSON.stringify(w1s));
+  ok("W1c 说清楚是「没保存成功所以没提交」", /没有保存成功/.test(w1s.err || ""), JSON.stringify(w1s));
+  ok("W1d 用户填的内容还留在页面上", w1s.kept === "FIXTURE-EDIT", JSON.stringify(w1s));
+  ok("W1e 按钮放开，改完可以再交", w1s.btnDisabled === false, JSON.stringify(w1s));
+
+  // W2 保存结果不明
+  await open({ ...withApp,
+    writes: { applications: { data:null, error:{ message:"Failed to fetch" }, status:0 } },
+    rpc: { my_application:{ data:[DRAFT] }, submit_application:{ data:{ ok:true }, error:null, status:200 } } });
+  await touchForm();
+  await clickSubmit();
+  const w2 = await calls();
+  ok("W2 保存结果不明时同样不提交（可能交的是旧版本）",
+     (w2["rpc:submit_application"] || 0) === 0, JSON.stringify(w2));
+  const w2s = await subState();
+  ok("W2b 如实说没能确认，并给刷新核实的出路",
+     /没能确认/.test(w2s.err || "") && /刷新|核实/.test(w2s.err || ""), JSON.stringify(w2s));
+  ok("W2c 不劝他一直点（按钮不放开）", w2s.btnDisabled === true, JSON.stringify(w2s));
+  ok("W2d 用户填的内容还在", w2s.kept === "FIXTURE-EDIT", JSON.stringify(w2s));
+
+  // W3 保存正常 → 照常提交
+  await open({ ...withApp,
+    writes: { applications: { data:{ id:"app-fixture-1" }, error:null } },
+    rpc: { my_application:{ data:[DRAFT] }, submit_application:{ data:{ ok:true }, error:null, status:200 } } });
+  await touchForm();
+  await clickSubmit();
+  const w3 = await calls();
+  ok("W3 保存成功时照常提交（没改坏）", (w3["rpc:submit_application"] || 0) === 1, JSON.stringify(w3));
+  ok("W3b 并且报「申请已提交」", /申请已提交/.test(((await subState()).toast) || ""), JSON.stringify(await subState()));
+
+  // W4 保存被拒之后重复点击：仍然一次都不发
+  await open({ ...withApp,
+    writes: { applications: { data:null, error:{ message:"permission denied", code:"42501" }, status:403 } },
+    rpc: { my_application:{ data:[DRAFT] }, submit_application:{ data:{ ok:true }, error:null, status:200 } } });
+  await touchForm();
+  await clickSubmit();
+  await cdp.clickReal("#btnSubmit");
+  await sleep(1400);
+  ok("W4 保存被拒后连点两次，仍然一次 submit_application 都不发",
+     ((await calls())["rpc:submit_application"] || 0) === 0, JSON.stringify(await calls()));
 
   // ════════ Q 标记补件完成 ════════
   console.log("\n=== Q 标记补件完成 ===");

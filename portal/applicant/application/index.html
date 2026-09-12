@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130029">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130040">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130029"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130029"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130029"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130029"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130029"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609130029"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130040"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130040"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130040"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130040"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130040"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609130040"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -356,19 +356,28 @@
   }
   function setSaveState(t){ const e = document.getElementById("saveState"); if (e) e.textContent = t; }
 
+  /** 保存并**如实回报结果**：{ ok, unclear, message }。
+
+      原来 save() 什么都不返回，submit() 于是 `await save()` 之后直接往下走。
+      监督独立复现（event9dbe）：Api.update 被明确拒绝（42501）之后，
+      页面先显示「保存失败：…」，紧接着又发出 submit_application 并弹
+      「申请已提交」—— **提交的是服务端上那份旧的表单**，用户刚填的内容
+      从来没存进去，而他以为交上去了。 */
   async function save(){
-    if (!EDITABLE.includes(app.status)) return;
+    if (!EDITABLE.includes(app.status)) return { ok: true, unclear: false, skipped: true };
     const { error } = await Api.update("applications", { id: app.id },
       { form_data: app.form_data, pathway: app.pathway });
     /* 自动保存失败也要分清楚：读不到结论时这一次可能其实已经存进去了，
        说死「保存失败」会让人以为刚才白填了。 */
     if (error) {
-      setSaveState(isUnknown(error) ? "没能确认是否保存成功，请稍后再看"
-                                    : "保存失败：" + error.message);
-      return;
+      const unclear = isUnknown(error);
+      setSaveState(unclear ? "没能确认是否保存成功，请稍后再看"
+                           : "保存失败：" + error.message);
+      return { ok: false, unclear: unclear, message: error.message || "" };
     }
     dirty = false;
     setSaveState("已保存 " + new Date().toLocaleTimeString("zh-CN", { hour12: false }));
+    return { ok: true, unclear: false };
   }
 
   // ---------- 提交 / 撤回 ----------
@@ -380,7 +389,30 @@
        两次点击真的会发出两次 submit_application（实测 2 次）。 */
     if (btn.disabled) return;
     btn.disabled = true; btn.textContent = "提交中…";
-    clearTimeout(saveTimer); await save();
+    clearTimeout(saveTimer);
+    const saved = await save();
+
+    /* **当前这一版没确认存进去，就不提交。** 否则交上去的是服务端上那份旧表单，
+       而用户以为交的是自己刚填完的那份。两种情况都不往下走，但出路不同：
+
+         明确被拒（RLS/校验/权限等）—— 确定没存上。留着他填的内容，
+           说清楚原因，把按钮放开让他改完再交。
+         结果不明 —— 不知道存上没有。同样不能提交（提交的可能是旧版本），
+           但也不能劝他一直点：给「刷新核实」，让他先看清楚当前是哪一版。 */
+    if (saved && !saved.ok) {
+      if (saved.unclear) {
+        sayUnknown(err, "没能确认你刚才的修改有没有保存成功，所以这次没有提交 —— " +
+          "提交的可能是服务器上那份旧的。请先刷新核实当前内容再提交。");
+        return;                                  // 刻意不解锁：先核实
+      }
+      btn.disabled = false; btn.textContent = "提交申请";
+      err.textContent = "你刚才的修改没有保存成功（" + (saved.message || "原因未知") +
+        "），所以这次没有提交 —— 不然交上去的会是服务器上那份旧的。" +
+        "你填的内容还在页面上，请稍后重试或修正后再提交。";
+      err.classList.add("show");
+      return;
+    }
+
     const { data, error } = await Api.rpc("submit_application", { p_app: app.id });
     const UNKNOWN_SUBMIT = "没有拿到这次提交的结果，无法确认申请是否已经提交。" +
       "请不要重复提交 —— 重复提交会再走一次审核流程。请先刷新核实当前状态。";
