@@ -754,6 +754,129 @@ try {
 
   await cdp.send("Page.removeScriptToEvaluateOnNewDocument", { identifier: frozen.identifier });
 
+  // ════════ L 审核人指派（G1，客户端一侧）════════
+  console.log("\n=== L 指派审核人 ===");
+  /* ⚠ 边界先说清楚：0027 的 assign_application_reviewer 与 review-application 的
+     op="assign" 分支**在本轮没有被执行过**（没有 apply、没有 deploy、没有真实库）。
+     下面所有断言验的都是**客户端**在给定返回值时的行为；stub 的回应不是 RPC 执行通过。
+     服务端行为一律 NOT_RUN。 */
+  const AS_ROLES = { data: [
+    { user_id: "u-ok1",   role: "registrar",      revoked_at: null, expires_at: null },
+    { user_id: "u-ok2",   role: "academic_admin", revoked_at: null,
+      expires_at: new Date(Date.now() + 30 * 864e5).toISOString() },
+    { user_id: "u-revd",  role: "registrar",      revoked_at: "2026-09-01T00:00:00Z", expires_at: null },
+    { user_id: "u-exp",   role: "registrar",      revoked_at: null,
+      expires_at: new Date(Date.now() - 864e5).toISOString() },
+    { user_id: "u-baddt", role: "registrar",      revoked_at: null, expires_at: "not-a-timestamp" },
+  ] };
+  const AS_PROFILES = { data: [
+    { id: "u-ok1", display_name: "甲教务", email: "a@example.invalid" },
+    { id: "u-ok2", display_name: "乙教务", email: "b@example.invalid" },
+    { id: "u-revd", display_name: "丙已撤销", email: "c@example.invalid" },
+    { id: "u-exp", display_name: "丁已过期", email: "d@example.invalid" },
+    { id: "u-baddt", display_name: "戊有效期读不出", email: "e@example.invalid" },
+  ] };
+  const asApp = (status, assigned) => Object.assign({}, APP, { status,
+    assigned_reviewer: assigned === undefined ? null : assigned });
+  const asTables = (app, extra) => Object.assign({}, TABLES, {
+    applications: { data: [app] }, user_roles: AS_ROLES, profiles: AS_PROFILES }, extra || {});
+
+  /** 让 /functions/v1/ 回一个指定的 JSON body（指派分支要验的是业务性拒绝） */
+  const fnBody = async (obj, status) => cdp.ev(`(()=>{
+    window.__fnHits = 0; window.__fnBodies = [];
+    const orig = window.fetch;
+    window.fetch = function(u){
+      if (String(u).indexOf("/functions/v1/") < 0) return orig.apply(this, arguments);
+      window.__fnHits++;
+      try { window.__fnBodies.push(JSON.parse((arguments[1] && arguments[1].body) || "{}")); } catch(e){}
+      return Promise.resolve(new Response(${JSON.stringify(JSON.stringify(obj))}, { status:${status || 200},
+        headers:{ "Content-Type":"application/json" } }));
+    };
+    return true;})()`);
+  const lastBody = async () => cdp.ev(`(window.__fnBodies||[]).slice(-1)[0] || null`);
+  const drawerNow = async () => vis("#detail");
+  const saveAssignAs = async (value) => {
+    await cdp.ev(`(()=>{const s=document.getElementById("asSel"); if(!s) return false;
+      s.value=${JSON.stringify(value)}; return true;})()`);
+    await cdp.ev(`(()=>{const b=document.getElementById("asSave"); if(b) b.click(); return !!b;})()`);
+    await sleep(400);
+    await cdp.ev(`(()=>{const b=document.querySelector(".portal-modal [data-ok]"); if(b) b.click(); return !!b;})()`);
+    await sleep(900);
+  };
+
+  await open("portal/admin/admissions/", { tables: asTables(asApp("submitted")) }, 3000);
+  await openDetail();
+  const l0 = await cdp.ev(`(()=>{const s=document.getElementById("asSel");
+    return s ? Array.from(s.options).map(o=>({v:o.value,t:(o.textContent||"").trim()})) : null;})()`);
+  ok("L0 抽屉里有审核人下拉", Array.isArray(l0) && l0.length > 1, JSON.stringify(l0));
+
+  const vals = (l0 || []).map(o => o.v);
+  ok("L1 已撤销的角色不在候选名单里", !vals.includes("u-revd"), JSON.stringify(vals));
+  ok("L1b 已过期的角色也不在", !vals.includes("u-exp"), JSON.stringify(vals));
+  ok("L1c 有效的两位在", vals.includes("u-ok1") && vals.includes("u-ok2"), JSON.stringify(vals));
+  ok("L1d 有效期读不出来的那位不列出（未知不当作有效）", !vals.includes("u-baddt"), JSON.stringify(vals));
+  const l1 = await drawerNow();
+  ok("L1e 但明说有几位因为有效期读不出来没被列出，不是悄悄少一个",
+     /读不出来/.test(l1 || "") && /1 位|1位/.test(l1 || ""), (l1 || "").slice(0, 260));
+
+  ok("L2-0 前提：文案写明指派只记录分工",
+     /只记录分工/.test(l1 || "") && /不改变谁能审/.test(l1 || ""), (l1 || "").slice(0, 200));
+
+  // ── 保存时必须显式带上 expected_reviewer
+  await fnBody({ ok: true, assigned_reviewer: "u-ok1", changed: true });
+  await saveAssignAs("u-ok1");
+  const b1 = await lastBody();
+  ok("L5 请求里 op=assign，且**显式**带了 expected_reviewer（未指派时是 null）",
+     !!b1 && b1.op === "assign" && b1.reviewer_id === "u-ok1" &&
+     Object.prototype.hasOwnProperty.call(b1, "expected_reviewer") && b1.expected_reviewer === null,
+     JSON.stringify(b1));
+  ok("L5b 没有夹带 action（两条分支互斥）",
+     !!b1 && !Object.prototype.hasOwnProperty.call(b1, "action"), JSON.stringify(b1));
+
+  // ── 终态：没有下拉，明确解释
+  await open("portal/admin/admissions/", { tables: asTables(asApp("accepted", "u-ok1")) }, 3000);
+  await openDetail();
+  const l2 = await drawerNow();
+  ok("L2 终态申请不提供指派控件",
+     (await cdp.ev(`!document.getElementById("asSel")`)) === true, (l2 || "").slice(0, 200));
+  ok("L2b 并当场解释为什么不能改",
+     /终态/.test(l2 || "") && /不能再新指派|不能再/.test(l2 || ""), (l2 || "").slice(0, 260));
+
+  // ── 候选人读不到：不摆空下拉
+  await open("portal/admin/admissions/", { tables: Object.assign({}, asTables(asApp("submitted")), {
+    user_roles: { data: null, error: { message: "boom" }, status: 500 } }) }, 3000);
+  await openDetail();
+  const l4 = await drawerNow();
+  ok("L4 候选人读不到时不摆一个空下拉",
+     (await cdp.ev(`!document.getElementById("asSel")`)) === true, (l4 || "").slice(0, 200));
+  ok("L4b 而是明说未知，且不当成「没有人可指派」",
+     /没能读到/.test(l4 || "") && /不表示没有/.test(l4 || ""), (l4 || "").slice(0, 260));
+
+  // ── 并发：expected 与库里不符
+  await open("portal/admin/admissions/", { tables: asTables(asApp("submitted")) }, 3000);
+  await openDetail();
+  await fnBody({ ok: false, error: "reassigned", current: "u-ok2" });
+  await saveAssignAs("u-ok1");
+  const l6 = await vis("#dErr");
+  ok("L6 服务端说刚被别人改过时，不盲覆盖并说清楚现在是谁",
+     /刚被别人改过/.test(l6 || "") && /乙教务/.test(l6 || ""), JSON.stringify(l6));
+  ok("L6b 并且没有自动重发", (await fnHits()) === 1, "fnHits=" + (await fnHits()));
+
+  // ── 结果不明：锁住这一条，再点也不再发
+  await open("portal/admin/admissions/", { tables: asTables(asApp("submitted")) }, 3000);
+  await openDetail();
+  await fnBody({}, 500);
+  await saveAssignAs("u-ok1");
+  const hits1 = await fnHits();
+  const l7 = await vis("#dErr");
+  ok("L7 结果不明时如实说无法确认", /无法确认|没能确认/.test(l7 || ""), JSON.stringify(l7));
+  await cdp.ev(`(()=>{const b=document.getElementById("asSave"); if(b) b.click(); return !!b;})()`);
+  await sleep(700);
+  ok("L7b 再点一次不会再发出去（这一条已锁）", (await fnHits()) === hits1, "第一次=" + hits1 + " 现在=" + (await fnHits()));
+
+  console.log("  NOT_RUN  0027 的 assign_application_reviewer 与 Edge 的 op=assign 分支：");
+  console.log("           本轮没有 apply、没有 deploy、没有对任何真实数据库执行 —— 上面验的全是客户端行为。");
+
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");

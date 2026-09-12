@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>招生审核 | AMAS 管理后台</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130617">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130645">
 <style>
 .qtable{width:100%;border-collapse:collapse;font-size:13px}
 .qtable th,.qtable td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:top}
@@ -34,12 +34,12 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130617"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130617"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130617"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130617"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130617"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609130617"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130645"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130645"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130645"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130645"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130645"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609130645"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -59,6 +59,10 @@
     conversion_date:"初信日期", baptism_date:"受洗日期", programs:"申请项目" };
 
   let rows = [], pcMap = {}, current = null;
+  /* G1 指派：候选人、读取是否不明、以及我自己是谁（用于「指派给我」这一档筛选）。
+     终态一律不可改指派 —— 与 0027 的 assign_application_reviewer 同一口径。 */
+  let reviewers = [], reviewersUnknown = false, reviewersUndated = 0, myUid = null, myUidUnknown = false;
+  const TERMINAL = ["accepted", "rejected", "withdrawn"];
 
   main.innerHTML = `
     <h1>招生审核</h1>
@@ -79,6 +83,11 @@
         <option value="bth">正式 B.Th 学籍</option>
         <option value="common_learning">共同学习</option>
       </select>
+      <select id="fAs" aria-label="按审核人筛选">
+        <option value="">全部审核人</option>
+        <option value="mine">指派给我的</option>
+        <option value="none">未指派</option>
+      </select>
       <select id="fTm" aria-label="按提交时间筛选">
         <option value="">全部时间</option>
         <option value="7">近 7 天</option>
@@ -94,8 +103,63 @@
   const { data: pc } = await Api.select("program_catalog", { columns: "code,name_zh,short_label" });
   pcMap = Object.fromEntries((pc || []).map(p => [p.code, p]));
 
+  /* 候选审核人：既有权限内就能取到（user_roles / profiles 的 select 策略都含
+     `or is_admin_any(auth.uid())`，0002_identity.sql:233-234 / :211-212），
+     不需要任何新表、新视图或新策略。
+     过滤条件必须与服务端 has_active_role 一致 —— revoked_at is null **且**
+     (expires_at is null or expires_at > now)，0002:117-125。
+     Api.select 表达不了 `is null`，所以把这两列取回来在本地筛。 */
+  async function loadReviewers(){
+    reviewers = []; reviewersUnknown = false; reviewersUndated = 0;
+    const { data: rs, error: rErr } = await Api.select("user_roles", {
+      columns: "user_id,role,revoked_at,expires_at",
+      in: { role: ["registrar", "academic_admin", "super_admin"] },
+    });
+    if (rErr || !Array.isArray(rs)) { reviewersUnknown = true; return; }
+    const now = Date.now();
+    const active = [], undated = new Set();
+    for (const r of rs) {
+      if (r.revoked_at) continue;                       // 已撤销：确定不是候选人
+      if (!r.expires_at) { active.push(r); continue; }  // 无到期：有效
+      const t = new Date(r.expires_at).getTime();
+      /* 到期时间读不出来 = **不知道**这个角色还有没有效。不知道就不摆进候选名单，
+         但也不当作「没有这个人」—— 单独计数、在界面上说出来。 */
+      if (!Number.isFinite(t)) { undated.add(r.user_id); continue; }
+      if (t > now) active.push(r);
+    }
+    reviewersUndated = undated.size;
+    const ids = [...new Set(active.map(r => r.user_id))];
+    if (!ids.length) return;
+    const { data: ps, error: pErr } = await Api.select("profiles", {
+      columns: "id,display_name,email", in: { id: ids },
+    });
+    if (pErr || !Array.isArray(ps)) { reviewersUnknown = true; return; }
+    const pm = Object.fromEntries(ps.map(x => [x.id, x]));
+    reviewers = ids.map(id => {
+      const pr = pm[id] || {};
+      return { id,
+        name: pr.display_name || pr.email || ("未登记姓名 " + String(id).slice(0, 8)),
+        roles: [...new Set(active.filter(r => r.user_id === id).map(r => r.role))] };
+    }).sort((x, y) => x.name.localeCompare(y.name, "zh-CN"));
+  }
+  const reviewerName = (id) => {
+    if (!id) return null;
+    const r = reviewers.find(x => x.id === id);
+    return r ? r.name : (reviewersUnknown ? null : "未登记姓名 " + String(id).slice(0, 8));
+  };
+
+  /* 「指派给我的」这一档要知道我是谁。读不到就不猜 —— 那一档禁用并说明。 */
+  const sess = await A.fetchSession();
+  if (sess.failed || !sess.session || !sess.session.user) myUidUnknown = true;
+  else myUid = sess.session.user.id;
+  if (myUidUnknown) {
+    const o = document.querySelector('#fAs option[value="mine"]');
+    if (o) { o.disabled = true; o.textContent = "指派给我的（没读到你的账号）"; }
+  }
+  await loadReviewers();
+
   document.getElementById("fReload").addEventListener("click", load);
-  ["fSt","fPw","fTm"].forEach(id => document.getElementById(id).addEventListener("change", renderList));
+  ["fSt","fPw","fTm","fAs"].forEach(id => document.getElementById(id).addEventListener("change", renderList));
   document.getElementById("fQ").addEventListener("input", renderList);
 
   await load();
@@ -103,7 +167,7 @@
   async function load(){
     UI.loading("#list", 4);
     const { data, error } = await Api.select("applications", {
-      columns: "id,applicant_id,pathway,status,form_data,locked_fields,submitted_at,decided_at,updated_at,applicant_visible_message",
+      columns: "id,applicant_id,pathway,status,form_data,locked_fields,submitted_at,decided_at,updated_at,applicant_visible_message,assigned_reviewer",
       order: { column: "submitted_at", asc: false }, limit: 300,
     });
     if (error) return UI.error("#list", { message: error.message, onRetry: load });
@@ -126,6 +190,7 @@
     const st = document.getElementById("fSt").value;
     const pw = document.getElementById("fPw").value;
     const tm = document.getElementById("fTm").value;
+    const as = document.getElementById("fAs").value;
     const q = document.getElementById("fQ").value.trim().toLowerCase();
     /* 「近 N 天」的范围是 [since, now] —— **两头都要有界**，两端都含等于。
        原来只比 `t < since`，上界是敞开的：一份提交时间比现在还晚的申请
@@ -137,6 +202,8 @@
     const list = rows.filter(r => {
       if (st && r.status !== st) return false;
       if (pw && r.pathway !== pw) return false;
+      if (as === "none" && r.assigned_reviewer) return false;
+      if (as === "mine" && (!myUid || r.assigned_reviewer !== myUid)) return false;
       if (q && !JSON.stringify([r.form_data?.name_zh, r.form_data?.name_en, r.form_data?.church_name])
                 .toLowerCase().includes(q)) return false;
       if (since !== null) {
@@ -165,7 +232,7 @@
     }
 
     document.getElementById("list").innerHTML = offNote + `<div class="qwrap"><table class="qtable">
-      <thead><tr><th>申请人</th><th>项目 / 路径</th><th>状态</th><th>提交时间</th><th></th></tr></thead>
+      <thead><tr><th>申请人</th><th>项目 / 路径</th><th>状态</th><th>审核人</th><th>提交时间</th><th></th></tr></thead>
       <tbody>${list.map(r => {
         const d = r.form_data || {};
         const p = Array.isArray(d.programs) ? pcMap[d.programs[0]] : null;
@@ -173,6 +240,9 @@
           <td><b>${UI.esc(d.name_zh || "（未填姓名）")}</b><br><span style="color:var(--muted)">${UI.esc(d.church_name || "")}</span></td>
           <td>${UI.esc(p ? p.name_zh : "—")}<br><span style="color:var(--muted)">${UI.esc(PW[r.pathway] || r.pathway)}</span></td>
           <td><span class="st ${r.status}">${ST[r.status] || r.status}</span></td>
+          <td>${r.assigned_reviewer
+            ? UI.esc(reviewerName(r.assigned_reviewer) || "这一次没读到")
+            : '<span style="color:var(--muted)">未指派</span>'}</td>
           <td>${r.submitted_at
             ? (submittedAt(r) !== null
                 ? new Date(r.submitted_at).toLocaleString("zh-CN", { hour12: false })
@@ -260,6 +330,8 @@
         : (reqs.length ? `<h3 style="font-size:14.5px;color:var(--navy);margin:16px 0 6px">补充资料要求</h3>
         <ul style="padding-left:18px;font-size:13px">${reqs.map(r => `<li>${UI.esc(r.label)}${r.field ? `<span class="who">（已解锁：${UI.esc(LOCK_LABEL[r.field] || r.field)}）</span>` : ""}${r.resolved ? " ✓ 已完成" : " · 待完成"}</li>`).join("")}</ul>` : "")}
 
+      ${renderAssign(current)}
+
       <h3 style="font-size:14.5px;color:var(--navy);margin:16px 0 6px">内部备注（仅管理员可见）</h3>
       ${intUnknown ? readFailed("内部备注")
         : `<p style="font-size:13px;color:var(--muted);white-space:pre-wrap">${UI.esc(internal?.notes || "（暂无）")}</p>`}
@@ -272,6 +344,7 @@
       })))}`;
 
     document.getElementById("dClose").addEventListener("click", () => box.classList.remove("open"));
+    document.getElementById("asSave")?.addEventListener("click", saveAssign);
     box.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => act(b.dataset.a)));
     /* 这一份如果上次的结果没弄清楚，重新打开时仍然锁着，并把原话再说一遍 ——
        否则「刷新核实」之前它看起来又可以点了。 */
@@ -314,6 +387,129 @@
       e.textContent = unresolved.get(appId); e.classList.add("show");
     }
     setActionsDisabled(appId, true);
+  }
+
+  /* 指派区块。三条硬约束：
+       · 终态（accepted/rejected/withdrawn）不允许新指派、重指派或取消 —— 界面同步解释；
+       · 候选人读不到时不摆一个空下拉（读不到 ≠ 没有人可指派）；
+       · 只记录分工 —— 文案里写明它不改变谁能审这一份。 */
+  function renderAssign(app){
+    const cur = app.assigned_reviewer || null;
+    const curName = cur ? (reviewerName(cur) || "这一次没读到是谁") : null;
+    const head = '<h3 style="font-size:14.5px;color:var(--navy);margin:16px 0 6px">审核人</h3>';
+    const who = `<p style="font-size:13px;margin:0 0 8px">当前审核人：<b>${
+      cur ? UI.esc(curName) : "未指派"}</b>
+      <span class="who" style="display:block;margin-top:4px">指派只记录分工，<b>不改变谁能审这一份</b>。</span></p>`;
+
+    if (TERMINAL.includes(app.status)) {
+      return head + who +
+        '<div class="msg info show" style="margin:6px 0">该申请已处于终态（' +
+        UI.esc(ST[app.status] || app.status) +
+        '），不能再新指派、重指派或取消。</div>';
+    }
+    if (app.status === "draft") {
+      return head + who +
+        '<div class="msg info show" style="margin:6px 0">这一份还没有提交，暂不指派。</div>';
+    }
+    if (reviewersUnknown) {
+      return head + who +
+        '<div class="msg warn show" style="margin:6px 0">这一次没能读到候选审核人名单（未知）。' +
+        '这不表示没有人可指派 —— 请刷新后再试。</div>';
+    }
+    const opts = ['<option value="">（取消指派）</option>'].concat(
+      reviewers.map(r => `<option value="${UI.esc(r.id)}"${r.id === cur ? " selected" : ""}>${
+        UI.esc(r.name)}（${UI.esc(r.roles.join("、"))}）</option>`)).join("");
+    const undated = reviewersUndated
+      ? `<div class="msg info show" style="margin:6px 0">另有 <b>${reviewersUndated}</b> 位的角色有效期` +
+        `<b>读不出来</b>，无法确认是否仍然有效，没有列进候选名单。</div>`
+      : "";
+    return head + who + undated +
+      `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px">
+        <select id="asSel" aria-label="选择审核人" style="min-width:220px">${opts}</select>
+        <button class="btn" id="asSave" style="width:auto;padding:0 18px">保存指派</button>
+      </div>
+      <p class="who" style="margin:0">取消指派之后，<b>下一次有人执行审核动作时，这一列会被再次自动填上那个人</b>
+      （沿用既有行为，本次没有改动它）。</p>`;
+  }
+
+  async function saveAssign(){
+    const target = current;                       // 先钉死目标，与 act() 同规矩
+    if (!target) return;
+    const appId = target.id;
+    const expected = target.assigned_reviewer || null;
+    const sel = document.getElementById("asSel");
+    if (!sel) return;
+    const picked = sel.value || null;
+    const err = document.getElementById("dErr"); err.classList.remove("show");
+
+    if (inflight.has(appId)) return;
+    if (unresolved.has(appId)) { showUnresolved(appId); return; }
+    if (picked === expected) { UI.toast("没有变化"); return; }
+
+    const label = picked ? (reviewerName(picked) || "这个人") : "（取消指派）";
+    const ok = await UI.confirmDialog({
+      title: picked ? "更改审核人" : "取消指派",
+      text: "对象：" + ((target.form_data && target.form_data.name_zh) || "这份申请") +
+            "。把审核人改为「" + label + "」？这只记录分工，不改变谁能审这一份；该操作会写入审计记录。",
+      confirmLabel: "确认",
+    });
+    if (!ok) return;
+    if (inflight.has(appId) || unresolved.has(appId)) return;
+
+    inflight.add(appId);
+    setActionsDisabled(appId, true);
+    const btn0 = document.getElementById("asSave");
+    if (btn0) btn0.disabled = true;
+
+    /* expected_reviewer **一定要显式带上**（null 表示「我看到的是未指派」）。
+       缺这个键服务端会拒（Edge: expected_required），不会悄悄当成 null。 */
+    const { data, error } = await Api.fn("review-application", {
+      application_id: appId, op: "assign",
+      reviewer_id: picked, expected_reviewer: expected, note: null,
+    }, { requireAal2: true });
+
+    inflight.delete(appId);
+
+    const settle = (text, lock) => {
+      if (lock) unresolved.set(appId, text);
+      else setActionsDisabled(appId, false);
+      if (current && current.id === appId) {
+        const e2 = document.getElementById("dErr");
+        if (e2) { e2.textContent = text; e2.classList.add("show"); }
+        const b2 = document.getElementById("asSave");
+        if (b2 && !lock) b2.disabled = false;
+      }
+    };
+
+    if (error) {
+      const code = error.code || "";
+      if (!code || UNKNOWN_CODES[code]) return settle(UNKNOWN_TEXT, true);
+      return settle((error.message || code) + "（这次没有更改审核人。）", false);
+    }
+    if (!data || typeof data !== "object") return settle(UNKNOWN_TEXT, true);
+
+    if (data.ok !== true) {
+      if (data.error === "terminal_state") {
+        return settle("这份申请已经处于终态，不能再更改审核人。请刷新查看当前状态。", false);
+      }
+      if (data.error === "reassigned") {
+        return settle("这一份的审核人刚被别人改过（现在是「" +
+          (reviewerName(data.current) || "另一个人") + "」）。这次没有覆盖，请刷新核实后再决定。", false);
+      }
+      if (data.error === "not_a_reviewer") {
+        await loadReviewers();
+        return settle("这个人现在没有审核角色（可能刚被撤销或已过期），没有指派。候选名单已重新读取。", false);
+      }
+      return settle(UNKNOWN_TEXT, true);
+    }
+
+    setActionsDisabled(appId, false);
+    UI.toast(picked ? "审核人已更新" : "已取消指派");
+    await load();
+    if (current && current.id === appId) {
+      const again = rows.find(r => r.id === appId);
+      if (again) { current = again; openDetail(appId); }
+    }
   }
 
   async function act(action){

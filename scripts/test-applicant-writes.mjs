@@ -833,6 +833,32 @@ try {
   ok("V2b 那一下没有再建出第二份申请",
      (v2calls["insert:applications"] || 0) === 1, JSON.stringify(v2calls));
 
+  // ════════ A1 指派对申请人必须完全不可见（G1）════════
+  console.log("\n=== A1 申请人看不到任何内部人员安排 ===");
+  /* 服务端那一侧的保证是：assign_application_reviewer **只写 audit_logs**，
+     不写 application_status_history —— 因为 my_application_timeline 会把该申请
+     全部 history 行原样返回（0008:211-218）。那条保证属于 0027，本轮 **NOT_RUN**。
+     这里能验的是**客户端**这一侧：哪怕 assigned_reviewer 混进了返回给申请人的行里，
+     页面也一个字都不能显示出来。 */
+  const LEAKY = { ...DRAFT, status: "submitted",
+    assigned_reviewer: "u-reviewer-should-never-show",
+    applicant_visible_message: null };
+  await open({ tables: BASE_TABLES, rpc: { my_application: { data: [LEAKY] },
+    my_application_timeline: { data: [
+      { to_status: "submitted", applicant_visible_message: "已收到你的申请", created_at: "2026-09-10T00:00:00Z" },
+    ] } } });
+  const a1 = await bodyVis();
+  ok("A1-0 前提：申请页确实渲染出来了", /我的申请/.test(a1 || ""), (a1 || "").slice(0, 120));
+  ok("A1 审核人的标识一个字都没出现",
+     !/u-reviewer-should-never-show/.test(a1 || ""), (a1 || "").slice(0, 200));
+  ok("A1b 页面上没有「审核人／指派」这类字样",
+     !/审核人/.test(a1 || "") && !/指派/.test(a1 || ""), (a1 || "").slice(0, 240));
+  ok("A1c 对照：时间线里该显示的东西照常显示（不是整页空了才变绿）",
+     /已收到你的申请/.test(a1 || ""), (a1 || "").slice(0, 240));
+
+  console.log("  NOT_RUN  「指派不写 application_status_history」是 0027 的保证：");
+  console.log("           本轮没有 apply、没有真实数据库执行，这里只验了客户端不显示。");
+
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
