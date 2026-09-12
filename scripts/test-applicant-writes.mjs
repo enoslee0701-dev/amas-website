@@ -161,7 +161,11 @@ window.supabase = {
     }
     return {
       auth: {
-        getSession: function(){ return reply({ data:{ session:{ user:{id:"u-appl"}, access_token:"fixture-token" } }, error:null }); },
+        getSession: function(){
+          var u = (window.__SCEN && window.__SCEN.uid) || "u-appl";
+          return reply({ data:{ session:{ user:{ id:u }, access_token:"fixture-token" } }, error:null });
+        },
+        signOut: function(){ return reply({}); },
         mfa: { getAuthenticatorAssuranceLevel: function(){
           return reply({ data:{ currentLevel:"aal1", nextLevel:"aal1" }, error:null }); } },
         onAuthStateChange: function(){ return { data:{ subscription:{ unsubscribe:function(){} } } }; },
@@ -545,6 +549,48 @@ try {
   ok("R5 选「丢弃」后提示消失、暂存清空，表单保持服务端版本",
      !(await banner("restoreBox")) && !(await stash()) && (await fieldVal()) !== "FIXTURE-EDIT",
      JSON.stringify({ banner: await banner("restoreBox"), stash: await stash(), val: await fieldVal() }));
+
+  // ════════ D 暂存失败不能吞掉（返修 eventd732）════════
+  console.log("\n=== D 存不下就不许重载 ===");
+  /* 原来 stashDraft 是 catch(e){} 外加一句「存不下就算了」，然后照样 reload
+     —— 唯一一份未保存的内容就这么没了（反例实测 reloads=1 / saved=false）。
+     配额满、隐私模式、存储被禁用都会走到这条路。 */
+  const breakStorage = async (mode) => cdp.ev(`(()=>{
+    const k = ${JSON.stringify("mode")};
+    if (${JSON.stringify(mode)} === "throw") {
+      sessionStorage.setItem = function(){ const e = new Error("quota"); e.name = "QuotaExceededError"; throw e; };
+    } else {   // 不抛错但也不存（有些隐私模式就是这样）
+      sessionStorage.setItem = function(){};
+    }
+    return true;})()`);
+  const navCount = [];
+  cdp.on("Page.frameNavigated", (p) => { if (p.frame && !p.frame.parentId) navCount.push(String(p.frame.url||"")); });
+
+  for (const [label, mode] of [["setItem 抛配额错","throw"], ["不抛错但没真的存下","silent"]]) {
+    await open({ ...withApp, writes: { applications: { data:[], error:null } },
+      rpc: { my_application:{ data:[{ ...DRAFT, updated_at:"2026-09-10T00:00:00Z" }] } } });
+    await touchForm();
+    await sleep(1600);
+    await breakStorage(mode);
+    navCount.length = 0;
+    await cdp.ev(`(()=>{const b=[...document.querySelectorAll("#conflictBox button")].find(x=>/保留/.test(x.textContent||"")); if(b) b.click(); return !!b;})()`);
+    await sleep(1800);
+    ok("D 暂存失败（" + label + "）→ **不重新载入**",
+       navCount.length === 0, "发生了 " + navCount.length + " 次导航");
+    ok("D 暂存失败（" + label + "）→ 用户填的内容还在页面上",
+       (await cdp.ev(`(()=>{const i=document.querySelector("#appForm [data-f]"); return i?i.value:null;})()`)) === "FIXTURE-EDIT");
+    const fb = await cdp.ev(`(()=>{const b=document.getElementById("stashFailBox");
+      return b ? { text:(b.textContent||"").trim().slice(0,120),
+                   ta: !!b.querySelector("textarea"),
+                   taVal: (b.querySelector("textarea")||{}).value || "",
+                   buttons:[...b.querySelectorAll("button")].map(x=>(x.textContent||"").trim()) } : null;})()`);
+    ok("D 暂存失败（" + label + "）→ 明说存不下、并说明没有重新载入",
+       !!fb && /存不下/.test(fb.text) && /没有.*重新载入|没有重新载入/.test(fb.text.replace(/\*/g,"")), JSON.stringify(fb && fb.text));
+    ok("D 暂存失败（" + label + "）→ 把内容摊出来让他能复制带走",
+       !!fb && fb.ta === true && fb.taVal.indexOf("FIXTURE-EDIT") > -1, JSON.stringify(fb && fb.taVal.slice(0,80)));
+    ok("D 暂存失败（" + label + "）→ 重新载入改成由他自己点",
+       !!fb && fb.buttons.some(t => /重新载入/.test(t)), JSON.stringify(fb && fb.buttons));
+  }
 
   // ════════ Q 标记补件完成 ════════
   console.log("\n=== Q 标记补件完成 ===");

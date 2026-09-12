@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130231">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130239">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130231"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130231"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130231"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130231"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130231"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609130231"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130239"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130239"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130239"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130239"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130239"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609130239"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -56,11 +56,17 @@
      恢复永远由他点，**绝不自动应用**；恢复时只覆盖未锁定的字段，
      免得把锁定字段写回去被服务端整单拒绝（0008 的 lock guard）。 */
   const DRAFT_KEY = "amasDraftStash";
+  /** 暂存并**明确回报成功与否**。原来这里是 `catch (e) {}` 外加一句
+      「存不下就算了」—— 然后照样 location.reload()，把唯一一份未保存的内容
+      弄丢了（监督反例 eventd732：setItem 抛 QuotaExceededError，
+      reloads=1、saved=false）。配额满、隐私模式、存储被禁用都会走到这里。
+      写完还要读回来确认：有的浏览器 setItem 不抛错，但也没真的存下。 */
   function stashDraft(){
     try {
       sessionStorage.setItem(DRAFT_KEY, JSON.stringify({
         id: app.id, at: Date.now(), form_data: app.form_data, pathway: app.pathway }));
-    } catch (e) { /* 存不下就算了，不能因此挡住重新载入 */ }
+      return !!sessionStorage.getItem(DRAFT_KEY);
+    } catch (e) { return false; }
   }
   function readStash(){
     try {
@@ -490,6 +496,40 @@
     return { ok: true, unclear: false };
   }
 
+  /** 暂存失败时的出口：不重载、不隐藏，把他填的内容原样摊出来，
+      并把光标放进去全选好，直接 Ctrl/Cmd+C 就能带走。
+      不依赖剪贴板权限（navigator.clipboard 在很多环境下会被拒）。 */
+  function showStashFailed(){
+    let box = document.getElementById("stashFailBox");
+    if (box) { box.querySelector("textarea").select(); return; }
+    box = document.createElement("div");
+    box.id = "stashFailBox";
+    box.className = "msg err show";
+    box.setAttribute("role", "alert");
+    box.style.margin = "12px 0";
+    box.textContent = "这个浏览器现在存不下草稿（可能是隐私模式、存储被禁用或空间已满），" +
+      "所以**没有**重新载入 —— 页面上这一份是唯一的副本。" +
+      "请先把下面的内容复制保存，再决定要不要重新载入。 ";
+    const ta = document.createElement("textarea");
+    ta.readOnly = true;
+    ta.style.cssText = "width:100%;min-height:160px;margin-top:8px;font:12px/1.6 Consolas,monospace";
+    const lines = [];
+    Object.keys(app.form_data || {}).forEach((k) => {
+      const v = app.form_data[k];
+      lines.push(k + ": " + (typeof v === "string" ? v : JSON.stringify(v)));
+    });
+    ta.value = lines.join("\n");
+    box.appendChild(ta);
+    const later = document.createElement("button");
+    later.type = "button"; later.className = "link"; later.textContent = "我已复制，重新载入";
+    later.addEventListener("click", () => location.reload());
+    box.appendChild(document.createElement("br"));
+    box.appendChild(later);
+    const host = document.getElementById("appForm") || main;
+    (host.parentNode || main).insertBefore(box, host);
+    ta.select();
+  }
+
   /** 冲突提示：**不自动重新载入** —— 那会把用户正在编辑的内容冲掉。
       把选择权交给他：要么先把内容抄走再载入，要么继续编辑别的字段。 */
   function showConflict(customText){
@@ -510,7 +550,12 @@
       const keep = document.createElement("button");
       keep.type = "button"; keep.className = "link";
       keep.textContent = "保留我的编辑并重新载入";
-      keep.addEventListener("click", () => { stashDraft(); location.reload(); });
+      keep.addEventListener("click", () => {
+        /* 存不下就**绝不重新载入** —— 页面上这一份是唯一的副本。
+           留在原地，把内容摊出来让他自己带走。 */
+        if (!stashDraft()) { showStashFailed(); return; }
+        location.reload();
+      });
       const plain = document.createElement("button");
       plain.type = "button"; plain.className = "link";
       plain.textContent = "直接重新载入（丢弃我的编辑）";
