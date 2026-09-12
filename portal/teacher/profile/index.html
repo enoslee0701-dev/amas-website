@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>我的资料 | AMAS</title>
+<link rel="icon" href="../../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609121433">
+<style>
+.sec{margin-bottom:18px}
+.sec h2{font-size:16px;color:var(--navy);margin:0 0 4px}
+.sec .note{font-size:12.5px;color:var(--muted);margin:0 0 12px}
+.lock{display:inline-flex;align-items:center;gap:4px;background:var(--wash);border:1px solid var(--line);
+  border-radius:99px;padding:1px 9px;font-size:11px;color:var(--muted);margin-left:8px;white-space:nowrap}
+.ro{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+  padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
+.ro:last-child{border-bottom:0}
+.ro>span{color:var(--muted);font-size:13px;flex:0 0 auto}
+.ro>b{color:var(--navy);text-align:right;word-break:break-all;font-variant-numeric:tabular-nums}
+.bio{margin-top:10px;padding:11px 13px;border-radius:10px;background:var(--wash);
+  border-left:3px solid var(--line);font-size:13.5px;line-height:1.9;color:var(--navy);white-space:pre-wrap}
+.fld{margin-bottom:14px}
+.fld label{display:block;font-size:13px;font-weight:700;color:var(--navy);margin-bottom:6px}
+.fld input{width:100%;min-height:46px;padding:11px 13px;border:1.5px solid var(--line);border-radius:10px;font:inherit}
+.fld input:focus{outline:none;border-color:var(--navy2);box-shadow:0 0 0 3px rgba(23,63,112,.12)}
+.fld .h{font-size:12px;color:var(--muted);margin-top:5px}
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609121433"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609121433"></script>
+<script src="../../../assets/js/portal/api.js?v=202609121433"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609121433"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609121433"></script>
+<script>
+/* 教师我的资料页。
+
+   契约来源（仓库里已有，不是新造的）：
+     读  public.my_profile()                    -> profiles 整行（0002/0003）
+     读  public.teacher_profiles（tp_select 策略：user_id = auth.uid() 或管理员，
+         0004_teacher_verification.sql:277）
+     写  public.update_my_contact(p_display_name, p_phone, p_contact_note)（0017）
+
+   ★ 教职档案是**只读**的，而且不是「我们选择不让改」——
+     0004:281 明确 `revoke insert, update, delete on public.teacher_profiles
+     from anon, authenticated`。教职工号、对外姓名、对外简介、在职状态、验证时间
+     都只能由教务维护。页面如实标注「由教务维护」，不给假的编辑入口。
+   ★ 可自维护的只有 profiles 上那三个联系字段，走 update_my_contact 白名单函数。
+   ★ 教师权限需要 MFA（与工作台一致的 requireAal2 双闸）。 */
+(async function(){
+  const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell;
+  const mounted = await Shell.mount({ space: "teacher", title: "我的资料",
+                                      allow: ["teacher", "mentor"], requireAal2: true });
+  if (!mounted) return;
+  const { main, ctx } = mounted;
+
+  const TS = { active: "在职", leave: "休假", suspended: "已暂停", departed: "已离任" };
+  const d = (v) => v ? new Date(v).toLocaleDateString("zh-CN") : "—";
+  const ro = (k, v) => '<div class="ro"><span>' + UI.esc(k) + '</span><b>' + UI.esc(v || "—") + '</b></div>';
+
+  UI.loading(main, 4);
+  const [{ data: prof, error: e1 }, { data: tp, error: e2 }] = await Promise.all([
+    Api.rpc("my_profile"),
+    Api.select("teacher_profiles", {
+      columns: "staff_number,public_name,public_bio,status,verified_at,verification_expires_at",
+      eq: { user_id: ctx.session.user.id },
+      single: true,
+    }),
+  ]);
+  /* 只有 my_profile 失败才算「这页开不了」。teacher_profiles 取不到有正当情形
+     （档案还没建），那种情况下页面照常显示联系方式，教职档案区另说。 */
+  if (e1) return UI.error(main, { message: e1.message || Api.msg(e1 && e1.code),
+                                  onRetry: () => location.reload() });
+  if (!prof) return UI.error(main, { message: "没有读到你的档案，请稍后重试或联系教务同工。",
+                                     onRetry: () => location.reload() });
+
+  main.innerHTML =
+    '<h1>我的资料</h1>' +
+    '<p class="lead">联系方式可以自行维护；教职工号、对外姓名与在职状态由 AMAS 教务处维护。</p>' +
+
+    '<div class="card sec">' +
+      '<h2>我可以修改的资料</h2>' +
+      '<p class="note">这些信息用于教务与你联系，请保持可用。</p>' +
+      '<form id="f" novalidate>' +
+        '<div class="fld"><label for="nm">姓名</label>' +
+          '<input id="nm" value="' + UI.esc(prof.display_name || "") + '" maxlength="60" autocomplete="name">' +
+          '<div class="h">用于门户显示。对外公开的教师姓名由教务单独维护，见下方。</div></div>' +
+        '<div class="fld"><label for="ph">联系电话</label>' +
+          '<input id="ph" value="' + UI.esc(prof.phone || "") + '" maxlength="40" inputmode="tel" autocomplete="tel">' +
+          '<div class="h">教务需要时会通过这个号码联系你。</div></div>' +
+        '<div class="fld"><label for="ct">备用联系方式</label>' +
+          '<input id="ct" value="' + UI.esc(prof.contact_note || "") + '" maxlength="120">' +
+          '<div class="h">微信 / Line / 备用邮箱等，可留空。</div></div>' +
+        '<button class="btn" id="save" type="submit" style="width:auto;padding:0 26px">保存</button>' +
+        '<div class="msg err" id="err" role="alert"></div>' +
+        '<div class="msg ok" id="ok" role="status"></div>' +
+      '</form>' +
+    '</div>' +
+
+    '<div class="card sec">' +
+      '<h2>教职档案<span class="lock">🔒 由教务维护</span></h2>' +
+      (tp
+        ? '<p class="note">以下内容由 AMAS 教务处维护，教师本人无法自行修改。' +
+            '如发现错误，请联系教务同工更正。</p>' +
+          ro("教职工号", tp.staff_number || "待教务分配") +
+          ro("在职状态", TS[tp.status] || tp.status) +
+          ro("对外姓名", tp.public_name) +
+          ro("验证时间", d(tp.verified_at)) +
+          (tp.verification_expires_at ? ro("验证有效期至", d(tp.verification_expires_at)) : "") +
+          (tp.public_bio
+            ? '<p class="note" style="margin:12px 0 0">对外简介</p><div class="bio">' +
+                UI.esc(tp.public_bio) + '</div>'
+            : "")
+        : '<p class="note">' +
+            (e2 ? "暂时读不到教职档案，请稍后刷新；若持续如此请联系教务同工。"
+                : "还没有教职档案记录。教师身份通过验证后，教务会建立这份档案。") +
+          '</p>') +
+    '</div>' +
+
+    '<div class="card sec">' +
+      '<h2>登录信息<span class="lock">🔒 由系统维护</span></h2>' +
+      ro("登录邮箱", prof.email) +
+      ro("时区", prof.timezone) +
+    '</div>';
+
+  const err = document.getElementById("err"), ok = document.getElementById("ok");
+  const form = document.getElementById("f");
+  const btn = document.getElementById("save");
+
+  form.addEventListener("input", () => {
+    err.classList.remove("show"); ok.classList.remove("show");
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (btn.disabled) return;                      // 在途期间吞掉重复提交
+    err.classList.remove("show"); ok.classList.remove("show");
+    btn.disabled = true; btn.setAttribute("aria-busy", "true");
+    const { error } = await Api.rpc("update_my_contact", {
+      p_display_name: document.getElementById("nm").value.trim() || null,
+      p_phone: document.getElementById("ph").value.trim(),
+      p_contact_note: document.getElementById("ct").value.trim(),
+    });
+    btn.disabled = false; btn.removeAttribute("aria-busy");
+    if (error) {
+      /* Api.msg 收的是 code 字符串，不是 error 对象 —— 传对象会一律落到 unknown。
+         与站内其余提交路径同一判据：拿不到明确回应时不断言「没保存上」。 */
+      err.textContent = error.message || Api.msg(error.code);
+      err.classList.add("show");
+      return;
+    }
+    ok.textContent = "已保存。";
+    ok.classList.add("show");
+  });
+})();
+</script>
+</body>
+</html>

@@ -40,6 +40,7 @@
     ],
     teacher: [
       { href: "portal/teacher/", icon: "🏠", label: "工作台" },
+      { href: "portal/teacher/profile/", icon: "👤", label: "我的资料" },
       { href: "help/", icon: "💬", label: "帮助" },
     ],
     admin: [

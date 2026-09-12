@@ -473,6 +473,102 @@ try {
   // M5 外发审计
   ok("M5 全程零真实外发", externalHits === 0, `externalHits=${externalHits}`);
 
+  /* ════════════ T 教师空间：工作台与我的资料 ════════════
+     教师空间原来是四个空间里唯一**没有导航条**的（工作台直接用 requireRoleAal2，
+     没走 Shell），于是新页面根本无从进入。本段同时验证迁移后的工作台与新资料页。 */
+  console.log("");
+  console.log("=== T 教师空间 ===");
+
+  const TEACHER = { session: SESSION, aal: "aal2",
+    rpc: { my_roles: { data: [{ role: "teacher" }] },
+           my_profile: { data: Object.assign({}, PROFILE, { display_name: "王教师" }) } } };
+  const TP_ROW = { staff_number: "T-0007", public_name: "王教师", public_bio: "新约与讲道学",
+    status: "active", verified_at: "2026-01-10T02:00:00Z", verification_expires_at: null };
+
+  // T1 工作台：有档案
+  await open("portal/teacher/", Object.assign({}, TEACHER, {
+    tables: { teacher_profiles: { data: TP_ROW } } }));
+  const tc_t1 = await txt();
+  ok("T1 工作台进得去", /教师工作台/.test(tc_t1), tc_t1.slice(0, 50));
+  ok("T1 显示工号与在职状态", /T-0007/.test(tc_t1) && /在职/.test(tc_t1), tc_t1.slice(0, 120));
+  ok("T1 工作台现在有导航条（Shell 已接管）",
+     (await cdp.ev(`!!document.querySelector(".portal-shell .pn")`)) === true);
+  ok("T1 导航里有「我的资料」",
+     (await cdp.ev(`[...document.querySelectorAll(".pn a")].some(a=>/我的资料/.test(a.textContent||""))`)) === true);
+  ok("T1 未开通的四项不是可点链接（点进去空无一物比看见「即将开通」更糟）",
+     (await cdp.ev(`document.querySelectorAll(".spaces a").length`)) === 0);
+
+  // T2 工作台：还没有档案 —— 与「读取出错」必须分开说
+  await open("portal/teacher/", Object.assign({}, TEACHER, {
+    tables: { teacher_profiles: { data: null } } }));
+  const tc_t2 = await txt();
+  ok("T2 没有档案时说「还没有」而不是「读取失败」",
+     /还没有教职档案/.test(tc_t2) && !/读不到/.test(tc_t2), tc_t2.slice(0, 120));
+
+  // T3 工作台：读取出错
+  await open("portal/teacher/", Object.assign({}, TEACHER, {
+    tables: { teacher_profiles: { error: { message: "boom" } } } }));
+  const tc_t3 = await txt();
+  ok("T3 读取出错时说读不到并提示刷新（不谎称没有档案）",
+     /读不到教职档案/.test(tc_t3) && !/还没有教职档案/.test(tc_t3), tc_t3.slice(0, 120));
+
+  // T4 资料页：正常读取
+  await open("portal/teacher/profile/", Object.assign({}, TEACHER, {
+    tables: { teacher_profiles: { data: TP_ROW } } }));
+  const tc_t4 = await txt();
+  ok("T4 资料页进得去", /我的资料/.test(tc_t4), tc_t4.slice(0, 50));
+  ok("T4 联系字段填进了输入框",
+     (await cdp.ev(`document.getElementById("nm").value`)) === "王教师");
+  ok("T4 教职档案只读显示（工号/状态/对外姓名）",
+     /T-0007/.test(tc_t4) && /在职/.test(tc_t4) && /新约与讲道学/.test(tc_t4), tc_t4.slice(0, 160));
+  ok("T4 明确标注由教务维护", /由教务维护/.test(tc_t4));
+  ok("T4 教职档案**不给**编辑控件（该表对 authenticated 已撤销写权限）",
+     (await cdp.ev(`(()=>{const f=document.getElementById("f");
+       const all=[...document.querySelectorAll("input,textarea")];
+       return all.every(el => f.contains(el));})()`)) === true,
+     "教职档案区出现了可编辑控件");
+
+  // T5 资料页：保存只经白名单
+  await cdp.ev(`(()=>{document.getElementById("ph").value="0812345678";
+    document.getElementById("ph").dispatchEvent(new Event("input",{bubbles:true})); return true;})()`);
+  await cdp.clickReal("#save");
+  await sleep(500);
+  const tc_t5 = (await calls()).filter((c) => c.kind === "rpc" && c.name === "update_my_contact").pop();
+  ok("T5 保存走 update_my_contact", !!tc_t5);
+  ok("T5 只传白名单三参数",
+     !!tc_t5 && Object.keys(tc_t5.args).sort().join(",") === "p_contact_note,p_display_name,p_phone",
+     tc_t5 ? JSON.stringify(tc_t5.args) : "");
+  ok("T5 成功后显示已保存", /已保存/.test(await txt()));
+
+  // T6 资料页：教职档案取不到时，联系方式仍可用
+  await open("portal/teacher/profile/", Object.assign({}, TEACHER, {
+    tables: { teacher_profiles: { error: { message: "boom" } } } }));
+  const tc_t6 = await txt();
+  ok("T6 教职档案读不到时页面照常可用（不整页报错）",
+     /我的资料/.test(tc_t6) && !!(await cdp.ev(`!!document.getElementById("nm")`)), tc_t6.slice(0, 80));
+  ok("T6 教职档案区如实说读不到", /读不到教职档案/.test(tc_t6), tc_t6.slice(0, 140));
+
+  // T7 权限：学生打不开教师页
+  await open("portal/teacher/profile/", {
+    session: SESSION, aal: "aal2",
+    rpc: { my_roles: { data: [{ role: "student" }] }, my_profile: { data: PROFILE } },
+    tables: { teacher_profiles: { data: TP_ROW } },
+  });
+  await sleep(700);
+  const tc_t7 = await cdp.ev(`({ path: location.pathname, body:(document.body.textContent||"").slice(0,60) })`);
+  ok("T7 学生角色不会停在教师资料页", !/teacher\/profile/.test(tc_t7.path), JSON.stringify(tc_t7));
+  ok("T7 越权时不渲染教职档案", !/T-0007/.test(tc_t7.body), tc_t7.body);
+
+  // T8 MFA：aal1 的教师被挡
+  await open("portal/teacher/profile/", {
+    session: SESSION, aal: "aal1",
+    rpc: { my_roles: { data: [{ role: "teacher" }] }, my_profile: { data: PROFILE } },
+    tables: { teacher_profiles: { data: TP_ROW } },
+  });
+  await sleep(700);
+  const tc_t8 = await cdp.ev(`location.pathname + location.search`);
+  ok("T8 aal1 的教师被 MFA 闸拦下", /mfa/.test(tc_t8) || !/teacher\/profile/.test(tc_t8), tc_t8);
+
   /* ════════════ P 沿**真实链路**验证未知结果 ════════════
      前面 M 段是直接 stub A.callFn 的返回值 —— 那只测了页面对 error 对象的反应，
      跳过了 auth.js 的 callFn 与 api.js 的 fn 两层。真正的坑恰恰在那两层：

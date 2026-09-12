@@ -6,66 +6,79 @@
 <meta name="robots" content="noindex">
 <title>教师工作台 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609121413">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609121433">
 </head>
 <body>
-<div class="wrap wide">
-  <div class="brandbar">
-    <img src="../../assets/img/school-seal.webp" alt="AMAS">
-    <h1>教师工作台</h1>
-    <div class="en">TEACHER WORKSPACE</div>
-  </div>
-
-  <div class="card">
-    <div class="pagehead">
-      <div><h2 style="margin:0">欢迎<span id="uname"></span> <span class="badge">教师</span><span class="badge" id="mfaBadge" style="background:#e9f3ee;color:var(--ok)">已两步验证</span></h2>
-        <div class="who" id="uemail"></div></div>
-      <button class="link" id="btnOut">退出登录</button>
-    </div>
-
-    <div class="msg info show">
-      教师身份已激活（本页要求两步验证通过后才能进入）。课程分配、点名、作业与成绩模块在 Phase 4 开通；
-      在此之前你可以在下方查看自己的验证与档案状态。
-    </div>
-
-    <h3 style="color:var(--navy);margin:20px 0 8px">我的教师档案</h3>
-    <div id="tpBox" class="msg info show">读取中…</div>
-
-    <h3 style="color:var(--navy);margin:20px 0 8px">即将开通</h3>
-    <div class="spaces">
-      <a href="#" onclick="return false" style="opacity:.55"><span class="ic">📚</span><span><b>我的课程</b><span>Phase 4 · 被分配的课程与班级</span></span></a>
-      <a href="#" onclick="return false" style="opacity:.55"><span class="ic">🗓️</span><span><b>出勤点名</b><span>Phase 4</span></span></a>
-      <a href="#" onclick="return false" style="opacity:.55"><span class="ic">📝</span><span><b>作业与成绩</b><span>Phase 4 · 批改、评分与发布建议</span></span></a>
-      <a href="#" onclick="return false" style="opacity:.55"><span class="ic">🤝</span><span><b>导师反馈</b><span>Phase 5 · 被授权学员的成长摘要</span></span></a>
-    </div>
-  </div>
-
-  <div class="foot"><a href="../">工作空间</a> · <a href="../../index.html">返回官网</a></div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609121413"></script>
-<script src="../../assets/js/portal/auth.js?v=202609121413"></script>
+<script src="../../assets/js/supabase-config.js?v=202609121433"></script>
+<script src="../../assets/js/portal/auth.js?v=202609121433"></script>
+<script src="../../assets/js/portal/api.js?v=202609121433"></script>
+<script src="../../assets/js/portal/ui.js?v=202609121433"></script>
+<script src="../../assets/js/portal/shell.js?v=202609121433"></script>
 <script>
-(async function(){
-  const A = window.AmasAuth;
-  const ctx = await A.requireRoleAal2(["teacher","mentor"]);   // 角色 + MFA 双闸
-  if (!ctx) return;
-  const p = await A.getProfile();
-  if (p) {
-    document.getElementById("uname").textContent = p.display_name ? "，" + p.display_name : "";
-    document.getElementById("uemail").textContent = p.email || "";
-  }
-  document.getElementById("btnOut").addEventListener("click", () => A.signOut());
+/* 教师工作台。
 
-  const { data: tp } = await A.client.from("teacher_profiles").select("staff_number, public_name, status, verified_at").eq("user_id", ctx.session.user.id).maybeSingle();
-  const box = document.getElementById("tpBox");
-  if (tp) {
-    const S = { active: "在职", leave: "休假", suspended: "已暂停", departed: "已离任" };
-    box.innerHTML = "教职工号：<b>" + (tp.staff_number || "待分配") + "</b> ｜ 状态：<b>" + (S[tp.status] || tp.status) + "</b> ｜ 验证时间：" + new Date(tp.verified_at).toLocaleDateString("zh-CN");
-  } else {
-    box.textContent = "未找到教师档案，请联系教务同工。";
-  }
+   本页原来直接用 A.requireRoleAal2 + 手写 brandbar，**没有走 Shell** ——
+   于是教师空间是四个空间里唯一没有导航条的：登录进来只有这一页，
+   「我的资料」之类的页面根本无从进入。现改为 Shell.mount，与其余三个空间一致。
+   身份条与退出键由 Shell 渲染，这里不再自己写一份。
+
+   教职档案读 public.teacher_profiles（tp_select：user_id = auth.uid() 或管理员，
+   0004_teacher_verification.sql:277）。该表对 authenticated **撤销了写权限**
+   （0004:281），所以本页只读、不给编辑入口。 */
+(async function(){
+  const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell;
+  const mounted = await Shell.mount({ space: "teacher", title: "教师工作台",
+                                      allow: ["teacher", "mentor"], requireAal2: true });
+  if (!mounted) return;
+  const { main, ctx } = mounted;
+
+  const TS = { active: "在职", leave: "休假", suspended: "已暂停", departed: "已离任" };
+  const d = (v) => v ? new Date(v).toLocaleDateString("zh-CN") : "—";
+
+  UI.loading(main, 3);
+  const { data: tp, error } = await Api.select("teacher_profiles", {
+    columns: "staff_number,public_name,status,verified_at",
+    eq: { user_id: ctx.session.user.id },
+    single: true,
+  });
+
+  /* 三种情况分开说，不混为一谈：
+       有档案      显示工号与状态
+       没有档案    验证通过后教务才建档，如实说「还没有」而不是「读取失败」
+       读取出错    说读不到并给刷新，不能把「出错」显示成「没有档案」 */
+  const tpBox = error
+    ? '<div class="msg warn show">暂时读不到教职档案，请稍后刷新；若持续如此请联系教务同工。</div>'
+    : tp
+    ? '<div class="msg info show">教职工号：<b>' + UI.esc(tp.staff_number || "待教务分配") +
+      '</b> ｜ 状态：<b>' + UI.esc(TS[tp.status] || tp.status) +
+      '</b> ｜ 验证时间：' + d(tp.verified_at) + '</div>'
+    : '<div class="msg info show">还没有教职档案记录。教师身份通过验证后，教务会建立这份档案。</div>';
+
+  main.innerHTML =
+    '<h1>教师工作台</h1>' +
+    '<div class="msg info show">教师身份已激活（本页要求两步验证通过后才能进入）。' +
+      '课程分配、点名、作业与成绩模块在 Phase 4 开通；在此之前你可以查看自己的验证与档案状态。</div>' +
+
+    '<h3 style="color:var(--navy);margin:20px 0 8px">我的教师档案</h3>' +
+    tpBox +
+    '<p class="note" style="font-size:12.5px;color:var(--muted);margin-top:8px">' +
+      '联系方式可以在<a class="link" href="' + A.ROOT + 'portal/teacher/profile/">我的资料</a>里自行维护；' +
+      '工号与在职状态由教务维护。</p>' +
+
+    '<h3 style="color:var(--navy);margin:22px 0 8px">即将开通</h3>' +
+    '<div class="spaces">' +
+      '<span style="opacity:.55"><span class="ic">📚</span><span><b>我的课程</b>' +
+        '<span>Phase 4 · 被分配的课程与班级</span></span></span>' +
+      '<span style="opacity:.55"><span class="ic">🗓️</span><span><b>出勤点名</b>' +
+        '<span>Phase 4</span></span></span>' +
+      '<span style="opacity:.55"><span class="ic">📝</span><span><b>作业与成绩</b>' +
+        '<span>Phase 4 · 批改、评分与发布建议</span></span></span>' +
+      '<span style="opacity:.55"><span class="ic">🤝</span><span><b>导师反馈</b>' +
+        '<span>Phase 5 · 被授权学员的成长摘要</span></span></span>' +
+    '</div>' +
+    '<p class="note" style="font-size:12.5px;color:var(--muted);margin-top:8px">' +
+      '这四项尚未开通，所以不做成可点的链接 —— 点进去空无一物比看见「即将开通」更糟。</p>';
 })();
 </script>
 </body>
