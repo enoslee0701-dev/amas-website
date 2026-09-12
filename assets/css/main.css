@@ -294,6 +294,23 @@ html[data-theme="night"] .digital-section::after{background:linear-gradient(105d
 .course-card.hidden-card{display:none}.course-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
 .course-more-wrap{margin-top:24px;text-align:center}
 .course-more{min-width:240px}
+/* 课程搜索行。延续 .filter-row 的节奏与 .resource-search-wrap 的输入框尺寸（48px），
+   不另立一套视觉。清空键叠在输入框右侧，命中区 44x44。 */
+.course-search-row{margin:-12px 0 24px}
+.course-search{position:relative;display:block;width:min(420px,100%)}
+.course-search input{width:100%;height:48px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:0 46px 0 16px;outline:none;font:inherit;font-size:14px;color:var(--ink)}
+.course-search input:focus{border-color:var(--olive)}
+.course-search-clear{position:absolute;right:2px;top:2px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:44px;height:44px;border:0;background:none;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;border-radius:10px}
+.course-search-clear:hover{color:var(--ink)}
+.course-search-clear:focus-visible{outline:2px solid var(--olive-dark);outline-offset:-2px}
+.course-result{margin:10px 0 0;font-size:13px;color:var(--muted)}
+.course-result.is-empty{color:#8a5a1f}
+.course-result-clear{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:44px;margin-left:10px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#514d43;font:inherit;font-size:13px;cursor:pointer}
+.course-result-clear:focus-visible{outline:2px solid var(--olive-dark);outline-offset:2px}
+@media (max-width:360px){.course-search input{height:46px}}
+html[data-theme="night"] .course-search input{background:var(--surface);color:var(--ink);border-color:var(--line)}
+html[data-theme="night"] .course-search input::placeholder{color:#8b897f}
+html[data-theme="night"] .course-result-clear{background:var(--surface);color:var(--ink)}
 /* 课程缩略图：每门课一张矢量版画（tools/gen-thumbs.mjs 生成），任何 DPR 都锐利 */
 .course-thumb{width:150px;height:88px;flex-shrink:0;border-radius:8px;background-size:cover;background-position:center;background-repeat:no-repeat;background-color:var(--paper3)}
 /* 每门课的专属封面：写实照片，一课一图不重复 */

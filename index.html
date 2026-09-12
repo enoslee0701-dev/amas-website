@@ -83,9 +83,9 @@
 })();
 </script>
 <script>(function(){var l=document.createElement("link");l.rel="preload";l.as="image";l.href="assets/img/hero-"+(document.documentElement.dataset.theme==="night"?"night":"day")+".webp";document.head.appendChild(l);})();</script>
-<script src="assets/js/supabase-config.js?v=202609121249"></script>
+<script src="assets/js/supabase-config.js?v=202609121305"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/main.css?v=202609121249">
+<link rel="stylesheet" href="assets/css/main.css?v=202609121305">
 </head>
 <body>
 <a class="skip-link" href="#main" data-i18n="actions.skip">跳到主要内容</a>
@@ -358,6 +358,23 @@
         <button class="filter" type="button" data-filter="tools" aria-pressed="false" data-i18n="courses.filters.tools">语言与工具</button>
       </div>
       <p class="visually-hidden" id="courseCount" aria-live="polite"></p>
+
+      <!-- 课程搜索。67 门课靠分类还是不好找到某一门（比如只记得「NT 04」或「约翰福音」）。
+           只搜卡片上**已有**的文本：编号、课名、简介、分类名 —— 不引入任何新的课程事实。
+           与分类筛选是「与」关系：当前分类内再按关键词收窄。 -->
+      <div class="course-search-row">
+        <label class="course-search" for="courseSearch">
+          <span class="visually-hidden" data-i18n="courses.searchLabel">按课程名称或编号搜索</span>
+          <input id="courseSearch" type="search" autocomplete="off"
+                 placeholder="搜索课程名称或编号…"
+                 data-i18n-ph="courses.searchPlaceholder"
+                 data-i18n-aria="courses.searchLabel" aria-label="按课程名称或编号搜索"
+                 aria-controls="courseGrid">
+          <button class="course-search-clear" type="button" id="courseSearchClear" hidden
+                  data-i18n-aria="courses.searchClear" aria-label="清空搜索">×</button>
+        </label>
+        <p class="course-result" id="courseResult" hidden></p>
+      </div>
 
       <div class="course-grid" id="courseGrid">
         <!-- 课程数据来源：学院最终课程表（67 门 · 7 类）；配图版权见 assets/img/courses/CREDITS.json -->
@@ -1240,6 +1257,6 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="assets/js/main.js?v=202609121249"></script>
+<script src="assets/js/main.js?v=202609121305"></script>
 </body>
 </html>
