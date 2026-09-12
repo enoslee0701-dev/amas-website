@@ -230,7 +230,7 @@ try {
   const calls = async () => (await cdp.ev(`(()=>{try{return JSON.parse(sessionStorage.getItem("wCalls")||"{}");}catch(e){return{};}})()`)) || {};
   const vis = async (sel) => cdp.ev(`(()=>{const e=document.querySelector(${JSON.stringify(sel)});
     if(!e) return null; const k=e.cloneNode(true); k.querySelectorAll("[hidden]").forEach(n=>n.remove());
-    return (k.textContent||"").replace(/\s+/g," ").trim();})()`);
+    return (k.textContent||"").replace(/\\s+/g," ").trim();})()`);
   const toastNow = async () => cdp.ev(`(()=>{const t=document.getElementById("amas-toast");
     return t ? { text:(t.textContent||"").trim(), shown:t.classList.contains("show") } : null;})()`);
 
@@ -249,7 +249,7 @@ try {
   await sleep(1400);
   const c1 = await cdp.ev(`(()=>{const c=document.body.cloneNode(true);
     c.querySelectorAll("script,style,template,[hidden]").forEach(n=>n.remove());
-    return (c.textContent||"").replace(/\s+/g," ").trim();})()`);
+    return (c.textContent||"").replace(/\\s+/g," ").trim();})()`);
   ok("C1 结果不明时明说无法确认是否已创建，不说成「失败请重试」",
      /无法确认|没能确认/.test(c1), c1.slice(0, 200));
   ok("C1b 并且不再摆着一个点一下就可能建出第二份申请的按钮",

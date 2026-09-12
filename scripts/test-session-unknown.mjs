@@ -263,7 +263,7 @@ try {
      一起收进来，断言就变成「DOM 里有没有这句话」而不是「用户看到没有」。 */
   const txt = async () => cdp.ev(`(()=>{const c=document.body.cloneNode(true);
     c.querySelectorAll("script,style,template,[hidden]").forEach(n=>n.remove());
-    return (c.textContent||"").replace(/\s+/g," ").trim();})()`);
+    return (c.textContent||"").replace(/\\s+/g," ").trim();})()`);
   const loginHits = () => navLog.filter((u) => /\/login\//.test(u)).length;
   const STU = { roles:["student"], aalMode:"ok", aal:"aal1" };
 

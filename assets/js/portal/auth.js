@@ -72,7 +72,12 @@
     try { res = await client.rpc("my_roles"); }
     catch (e) { return { roles: [], failed: true }; }
     if (!res || res.error) return { roles: [], failed: true };
-    return { roles: (res.data || []).map((r) => r.role), failed: false };
+    /* `data` 读不出来同样是「不知道」，不是「确实没有角色」。
+       PostgREST 对集合返回函数无行时返回 `[]`，所以 `data` 为 null 属于
+       **防御性边界**（不声称真实服务上已经发生过）；但分不清结构时
+       就不能替它断定成没有权限 —— 那正是 §84.1 修过的同一个错误。 */
+    if (!Array.isArray(res.data)) return { roles: [], failed: true };
+    return { roles: res.data.map((r) => r.role), failed: false };
   }
 
   /** 兼容旧签名：只要数组。**新代码别用** —— 它没法表达「读不到」。 */

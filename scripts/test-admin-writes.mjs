@@ -237,10 +237,10 @@ try {
   };
   const vis = async (sel) => cdp.ev(`(()=>{const e=document.querySelector(${JSON.stringify(sel)});
     if(!e) return null; const k=e.cloneNode(true); k.querySelectorAll("[hidden]").forEach(n=>n.remove());
-    return (k.textContent||"").replace(/\s+/g," ").trim();})()`);
+    return (k.textContent||"").replace(/\\s+/g," ").trim();})()`);
   const bodyVis = async () => cdp.ev(`(()=>{const c=document.body.cloneNode(true);
     c.querySelectorAll("script,style,template,[hidden]").forEach(n=>n.remove());
-    return (c.textContent||"").replace(/\s+/g," ").trim();})()`);
+    return (c.textContent||"").replace(/\\s+/g," ").trim();})()`);
   /* 直接看 toast 与错误条本身，而不是在整页文本里碰运气匹配 ——
      「建立学籍」这条的成功文案是「学籍已建立（待正式注册）」，
      正则写歪一个字，S 段就会整段空转变绿。 */

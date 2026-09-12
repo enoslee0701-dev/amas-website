@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>账号验证 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609130040">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609130049">
 </head>
 <body>
 <div class="wrap">
@@ -48,8 +48,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609130040"></script>
-<script src="../../assets/js/portal/auth.js?v=202609130040"></script>
+<script src="../../assets/js/supabase-config.js?v=202609130049"></script>
+<script src="../../assets/js/portal/auth.js?v=202609130049"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
@@ -74,11 +74,23 @@
     location.replace(base + location.search + location.hash);
   }
   // 等待会话建立
-  let session = null;
-  for (let i = 0; i < 20 && !session; i++) { session = await A.getSession(); if (!session) await new Promise(r => setTimeout(r, 250)); }
+  /* 读不到会话 ≠ 链接失效。getSession 读失败时同样返回 null，于是下面两处
+     都会说「链接无效或已过期」，把人推去重新注册或重新发信 ——
+     而邮件投递本身仍是独立阻塞项，他手里那个链接其实可能好好的。 */
+  let session = null, readFailed = false;
+  for (let i = 0; i < 20 && !session; i++) {
+    const s = await A.fetchSession();
+    readFailed = s.failed;              // 只记最后一次：读得出来就不是「读不到」
+    session = s.session;
+    if (!session) await new Promise(r => setTimeout(r, 250));
+  }
+  const UNCLEAR_LINK = ["没能确认这个链接的状态",
+    "可能是网络不稳或服务端暂时不可用。请稍后用同一个链接重试，先不用重新注册。"];
 
   if (isRecovery) {
-    if (!session) return done("链接无效或已过期", "请重新发起找回密码。", "重新找回", "../../forgot-password/");
+    if (!session) return readFailed
+      ? done(UNCLEAR_LINK[0], UNCLEAR_LINK[1])
+      : done("链接无效或已过期", "请重新发起找回密码。", "重新找回", "../../forgot-password/");
     show("stateRecovery");
     document.getElementById("pwForm").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -96,9 +108,13 @@
 
   // 邮箱验证回调
   if (session) {
-    const roles = await A.getRoles();
-    return done("邮箱验证成功", "你的账号已激活，即将进入门户。", "进入门户", A.homeForRoles(roles));
+    /* 角色读不出来时别猜去处：homeForRoles([]) 会给出 portal/applicant/，
+       而他未必是申请人。读不到就送到门户总入口，那一页会自己重读并如实处理。 */
+    const r = await A.fetchRoles();
+    return done("邮箱验证成功", "你的账号已激活，即将进入门户。", "进入门户",
+      r.failed ? (A.ROOT + "portal/") : A.homeForRoles(r.roles));
   }
+  if (readFailed) return done(UNCLEAR_LINK[0], UNCLEAR_LINK[1]);
   done("链接无效或已过期", "验证链接可能已使用或超时，请重新登录或重新注册。");
 })();
 </script>
