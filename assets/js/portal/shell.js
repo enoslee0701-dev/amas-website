@@ -7,11 +7,17 @@
   if (!A || !U) { console.error("[AmasShell] 需要 auth.js 与 ui.js"); return; }
 
   const NAV = {
+    /* 这里遵守下面 student 那条同样的原则：只放确实存在的页面。
+       portal/applicant/history/ 与 portal/applicant/profile/ **目录并不存在**，
+       挂在导航上就是三个字：点了 404。
+       这类缺陷在本地根本看不出来 —— 门户导航只有在 Supabase 配置齐全且用户
+       已登录之后才渲染，而这两个条件今天都不成立，所以它会在后端开通的
+       第一天才爆出来。现由 scripts/check-internal-links.py 钉住。
+       要恢复这两个入口：先建出对应页面（历史申请需要按申请人查历史记录的
+       数据源，个人资料需要可读写的 profile 接口），再把这两行加回来。 */
     applicant: [
       { href: "portal/applicant/", icon: "🏠", label: "首页" },
       { href: "portal/applicant/application/", icon: "📝", label: "我的申请" },
-      { href: "portal/applicant/history/", icon: "🗂️", label: "历史申请" },
-      { href: "portal/applicant/profile/", icon: "👤", label: "个人资料" },
       { href: "help/", icon: "💬", label: "帮助" },
     ],
     // 只放确实存在且有真实内容的页面。学习进度/成长档案尚无可读数据源
@@ -31,7 +37,10 @@
       { href: "portal/admin/", icon: "🏠", label: "总览" },
       { href: "portal/admin/admissions/", icon: "📥", label: "招生审核" },
       { href: "portal/admin/students/", icon: "🎓", label: "学籍管理" },
-      { href: "portal/admin/teachers/", icon: "🏫", label: "教师验证" },
+      /* portal/admin/teachers/ 不存在 —— 管理员点进去是 404。
+         站内真实存在的教师验证入口是 faculty/verify/（那是教师本人提交验证的页面，
+         不是管理员审核台），两者不是一回事，所以这里**不做指向替换**，
+         直接撤掉入口。管理端的教师审核台建好后再加回来。 */
       { href: "help/", icon: "💬", label: "帮助" },
     ],
   };
