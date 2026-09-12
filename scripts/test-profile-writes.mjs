@@ -127,7 +127,9 @@ window.supabase = {
         if (name === "my_student_profile") return reply({ data:{ profile:PROF, student:{ student_number:"S-FX", status:"active", program_code:"bth" } }, error:null, status:200 });
         if (name === "update_my_contact") {
           var w = sc.write || { data:{ ok:true }, error:null, status:200 };
-          return reply({ data:w.data, error:w.error||null, status:w.status!=null?w.status:(w.error?500:200) });
+          var out = { data:w.data, error:w.error||null, status:w.status!=null?w.status:(w.error?500:200) };
+          if (w.delay) return new Promise(function(r){ setTimeout(function(){ r(out); }, w.delay); });
+          return reply(out);
         }
         var r = (sc.rpc && sc.rpc[name]) || { data:null, error:null };
         return reply({ data:r.data, error:r.error||null, status:200 });
@@ -253,6 +255,29 @@ try {
     const d3 = await leave();
     ok("U3 " + label + "：什么都没改就离开，不打扰",
        !d3.some(t => /beforeunload/i.test(t)), JSON.stringify(d3));
+  }
+
+  // ════════ Z 保存在途时继续输入（返修 event7bd）════════
+  console.log("\n=== Z 保存中继续输入 ===");
+  /* 电话填 A 提交，RPC 在途期间改成 B。A 成功回来后原来无条件 dirty=false ——
+     页面上是还没保存的 B，离开却不再提醒，B 就这么丢了。 */
+  for (const [label, page, base] of PAGES) {
+    await open(page, { ...base, write: { data:{ ok:true }, error:null, status:200, delay:1500 } });
+    await cdp.clickReal("#ph");
+    await cdp.ev(`(()=>{const i=document.getElementById("ph"); i.value="AAA-first";
+      i.dispatchEvent(new Event("input",{bubbles:true}));
+      document.querySelector("form").requestSubmit(); return true;})()`);
+    await sleep(400);
+    await cdp.ev(`(()=>{const i=document.getElementById("ph"); i.value="BBB-newer";
+      i.dispatchEvent(new Event("input",{bubbles:true})); return true;})()`);
+    await sleep(2000);
+    const st = await state();
+    ok("Z1 " + label + "：成功文案不暗示「你现在看到的这版已保存」",
+       /之后改的|还没保存|还没有保存/.test((st.ok || "") + (st.toast || "")),
+       JSON.stringify({ ok: st.ok, toast: st.toast }));
+    const d = await leave();
+    ok("Z2 " + label + "：更新的那一版仍受未保存守卫保护",
+       d.some(t => /beforeunload/i.test(t)), JSON.stringify(d));
   }
 
   console.log("\n=== G 外发 ===");

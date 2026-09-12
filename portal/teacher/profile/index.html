@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>我的资料 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130315">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130328">
 <style>
 .sec{margin-bottom:18px}
 .sec h2{font-size:16px;color:var(--navy);margin:0 0 4px}
@@ -29,11 +29,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130315"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130315"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130315"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130315"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130315"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130328"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130328"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130328"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130328"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130328"></script>
 <script>
 /* 教师我的资料页。
 
@@ -149,6 +149,10 @@
     if (btn.disabled) return;                      // 在途期间吞掉重复提交
     err.classList.remove("show"); ok.classList.remove("show");
     btn.disabled = true; btn.setAttribute("aria-busy", "true");
+    /* 提交的是**这一刻**的这三个值。RPC 在途期间用户可能继续打字，
+       所以把提交版本先拍下来 —— 成功只对这一版成立。 */
+    const sentSnap = ["nm", "ph", "ct"].map((id) => (document.getElementById(id) || {}).value || "").join("\u0001");
+
     const { data: d2, error } = await Api.rpc("update_my_contact", {
       p_display_name: document.getElementById("nm").value.trim() || null,
       p_phone: document.getElementById("ph").value.trim(),
@@ -170,8 +174,16 @@
       err.classList.add("show");
       return;
     }
-    dirty = false;                      // 存好了，离开就不必再拦
-    ok.textContent = "已保存。";
+    /* 成功只清**这一版**的 dirty。监督独立复现（event7bd）：电话填 A 提交，
+       await 期间改成 B，A 成功回来后无条件 dirty=false —— 页面上是还没保存的 B，
+       离开却不再提醒，B 就这么丢了。
+       版本变了就保住 dirty，并且成功文案不能暗示「你现在看到的这版已保存」。 */
+    const nowSnap = ["nm", "ph", "ct"].map((id) => (document.getElementById(id) || {}).value || "").join("\u0001");
+    const sameVersion = nowSnap === sentSnap;
+    if (sameVersion) dirty = false;
+    ok.textContent = sameVersion
+      ? "已保存。"
+      : "刚才提交的那一版已保存；你之后改的内容还没有保存。";
     ok.classList.add("show");
   });
 })();
