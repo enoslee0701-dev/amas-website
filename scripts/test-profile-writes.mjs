@@ -75,6 +75,19 @@ class Cdp {
     if (r.exceptionDetails) throw new Error("eval 抛错: " + (r.exceptionDetails.exception?.description || ""));
     return r.result?.value;
   }
+  /* 真实鼠标点击：beforeunload 只有在页面有过用户交互（sticky activation）之后
+     才会真的弹出来，纯脚本改值不算。 */
+  async clickReal(sel) {
+    const pt = await this.ev(`(()=>{const el=document.querySelector(${JSON.stringify(sel)});
+      if(!el) return null; el.scrollIntoView({block:'center'});
+      const r=el.getBoundingClientRect(); const x=r.left+r.width/2,y=r.top+r.height/2;
+      const hit=document.elementFromPoint(x,y);
+      return {x,y,ok:!!hit&&(hit===el||el.contains(hit)||hit.contains(el))};})()`);
+    if (!pt || !pt.ok) throw new Error("点不到 " + sel);
+    for (const type of ["mousePressed", "mouseReleased"])
+      await this.send("Input.dispatchMouseEvent", { type, x: pt.x, y: pt.y, button: "left", clickCount: 1 });
+    await sleep(200);
+  }
 }
 let pass = 0, fail = 0;
 const ok = (n, c, d) => { if (c) { pass++; console.log("  PASS  " + n); }
@@ -144,8 +157,15 @@ try {
     } catch (e) {}
   });
 
+  let dialogs = [];
+  cdp.on("Page.javascriptDialogOpening", async (p) => {
+    dialogs.push(String(p && p.type || ""));
+    try { await cdp.send("Page.handleJavaScriptDialog", { accept: true }); } catch (e) {}
+  });
+
   let nav = 0;
   const open = async (page, scen, wait) => {
+    dialogs = [];
     await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: "window.__SCEN = " + JSON.stringify(scen) + ";" });
     await cdp.send("Page.navigate", { url: `${BASE}/${page}?r=${++nav}` });
     await sleep(wait || 3000);
@@ -195,6 +215,44 @@ try {
     ok("C2 " + label + "：200 但结构对不上契约时**不报**已保存",
        !/已保存/.test((r2.ok || "") + (r2.toast || "")), JSON.stringify(r2));
     ok("C2b " + label + "：而是说没能确认", /没能确认|无法确认/.test((r2.err || "")), JSON.stringify(r2.err));
+  }
+
+  // ════════ U 改了还没保存就离开，不能一声不响地丢掉 ════════
+  console.log("\n=== U 未保存输入的保留 ===");
+  /* 共享层早就有 UI.formGuard（申请表单在用），三个资料页一个都没挂。
+     用户改了手机号或联系方式，顺手点一下导航里的「首页 / 我的申请 / 帮助 / 退出」，
+     输入就没了，连一句提醒都没有。 */
+  const leave = async () => {
+    dialogs = [];
+    await cdp.send("Page.navigate", { url: `${BASE}/help/?leave=${++nav}` });
+    await sleep(1500);
+    return dialogs.slice();
+  };
+  for (const [label, page, base] of PAGES) {
+    await open(page, { ...base, write: { data:{ ok:true }, error:null, status:200 } });
+    await cdp.clickReal("#ph");                    // 先有真实交互，beforeunload 才会生效
+    await cdp.ev(`(()=>{const i=document.getElementById("ph"); i.value="0866666666";
+      i.dispatchEvent(new Event("input",{bubbles:true})); return true;})()`);
+    const d1 = await leave();
+    ok("U1 " + label + "：改了还没保存就离开会被拦下",
+       d1.some(t => /beforeunload/i.test(t)), JSON.stringify(d1));
+
+    // 保存成功之后离开就不该再打扰
+    await open(page, { ...base, write: { data:{ ok:true }, error:null, status:200 } });
+    await cdp.clickReal("#ph");
+    await cdp.ev(`(()=>{const i=document.getElementById("ph"); i.value="0866666666";
+      i.dispatchEvent(new Event("input",{bubbles:true})); return true;})()`);
+    await submitForm();
+    const d2 = await leave();
+    ok("U2 " + label + "：保存成功之后离开不再打扰",
+       !d2.some(t => /beforeunload/i.test(t)), JSON.stringify(d2));
+
+    // 什么都没改就离开，也不该打扰
+    await open(page, { ...base, write: { data:{ ok:true }, error:null, status:200 } });
+    await cdp.clickReal("#ph");
+    const d3 = await leave();
+    ok("U3 " + label + "：什么都没改就离开，不打扰",
+       !d3.some(t => /beforeunload/i.test(t)), JSON.stringify(d3));
   }
 
   console.log("\n=== G 外发 ===");

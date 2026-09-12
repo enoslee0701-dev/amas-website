@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>个人资料 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130305">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130315">
 <style>
 .sec{margin-bottom:18px}
 .sec h2{font-size:16px;color:var(--navy);margin:0 0 4px}
@@ -27,11 +27,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130305"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130305"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130305"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130305"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130305"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130315"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130315"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130315"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130315"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130315"></script>
 <script>
 /* 申请者个人资料页。
 
@@ -107,6 +107,17 @@
     err.classList.remove("show"); ok.classList.remove("show");
   });
 
+  /* 改了还没保存就离开时拦一下。共享层早就有 UI.formGuard（申请表单在用），
+     这一页一直没挂 —— 用户改了手机号或联系方式，顺手点导航里的
+     「首页 / 我的申请 / 帮助 / 退出」，输入就没了，连句提醒都没有。
+     只在**确实改过**时拦：没改过或已经存好就不打扰。 */
+  let dirty = false;
+  ["nm", "ph", "ct"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("input", () => { dirty = true; });
+  });
+  UI.formGuard(() => dirty);
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (btn.disabled) return;                      // 在途期间吞掉重复提交
@@ -138,6 +149,7 @@
       err.classList.add("show");
       return;
     }
+    dirty = false;                      // 存好了，离开就不必再拦
     ok.textContent = "已保存。";
     ok.classList.add("show");
   });
