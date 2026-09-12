@@ -129,13 +129,24 @@ window.supabase = {
           window.__calls = window.__calls || [];
           window.__calls.push({ kind: "signUp", args: args });
           var sc = (window.__SCEN || {}).signup || {};
+          /* 错误对象照 2.116.0 的错误类形状构造：
+             AuthError 一律带 __isAuthError、name、status、code。
+             AuthRetryableFetchError 的 status：fetch 自身失败为 0，服务端 5xx 为该状态码。
+             signUp 的 catch 只在 __isAuthError 时把错误当返回值，其余重新抛出。 */
+          var mkErr = function(spec){
+            var e = new Error(spec.message || "boom");
+            e.name = spec.name || "AuthApiError";
+            if (spec.authError !== false) e.__isAuthError = true;
+            if (spec.status !== undefined) e.status = spec.status;
+            if (spec.code !== undefined) e.code = spec.code;
+            return e;
+          };
           if (sc.mode === "throw") {
-            // SDK 通常把网络异常包成 AuthError 返回；但真抛出时也不能让它穿透。
-            return Promise.reject(new TypeError("Failed to fetch"));
+            // 非 AuthError 的抛出物：SDK 自己都不认，会直接重新抛出来
+            return Promise.reject(sc.err ? mkErr(sc.err) : new TypeError("Failed to fetch"));
           }
           if (sc.mode === "error") {
-            return reply({ data: { user: null, session: null },
-                           error: { message: sc.message || "boom", name: "AuthApiError" } });
+            return reply({ data: { user: null, session: null }, error: mkErr(sc.err || {}) });
           }
           if (sc.mode === "session") {
             return reply({ data: {
@@ -314,33 +325,112 @@ try {
      (await calls()).filter((c) => c.kind === "signUp").length === 1,
      "次数=" + (await calls()).filter((c) => c.kind === "signUp").length);
 
-  // ════════════ R4 error 分支 ════════════
-  console.log("\n=== R4 signUp 返回 error ===");
-  const errCase = async (message, expect, label) => {
-    await openReg({ signup: { mode: "error", message } });
+  // ════════════ R4 明确拒绝（4xx）：账号确实没建，可以直接重试 ════════════
+  console.log("\n=== R4 服务器明确拒绝（4xx）===");
+  const rejected = async (err, expect, label) => {
+    await openReg({ signup: { mode: "error", err } });
     await submit("e@example.invalid", "abcd1234");
     const t = await txt();
     const b = await btnState();
-    ok(label + "：文案正确", expect.test(t), t.slice(0, 200));
-    ok(label + "：不误报成功", !/账号已创建/.test(t) && !/注册请求已受理/.test(t), t.slice(0, 200));
-    ok(label + "：按钮恢复可点（这是确定的失败，可以直接重试）",
+    ok(label + "：文案正确", expect.test(t), t.slice(0, 220));
+    ok(label + "：不误报成功", !/账号已创建/.test(t) && !/注册请求已受理/.test(t), t.slice(0, 220));
+    ok(label + "：**不走「结果未能确认」**（这是确定的拒绝）",
+       !/注册结果未能确认/.test(t), t.slice(0, 220));
+    ok(label + "：按钮恢复可点 —— 改完可以直接重新提交",
        b.disabled === false && !/提交中/.test(b.label), JSON.stringify(b));
     ok(label + "：表单仍在，输入未丢", b.formHidden === false, JSON.stringify(b));
   };
-  await errCase("User already registered", /该邮箱已注册/, "R4a 已注册");
-  await errCase("Password should be at least 8 characters", /密码强度不足/, "R4b 弱密码");
-  await errCase("unexpected_failure", /注册失败/, "R4c 其他失败");
+  await rejected({ name: "AuthApiError", status: 400, code: "user_already_exists",
+                   message: "User already registered" }, /该邮箱已注册/, "R4a 已注册 400");
+  await rejected({ name: "AuthWeakPasswordError", status: 422, code: "weak_password",
+                   message: "Password is too weak" },
+                 /密码强度不足/, "R4b 弱密码 422");
+  await rejected({ name: "AuthApiError", status: 429, code: "over_request_rate_limit",
+                   message: "Request rate limit reached" },
+                 /服务器拒绝了这次注册/, "R4c 限流 429");
+  await rejected({ name: "AuthApiError", status: 400, code: "validation_failed",
+                   message: "Unable to validate email address" },
+                 /服务器拒绝了这次注册/, "R4d 校验失败 400");
 
-  // ════════════ R5 SDK 直接抛异常 ════════════
-  console.log("\n=== R5 SDK 抛异常（不能卡在「提交中…」）===");
-  await openReg({ signup: { mode: "throw" } });
-  await submit("t@example.invalid", "abcd1234");
-  const t5 = await txt();
-  const b5 = await btnState();
-  ok("R5 异常被接住，给出失败提示", /注册失败/.test(t5), t5.slice(0, 200));
-  ok("R5 按钮没有卡在「提交中…」", !/提交中/.test(b5.label), b5.label);
-  ok("R5 按钮恢复可点", b5.disabled === false, JSON.stringify(b5));
-  ok("R5 不误报成功", !/账号已创建/.test(t5) && !/注册请求已受理/.test(t5), t5.slice(0, 200));
+  // R4e 弱密码要明说可以改了再来
+  await openReg({ signup: { mode: "error", err: { name: "AuthWeakPasswordError", status: 422,
+                                                  code: "weak_password", message: "too weak" } } });
+  await submit("e@example.invalid", "abcd1234");
+  ok("R4e 弱密码明说改好后可直接重新提交", /改好后可以直接重新提交/.test(await txt()));
+  ok("R4e 弱密码靠 code 判定，不依赖消息文案里有没有 password",
+     /密码强度不足/.test(await txt()));
+
+  // R4f 明确拒绝也走 catch 路径时（防御性）：仍应按拒绝处理
+  await openReg({ signup: { mode: "throw", err: { name: "AuthApiError", status: 400,
+                                                  message: "User already registered" } } });
+  await submit("e@example.invalid", "abcd1234");
+  const t4f = await txt();
+  ok("R4f 抛出的 4xx AuthError 仍判为明确拒绝",
+     /该邮箱已注册/.test(t4f) && !/注册结果未能确认/.test(t4f), t4f.slice(0, 220));
+  ok("R4f 该情形按钮恢复可点", (await btnState()).disabled === false);
+
+  // ════════════ R5 结果不明：不能据此判定注册失败 ════════════
+  console.log("\n=== R5 结果不明（网络 / 5xx / 无法解析 / 抛出异常）===");
+  /* 这一组是本轮的核心。以前它们全被归进「注册失败，请稍后再试」并把按钮放开，
+     等于告诉用户「没注册成功，再点一次」—— 而注册很可能已经在服务器完成了，
+     只是回执丢了。让用户直接再点一次，下一次多半撞上「该邮箱已注册」。 */
+  const unsureCase = async (scen, why, label) => {
+    await openReg({ signup: scen });
+    await submit("u@example.invalid", "abcd1234", "赵同学");
+    const t = await txt();
+    const b = await btnState();
+    ok(label + "：判为「注册结果未能确认」", /注册结果未能确认/.test(t), t.slice(0, 260));
+    ok(label + "：给出的原因是「" + why + "」", t.indexOf(why) > -1, t.slice(0, 260));
+    ok(label + "：**明说注册可能已经在服务器完成**",
+       /已经在服务器完成/.test(t), t.slice(0, 300));
+    ok(label + "：不报失败", !/注册失败/.test(t) && !/服务器拒绝了这次注册/.test(t), t.slice(0, 260));
+    ok(label + "：不报成功", !/账号已创建/.test(t) && !/注册请求已受理/.test(t), t.slice(0, 260));
+    ok(label + "：**按钮保持禁用**，不诱导直接再注册一次", b.disabled === true, JSON.stringify(b));
+    ok(label + "：按钮文案从「提交中…」复位", !/提交中/.test(b.label), b.label);
+    ok(label + "：表单与输入保留", b.formHidden === false, JSON.stringify(b));
+    const keep = await cdp.ev(`({ name: document.getElementById("rName").value,
+                                  mail: document.getElementById("rEmail").value })`);
+    ok(label + "：填过的内容确实还在",
+       keep.mail === "u@example.invalid" && keep.name === "赵同学", JSON.stringify(keep));
+    ok(label + "：引导去登录页核实", /去登录页试一次|去登录页确认/.test(t), t.slice(0, 320));
+    await cdp.ev(`(()=>{document.getElementById("btnReg")
+      .dispatchEvent(new MouseEvent("click",{bubbles:true})); return true;})()`);
+    await sleep(450);
+    const n = (await calls()).filter((c) => c.kind === "signUp").length;
+    ok(label + "：再点一次也不会发出第二次注册请求", n === 1, "次数=" + n);
+  };
+
+  await unsureCase({ mode: "error", err: { name: "AuthRetryableFetchError", status: 0,
+                                           message: "Failed to fetch" } },
+                   "网络中断", "R5a 网络中断（status 0）");
+  await unsureCase({ mode: "error", err: { name: "AuthRetryableFetchError", status: 503,
+                                           message: "Service Unavailable" } },
+                   "写入之后才失败", "R5b 服务端 503");
+  await unsureCase({ mode: "error", err: { name: "AuthUnknownError",
+                                           message: "<html>502 Bad Gateway</html>" } },
+                   "响应无法解析", "R5c 响应无法解析");
+  await unsureCase({ mode: "error", err: { name: "AuthApiError", status: 408,
+                                           message: "Request Timeout" } },
+                   "写入之后才失败", "R5d 408 超时（是 4xx 但语义是超时）");
+  await unsureCase({ mode: "throw" },
+                   "无法归类的异常", "R5e SDK 直接抛出非 AuthError");
+  await unsureCase({ mode: "blank" },
+                   "没有返回可确认的结果", "R5f 无 error 也无 user/session");
+
+  // R5g 分类是按错误类和状态码判的，不是按消息文案
+  await openReg({ signup: { mode: "error", err: { name: "AuthRetryableFetchError", status: 0,
+                                                  message: "User already registered" } } });
+  await submit("u@example.invalid", "abcd1234");
+  const t5g = await txt();
+  /* 注意断言别用 /该邮箱已注册/ —— 未知分支的正文里就写着
+     「（重复提交可能撞上「该邮箱已注册」）」，那样命中的是自己的提示语而非错误消息。
+     这里改判两件确凿的事：错误框没被显示，未知框被显示。 */
+  const box5g = await cdp.ev(`({ err: document.getElementById("err").classList.contains("show"),
+                                 unsure: document.getElementById("unsure").classList.contains("show") })`);
+  ok("R5g 消息里写着 already registered，但类是可重试类 → 仍判为结果不明",
+     /注册结果未能确认/.test(t5g) && box5g.unsure === true && box5g.err === false,
+     JSON.stringify(box5g) + " | " + t5g.slice(-220));
+  ok("R5g 该情形按钮保持禁用", (await btnState()).disabled === true);
 
   // ════════════ R6 一处也没真的出去 ════════════
   console.log("\n=== R6 外发 ===");

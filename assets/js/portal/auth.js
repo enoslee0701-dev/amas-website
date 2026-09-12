@@ -114,6 +114,48 @@
     }
   }
 
+  /* ── Auth 错误分类：明确拒绝 vs 结果不明 ──────────────────────────────
+     判据不是猜的，取自 supabase-js 2.116.0 产物里的错误类定义与 fetch 包装：
+
+       · fetch 本身抛错（断网、DNS、被拦截、CORS） → AuthRetryableFetchError(msg, 0)
+       · 响应状态 ∈ [500,501,502,503,504,520…530]  → AuthRetryableFetchError(msg, status)
+       · 响应体解析不出来且非上述状态              → AuthUnknownError
+       · 其余（4xx）按响应体里的 code 建 AuthApiError / AuthWeakPasswordError
+       · signUp 的 catch 只在 `__isAuthError` 时把错误当返回值，**其余一律重新抛出**
+
+     只有最后一类 4xx 才是「服务器看懂了请求并明确拒绝」——账号确实没建。
+     前面几类都意味着**请求可能已经到达服务器并完成注册，只是回执丢了**。
+     把它们一律当成失败并让用户直接再点一次，等于诱导重复注册；
+     这与审核台「未知结果先核实、不直接重发」是同一条纪律。 */
+  function classifyAuthError(e) {
+    if (!e || typeof e !== "object") return { kind: "unknown", reason: "exception" };
+    const status = typeof e.status === "number" ? e.status : null;
+    // 可重试类：status 0 = 请求没走通或回执丢了；非 0 = 服务端 5xx
+    if (e.name === "AuthRetryableFetchError") {
+      return { kind: "unknown", reason: (status === 0 || status === null) ? "network" : "server" };
+    }
+    if (e.name === "AuthUnknownError") return { kind: "unknown", reason: "unreadable" };
+    // 408 虽然是 4xx，语义却是超时 —— 不能据此断定服务器什么都没做
+    if (status === 408) return { kind: "unknown", reason: "server" };
+    if (status !== null && status >= 500) return { kind: "unknown", reason: "server" };
+    // 不是 AuthError 的抛出物：SDK 自己都不认，我们更不能替它下结论
+    if (!e.__isAuthError) return { kind: "unknown", reason: "exception" };
+    if (status !== null && status >= 400 && status < 500) return { kind: "rejected" };
+    // 是 AuthError 却没有可判读的 status：保守归为不明
+    return { kind: "unknown", reason: "unreadable" };
+  }
+
+  /** 已判定为「明确拒绝」之后，再细分给用户看的原因。
+      weak_password 这个 code 由 AuthWeakPasswordError 直接写死，可靠；
+      其余沿用消息匹配，匹不上就落到 rejected（明确被拒，但说不出具体原因）。 */
+  function rejectReason(e) {
+    const msg = String((e && e.message) || "");
+    if (e && e.code === "weak_password") return "weak_password";
+    if (/registered/i.test(msg)) return "exists";
+    if (/password/i.test(msg)) return "weak_password";
+    return "rejected";
+  }
+
   /** 注册。
       以前这里只解构 `{ error }`，把「没报错」一律当成「验证邮件已发出」——
       这是错的。supabase-js v2（当前 CDN 上 `@2` 解析到 2.116.0）的 `signUp`
@@ -142,22 +184,25 @@
         },
       });
     } catch (e) {
-      // SDK 正常情况下会把网络异常包成 AuthError 返回而不是抛出，
-      // 但抛出时绝不能让异常穿过去——调用方会永远停在「提交中…」。
-      return { status: "error", error: "signup_failed" };
+      // 异常绝不能穿过去（调用方会永远停在「提交中…」），
+      // 但接住之后也**不能当成「注册失败」**：signUp 只会重新抛出它自己都不认的
+      // 错误，这种情况下请求是否已经在服务器完成，客户端根本无从判断。
+      const c = classifyAuthError(e);
+      if (c.kind === "rejected") return { status: "error", error: rejectReason(e) };
+      return { status: "unknown", reason: c.reason };
     }
     const data = res && res.data;
     const error = res && res.error;
     if (error) {
-      if (/registered/i.test(error.message)) return { status: "error", error: "exists" };
-      if (/password/i.test(error.message)) return { status: "error", error: "weak_password" };
-      return { status: "error", error: "signup_failed" };
+      const c = classifyAuthError(error);
+      if (c.kind !== "rejected") return { status: "unknown", reason: c.reason };
+      return { status: "error", error: rejectReason(error) };
     }
     if (data && data.session) return { status: "session" };
     if (data && data.user) return { status: "pending" };
     // 没报错，却既没有 session 也没有 user：结果不明。
     // 不能报成功，也不能报失败——更不能自动重发。
-    return { status: "unknown" };
+    return { status: "unknown", reason: "blank" };
   }
 
   async function resetPassword(email) {

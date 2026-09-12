@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>注册 | AMAS 亚洲宣教神学院</title>
 <link rel="icon" href="../assets/img/favicon.png">
-<link rel="stylesheet" href="../assets/css/portal.css?v=202609121547">
+<link rel="stylesheet" href="../assets/css/portal.css?v=202609121610">
 </head>
 <body>
 <div class="wrap">
@@ -55,8 +55,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../assets/js/supabase-config.js?v=202609121547"></script>
-<script src="../assets/js/portal/auth.js?v=202609121547"></script>
+<script src="../assets/js/supabase-config.js?v=202609121610"></script>
+<script src="../assets/js/portal/auth.js?v=202609121610"></script>
 <script>
 (function(){
   const A = window.AmasAuth;
@@ -75,11 +75,24 @@
     btn.disabled = true;
     if (offline) $("btnReload").addEventListener("click", () => location.reload());
   }
+  /* 这里每一条都是**服务器明确拒绝**（4xx）才会出现的 —— 账号确实没建，
+     所以可以放心让用户改完直接重试。网络中断、5xx、抛出的异常都不走这里，
+     它们进 unknown 分支。 */
   const ERR = {
     not_configured: "系统尚未启用，暂不可注册。",
     exists: "该邮箱已注册，请直接登录或找回密码。",
-    weak_password: "密码强度不足：至少 8 位，建议包含字母与数字。",
-    signup_failed: "注册失败，请稍后再试。",
+    weak_password: "密码强度不足：至少 8 位，建议包含字母与数字。改好后可以直接重新提交。",
+    rejected: "服务器拒绝了这次注册，账号未创建。请检查填写的信息后重试；若反复被拒，请联系招生同工。",
+    signup_failed: "服务器拒绝了这次注册，账号未创建。请检查填写的信息后重试。",
+  };
+
+  /* 未知结果的原因句。共同点是：**都不能证明账号没被创建**。 */
+  const UNSURE_WHY = {
+    network: "网络中断，服务器的回执没能送回来。",
+    server: "服务器返回了错误，但它有可能是在写入之后才失败的。",
+    unreadable: "服务器的响应无法解析。",
+    exception: "请求过程中出现了无法归类的异常。",
+    blank: "服务器没有报错，但也没有返回可确认的结果。",
   };
 
   form.addEventListener("submit", async (e) => {
@@ -132,13 +145,17 @@
       return;
     }
 
-    /* 结果不明：没报错，但既没 session 也没 user。
-       不能报成功，也不能报失败。按「先核实、不直接重发」处理：
-       表单留着（填过的内容不丢），但提交按钮保持禁用，另给明确的核实入口。 */
+    /* 结果不明。**不等于失败** —— 网络中断、5xx、无法解析的响应、抛出的异常，
+       每一种都可能是「注册其实已经在服务器完成了，只是回执没回来」。
+       所以既不能报成功，也不能报失败，更不能让用户直接再点一次注册。
+       按「先核实、不直接重发」处理：表单与输入都留着，但提交按钮保持禁用，
+       另给明确的核实入口。 */
     show(unsure,
-      "<p><b>注册结果未能确认。</b>服务器没有报错，但也没有返回可确认的结果，" +
-      "因此<b>无法判定账号是否已创建</b>。</p>" +
-      "<p>请先去登录页核实，不要直接重复提交：" +
+      "<p><b>注册结果未能确认。</b>" + (UNSURE_WHY[r.reason] || UNSURE_WHY.blank) +
+      "因此<b>无法判定账号是否已创建</b> —— " +
+      "注册有可能<b>已经在服务器完成</b>，只是回执没能送回来。</p>" +
+      "<p>请先用刚才填的邮箱和密码<b>去登录页试一次</b>，不要直接重复提交" +
+      "（重复提交可能撞上「该邮箱已注册」）：" +
       '<a class="link" href="../login/">去登录页确认</a>。' +
       '若登录不了，请<a class="link" href="../index.html#contact">联系招生同工</a>。</p>' +
       '<p class="hint">您填的内容已保留。确认账号确实未创建后，重新载入本页再试。</p>');
