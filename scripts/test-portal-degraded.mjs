@@ -103,7 +103,8 @@ const ok = (name, cond, detail) => {
 };
 
 const PORTAL_PAGES = ["portal/", "portal/student/", "portal/applicant/",
-                      "portal/applicant/profile/",
+                      "portal/applicant/profile/", "portal/applicant/history/",
+                      "portal/admin/teachers/",
                       "portal/teacher/", "portal/admin/", "portal/mfa/", "auth/callback/"];
 
 try {

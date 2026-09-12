@@ -25,6 +25,7 @@
     applicant: [
       { href: "portal/applicant/", icon: "🏠", label: "首页" },
       { href: "portal/applicant/application/", icon: "📝", label: "我的申请" },
+      { href: "portal/applicant/history/", icon: "🗂️", label: "历史申请" },
       { href: "portal/applicant/profile/", icon: "👤", label: "个人资料" },
       { href: "help/", icon: "💬", label: "帮助" },
     ],
@@ -45,16 +46,7 @@
       { href: "portal/admin/", icon: "🏠", label: "总览" },
       { href: "portal/admin/admissions/", icon: "📥", label: "招生审核" },
       { href: "portal/admin/students/", icon: "🎓", label: "学籍管理" },
-      /* portal/admin/teachers/ 页面不存在 —— 管理员点进去是 404，故暂时撤掉入口。
-         但**契约是齐的**，缺的只是这一个页面：
-           读   teacher_verification_requests 的 tvr_self_select 策略已给
-                is_admin_any 全表读权（0004_teacher_verification.sql）
-           内部备注 teacher_verification_internal 的 tvi_admin_all 仅管理员
-           审核 review_teacher_verification RPC + review-teacher-verification Edge
-         写法与已存在的 portal/admin/admissions/ 相同（Api.select + Api.fn）。
-         注意 faculty/verify/ 是**教师本人提交**验证的页面，不是管理员审核台，
-         两者不能互相顶替。页面建好后把这一行加回来：
-           { href: "portal/admin/teachers/", icon: "🏫", label: "教师验证" }, */
+      { href: "portal/admin/teachers/", icon: "🏫", label: "教师验证" },
       { href: "help/", icon: "💬", label: "帮助" },
     ],
   };

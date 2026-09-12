@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>教师验证审核 | AMAS</title>
+<link rel="icon" href="../../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609121359">
+<style>
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.tab{min-height:44px;padding:0 15px;border:1px solid var(--line);border-radius:99px;background:#fff;
+  color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
+.tab[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
+.rq{margin-bottom:14px}
+.rq-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.rq-head h2{font-size:15.5px;color:var(--navy);margin:0}
+.pill{display:inline-flex;align-items:center;border-radius:99px;padding:2px 11px;font-size:12px;
+  border:1px solid var(--line);background:var(--wash);color:var(--muted);white-space:nowrap}
+.pill.submitted{background:#eef4fb;border-color:#cfdeee;color:#294764}
+.pill.approved{background:#e9f3ee;border-color:#bcd9cc;color:#1f5133}
+.pill.rejected{background:#fdecec;border-color:#f2b8b5;color:#8c1d18}
+.pill.needs_information{background:#fdf4e3;border-color:#ecd7a8;color:#7a5a12}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+.kv:last-of-type{border-bottom:0}
+.kv span{color:var(--muted);flex:0 0 auto}
+.kv b{color:var(--navy);text-align:right;word-break:break-all}
+.acts{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}
+.acts .btn{width:auto;min-height:44px;padding:0 18px;font-size:13.5px}
+.rsn{margin-top:11px}
+.rsn label{display:block;font-size:13px;font-weight:700;color:var(--navy);margin-bottom:5px}
+.rsn textarea{width:100%;min-height:74px;padding:10px 12px;border:1.5px solid var(--line);
+  border-radius:10px;font:inherit;font-size:13.5px;resize:vertical}
+.rsn textarea:focus{outline:none;border-color:var(--navy2);box-shadow:0 0 0 3px rgba(23,63,112,.12)}
+.rsn .h{font-size:12px;color:var(--muted);margin-top:5px}
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609121359"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609121359"></script>
+<script src="../../../assets/js/portal/api.js?v=202609121359"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609121359"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609121359"></script>
+<script>
+/* 管理端教师验证审核台。
+
+   契约来源（仓库里已有，不是新造的）：
+     列表  public.teacher_verification_requests
+           tvr_self_select 策略已给 is_admin_any 全表读（0004_teacher_verification.sql:256）
+     审核  Edge review-teacher-verification
+           入参 { request_id, action, message?, staff_number?, grant_mentor?, internal_note? }
+           action ∈ approve | needs_information | reject | suspend | reinstate | revoke
+           它自己校验 aal2（403 mfa_required）与管理员角色（403 forbidden），
+           再转调 public.review_teacher_verification；状态跃迁由 tvr_validate_transition 把关，
+           非法跃迁回 409 invalid_state。
+     内部备注 teacher_verification_internal 仅管理员可读（tvi_admin_all），
+           本页**不显示也不写**内部备注 —— 审核台只做可见层，备注留给后续专门界面。
+
+   ★ 权限：真正的门禁在服务端。本页用 requireAal2 的 admin 守卫只是**不假装**能进；
+     即使有人绕过前端，Edge 与 RPC 仍会各自拒绝。
+   ★ 状态机：按钮按当前状态显示，非法动作不给按钮；但**不因为前端隐藏了就认为安全**，
+     服务端 409 仍会如实报出来。
+   ★ 失败/超时一律不假报成功，也不自动重发 —— 审核是不可逆动作，
+     重发可能造成两次审批记录。 */
+(async function(){
+  const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell;
+  const mounted = await Shell.mount({ space: "admin", title: "教师验证审核",
+                                      allow: ["super_admin", "academic_admin", "registrar"],
+                                      requireAal2: true });
+  if (!mounted) return;
+  const { main } = mounted;
+
+  const ST = {
+    invited: "已邀请", draft: "草稿", email_verified: "邮箱已验证",
+    submitted: "待审核", needs_information: "需补充资料", approved: "已通过",
+    rejected: "未通过", suspended: "已暂停", revoked: "已撤销", expired: "已过期",
+  };
+  /* 每个状态下**允许**的动作，与 tvr_validate_transition 的跃迁表一一对应。
+     这里只决定「显示哪些按钮」，不代表权限 —— 权限在服务端。 */
+  const ALLOWED = {
+    submitted:         [["approve", "通过", "primary"], ["needs_information", "要求补充资料", "ghost"], ["reject", "不通过", "danger"]],
+    approved:          [["suspend", "暂停", "ghost"], ["revoke", "撤销", "danger"]],
+    suspended:         [["reinstate", "恢复", "primary"], ["revoke", "撤销", "danger"]],
+    needs_information: [],
+  };
+  /* 哪些动作必须填理由。approve / reinstate 是给予权限，可以不附理由；
+     其余都会改变或收回对方的身份，**必须说清楚为什么** —— 这条是本页自己的
+     要求，服务端的 p_message 本身是可选的。 */
+  const REASON_REQUIRED = new Set(["needs_information", "reject", "suspend", "revoke"]);
+
+  const dt = (v) => v ? new Date(v).toLocaleString("zh-CN", {
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
+
+  let filter = "submitted";
+
+  async function load() {
+    UI.loading(main, 3);
+    const build = {
+      columns: "id,user_id,status,submitted_data,submitted_at,reviewed_at,applicant_visible_message,created_at",
+      order: { column: "submitted_at", asc: false },
+    };
+    if (filter !== "all") build.eq = { status: filter };
+    const { data, error } = await Api.select("teacher_verification_requests", build);
+    if (error) return UI.error(main, { message: Api.msg ? Api.msg(error) : error.message,
+                                       onRetry: load });
+    render(data || []);
+  }
+
+  function render(rows) {
+    const tabs = [["submitted", "待审核"], ["needs_information", "需补充"],
+                  ["approved", "已通过"], ["rejected", "未通过"], ["all", "全部"]];
+    main.innerHTML =
+      '<h1>教师验证审核</h1>' +
+      '<p class="lead">教师本人在「教师验证」页提交资料后在这里审核。审核动作会立即改变对方的权限，请谨慎操作。</p>' +
+      '<div class="tabs" role="group" aria-label="按状态筛选">' +
+        tabs.map(([k, t]) => '<button class="tab" type="button" data-f="' + k + '" aria-pressed="' +
+          (filter === k ? "true" : "false") + '">' + UI.esc(t) + '</button>').join("") +
+      '</div><div id="list"></div>';
+
+    const list = main.querySelector("#list");
+    if (!rows.length) {
+      UI.empty(list, { title: "没有符合条件的申请",
+                       text: "换一个状态筛选看看，或稍后再来。" });
+      return;
+    }
+    list.innerHTML = rows.map((r) => {
+      const sd = r.submitted_data || {};
+      const acts = ALLOWED[r.status] || [];
+      return '<div class="card rq" data-id="' + UI.esc(r.id) + '" data-status="' + UI.esc(r.status) + '">' +
+        '<div class="rq-head"><h2>' + UI.esc(sd.name || sd.tName || "（未填姓名）") + '</h2>' +
+          '<span class="pill ' + UI.esc(r.status) + '">' + UI.esc(ST[r.status] || r.status) + '</span></div>' +
+        '<div class="kv"><span>所属机构</span><b>' + UI.esc(sd.org || sd.tOrg || "—") + '</b></div>' +
+        '<div class="kv"><span>教学领域</span><b>' + UI.esc(sd.areas || sd.tAreas || "—") + '</b></div>' +
+        '<div class="kv"><span>所在地与时区</span><b>' + UI.esc(sd.country || sd.tCountry || "—") + '</b></div>' +
+        '<div class="kv"><span>联系电话</span><b>' + UI.esc(sd.phone || sd.tPhone || "—") + '</b></div>' +
+        '<div class="kv"><span>提交时间</span><b>' + dt(r.submitted_at) + '</b></div>' +
+        (r.reviewed_at ? '<div class="kv"><span>上次审核</span><b>' + dt(r.reviewed_at) + '</b></div>' : '') +
+        (r.applicant_visible_message
+          ? '<div class="kv"><span>已告知对方</span><b>' + UI.esc(r.applicant_visible_message) + '</b></div>' : '') +
+        (acts.length
+          ? '<div class="rsn"><label for="m-' + UI.esc(r.id) + '">审核说明（对方可见）</label>' +
+              '<textarea id="m-' + UI.esc(r.id) + '" maxlength="500" ' +
+                'placeholder="不通过、暂停、撤销与要求补充资料必须填写理由"></textarea>' +
+              '<div class="h">这段话会直接显示给对方，请写清楚下一步该做什么。</div></div>' +
+            '<div class="acts">' + acts.map(([a, label, kind]) =>
+              '<button class="btn ' + kind + '" type="button" data-act="' + a + '">' + UI.esc(label) + '</button>').join("") +
+            '</div>' +
+            '<div class="msg err" role="alert" hidden></div>' +
+            '<div class="msg ok" role="status" hidden></div>'
+          : '<p class="note" style="margin-top:10px;font-size:12.5px;color:var(--muted)">' +
+              '当前状态下没有可执行的审核动作。</p>') +
+      '</div>';
+    }).join("");
+  }
+
+  main.addEventListener("click", async (e) => {
+    const tab = e.target.closest("[data-f]");
+    if (tab) { filter = tab.dataset.f; return load(); }
+
+    const btn = e.target.closest("[data-act]");
+    if (!btn) return;
+    const card = btn.closest(".rq");
+    const id = card.dataset.id;
+    const action = btn.dataset.act;
+    const ta = card.querySelector("textarea");
+    const err = card.querySelector(".msg.err"), ok = card.querySelector(".msg.ok");
+    const msg = (ta && ta.value.trim()) || "";
+    const showErr = (t) => { err.textContent = t; err.hidden = false; ok.hidden = true; };
+
+    err.hidden = true; ok.hidden = true;
+
+    if (REASON_REQUIRED.has(action) && !msg) {
+      showErr("这个动作会改变对方的身份，请先填写审核说明。");
+      if (ta) ta.focus();
+      return;
+    }
+    // 不可逆动作再问一次。confirmDialog 是站内既有组件。
+    const label = (ALLOWED[card.dataset.status] || []).find((x) => x[0] === action);
+    const okGo = await UI.confirmDialog({
+      title: (label ? label[1] : action) + "？",
+      text: "这个动作会立即改变对方的权限，且会写入审核记录。确认执行吗？",
+      confirmLabel: label ? label[1] : "执行",
+    });
+    if (!okGo) return;
+
+    const all = card.querySelectorAll("[data-act]");
+    if (btn.disabled) return;                    // 在途期间吞掉重复点击
+    all.forEach((b) => { b.disabled = true; });
+    btn.setAttribute("aria-busy", "true");
+
+    const { data, error } = await Api.fn("review-teacher-verification", {
+      request_id: id, action: action, message: msg || null,
+    });
+
+    btn.removeAttribute("aria-busy");
+    all.forEach((b) => { b.disabled = false; });
+
+    if (error) {
+      /* 审核是不可逆动作：**绝不自动重发**，也绝不在拿不到确认时说成功。
+         Edge 的错误码各有确切含义，逐个如实转达。 */
+      const code = (error && (error.code || error.message)) || "";
+      const MSG = {
+        mfa_required: "需要先完成两步验证（MFA）才能执行审核。",
+        forbidden: "你的账号没有审核权限。",
+        invalid_state: "这份申请的状态已经变了（可能别人刚处理过）。请刷新后再看。",
+        bad_request: "请求参数不正确，没有执行任何操作。",
+        server_error: "服务端出错，**无法确认这次审核是否已经生效**。请刷新查看当前状态，不要直接重试。",
+      };
+      showErr(MSG[code] || (Api.msg ? Api.msg(error) : "审核没有完成，请刷新查看当前状态。"));
+      return;
+    }
+    if (!data || data.ok === false) {
+      showErr("服务端没有确认这次审核。请刷新查看当前状态，不要直接重试。");
+      return;
+    }
+    /* 回执要活过列表重渲染。只写 ok.textContent 的话，900ms 后 load() 把 main
+       整个换掉，提示随之消失 —— 万一刷新回来的那条状态没变（服务端延迟、
+       读到旧副本），审核员就什么确认都没看到。toast 挂在 document.body 上，
+       不受 main 重渲染影响。两处都给：卡内提示 + toast。 */
+    ok.textContent = "已执行。";
+    ok.hidden = false;
+    UI.toast("审核已执行。");
+    setTimeout(load, 900);                        // 刷新列表，让状态与服务端对齐
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>

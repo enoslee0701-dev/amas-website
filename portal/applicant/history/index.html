@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>历史申请 | AMAS</title>
+<link rel="icon" href="../../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609121359">
+<style>
+.hitem{margin-bottom:14px}
+.hhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.hhead h2{font-size:15.5px;color:var(--navy);margin:0}
+.pill{display:inline-flex;align-items:center;border-radius:99px;padding:2px 11px;font-size:12px;
+  border:1px solid var(--line);background:var(--wash);color:var(--muted);white-space:nowrap}
+.pill.rejected{background:#fdecec;border-color:#f2b8b5;color:#8c1d18}
+.pill.withdrawn{background:#f3f4f6;border-color:#d9dee8;color:#4b5563}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:9px;font-size:12.5px;color:var(--muted)}
+.meta b{color:var(--navy);font-weight:600;font-variant-numeric:tabular-nums}
+.said{margin-top:10px;padding:10px 12px;border-radius:9px;background:var(--wash);
+  border-left:3px solid var(--line);font-size:13px;line-height:1.8;color:var(--navy)}
+.tl-btn{margin-top:12px}
+.tl{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.tl-row{display:flex;gap:10px;padding:7px 0;font-size:13px}
+.tl-row time{flex:0 0 auto;color:var(--muted);font-variant-numeric:tabular-nums}
+.tl-row span{color:var(--navy)}
+.tl-row em{display:block;font-style:normal;color:var(--muted);font-size:12.5px;margin-top:2px}
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609121359"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609121359"></script>
+<script src="../../../assets/js/portal/api.js?v=202609121359"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609121359"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609121359"></script>
+<script>
+/* 申请者历史申请页。
+
+   契约来源（都是仓库里已有的，不是新造的）：
+     列表  public.applications 的 app_self_select 策略
+           （0008_applications.sql:373）允许 applicant_id = auth.uid() 读**自己全部**申请。
+           my_application() 刻意 status not in ('rejected','withdrawn') 且 limit 1，
+           所以「历史」这一批只能直接 select，取法与 portal/admin/admissions/ 一致。
+     时间线 public.my_application_timeline(p_app uuid)（0008_applications.sql:211）
+           **接受申请 id**，并在 SQL 里 join applications 校验 a.applicant_id = auth.uid()。
+           所以它支持按历史申请逐份取，而不是只能取当前那份；
+           归属校验在服务端，前端传别人的 id 也取不到东西。内部备注不返回。
+
+   ★ 本页只展示**已结束**的申请（rejected / withdrawn）。
+     进行中的那份由 portal/applicant/application/ 负责，两边不重复也不互相顶替。
+   ★ 只读页面：不提供任何改状态的动作。撤回/重新提交都在申请页那边。 */
+(async function(){
+  const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell;
+  const mounted = await Shell.mount({ space: "applicant", title: "历史申请", allow: ["applicant"] });
+  if (!mounted) return;
+  const { main } = mounted;
+
+  // 状态文案与 portal/applicant/application/ 保持一致，不另造一套说法
+  const ST = {
+    rejected:  { t: "未通过", d: "如有疑问请联系招生同工。" },
+    withdrawn: { t: "已撤回", d: "这份申请由你本人撤回。" },
+  };
+  const PATH = { bth: "正式 B.Th", common_learning: "共同学习", undecided: "未选择" };
+
+  const dt = (v) => v ? new Date(v).toLocaleString("zh-CN", {
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
+  const d = (v) => v ? new Date(v).toLocaleDateString("zh-CN") : "—";
+
+  UI.loading(main, 3);
+  /* 只取已结束的两种状态。不用 my_application()：它排除的正是这两种。 */
+  const { data: rows, error } = await Api.select("applications", {
+    columns: "id,pathway,status,applicant_visible_message,submitted_at,decided_at,created_at",
+    in: { status: ["rejected", "withdrawn"] },
+    order: { column: "created_at", asc: false },
+  });
+  if (error) return UI.error(main, { message: Api.msg ? Api.msg(error) : error.message,
+                                     onRetry: () => location.reload() });
+
+  const list = rows || [];
+  if (!list.length) {
+    main.innerHTML =
+      '<h1>历史申请</h1>' +
+      '<p class="lead">这里保存你已经结束的申请记录（未通过或已撤回）。</p>';
+    const slot = document.createElement("div");
+    main.appendChild(slot);
+    UI.empty(slot, {
+      title: "还没有历史记录",
+      text: "你目前没有已结束的申请。进行中的申请请到「我的申请」查看。",
+      actions: [{ id: "go", label: "去我的申请" }],
+      handlers: { go: () => { location.href = A.ROOT + "portal/applicant/application/"; } },
+    });
+    return;
+  }
+
+  main.innerHTML =
+    '<h1>历史申请</h1>' +
+    '<p class="lead">这里保存你已经结束的申请记录（未通过或已撤回）。进行中的申请请到「我的申请」查看。</p>' +
+    list.map((r) => {
+      const s = ST[r.status] || { t: r.status, d: "" };
+      return '<div class="card hitem" data-app="' + UI.esc(r.id) + '">' +
+        '<div class="hhead">' +
+          '<h2>' + UI.esc(PATH[r.pathway] || r.pathway) + ' 申请</h2>' +
+          '<span class="pill ' + UI.esc(r.status) + '">' + UI.esc(s.t) + '</span>' +
+        '</div>' +
+        (s.d ? '<p class="note" style="margin:6px 0 0;font-size:12.5px;color:var(--muted)">' + UI.esc(s.d) + '</p>' : '') +
+        '<div class="meta">' +
+          '<span>创建 <b>' + d(r.created_at) + '</b></span>' +
+          '<span>提交 <b>' + d(r.submitted_at) + '</b></span>' +
+          '<span>结束 <b>' + d(r.decided_at) + '</b></span>' +
+        '</div>' +
+        (r.applicant_visible_message
+          ? '<div class="said">' + UI.esc(r.applicant_visible_message) + '</div>' : '') +
+        '<button class="btn ghost tl-btn" type="button" data-tl="' + UI.esc(r.id) + '" ' +
+          'aria-expanded="false" style="width:auto;padding:0 20px">查看状态变化</button>' +
+        '<div class="tl" hidden></div>' +
+      '</div>';
+    }).join("");
+
+  /* 时间线按需取：一次展开只取那一份的。my_application_timeline 自己在服务端
+     校验归属，所以这里不需要、也不应该在前端做「这是不是我的」的判断。 */
+  main.addEventListener("click", async (e) => {
+    const btn = e.target.closest("[data-tl]");
+    if (!btn) return;
+    const card = btn.closest(".hitem");
+    const box = card.querySelector(".tl");
+    if (!box.hidden) {                       // 再点一次收起
+      box.hidden = true;
+      btn.setAttribute("aria-expanded", "false");
+      btn.textContent = "查看状态变化";
+      return;
+    }
+    if (btn.dataset.loaded === "1") {        // 已经取过就不重复请求
+      box.hidden = false;
+      btn.setAttribute("aria-expanded", "true");
+      btn.textContent = "收起状态变化";
+      return;
+    }
+    if (btn.disabled) return;                // 在途期间吞掉重复点击
+    btn.disabled = true; btn.setAttribute("aria-busy", "true");
+    const { data: tl, error: e2 } = await Api.rpc("my_application_timeline", { p_app: btn.dataset.tl });
+    btn.disabled = false; btn.removeAttribute("aria-busy");
+    if (e2) {
+      box.hidden = false;
+      box.innerHTML = '<p class="msg err show" role="alert">' +
+        UI.esc(Api.msg ? Api.msg(e2) : (e2.message || "没能读到状态变化，请稍后重试。")) + '</p>';
+      btn.setAttribute("aria-expanded", "true");
+      return;                                // 失败不改 loaded，下次点还会重试
+    }
+    const items = tl || [];
+    box.innerHTML = items.length
+      ? items.map((h) => '<div class="tl-row"><time>' + dt(h.created_at) + '</time><span>' +
+          UI.esc((ST[h.to_status] && ST[h.to_status].t) || h.to_status) +
+          (h.applicant_visible_message ? '<em>' + UI.esc(h.applicant_visible_message) + '</em>' : '') +
+          '</span></div>').join("")
+      : '<p class="note" style="font-size:12.5px;color:var(--muted)">这份申请没有可显示的状态变化记录。</p>';
+    btn.dataset.loaded = "1";
+    box.hidden = false;
+    btn.setAttribute("aria-expanded", "true");
+    btn.textContent = "收起状态变化";
+  });
+})();
+</script>
+</body>
+</html>
