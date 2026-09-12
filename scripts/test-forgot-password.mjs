@@ -206,27 +206,45 @@ try {
   const p1 = await state();
   ok("P1 请求被接受 → 统一文案（不泄漏邮箱是否已注册）",
      /如果该邮箱已注册/.test(p1.ok || "") && p1.okShown === true, JSON.stringify(p1));
+  /* 受理 ≠ 投递。SMTP 上线配置仍是独立阻塞项，成功提示不能替投递打包票。 */
+  ok("P1c 成功文案不承诺已送达，并给出没收到时的下一步",
+     !/已送达|一定会收到|保证/.test(p1.ok || "") && /查收/.test(p1.ok || "") &&
+     /再试|重试/.test(p1.ok || ""), JSON.stringify(p1));
   ok("P1b 按钮恢复可用", p1.btnDisabled === false && /发送重置邮件/.test(p1.btnText || ""), JSON.stringify(p1));
 
+  /* ★ 拿不到回执 ≠ 没发出去。连接可能是在服务端**已经受理之后**才断的
+     —— 监督独立反例 event342：服务端 accepted=1，页面却说「没能把这次请求
+     发出去」。stub 在抛错/报错**之前**先记一次受理，把这个形态构造出来，
+     所以下面每一条都同时断言「服务端确实收到了」。 */
   for (const [label, mode] of [["抛出（断网）","throw"], ["可重试网络错","retryable"], ["5xx","server"]]) {
     await open({ resetMode: mode });
     await send();
     const r = await state();
-    ok("P 传输失败（" + label + "）→ **不**说「已发送」",
+    ok("U 受理后丢回执（" + label + "）→ 前提：服务端确实收到了这次请求",
+       (await sent()) === 1, "accepted=" + (await sent()));
+    ok("U 受理后丢回执（" + label + "）→ **不**断言「没发出去」",
+       !/没能把这次请求发出去|没有发出|没发出去/.test(r.err || ""), JSON.stringify(r));
+    ok("U 受理后丢回执（" + label + "）→ **不**说「已发送」",
        !/已发送/.test(r.ok || "") || r.okShown === false, JSON.stringify(r));
-    ok("P 传输失败（" + label + "）→ 如实说没能把请求发出去",
-       r.errShown === true && /没能|连不上|出错/.test(r.err || ""), JSON.stringify(r));
-    ok("P 传输失败（" + label + "）→ 按钮恢复，不卡在「发送中…」",
+    ok("U 受理后丢回执（" + label + "）→ 说没能确认处理结果",
+       r.errShown === true && /没能确认|无法确认/.test(r.err || ""), JSON.stringify(r));
+    ok("U 受理后丢回执（" + label + "）→ 给出查收与稍后重试两条指引",
+       /查收/.test(r.err || "") && /重试|再试/.test(r.err || ""), JSON.stringify(r));
+    ok("U 受理后丢回执（" + label + "）→ 按钮恢复，不卡在「发送中…」",
        r.btnDisabled === false && !/发送中/.test(r.btnText || ""), JSON.stringify(r));
-    ok("P 传输失败（" + label + "）→ 不泄漏邮箱是否已注册",
+    ok("U 受理后丢回执（" + label + "）→ 不泄漏邮箱是否已注册",
        !/未注册|不存在|没有该邮箱|已注册/.test(r.err || ""), JSON.stringify(r));
   }
 
+  /* 限流是**确定**的：服务端明确回绝，这一次确实没有发信。
+     这一条必须和上面那批「不确定」分得开，否则等于把所有失败一锅端成不确定。 */
   await open({ resetMode: "rate" });
   await send();
   const pr = await state();
-  ok("P4 被限流 → 说太频繁，不说「已发送」",
+  ok("R1 被限流 → 说太频繁，不说「已发送」",
      /频繁|稍等|稍后/.test(pr.err || "") && (!/已发送/.test(pr.ok || "") || pr.okShown === false), JSON.stringify(pr));
+  ok("R1b 限流是确定的：明说「这一次没有发送」，不含糊成「没能确认」",
+     /没有发送/.test(pr.err || "") && !/没能确认|无法确认/.test(pr.err || ""), JSON.stringify(pr));
   ok("P4b 限流文案同样不泄漏邮箱是否已注册",
      !/未注册|不存在|没有该邮箱|已注册/.test(pr.err || ""), JSON.stringify(pr));
 

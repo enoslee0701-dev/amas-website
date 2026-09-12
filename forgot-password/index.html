@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>找回密码 | AMAS 亚洲宣教神学院</title>
 <link rel="icon" href="../assets/img/favicon.png">
-<link rel="stylesheet" href="../assets/css/portal.css?v=202609130057">
+<link rel="stylesheet" href="../assets/css/portal.css?v=202609130107">
 </head>
 <body>
 <div class="wrap">
@@ -39,8 +39,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../assets/js/supabase-config.js?v=202609130057"></script>
-<script src="../assets/js/portal/auth.js?v=202609130057"></script>
+<script src="../assets/js/supabase-config.js?v=202609130107"></script>
+<script src="../assets/js/portal/auth.js?v=202609130107"></script>
 <script>
 (function(){
   const A = window.AmasAuth;
@@ -65,23 +65,37 @@
        「重置链接已发送」—— 用户坐等一封永远不会来的邮件，而邮件投递本身
        还是独立阻塞项，他更难察觉哪里出了问题。
 
-       这里如实说「没能把请求发出去」**不泄漏任何账号信息**：
-       传输层失败与这个邮箱有没有注册无关。§5.3 的反枚举由下面那句
-       统一文案保证 —— 只要请求被接受，无论邮箱是否存在都是同一句话。 */
+       但**「没拿到回执」不等于「没发出去」**：连接可能是在服务端已经受理之后
+       才断的（独立反例 event342：服务端 accepted=1，页面却说没发出去）。
+       所以传输层失败一律只说「没能确认处理结果」，并给两条能自救的指引：
+       先查收邮件，过一会儿还没有再重试。断言方向错了，用户就会照着假前提行动。
+
+       确定被拒的分支另说：429 是服务端明确回绝，这一次确实没有发信；
+       not_configured 是根本没调出去。这两条可以说死。
+
+       这里如实说明**不泄漏任何账号信息**：传输层结果与这个邮箱有没有注册无关。
+       §5.3 的反枚举由下面那句统一文案保证 —— 只要请求被受理，
+       无论邮箱是否存在都是同一句话。 */
     if (r && r.error) {
+      const UNCERTAIN = "没能确认这次请求的处理结果 —— 重置邮件可能已经在发送，也可能没有。" +
+        "请先查收邮件（含垃圾邮件）；如果过一会儿仍然没有收到，再重试一次。";
       const M = {
-        network: "网络连不上，没能把这次请求发出去。请检查网络后重试。",
-        server: "服务器暂时出错，没能把这次请求发出去。请稍后再试。",
-        rate_limited: "请求太频繁，请稍等一会儿再试。",
-        not_configured: "账号系统尚未启用，暂时无法发送重置邮件。",
+        network: UNCERTAIN,
+        server: UNCERTAIN,
+        unknown: UNCERTAIN,
+        rate_limited: "请求太频繁，这一次没有发送。请稍等一会儿再试。",
+        not_configured: "账号系统尚未启用，这一次没有发送。",
       };
-      err.textContent = M[r.error] || "没能把这次请求发出去，请稍后再试。";
+      err.textContent = M[r.error] || UNCERTAIN;
       err.classList.add("show");
       return;
     }
 
-    // 统一提示：无论邮箱是否存在都返回同样文案，避免探测（§5.3）
-    ok.textContent = "如果该邮箱已注册，重置链接已发送。请查收邮件（含垃圾邮件）。";
+    /* 统一提示：无论邮箱是否存在都返回同样文案，避免探测（§5.3）。
+       措辞只说到「已经受理」为止 —— **请求被接受不代表邮件已经投递**
+       （SMTP 上线配置仍是独立阻塞项），不能替投递打包票。 */
+    ok.textContent = "如果该邮箱已注册，重置邮件已经在发送。请查收邮件（含垃圾邮件）；" +
+      "如果过一会儿还没有收到，可以再试一次。";
     ok.classList.add("show");
   });
 })();
