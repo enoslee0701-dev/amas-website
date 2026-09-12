@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>招生审核 | AMAS 管理后台</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130012">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130017">
 <style>
 .qtable{width:100%;border-collapse:collapse;font-size:13px}
 .qtable th,.qtable td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:top}
@@ -34,12 +34,12 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130012"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130012"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130012"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130012"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130012"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609130012"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130017"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130017"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130017"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130017"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130017"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609130017"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -199,6 +199,10 @@
 
     document.getElementById("dClose").addEventListener("click", () => box.classList.remove("open"));
     box.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => act(b.dataset.a)));
+    /* 这一份如果上次的结果没弄清楚，重新打开时仍然锁着，并把原话再说一遍 ——
+       否则「刷新核实」之前它看起来又可以点了。 */
+    if (unresolved.has(id)) showUnresolved(id);
+    else if (inflight.has(id)) setActionsDisabled(id, true);
     box.focus();
   }
 
@@ -212,10 +216,39 @@
   const UNKNOWN_CODES = { network: 1, server_error: 1, unknown: 1 };
   const UNKNOWN_TEXT = "没有拿到这次审核的结果，无法确认它是否已经生效。" +
     "在核实之前不要重复执行 —— 重复审核会写下两条审批记录。请刷新后核实当前状态。";
-  let acting = false;
+  /* 状态必须绑在**这一份申请**上，不能是页面级的一个 boolean。
+     监督独立复现（event141c）：A 的请求结果不明之后（我们刻意锁住 A），
+     关掉 A、打开 B、确认「开始审核」—— `if (acting) return` 直接静默退出，
+     B 什么都没发生，连一句提示都没有。一个不明结果锁死了后面所有申请。
+
+     同一处还有第二个问题：application_id 原来是在确认弹窗**之后**才从
+     current 读的。弹窗开着的时候切到另一份，这个动作就会落到别人头上。
+     所以进 act() 的第一件事是把目标钉死，之后一律用它，不再看 current。 */
+  const inflight = new Set();      // 正在途中的申请 id
+  const unresolved = new Map();    // 申请 id -> 结果不明的说明；核实前这一份不能再动
+
+  /** 只在当前正显示这一份时改按钮；否则状态留在 inflight/unresolved 里，
+      等 openDetail 重新打开时再还原（见 openDetail 末尾）。 */
+  function setActionsDisabled(appId, disabled){
+    if (!current || current.id !== appId) return;
+    const box = document.getElementById("detail");
+    if (box) box.querySelectorAll("[data-a]").forEach((b) => { b.disabled = disabled; });
+  }
+  function showUnresolved(appId){
+    const e = document.getElementById("dErr");
+    if (e && current && current.id === appId) {
+      e.textContent = unresolved.get(appId); e.classList.add("show");
+    }
+    setActionsDisabled(appId, true);
+  }
 
   async function act(action){
+    const target = current;                       // ★ 先钉死目标
+    if (!target) return;
+    const appId = target.id;
     const err = document.getElementById("dErr"); err.classList.remove("show");
+    if (inflight.has(appId)) return;
+    if (unresolved.has(appId)) { showUnresolved(appId); return; }
     let message = null, requirements = null, internal_note = null;
 
     if (action === "needs_information") {
@@ -244,33 +277,39 @@
          ② 明确拒绝才解锁（可以放心重来）；
          ③ 结果不明则**锁住这一条**，只留「刷新核实」这条出路。
        只说「不要重试」是不够的 —— 按钮还摆在那儿就还是会被点。 */
-    const box = document.getElementById("detail");
-    const all = box.querySelectorAll("[data-a]");
-    if (acting) return;
-    acting = true;
-    all.forEach((b) => { b.disabled = true; });
-    const unlock = () => { all.forEach((b) => { b.disabled = false; }); acting = false; };
+    // 弹窗开着的这段时间里，这一份可能已经被别处动过
+    if (inflight.has(appId) || unresolved.has(appId)) return;
+    inflight.add(appId);
+    setActionsDisabled(appId, true);
 
     const { data, error } = await Api.fn("review-application", {
-      application_id: current.id, action, message, requirements, internal_note,
+      application_id: appId, action, message, requirements, internal_note,
     }, { requireAal2: true });
+
+    inflight.delete(appId);
+
+    /** 回执可能晚于用户切走。只有还在看这一份时才动 DOM；
+        锁定状态一律记在 unresolved 里，重新打开时还原。 */
+    const settle = (text, lock) => {
+      if (lock) unresolved.set(appId, text);
+      else setActionsDisabled(appId, false);
+      if (current && current.id === appId) {
+        const e2 = document.getElementById("dErr");
+        if (e2) { e2.textContent = text; e2.classList.add("show"); }
+      }
+    };
 
     if (error) {
       const code = error.code || "";
-      if (!code || UNKNOWN_CODES[code]) {
-        err.textContent = UNKNOWN_TEXT; err.classList.add("show");
-        return;                                   // 刻意不解锁
-      }
-      unlock();
-      err.textContent = (error.message || code) + "（这次没有执行任何操作。）";
-      err.classList.add("show");
-      return;
+      if (!code || UNKNOWN_CODES[code]) return settle(UNKNOWN_TEXT, true);
+      return settle((error.message || code) + "（这次没有执行任何操作。）", false);
     }
     // 200 但没有可读的 body —— 同样不能断言生效
-    if (!data) { err.textContent = UNKNOWN_TEXT; err.classList.add("show"); return; }
-    unlock();
+    if (!data) return settle(UNKNOWN_TEXT, true);
+
+    setActionsDisabled(appId, false);
     UI.toast("已执行：" + action);
-    document.getElementById("detail").classList.remove("open");
+    if (current && current.id === appId) document.getElementById("detail").classList.remove("open");
     await load();
   }
 

@@ -197,7 +197,8 @@ try {
   };
   const TABLES = {
     program_catalog: { data: [{ code:"bth", name_zh:"神学本科", short_label:"B.Th" }] },
-    applications: { data: [APP] },
+    applications: { data: [APP, Object.assign({}, APP, { id:"app-fixture-2",
+      form_data:{ name_zh:"第二位申请人", name_en:"Second", church_name:"另一间教会", programs:["bth"] } })] },
     application_internal: { data: { notes: "（fixture 内部备注）" } },
     application_requirements: { data: [] },
     application_status_history: { data: [] },
@@ -209,11 +210,13 @@ try {
   /** 在页面里改写 /functions/v1/ 的 fetch，控制 Edge 调用的结果并计数。
       kind: ok | throw | http500 | html | refuse */
   const installFetch = async (kind) => cdp.ev(`(()=>{
-    window.__fnHits = 0;
+    window.__fnHits = 0; window.__fnBodies = [];
     const orig = window.fetch;
     window.fetch = function(u){
       if (String(u).indexOf("/functions/v1/") < 0) return orig.apply(this, arguments);
       window.__fnHits++;
+      try { const b = JSON.parse((arguments[1] && arguments[1].body) || "{}");
+            (window.__fnBodies = window.__fnBodies || []).push(b); } catch (e) {}
       const k = ${JSON.stringify(kind)};
       if (k === "throw")   return Promise.reject(new TypeError("Failed to fetch"));
       if (k === "http500") return Promise.resolve(new Response(JSON.stringify({}), { status:500,
@@ -307,6 +310,66 @@ try {
   ok("A4 明确拒绝时说清楚「这次没有执行」", /这次没有执行/.test(a4 || ""), JSON.stringify(a4));
   ok("A4b 明确拒绝可以重来（按钮解锁）",
      (await cdp.ev(`(()=>{const b=document.querySelector('[data-a="start_review"]'); return !!(b && !b.disabled);})()`)) === true);
+
+  // ════════ R 结果不明的锁只能锁住那一份（event141c 返修）════════
+  console.log("\n=== R 不明结果不得锁住别的申请 ===");
+  const fnBodies = async () => (await cdp.ev(`window.__fnBodies || []`)) || [];
+  const openRow = async (n) => {
+    await cdp.ev(`(()=>{const b=document.querySelectorAll("[data-open]")[${n}]; if(b) b.click(); return !!b;})()`);
+    await sleep(700);
+  };
+  const actOn = async (a) => {
+    await cdp.ev(`(()=>{const b=document.querySelector('[data-a="${a}"]'); if(b && !b.disabled) b.click(); return true;})()`);
+    await sleep(400);
+    await confirmDialog();
+    await sleep(1400);
+  };
+
+  await open("portal/admin/admissions/", { tables: TABLES }, 3000);
+  await installFetch("throw");
+  await openRow(0);
+  await actOn("start_review");
+  ok("R0 前提：A 落到结果不明并被锁住",
+     /无法确认/.test((await vis("#dErr")) || "") &&
+     (await cdp.ev(`(()=>{const b=document.querySelector('[data-a="start_review"]'); return !!(b&&b.disabled);})()`)) === true,
+     JSON.stringify(await vis("#dErr")));
+  const hitsAfterA = await fnHits();
+
+  await installFetch("ok");
+  await cdp.ev(`(()=>{const c=document.getElementById("dClose"); if(c) c.click(); return true;})()`);
+  await sleep(300);
+  await openRow(1);
+  await actOn("start_review");
+  const bodies = await fnBodies();
+  ok("R1 打开另一份申请 B，动作真的执行了（不再被 A 的锁静默吞掉）",
+     (await fnHits()) === 1 && bodies.length === 1, "B 侧命中 " + (await fnHits()) + " 次");
+  ok("R1b 发出去的是 B 的 id，不是 A 的",
+     bodies.length === 1 && bodies[0].application_id === "app-fixture-2", JSON.stringify(bodies));
+
+  // A 重新打开仍锁着
+  await installFetch("ok");
+  await openRow(0);
+  ok("R2 重新打开 A，仍然锁着并把原话再说一遍",
+     /无法确认/.test((await vis("#dErr")) || "") &&
+     (await cdp.ev(`(()=>{const b=document.querySelector('[data-a="start_review"]'); return !!(b&&b.disabled);})()`)) === true,
+     JSON.stringify(await vis("#dErr")));
+  await actOn("start_review");
+  ok("R3 在 A 上再点也不会误重试（一次请求都不发）", (await fnHits()) === 0,
+     "命中 " + (await fnHits()) + " 次");
+
+  // R4 弹窗开着时切到另一份：动作仍作用于**发起时**的那一份
+  await open("portal/admin/admissions/", { tables: TABLES }, 3000);
+  await installFetch("ok");
+  await openRow(0);
+  await cdp.ev(`(()=>{const b=document.querySelector('[data-a="start_review"]'); if(b) b.click(); return true;})()`);
+  await sleep(400);
+  await cdp.ev(`(()=>{const b=document.querySelectorAll("[data-open]")[1]; if(b) b.click(); return !!b;})()`);
+  await sleep(500);
+  await confirmDialog();
+  await sleep(1500);
+  const b4 = await fnBodies();
+  ok("R4 确认弹窗期间切到 B，动作仍落在发起时的 A 上，不串到另一份",
+     b4.length === 1 && b4[0].application_id === "app-fixture-1", JSON.stringify(b4));
 
   // ════════ S 学籍写入（student-lifecycle）════════
   console.log("\n=== S 学籍写入 ===");
