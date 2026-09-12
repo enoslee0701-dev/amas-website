@@ -518,6 +518,60 @@ try {
     "A21 负向控制：拿到非 2xx 才判 error（证明 warn 不是一锅端）",
     `state=${neg2.state || "(空)"}`]);
 
+  // ════ B1–B5 咨询表单（#contactForm）的三态一致性 ════
+  // 整合前核查时发现：咨询表单的 catch 一概说「提交失败」，与申请表已纠正的判据不一致。
+  // 超时与网络错都没拿到回应，咨询**可能已经送到了**，不能一概说失败。
+  // 安全：formEndpoint 指向本机永不存在的路径并替换 fetch，不碰真实 formsubmit。
+  await cdp.send("Page.navigate", { url: `${BASE}/index.html` });
+  await sleep(2000);
+  await cdp.ev(`document.documentElement.style.scrollBehavior='auto';
+    (function(){const pc=document.getElementById('promoCard'); if(pc) pc.hidden=true;
+     document.querySelectorAll('.promo-tab,.chat-fab').forEach(function(e){e.style.display='none';});})()`);
+
+  const contactRun = async (mode) => {
+    await cdp.ev(`(()=>{
+      CONFIG.formEndpoint = "/__local-contact-mock";
+      const orig = window.fetch;
+      window.__cHits = 0;
+      window.fetch = function(u){
+        if(String(u).indexOf("__local-contact-mock") < 0) return orig.apply(this, arguments);
+        window.__cHits++;
+        if(${JSON.stringify("http500")} === ${JSON.stringify(mode)})
+          return Promise.resolve({ ok:false, status:500, json:()=>Promise.resolve({}) });
+        return Promise.reject(new TypeError("Failed to fetch"));
+      };
+      const f = document.getElementById('contactForm');
+      f.querySelector('[name=name]').value = '咨询测试';
+      f.querySelector('[name=contact]').value = 'c@example.invalid';
+      f.querySelector('[name=message]').value = '这是咨询内容';
+      const st = document.getElementById('contactStatus');
+      st.textContent = ''; st.removeAttribute('data-state');
+      f.requestSubmit();
+      return true;})()`);
+    await sleep(1300);
+    return cdp.ev(`(()=>{const st=document.getElementById('contactStatus');
+      const f=document.getElementById('contactForm');
+      return { state:st.dataset.state||"", text:(st.textContent||'').trim(),
+               姓名:f.querySelector('[name=name]').value,
+               内容:f.querySelector('[name=message]').value };})()`);
+  };
+
+  const cNet = await contactRun("neterr");
+  results.push([cNet.state === "warn",
+    "B1 咨询表单：网络错归为无法确认（可能已送达），不谎称失败", `state=${cNet.state}`]);
+  results.push([/无法确认/.test(cNet.text),
+    "B2 咨询表单：文案明说无法确认是否已送达", cNet.text.slice(0, 40)]);
+  results.push([cNet.姓名 === "咨询测试" && cNet.内容 === "这是咨询内容",
+    "B3 咨询表单：失败后填写内容原样保留", JSON.stringify(cNet)]);
+
+  const cHttp = await contactRun("http500");
+  results.push([cHttp.state === "error" && /没有送达/.test(cHttp.text),
+    "B4 咨询表单：拿到非 2xx 才判 error 并说明确实没送达",
+    `state=${cHttp.state} text=${cHttp.text.slice(0, 30)}`]);
+  results.push([cHttp.state !== cNet.state,
+    "B5 负向控制：两种失败判出不同状态（证明三态不是一锅端）",
+    `http500=${cHttp.state} neterr=${cNet.state}`]);
+
   cdp.ws.close();
 } finally {
   chrome.kill();

@@ -200,11 +200,11 @@ const i18n = {
   "footer.desc":"植根圣经、扎根祷告，装备走向亚洲禾场的工人。清迈教学中心与线上课堂，共同服务华人教会与跨文化宣教。","footer.c1":"学院","footer.c2":"学习","footer.c3":"开始",
   "faq.title":"常见问题","faq.items.0.q":"没有神学背景可以申请吗？","faq.items.0.a":"可以。我们更看重持续学习、遵守学习纪律与认真接受装备的意愿。","faq.items.1.q":"课程全部线上吗？","faq.items.1.a":"以灵活学习为原则，包含线上课程，同时鼓励参与清迈线下门训、实践与群体学习。","faq.items.2.q":"完成后由谁建立学籍和颁发学位？","faq.items.2.a":"学籍由 AMAS 总校审核建立，并按学校正式制度完成毕业与学位流程。","faq.items.3.q":"如何开始申请？","faq.items.3.a":"点击“申请入学”，填写基础资料与学习动机，之后由招生同工联络并说明下一步。",
   "giving.cta":"了解参与方式","giving.ctaNote":"具体方式由同工一对一说明。",
-  "giving.title":"奉献支持","giving.verse":"“各人要随本心所酌定的，不要作难，不要勉强，因为捐得乐意的人是神所喜爱的。”","giving.verseRef":"—— 哥林多后书 9:7","giving.desc":"神学教育是一场同工的事奉。你的奉献将帮助愿意受装备的学员走完学习的路，也支持教学与宣教事工继续前行。","giving.d1":"学员助学","giving.d1b":"资助经济困难的学员完成装备","giving.d2":"教学事工","giving.d2b":"支持教师团队与课程建设","giving.d3":"宣教士训练","giving.d3b":"支持差派预备中的工人","giving.ok":"已收到，愿主纪念你的摆上！","giving.fail":"发送失败，请稍后再试，或直接联系我们。","giving.note":"奉献完全出于自愿，用于学员助学、教学与宣教事工；如需了解奉献的使用情况，欢迎随时与我们联系。","faq.items.4.q":"我可以怎样支持 AMAS？","faq.items.4.a":"欢迎以代祷参与，也可以为学员助学、教学与宣教事工奉献，详见「奉献支持」版块；把学院介绍给身边合适的人同样是宝贵的支持。",
+  "giving.title":"奉献支持","giving.verse":"“各人要随本心所酌定的，不要作难，不要勉强，因为捐得乐意的人是神所喜爱的。”","giving.verseRef":"—— 哥林多后书 9:7","giving.desc":"神学教育是一场同工的事奉。你的奉献将帮助愿意受装备的学员走完学习的路，也支持教学与宣教事工继续前行。","giving.d1":"学员助学","giving.d1b":"资助经济困难的学员完成装备","giving.d2":"教学事工","giving.d2b":"支持教师团队与课程建设","giving.d3":"宣教士训练","giving.d3b":"支持差派预备中的工人","giving.ok":"已收到，愿主纪念你的摆上！","giving.fail":"服务器拒绝了这次发送，没有送达。请稍后再试，或直接联系我们。","giving.unsure":"没能拿到服务器的回应，无法确认是否已送达。你填的内容都还在。建议先直接联系我们核实，确认没收到再重新发送，以免重复。","giving.note":"奉献完全出于自愿，用于学员助学、教学与宣教事工；如需了解奉献的使用情况，欢迎随时与我们联系。","faq.items.4.q":"我可以怎样支持 AMAS？","faq.items.4.a":"欢迎以代祷参与，也可以为学员助学、教学与宣教事工奉献，详见「奉献支持」版块；把学院介绍给身边合适的人同样是宝贵的支持。",
   "promo.tab":"2026 届招生进行中","promo.title":"2026 届神学学士 B.Th 招生中","promo.desc":"线上 + 清迈线下 · 按科修读 · 9 月开学。想先了解一下？招生助手随时为你解答。","promo.ask":"立即咨询","promo.apply":"申请入学","admissions.countdown":"2026 年 9 月开学 · 2026 届招生进行中","admissions.started":"2026 届已开学，欢迎咨询下一批次","actions.copy":"复制","toast.copied":"已复制","faq.ask.title":"还有其他问题？","faq.ask.desc":"AI 咨询助手可以随时解答；也可以直接留言给招生同工，我们会尽快回复你。","faq.ask.ai":"问 AI 咨询助手","faq.ask.leave":"给招生同工留言",
   "contact.title":"想进一步了解？","contact.desc":"留下你的问题，我们会通过你提供的联系方式回复。","contact.locationLabel":"地区","contact.studyLabel":"学习","contact.studyValue":"线上 + 线下","contact.emailLabel":"邮箱","contact.phoneLabel":"电话（泰国）","contact.phoneCNLabel":"电话（中国）","contact.lineLabel":"Line","contact.wechatLabel":"微信",
   "form.name":"姓名","form.contact":"邮箱 / Line / 微信","form.message":"想咨询的内容","form.send":"发送咨询",
-  "form.okDemo":"已收到。当前演示版将咨询保存在本机浏览器中。","form.ok":"已收到，我们会尽快通过你留下的方式联络你。","form.error":"提交失败：网络或服务器异常，请稍后再试，或直接与我们联系。",
+  "form.okDemo":"已收到。当前演示版将咨询保存在本机浏览器中。","form.ok":"已收到，我们会尽快通过你留下的方式联络你。","form.error":"服务器拒绝了这次提交，没有送达。请稍后再试，或直接与我们联系。","form.unsure":"没能拿到服务器的回应，无法确认是否已送达。你填的内容都还在。建议先直接联系我们核实，确认没收到再重新提交，以免重复。",
   "video.title":"学院介绍视频","video.placeholder":"这里已经预留视频播放器位置。将来把 YouTube / Vimeo / 本地 MP4 链接接入即可。",
   "application.title":"入学申请","application.hint":"在线申请为快速通道；完整版申请表（含学历、家庭状况等）可在资源中心下载 Word 文档填写。","application.pleaseSelect":"请选择",
   "application.fields.nameZh":"中文姓名","application.fields.nameEn":"英文姓名","application.fields.gender":"性别","application.fields.birth":"出生年月","application.fields.nationality":"国籍","application.fields.language":"主要使用语言","application.fields.phone":"手机","application.fields.email":"Email / QQ / 微信","application.fields.city":"目前所在城市 / 国家",
@@ -321,11 +321,11 @@ const i18n = {
   "footer.desc":"Rooted in Scripture and prayer, equipping workers for the harvest fields of Asia. Our Chiang Mai campus and online classrooms serve the Chinese church and cross-cultural mission.","footer.c1":"Seminary","footer.c2":"Study","footer.c3":"Get Started",
   "faq.title":"Frequently Asked Questions","faq.items.0.q":"Can I apply without prior theological study?","faq.items.0.a":"Yes. We value willingness to learn, consistency and commitment to serious formation.","faq.items.1.q":"Are all classes online?","faq.items.1.a":"Learning is flexible: online coursework is combined with encouraged in-person discipleship, practice and community in Chiang Mai.","faq.items.2.q":"Who manages student status and degree completion?","faq.items.2.a":"Official student status is reviewed and established through AMAS according to school policies.","faq.items.3.q":"How do I begin?","faq.items.3.a":"Click Apply, submit basic information and your motivation, then admissions will contact you with next steps.",
   "giving.cta":"How to Take Part","giving.ctaNote":"Details are shared personally, one to one, by our team.",
-  "giving.title":"Giving & Support","giving.verse":"“Each of you should give what you have decided in your heart to give, not reluctantly or under compulsion, for God loves a cheerful giver.”","giving.verseRef":"— 2 Corinthians 9:7","giving.desc":"Theological education is a shared ministry. Your giving helps committed students finish their training, and keeps the teaching and mission work moving forward.","giving.d1":"Student Aid","giving.d1b":"Help students in financial hardship complete their training","giving.d2":"Teaching Ministry","giving.d2b":"Support the faculty and curriculum development","giving.d3":"Missionary Training","giving.d3b":"Support workers preparing to be sent","giving.ok":"Received — may the Lord remember your gift!","giving.fail":"Failed to send. Please try again or contact us directly.","giving.note":"Giving is entirely voluntary and is used for student aid, teaching and mission; you are welcome to ask how gifts are used at any time.","faq.items.4.q":"How can I support AMAS?","faq.items.4.a":"Pray for us, give toward student aid, teaching or missionary training (see the Giving section), or simply introduce AMAS to someone who should know about it.",
+  "giving.title":"Giving & Support","giving.verse":"“Each of you should give what you have decided in your heart to give, not reluctantly or under compulsion, for God loves a cheerful giver.”","giving.verseRef":"— 2 Corinthians 9:7","giving.desc":"Theological education is a shared ministry. Your giving helps committed students finish their training, and keeps the teaching and mission work moving forward.","giving.d1":"Student Aid","giving.d1b":"Help students in financial hardship complete their training","giving.d2":"Teaching Ministry","giving.d2b":"Support the faculty and curriculum development","giving.d3":"Missionary Training","giving.d3b":"Support workers preparing to be sent","giving.ok":"Received — may the Lord remember your gift!","giving.fail":"The server rejected this, so it did not go through. Please try again, or contact us directly.","giving.unsure":"We did not get a reply from the server, so we cannot confirm whether it arrived. Everything you typed is still here. Please contact us to check before sending again, so you do not send it twice.","giving.note":"Giving is entirely voluntary and is used for student aid, teaching and mission; you are welcome to ask how gifts are used at any time.","faq.items.4.q":"How can I support AMAS?","faq.items.4.a":"Pray for us, give toward student aid, teaching or missionary training (see the Giving section), or simply introduce AMAS to someone who should know about it.",
   "promo.tab":"Admissions 2026 Open","promo.title":"B.Th Class of 2026 — Now Enrolling","promo.desc":"Online + on-site in Chiang Mai · pay per course · starts September 2026. Curious? Our admissions assistant is here to help.","promo.ask":"Ask Now","promo.apply":"Apply","admissions.countdown":"Classes begin September 2026 · Now enrolling","admissions.started":"Classes have begun — ask about the next intake","actions.copy":"Copy","toast.copied":"Copied","faq.ask.title":"Still have questions?","faq.ask.desc":"Our AI assistant is available anytime — or leave a message for the admissions team and we will reply soon.","faq.ask.ai":"Ask the AI assistant","faq.ask.leave":"Leave a message",
   "contact.title":"Want to know more?","contact.desc":"Leave your question and preferred contact information, and our team will follow up.","contact.locationLabel":"Location","contact.studyLabel":"Study","contact.studyValue":"Online + In-person","contact.emailLabel":"Email","contact.phoneLabel":"Phone (Thailand)","contact.phoneCNLabel":"Phone (China)","contact.lineLabel":"Line","contact.wechatLabel":"WeChat",
   "form.name":"Name","form.contact":"Email / Line / WeChat","form.message":"Your question","form.send":"Send Inquiry",
-  "form.okDemo":"Received. This demo stores the inquiry in your browser.","form.ok":"Received. We will follow up using the contact details you provided.","form.error":"Submission failed: network or server error. Please try again later or contact us directly.",
+  "form.okDemo":"Received. This demo stores the inquiry in your browser.","form.ok":"Received. We will follow up using the contact details you provided.","form.error":"The server rejected this submission, so it did not go through. Please try again, or contact us directly.","form.unsure":"We did not get a reply from the server, so we cannot confirm whether it arrived. Everything you typed is still here. Please contact us to check before submitting again, so you do not send it twice.",
   "video.title":"Seminary Introduction","video.placeholder":"The video player is ready. Connect a YouTube, Vimeo, or local MP4 URL when available.",
   "application.title":"Admission Application","application.hint":"The online form is a fast track; the full application (education history, family details, etc.) is available in Resources as a Word download.","application.pleaseSelect":"Please select",
   "application.fields.nameZh":"Name (Chinese)","application.fields.nameEn":"Name (English)","application.fields.gender":"Gender","application.fields.birth":"Date of Birth","application.fields.nationality":"Nationality","application.fields.language":"Primary Language","application.fields.phone":"Mobile","application.fields.email":"Email / QQ / WeChat","application.fields.city":"Current City / Country",
@@ -442,11 +442,11 @@ const i18n = {
   "footer.desc":"말씀과 기도에 뿌리내려 아시아의 추수밭으로 나아갈 일꾼을 세웁니다. 치앙마이 캠퍼스와 온라인 강의실이 중국어권 교회와 타문화 선교를 섬깁니다.","footer.c1":"학교","footer.c2":"배움","footer.c3":"시작하기",
   "faq.title":"자주 묻는 질문","faq.items.0.q":"신학 배경이 없어도 지원할 수 있나요?","faq.items.0.a":"네. 우리는 꾸준한 학습, 학습 규율 준수, 진지하게 훈련받으려는 의지를 더 중요하게 봅니다.","faq.items.1.q":"수업은 전부 온라인인가요?","faq.items.1.a":"유연 학습을 원칙으로 온라인 수업을 제공하며, 동시에 치앙마이 현장 제자훈련·실습·공동체 학습 참여를 권장합니다.","faq.items.2.q":"수료 후 학적 등록과 학위 수여는 누가 하나요?","faq.items.2.a":"학적은 AMAS 본교의 심사를 거쳐 등록되며, 학교의 정식 제도에 따라 졸업과 학위 절차가 진행됩니다.","faq.items.3.q":"지원은 어떻게 시작하나요?","faq.items.3.a":"「입학 지원」을 눌러 기본 정보와 학업 동기를 작성하시면, 이후 입학 담당자가 연락드려 다음 단계를 안내합니다.",
   "giving.cta":"동역 방법 알아보기","giving.ctaNote":"구체적인 방법은 담당자가 일대일로 안내합니다.",
-  "giving.title":"후원과 동역","giving.verse":"“각각 그 마음에 정한 대로 할 것이요 인색함으로나 억지로 하지 말지니 하나님은 즐겁게 내는 자를 사랑하시느니라.”","giving.verseRef":"— 고린도후서 9:7","giving.desc":"신학 교육은 함께 세워가는 사역입니다. 당신의 후원은 훈련받기 원하는 학생이 학업을 마치도록 돕고, 교육과 선교 사역을 지탱합니다.","giving.d1":"학생 장학","giving.d1b":"경제적 어려움이 있는 학생의 훈련을 돕습니다","giving.d2":"교육 사역","giving.d2b":"교수진과 커리큘럼을 지원합니다","giving.d3":"선교사 훈련","giving.d3b":"파송을 준비하는 일꾼을 돕습니다","giving.ok":"접수되었습니다. 주님께서 당신의 드림을 기억하시기를!","giving.fail":"전송 실패. 잠시 후 다시 시도하거나 직접 연락해 주세요.","giving.note":"후원은 전적으로 자발적이며 학생 장학·교육·선교 사역에 사용됩니다. 사용 내역은 언제든 문의하실 수 있습니다.","faq.items.4.q":"AMAS를 어떻게 도울 수 있나요?","faq.items.4.a":"기도로 함께해 주세요. 학생 장학·교육·선교사 훈련을 위해 후원하실 수 있으며(「후원과 동역」 참조), 주변에 학교를 소개하는 것도 귀한 동역입니다.",
+  "giving.title":"후원과 동역","giving.verse":"“각각 그 마음에 정한 대로 할 것이요 인색함으로나 억지로 하지 말지니 하나님은 즐겁게 내는 자를 사랑하시느니라.”","giving.verseRef":"— 고린도후서 9:7","giving.desc":"신학 교육은 함께 세워가는 사역입니다. 당신의 후원은 훈련받기 원하는 학생이 학업을 마치도록 돕고, 교육과 선교 사역을 지탱합니다.","giving.d1":"학생 장학","giving.d1b":"경제적 어려움이 있는 학생의 훈련을 돕습니다","giving.d2":"교육 사역","giving.d2b":"교수진과 커리큘럼을 지원합니다","giving.d3":"선교사 훈련","giving.d3b":"파송을 준비하는 일꾼을 돕습니다","giving.ok":"접수되었습니다. 주님께서 당신의 드림을 기억하시기를!","giving.fail":"서버가 거부하여 전달되지 않았습니다. 잠시 후 다시 시도하거나 직접 연락해 주세요.","giving.unsure":"서버 응답을 받지 못해 전달 여부를 확인할 수 없습니다. 입력하신 내용은 그대로 남아 있습니다. 중복 전송을 피하기 위해 다시 보내기 전에 직접 연락해 확인해 주세요.","giving.note":"후원은 전적으로 자발적이며 학생 장학·교육·선교 사역에 사용됩니다. 사용 내역은 언제든 문의하실 수 있습니다.","faq.items.4.q":"AMAS를 어떻게 도울 수 있나요?","faq.items.4.a":"기도로 함께해 주세요. 학생 장학·교육·선교사 훈련을 위해 후원하실 수 있으며(「후원과 동역」 참조), 주변에 학교를 소개하는 것도 귀한 동역입니다.",
   "promo.tab":"2026학년도 모집 중","promo.title":"2026학년도 신학사 B.Th 모집 중","promo.desc":"온라인 + 치앙마이 오프라인 · 과목별 수강 · 9월 개강. 먼저 알아보고 싶으신가요? 입학 도우미가 언제든 답해 드립니다.","promo.ask":"바로 상담","promo.apply":"입학 지원","admissions.countdown":"2026년 9월 개강 · 모집 진행 중","admissions.started":"개강했습니다 — 다음 기수를 문의해 주세요","actions.copy":"복사","toast.copied":"복사되었습니다","faq.ask.title":"더 궁금한 점이 있으신가요?","faq.ask.desc":"AI 상담 도우미가 언제든 답해 드립니다. 입학 담당자에게 직접 메시지를 남기셔도 빠르게 회신드립니다.","faq.ask.ai":"AI 상담 도우미에게 묻기","faq.ask.leave":"입학처에 메시지 남기기",
   "contact.title":"더 알고 싶으신가요?","contact.desc":"질문을 남겨 주시면 남겨 주신 연락처로 회신드립니다.","contact.locationLabel":"지역","contact.studyLabel":"학습","contact.studyValue":"온라인 + 오프라인","contact.emailLabel":"이메일","contact.phoneLabel":"전화(태국)","contact.phoneCNLabel":"전화(중국)","contact.lineLabel":"Line","contact.wechatLabel":"위챗",
   "form.name":"이름","form.contact":"이메일 / Line / 위챗","form.message":"문의 내용","form.send":"문의 보내기",
-  "form.okDemo":"접수되었습니다. 데모 버전은 문의를 브라우저에만 저장합니다.","form.ok":"접수되었습니다. 남겨 주신 연락처로 곧 연락드리겠습니다.","form.error":"제출 실패: 네트워크 또는 서버 오류입니다. 잠시 후 다시 시도하시거나 직접 연락해 주세요.",
+  "form.okDemo":"접수되었습니다. 데모 버전은 문의를 브라우저에만 저장합니다.","form.ok":"접수되었습니다. 남겨 주신 연락처로 곧 연락드리겠습니다.","form.error":"서버가 이 제출을 거부하여 전달되지 않았습니다. 잠시 후 다시 시도하시거나 직접 연락해 주세요.","form.unsure":"서버 응답을 받지 못해 전달 여부를 확인할 수 없습니다. 입력하신 내용은 그대로 남아 있습니다. 중복 제출을 피하기 위해 다시 보내기 전에 직접 연락해 확인해 주세요.",
   "video.title":"학교 소개 영상","video.placeholder":"영상 플레이어 자리가 준비되어 있습니다. YouTube / Vimeo / MP4 링크를 연결하면 됩니다.",
   "application.title":"입학 지원","application.hint":"온라인 지원은 빠른 통로입니다. 학력·가족 사항 등을 포함한 전체 지원서는 자료실에서 Word 문서로 내려받아 작성할 수 있습니다.","application.pleaseSelect":"선택해 주세요",
   "application.fields.nameZh":"이름(한자/중문)","application.fields.nameEn":"이름(영문)","application.fields.gender":"성별","application.fields.birth":"생년월","application.fields.nationality":"국적","application.fields.language":"주 사용 언어","application.fields.phone":"휴대전화","application.fields.email":"Email / QQ / 위챗","application.fields.city":"현재 거주 도시 / 국가",
@@ -563,11 +563,11 @@ const i18n = {
   "footer.desc":"หยั่งรากในพระคัมภีร์และการอธิษฐาน เตรียมผู้รับใช้สู่ทุ่งนาแห่งเอเชีย ศูนย์เชียงใหม่และห้องเรียนออนไลน์ร่วมรับใช้คริสตจักรจีนและพันธกิจข้ามวัฒนธรรม","footer.c1":"วิทยาลัย","footer.c2":"การเรียน","footer.c3":"เริ่มต้น",
   "faq.title":"คำถามที่พบบ่อย","faq.items.0.q":"ไม่มีพื้นฐานศาสนศาสตร์ สมัครได้ไหม?","faq.items.0.a":"ได้ เราให้ความสำคัญกับการเรียนอย่างต่อเนื่อง การรักษาวินัยการเรียน และความตั้งใจรับการเตรียมมากกว่า","faq.items.1.q":"เรียนออนไลน์ทั้งหมดหรือไม่?","faq.items.1.a":"ยึดหลักเรียนยืดหยุ่น มีวิชาออนไลน์ พร้อมสนับสนุนให้ร่วมการฝึกสาวก ภาคปฏิบัติ และการเรียนแบบชุมชนที่เชียงใหม่","faq.items.2.q":"จบแล้วใครขึ้นทะเบียนสถานภาพและมอบปริญญา?","faq.items.2.a":"สถานภาพนักศึกษาขึ้นทะเบียนโดยการพิจารณาของวิทยาลัยหลัก AMAS และดำเนินการจบการศึกษาและปริญญาตามระบบทางการของวิทยาลัย","faq.items.3.q":"เริ่มสมัครอย่างไร?","faq.items.3.a":"กด「สมัครเข้าเรียน」กรอกข้อมูลพื้นฐานและแรงจูงใจ จากนั้นฝ่ายรับสมัครจะติดต่อและแนะนำขั้นตอนต่อไป",
   "giving.cta":"ดูวิธีมีส่วนร่วม","giving.ctaNote":"ทีมงานจะแนะนำรายละเอียดเป็นการส่วนตัว",
-  "giving.title":"ถวายสนับสนุน","giving.verse":"“ทุกคนจงให้ตามที่ตนคิดหมายไว้ในใจ มิใช่ด้วยนิสัยเสียดายหรือด้วยความจำใจ เพราะว่าพระเจ้าทรงรักคนที่ให้ด้วยใจยินดี”","giving.verseRef":"— 2 โครินธ์ 9:7","giving.desc":"การศึกษาศาสนศาสตร์เป็นพันธกิจที่ร่วมกันทำ การถวายของคุณช่วยให้ผู้เรียนเรียนจนจบ และหนุนการสอนกับพันธกิจมิชชัน","giving.d1":"ทุนการศึกษา","giving.d1b":"ช่วยผู้เรียนที่ขาดแคลนทุนทรัพย์","giving.d2":"พันธกิจการสอน","giving.d2b":"สนับสนุนคณาจารย์และหลักสูตร","giving.d3":"อบรมมิชชันนารี","giving.d3b":"สนับสนุนผู้เตรียมถูกส่งออก","giving.ok":"ได้รับแล้ว ขอพระเจ้าทรงระลึกถึงของถวายของคุณ!","giving.fail":"ส่งไม่สำเร็จ โปรดลองใหม่หรือติดต่อเรา","giving.note":"การถวายเป็นไปโดยสมัครใจ ใช้เพื่อทุนการศึกษา การสอน และมิชชัน สอบถามการใช้ได้ทุกเมื่อ","faq.items.4.q":"จะสนับสนุน AMAS ได้อย่างไร?","faq.items.4.a":"อธิษฐานเผื่อเรา ถวายเพื่อทุนการศึกษา การสอน หรืออบรมมิชชันนารี (ดูส่วนถวายสนับสนุน) หรือแนะนำวิทยาลัยให้คนที่เหมาะสม",
+  "giving.title":"ถวายสนับสนุน","giving.verse":"“ทุกคนจงให้ตามที่ตนคิดหมายไว้ในใจ มิใช่ด้วยนิสัยเสียดายหรือด้วยความจำใจ เพราะว่าพระเจ้าทรงรักคนที่ให้ด้วยใจยินดี”","giving.verseRef":"— 2 โครินธ์ 9:7","giving.desc":"การศึกษาศาสนศาสตร์เป็นพันธกิจที่ร่วมกันทำ การถวายของคุณช่วยให้ผู้เรียนเรียนจนจบ และหนุนการสอนกับพันธกิจมิชชัน","giving.d1":"ทุนการศึกษา","giving.d1b":"ช่วยผู้เรียนที่ขาดแคลนทุนทรัพย์","giving.d2":"พันธกิจการสอน","giving.d2b":"สนับสนุนคณาจารย์และหลักสูตร","giving.d3":"อบรมมิชชันนารี","giving.d3b":"สนับสนุนผู้เตรียมถูกส่งออก","giving.ok":"ได้รับแล้ว ขอพระเจ้าทรงระลึกถึงของถวายของคุณ!","giving.fail":"เซิร์ฟเวอร์ปฏิเสธ จึงยังไม่ถึงเรา โปรดลองใหม่หรือติดต่อเรา","giving.unsure":"ไม่ได้รับการตอบกลับจากเซิร์ฟเวอร์ จึงยืนยันไม่ได้ว่าส่งถึงหรือไม่ ข้อมูลที่กรอกไว้ยังอยู่ครบ กรุณาติดต่อเราเพื่อตรวจสอบก่อนส่งใหม่ เพื่อไม่ให้ส่งซ้ำ","giving.note":"การถวายเป็นไปโดยสมัครใจ ใช้เพื่อทุนการศึกษา การสอน และมิชชัน สอบถามการใช้ได้ทุกเมื่อ","faq.items.4.q":"จะสนับสนุน AMAS ได้อย่างไร?","faq.items.4.a":"อธิษฐานเผื่อเรา ถวายเพื่อทุนการศึกษา การสอน หรืออบรมมิชชันนารี (ดูส่วนถวายสนับสนุน) หรือแนะนำวิทยาลัยให้คนที่เหมาะสม",
   "promo.tab":"เปิดรับสมัครรุ่น 2026","promo.title":"เปิดรับสมัคร B.Th รุ่นปี 2026","promo.desc":"ออนไลน์ + ออนไซต์เชียงใหม่ · เรียนรายวิชา · เปิดเรียน ก.ย. 2026 อยากทราบเพิ่มเติม? ผู้ช่วยรับสมัครพร้อมตอบทุกเมื่อ","promo.ask":"สอบถามเลย","promo.apply":"สมัครเรียน","admissions.countdown":"เปิดเรียนกันยายน 2026 · กำลังรับสมัคร","admissions.started":"เปิดเรียนแล้ว — สอบถามรุ่นถัดไปได้","actions.copy":"คัดลอก","toast.copied":"คัดลอกแล้ว","faq.ask.title":"ยังมีคำถามอื่นอีกไหม?","faq.ask.desc":"ผู้ช่วย AI ตอบได้ตลอดเวลา หรือฝากข้อความถึงฝ่ายรับสมัครโดยตรง เราจะติดต่อกลับโดยเร็ว","faq.ask.ai":"ถามผู้ช่วย AI","faq.ask.leave":"ฝากข้อความถึงฝ่ายรับสมัคร",
   "contact.title":"อยากรู้จักเรามากขึ้น?","contact.desc":"ฝากคำถามไว้ แล้วเราจะติดต่อกลับตามช่องทางที่คุณให้ไว้","contact.locationLabel":"ที่ตั้ง","contact.studyLabel":"การเรียน","contact.studyValue":"ออนไลน์ + ออนไซต์","contact.emailLabel":"อีเมล","contact.phoneLabel":"โทร (ไทย)","contact.phoneCNLabel":"โทร (จีน)","contact.lineLabel":"Line","contact.wechatLabel":"WeChat",
   "form.name":"ชื่อ","form.contact":"อีเมล / Line / WeChat","form.message":"เรื่องที่ต้องการสอบถาม","form.send":"ส่งคำถาม",
-  "form.okDemo":"ได้รับแล้ว เวอร์ชันสาธิตจะบันทึกคำถามไว้ในเบราว์เซอร์ของคุณ","form.ok":"ได้รับแล้ว เราจะติดต่อกลับตามช่องทางที่ให้ไว้โดยเร็ว","form.error":"ส่งไม่สำเร็จ: เครือข่ายหรือเซิร์ฟเวอร์ขัดข้อง โปรดลองใหม่ หรือติดต่อเราโดยตรง",
+  "form.okDemo":"ได้รับแล้ว เวอร์ชันสาธิตจะบันทึกคำถามไว้ในเบราว์เซอร์ของคุณ","form.ok":"ได้รับแล้ว เราจะติดต่อกลับตามช่องทางที่ให้ไว้โดยเร็ว","form.error":"เซิร์ฟเวอร์ปฏิเสธการส่งครั้งนี้ จึงยังไม่ถึงเรา โปรดลองใหม่ หรือติดต่อเราโดยตรง","form.unsure":"ไม่ได้รับการตอบกลับจากเซิร์ฟเวอร์ จึงยืนยันไม่ได้ว่าส่งถึงหรือไม่ ข้อมูลที่กรอกไว้ยังอยู่ครบ กรุณาติดต่อเราเพื่อตรวจสอบก่อนส่งใหม่ เพื่อไม่ให้ส่งซ้ำ",
   "video.title":"วิดีโอแนะนำวิทยาลัย","video.placeholder":"พื้นที่เครื่องเล่นวิดีโอเตรียมไว้แล้ว เชื่อมลิงก์ YouTube / Vimeo / MP4 ได้ภายหลัง",
   "application.title":"สมัครเข้าเรียน","application.hint":"การสมัครออนไลน์คือช่องทางด่วน ใบสมัครฉบับเต็ม (รวมประวัติการศึกษา ครอบครัว ฯลฯ) ดาวน์โหลดเป็นไฟล์ Word ได้ที่ศูนย์ทรัพยากร","application.pleaseSelect":"โปรดเลือก",
   "application.fields.nameZh":"ชื่อ (ภาษาจีน)","application.fields.nameEn":"ชื่อ (ภาษาอังกฤษ)","application.fields.gender":"เพศ","application.fields.birth":"เดือน/ปีเกิด","application.fields.nationality":"สัญชาติ","application.fields.language":"ภาษาหลักที่ใช้","application.fields.phone":"โทรศัพท์มือถือ","application.fields.email":"Email / QQ / WeChat","application.fields.city":"เมือง / ประเทศที่อยู่ปัจจุบัน",
@@ -1127,8 +1127,10 @@ async function sendPayload(kind, payload){
     });
   }catch(e){
     clearTimeout(timer);
-    // 超时与普通网络错误要分开抛：前者**无法确定是否已送达**，
-    // 不能像后者那样劝人直接重投 —— 会造成重复申请。
+    /* 超时与普通网络错要分开抛，但**两者都属于「无法确认是否已送达」**：
+       走到这里说明根本没拿到回应，请求可能已经送到了。
+       只有拿到非 2xx（下面那个 kind="http"）才是能证明的失败。
+       分开抛只为让文案能说清成因，不是为了给网络错配「直接重投」的建议。 */
     const err = new Error(timedOut ? "submit_timeout" : "submit_network");
     err.kind = timedOut ? "timeout" : "network";
     throw err;
@@ -1337,10 +1339,13 @@ $("#contactForm").addEventListener("submit", async e => {
     toast(t(r.demo ? "toast.inquiryDemo" : "toast.inquiry"));
     form.reset();
   }catch(err){
-    status.dataset.state = "error";
-    status.textContent = t("form.error");
+    /* 与申请表同一判据：只有拿到非 2xx 才是能证明的失败；
+       超时与网络错都没拿到回应，咨询**可能已经送到了**，不能一概说失败。 */
+    const proven = err && err.kind === "http";
+    status.dataset.state = proven ? "error" : "warn";
+    status.textContent = t(proven ? "form.error" : "form.unsure");
     revealStatus(status);
-    toast(t("toast.failed"));
+    toast(t(proven ? "toast.failed" : "toast.timeout"));
   }finally{
     setBusy(btn, false, label);
   }
@@ -1446,13 +1451,25 @@ $("#givingForm")?.addEventListener("submit", async e => {
   data._subject = "AMAS 奉献通知 — " + (data.name || "");
   data.lang = currentLang;
   const st = $("#givingStatus");
+  /* 这张表单此前**完全没有提交锁** —— 连点两次就给学校发两封一样的通知。
+     站内其余三处表单本来都有，只有它漏了。 */
+  const gbtn = form.querySelector('button[type=submit]');
+  if(gbtn && gbtn.disabled) return;
+  if(gbtn){ gbtn.disabled = true; gbtn.setAttribute("aria-busy", "true"); }
   st.textContent = t("actions.sending");
+  st.removeAttribute("data-state");
   try{
     await sendPayload("giving", data);
+    st.dataset.state = "ok";
     st.textContent = t("giving.ok");
     form.reset();
   }catch(err){
-    st.textContent = t("giving.fail");
+    // 同一判据：拿到非 2xx 才算确定没送达
+    const proven = err && err.kind === "http";
+    st.dataset.state = proven ? "error" : "warn";
+    st.textContent = t(proven ? "giving.fail" : "giving.unsure");
+  }finally{
+    if(gbtn){ gbtn.disabled = false; gbtn.removeAttribute("aria-busy"); }
   }
 });
 
