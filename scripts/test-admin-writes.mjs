@@ -699,6 +699,61 @@ try {
      /两百天前的申请/.test(j4 || "") && /还没提交的草稿/.test(j4 || "") &&
      !/放不进/.test(j4 || ""), (j4 || "").slice(0, 240));
 
+  // ════════ K 时间筛选的上界与未来时间（返修 b213fbc）════════
+  console.log("\n=== K 时间范围要有上界，未来时间单独说 ===");
+  /* b213fbc 只比了 `t < since` 就排除，**没有上界** —— 一份提交时间在将来的申请
+     （服务端时钟偏了、或数据被改过）会被算进「近 7 天」，看上去像刚刚交的。
+     这里把 Date.now 冻死在一个固定时刻，才好验边界：等于下界、等于此刻、
+     差 1 秒出界、以及未来。 */
+  const NOW = Date.UTC(2026, 8, 13, 6, 0, 0);          // 2026-09-13T06:00:00Z
+  const at = (ms) => new Date(ms).toISOString();
+  const K_TABLES = Object.assign({}, TABLES, { applications: { data: [
+    mkApp("k-now",    "此刻提交的",        at(NOW)),
+    mkApp("k-edge",   "正好第七天的",      at(NOW - 7 * 864e5)),
+    mkApp("k-out",    "差一秒出界的",      at(NOW - 7 * 864e5 - 1000)),
+    mkApp("k-future", "提交时间在将来的",  at(NOW + 3 * 864e5)),
+    mkApp("k-draft",  "还没提交的草稿",    null, "draft"),
+    mkApp("k-bad",    "时间读不出来的",    "not-a-timestamp"),
+  ] } });
+
+  /* 冻结 Date.now 是**测试这一侧**的事，产品代码里不留任何测试钩子。 */
+  const frozen = await cdp.send("Page.addScriptToEvaluateOnNewDocument", {
+    source: `(function(){ var F = ${NOW}; Date.now = function(){ return F; }; })();`,
+  });
+  await open("portal/admin/admissions/", { tables: K_TABLES }, 3000);
+
+  const k0 = await cdp.ev(`(()=>{const s=document.getElementById("fTm");
+    if(!s) return null; const lab=s.getAttribute("aria-label") ||
+      (s.labels && s.labels[0] && s.labels[0].textContent) || "";
+    return { name: String(lab).trim() };})()`);
+  ok("K0 时间筛选有可访问的名称（aria-label 或 label）",
+     !!k0 && k0.name.length > 0, JSON.stringify(k0));
+
+  await pickTime("7");
+  await sleep(400);
+  const k1 = await listVis();
+  ok("K1 下界与上界都含等于：此刻提交的、正好第七天的都在",
+     /此刻提交的/.test(k1 || "") && /正好第七天的/.test(k1 || ""), (k1 || "").slice(0, 260));
+  ok("K1b 差一秒出界的不在", !/差一秒出界的/.test(k1 || ""), (k1 || "").slice(0, 260));
+  ok("K2 提交时间在**将来**的不算作最近提交",
+     !/提交时间在将来的/.test(k1 || ""), (k1 || "").slice(0, 260));
+  /* 不能用 /将来/ —— 那会命中行名「提交时间在将来的」，是空转绿。
+     要的是页面自己那句话。 */
+  ok("K3 未来时间单独说明，不和「放不进时间轴」混在一起",
+     /比现在还晚/.test(k1 || "") && /放不进/.test(k1 || ""), (k1 || "").slice(0, 300));
+  ok("K3b 两边各自计数（放不进 2 份：草稿 + 读不出；将来 1 份）",
+     /2 份[^0-9]{0,30}放不进|放不进[^0-9]{0,30}2 份/.test(k1 || "") &&
+     /1 份/.test(k1 || ""), (k1 || "").slice(0, 300));
+
+  await pickTime("");
+  await sleep(400);
+  const k4 = await listVis();
+  ok("K4 对照：切回「全部时间」六份都回来，且不再提那两句",
+     /差一秒出界的/.test(k4 || "") && /提交时间在将来的/.test(k4 || "") &&
+     !/放不进/.test(k4 || "") && !/不算作最近/.test(k4 || ""), (k4 || "").slice(0, 300));
+
+  await cdp.send("Page.removeScriptToEvaluateOnNewDocument", { identifier: frozen.identifier });
+
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
