@@ -8,16 +8,24 @@
 
   const NAV = {
     /* 这里遵守下面 student 那条同样的原则：只放确实存在的页面。
-       portal/applicant/history/ 与 portal/applicant/profile/ **目录并不存在**，
-       挂在导航上就是三个字：点了 404。
-       这类缺陷在本地根本看不出来 —— 门户导航只有在 Supabase 配置齐全且用户
-       已登录之后才渲染，而这两个条件今天都不成立，所以它会在后端开通的
-       第一天才爆出来。现由 scripts/check-internal-links.py 钉住。
-       要恢复这两个入口：先建出对应页面（历史申请需要按申请人查历史记录的
-       数据源，个人资料需要可读写的 profile 接口），再把这两行加回来。 */
+       由 scripts/check-internal-links.py 钉住 —— 这类缺陷在本地看不出来，
+       门户导航只有在 Supabase 配置齐全且用户已登录之后才渲染，
+       会在后端开通的第一天才爆出来。
+
+       portal/applicant/profile/ 已建成（读 my_profile、写 update_my_contact，
+       两个 RPC 都是仓库里已有的契约），入口已恢复。
+
+       portal/applicant/history/ 的**契约也已存在**，只是页面还没写：
+         applications 表的 app_self_select 策略允许申请人 select 自己的全部申请，
+         而 my_application() 刻意排除了 rejected / withdrawn 且 limit 1，
+         所以「历史」这批数据在表里是有的，取法与 portal/admin/admissions/
+         列申请的写法相同（Api.select("applications", …)）。
+       页面建好后把这一行加回来：
+         { href: "portal/applicant/history/", icon: "🗂️", label: "历史申请" }, */
     applicant: [
       { href: "portal/applicant/", icon: "🏠", label: "首页" },
       { href: "portal/applicant/application/", icon: "📝", label: "我的申请" },
+      { href: "portal/applicant/profile/", icon: "👤", label: "个人资料" },
       { href: "help/", icon: "💬", label: "帮助" },
     ],
     // 只放确实存在且有真实内容的页面。学习进度/成长档案尚无可读数据源
@@ -37,10 +45,16 @@
       { href: "portal/admin/", icon: "🏠", label: "总览" },
       { href: "portal/admin/admissions/", icon: "📥", label: "招生审核" },
       { href: "portal/admin/students/", icon: "🎓", label: "学籍管理" },
-      /* portal/admin/teachers/ 不存在 —— 管理员点进去是 404。
-         站内真实存在的教师验证入口是 faculty/verify/（那是教师本人提交验证的页面，
-         不是管理员审核台），两者不是一回事，所以这里**不做指向替换**，
-         直接撤掉入口。管理端的教师审核台建好后再加回来。 */
+      /* portal/admin/teachers/ 页面不存在 —— 管理员点进去是 404，故暂时撤掉入口。
+         但**契约是齐的**，缺的只是这一个页面：
+           读   teacher_verification_requests 的 tvr_self_select 策略已给
+                is_admin_any 全表读权（0004_teacher_verification.sql）
+           内部备注 teacher_verification_internal 的 tvi_admin_all 仅管理员
+           审核 review_teacher_verification RPC + review-teacher-verification Edge
+         写法与已存在的 portal/admin/admissions/ 相同（Api.select + Api.fn）。
+         注意 faculty/verify/ 是**教师本人提交**验证的页面，不是管理员审核台，
+         两者不能互相顶替。页面建好后把这一行加回来：
+           { href: "portal/admin/teachers/", icon: "🏫", label: "教师验证" }, */
       { href: "help/", icon: "💬", label: "帮助" },
     ],
   };

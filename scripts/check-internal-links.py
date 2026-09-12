@@ -57,6 +57,13 @@ def looks_like_js_fragment(ref):
     return any(m in ref for m in CONCAT_MARKS)
 # shell.js 的 NAV 用 href: "portal/xxx/" 的形式写在 JS 对象里
 NAV_RE = re.compile(r'href:\s*"([^"]+)"')
+# 注释里常会写「页面建好后把这一行加回来：{ href: "…" }」这类示例。
+# 不剥注释就会把示例当成真入口报红 —— 量具自己造的假红比漏报更糟。
+BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.S)
+LINE_COMMENT_RE = re.compile(r"^\s*//.*$", re.M)
+
+def strip_js_comments(text):
+    return LINE_COMMENT_RE.sub("", BLOCK_COMMENT_RE.sub("", text))
 
 broken = []
 checked = 0
@@ -79,6 +86,7 @@ shell = os.path.join(ROOT, "assets", "js", "portal", "shell.js")
 if os.path.isfile(shell):
     with open(shell, encoding="utf-8", errors="replace") as fh:
         text = fh.read()
+    text = strip_js_comments(text)
     for ref in NAV_RE.findall(text):
         if ref.startswith(SKIP_PREFIX) or looks_like_js_fragment(ref):
             continue

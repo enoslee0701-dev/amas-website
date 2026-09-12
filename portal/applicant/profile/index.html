@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>个人资料 | AMAS</title>
+<link rel="icon" href="../../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609121333">
+<style>
+.sec{margin-bottom:18px}
+.sec h2{font-size:16px;color:var(--navy);margin:0 0 4px}
+.sec .note{font-size:12.5px;color:var(--muted);margin:0 0 12px}
+.lock{display:inline-flex;align-items:center;gap:4px;background:var(--wash);border:1px solid var(--line);
+  border-radius:99px;padding:1px 9px;font-size:11px;color:var(--muted);margin-left:8px;white-space:nowrap}
+.ro{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+  padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
+.ro:last-child{border-bottom:0}
+.ro>span{color:var(--muted);font-size:13px;flex:0 0 auto}
+.ro>b{color:var(--navy);text-align:right;word-break:break-all;font-variant-numeric:tabular-nums}
+.fld{margin-bottom:14px}
+.fld label{display:block;font-size:13px;font-weight:700;color:var(--navy);margin-bottom:6px}
+.fld input{width:100%;min-height:46px;padding:11px 13px;border:1.5px solid var(--line);border-radius:10px;font:inherit}
+.fld input:focus{outline:none;border-color:var(--navy2);box-shadow:0 0 0 3px rgba(23,63,112,.12)}
+.fld .h{font-size:12px;color:var(--muted);margin-top:5px}
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609121333"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609121333"></script>
+<script src="../../../assets/js/portal/api.js?v=202609121333"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609121333"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609121333"></script>
+<script>
+/* 申请者个人资料页。
+
+   契约来源（都是仓库里已有的东西，不是新造的）：
+     读  public.my_profile()          -> public.profiles 整行（0002_identity.sql / 0003_hardening.sql）
+     写  public.update_my_contact(p_display_name, p_phone, p_contact_note)（0017_student_experience.sql）
+   真正的门禁在服务端：update_my_contact 的**函数签名本身就是字段白名单**，
+   调用者无法借它改到 email / account_status 这些列；profiles 另有
+   protect_profile_fields 触发器冻结敏感字段。本页只是如实呈现这条边界。
+
+   与学生资料页的区别：申请者**没有学籍记录**，所以这里不调 my_student_profile，
+   也不显示学号/学籍状态 —— 那些字段此刻在数据上就不存在，编出来就是假页面。 */
+(async function(){
+  const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell;
+  const mounted = await Shell.mount({ space: "applicant", title: "个人资料", allow: ["applicant"] });
+  if (!mounted) return;
+  const { main } = mounted;
+
+  const ACC = {
+    pending_email: "待邮箱验证",
+    active: "正常",
+    suspended: "已暂停",
+    closed: "已关闭",
+  };
+
+  UI.loading(main, 3);
+  const { data: prof, error } = await Api.rpc("my_profile");
+  if (error) return UI.error(main, { message: error.message, onRetry: () => location.reload() });
+  if (!prof) return UI.error(main, { message: "没有读到你的档案，请稍后重试或联系招生同工。",
+                                     onRetry: () => location.reload() });
+
+  const d = (v) => v ? new Date(v).toLocaleDateString("zh-CN") : "—";
+  const ro = (k, v) => '<div class="ro"><span>' + UI.esc(k) + '</span><b>' + UI.esc(v || "—") + '</b></div>';
+
+  main.innerHTML =
+    '<h1>个人资料</h1>' +
+    '<p class="lead">联系方式可以自行维护，方便招生同工与你联络。登录邮箱与账号状态由系统维护。</p>' +
+
+    '<div class="card sec">' +
+      '<h2>我可以修改的资料</h2>' +
+      '<p class="note">这些信息用于招生同工与你联系，请保持可用。</p>' +
+      '<form id="f" novalidate>' +
+        '<div class="fld"><label for="nm">姓名</label>' +
+          '<input id="nm" value="' + UI.esc(prof.display_name || "") + '" maxlength="60" autocomplete="name">' +
+          '<div class="h">用于门户显示。入学申请表里填写的正式姓名以申请记录为准。</div></div>' +
+        '<div class="fld"><label for="ph">联系电话</label>' +
+          '<input id="ph" value="' + UI.esc(prof.phone || "") + '" maxlength="40" inputmode="tel" autocomplete="tel">' +
+          '<div class="h">招生同工需要时会通过这个号码联系你。</div></div>' +
+        '<div class="fld"><label for="ct">备用联系方式</label>' +
+          '<input id="ct" value="' + UI.esc(prof.contact_note || "") + '" maxlength="120">' +
+          '<div class="h">微信 / Line / 备用邮箱等，可留空。</div></div>' +
+        '<button class="btn" id="save" type="submit" style="width:auto;padding:0 26px">保存</button>' +
+        '<div class="msg err" id="err" role="alert"></div>' +
+        '<div class="msg ok" id="ok" role="status"></div>' +
+      '</form>' +
+    '</div>' +
+
+    '<div class="card sec">' +
+      '<h2>账号信息<span class="lock">🔒 由系统维护</span></h2>' +
+      '<p class="note">登录邮箱与账号状态不能在这里修改。需要更换邮箱请联系招生同工。</p>' +
+      ro("登录邮箱", prof.email) +
+      ro("账号状态", ACC[prof.account_status] || prof.account_status) +
+      ro("时区", prof.timezone) +
+      ro("注册时间", d(prof.created_at)) +
+    '</div>';
+
+  const err = document.getElementById("err"), ok = document.getElementById("ok");
+  const form = document.getElementById("f");
+  const btn = document.getElementById("save");
+
+  // 改动任一输入后撤掉上一次的结论，避免旧提示挂在新内容旁边
+  form.addEventListener("input", () => {
+    err.classList.remove("show"); ok.classList.remove("show");
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (btn.disabled) return;                      // 在途期间吞掉重复提交
+    err.classList.remove("show"); ok.classList.remove("show");
+    btn.disabled = true; btn.setAttribute("aria-busy", "true");
+    const { error: e2 } = await Api.rpc("update_my_contact", {
+      p_display_name: document.getElementById("nm").value.trim() || null,
+      p_phone: document.getElementById("ph").value.trim(),
+      p_contact_note: document.getElementById("ct").value.trim(),
+    });
+    btn.disabled = false; btn.removeAttribute("aria-busy");
+    if (e2) {
+      /* 与站内其余提交路径同一判据：只有服务端明确拒绝才说「没保存上」。
+         拿不到回应时不能断言失败 —— 写入可能已经生效，让人反复重试没有意义。 */
+      err.textContent = Api.msg ? Api.msg(e2) : (e2.message || "保存失败，请稍后再试。");
+      err.classList.add("show");
+      return;
+    }
+    ok.textContent = "已保存。";
+    ok.classList.add("show");
+  });
+})();
+</script>
+</body>
+</html>
