@@ -196,82 +196,98 @@ try {
   const probeSet  = async () => cdp.ev(`(()=>{window.__stayProbe=1; return true;})()`);
   const probeGone = async () => cdp.ev(`(typeof window.__stayProbe === "undefined")`);
 
-  // ════════ A 登录过期这个入口 ════════
-  console.log("\n=== A 登录过期：确认的必须是他复制走的那一份 ===");
-  await open(EXPIRED);
-  await goStep(3);
-  ok("A-0 前提：表单真的渲染出来了（不是停在降级页上）",
-     (await cdp.ev(`!!document.getElementById("fd-calling")`)) === true);
-  await denyStorage();
-  await type("第一版：复制框里的");
-  await sleep(1300);                                   // 401 → 暂存失败 → 复制框
-  ok("A0 前提：复制框出来了，装的是第一版",
-     (await taText() || "").indexOf("第一版：复制框里的") > -1, JSON.stringify((await taText() || "").slice(0, 60)));
-  ok("A0b 前提：这条路的动作是「去重新登录」", (await btnLabel()) === "我已复制，去重新登录", JSON.stringify(await btnLabel()));
-  await type("第二版：复制之后又改的");
-  await sleep(150);                                    // **不等防抖**
-  await probeSet();
-  const lhA = loginHits;
-  await clickConfirm();
-  await sleep(900);
-  ok("A1 他复制的那一份已经过期了 —— 不放行，留在这一页", (await probeGone()) === false);
-  ok("A1b 也确实没走登录", loginHits === lhA, "loginHits " + lhA + " → " + loginHits);
-  ok("A2 导出刷新成最新那一份",
-     (await taText() || "").indexOf("第二版：复制之后又改的") > -1, JSON.stringify((await taText() || "").slice(0, 80)));
-  ok("A3 并说清楚要重新复制再点一次",
-     /又改了内容|重新复制/.test((await boxText()) || ""), JSON.stringify((await boxText() || "").slice(0, 90)));
-  await clickConfirm();                                // 这次没再改 → 应当放行
-  await sleep(1200);
-  ok("A4 对照：没再改的时候，确认就能正常离开（走的是登录）",
-     loginHits > lhA, "loginHits " + lhA + " → " + loginHits);
+  /* 最小矩阵：两个时序（立即确认 / 等自动保存失败重画之后）× 两个入口
+     （登录过期 → 去重新登录；冲突 → 重新载入）＋「没改就正常离开」。
+     再加一格 pathway —— 它不在 form_data 里，必须也算进「改了没有」。 */
+  const ENTRIES = [
+    { name: "登录过期", write: EXPIRED, act: "我已复制，去重新登录", login: true,
+      toBox: async () => {} },                       // 401 自己就会弹出来
+    { name: "冲突重载", write: CONFLICT, act: "我已复制，重新载入", login: false,
+      toBox: async () => { await clickText("/保留我的编辑并重新载入/"); await sleep(600); } },
+  ];
 
-  // ════════ B 冲突重载这个入口 ════════
-  console.log("\n=== B 冲突重载：同一条防护，动作不同 ===");
-  await open(CONFLICT);
-  await goStep(3);
-  await denyStorage();
-  await type("冲突第一版");
-  await sleep(1300);                                   // 0 行 → 冲突
-  await clickText("/保留我的编辑并重新载入/");
-  await sleep(600);
-  ok("B0 前提：复制框出来了，动作是「重新载入」",
-     (await btnLabel()) === "我已复制，重新载入", JSON.stringify(await btnLabel()));
-  await type("冲突第二版");
-  await sleep(150);
-  await probeSet();
-  await clickConfirm();
-  await sleep(900);
-  ok("B1 同样不放行，留在这一页", (await probeGone()) === false);
-  ok("B2 导出也刷新成最新那一份",
-     (await taText() || "").indexOf("冲突第二版") > -1, JSON.stringify((await taText() || "").slice(0, 80)));
-  ok("B3 动作仍然是这条路自己的「重新载入」", (await btnLabel()) === "我已复制，重新载入", JSON.stringify(await btnLabel()));
-  const lhB = loginHits;
-  await clickConfirm();                                // 没再改 → 放行（重新载入）
-  await sleep(1400);
-  ok("B4 对照：没再改的时候正常离开（页面重载了）", (await probeGone()) === true);
-  ok("B4b 而且走的是重新载入、不是登录", loginHits === lhB, "loginHits " + lhB + " → " + loginHits);
+  for (const E of ENTRIES) {
+    const tag = E.login ? "L" : "C";
+    console.log(`\n=== ${tag} ${E.name}：确认的必须是他复制走的那一份 ===`);
 
-  // ════════ C 只改学习路径也算改 ════════
-  console.log("\n=== C pathway 不在 form_data 里，也得算 ===");
+    for (const mode of ["立即", "等自动保存失败重画之后"]) {
+      const m = mode === "立即" ? "i" : "w";
+      await open(E.write);
+      await goStep(3);
+      ok(`${tag}${m}0 前提：表单渲染出来了（不是停在降级页上）`,
+         (await cdp.ev(`!!document.getElementById("fd-calling")`)) === true);
+      await denyStorage();
+      await type("第一版");
+      await sleep(1300);
+      await E.toBox();
+      ok(`${tag}${m}1 前提：复制框在，动作是「${E.act}」`,
+         (await btnLabel()) === E.act, JSON.stringify(await btnLabel()));
+
+      await type("第二版：复制之后又改的");
+      /* 立即 = 防抖还没到点；等待 = 让自动保存失败一次、把框重画一遍。
+         重画那一次**不能**把确认基准推到最新 —— 那正是上一版的绕过口。 */
+      await sleep(mode === "立即" ? 150 : 1400);
+      if (mode !== "立即") {
+        ok(`${tag}${m}2 重画之后导出已是最新，并提示要重新复制`,
+           (await taText() || "").indexOf("第二版：复制之后又改的") > -1 &&
+           /又改了内容|重新复制/.test((await boxText()) || ""),
+           JSON.stringify([(await taText() || "").slice(0, 40), (await boxText() || "").slice(0, 60)]));
+      }
+      await probeSet();
+      const lh = loginHits;
+      await clickConfirm();                          // 他**没有**重新复制
+      await sleep(900);
+      ok(`${tag}${m}3 没重新复制就确认 —— 不放行，留在这一页`,
+         (await probeGone()) === false);
+      ok(`${tag}${m}4 也确实没有走掉（登录那条路没被请求）`,
+         loginHits === lh, "loginHits " + lh + " → " + loginHits);
+      ok(`${tag}${m}5 导出是最新那一份，并明确请他重新复制`,
+         (await taText() || "").indexOf("第二版：复制之后又改的") > -1 &&
+         /又改了内容|重新复制/.test((await boxText()) || ""),
+         JSON.stringify((await boxText() || "").slice(0, 80)));
+      await clickConfirm();                          // 复制过了，期间没再改 → 该放行
+      await sleep(1400);
+      ok(`${tag}${m}6 再确认一次（期间没再改）才允许离开`, (await probeGone()) === true);
+      ok(`${tag}${m}7 走的是这条路自己的动作`,
+         E.login ? loginHits > lh : loginHits === lh, "loginHits " + lh + " → " + loginHits);
+    }
+
+    // 对照：没改过就正常离开，别把人锁在页面上
+    await open(E.write);
+    await goStep(3);
+    await denyStorage();
+    await type("只写这一次");
+    await sleep(1300);
+    await E.toBox();
+    await probeSet();
+    const lh2 = loginHits;
+    await clickConfirm();
+    await sleep(1400);
+    ok(`${tag}n1 对照：没改过的时候，确认一次就能正常离开`, (await probeGone()) === true);
+    ok(`${tag}n2 对照：走的还是这条路自己的动作`,
+       E.login ? loginHits > lh2 : loginHits === lh2, "loginHits " + lh2 + " → " + loginHits);
+  }
+
+  // ════════ P 学习路径不在 form_data 里，也得算「改了」 ════════
+  console.log("\n=== P pathway 也算 ===");
   await open(EXPIRED);
   await goStep(3);
   await denyStorage();
   await type("路径这一组");
   await sleep(1300);
-  ok("C0 前提：复制框在", !!(await taText()));
+  ok("P0 前提：复制框在", !!(await taText()));
   const flipped = await cdp.ev(`(()=>{const r=[...document.querySelectorAll('input[name="pathway"]')]
     .filter(x=>!x.disabled && !x.checked)[0]; if(!r) return null; r.click(); return r.value;})()`);
   if (flipped === null) {
-    console.log("  SKIP  C1 这一版表单里没有可切换的学习路径选项（未断言）");
+    console.log("  SKIP  P1 这一版表单里没有可切换的学习路径选项（未断言）");
   } else {
     await sleep(200);
     await probeSet();
-    const lhC = loginHits;
+    const lhP = loginHits;
     await clickConfirm();
     await sleep(900);
-    ok("C1 只改了学习路径，同样不放行（pathway 也在导出里）",
-       (await probeGone()) === false && loginHits === lhC, "flipped=" + flipped);
-    ok("C2 导出里带上了新的 pathway",
+    ok("P1 只改了学习路径，同样不放行", (await probeGone()) === false && loginHits === lhP, "flipped=" + flipped);
+    ok("P2 导出里带上了新的 pathway",
        (await taText() || "").indexOf("pathway: " + flipped) > -1,
        JSON.stringify((await taText() || "").slice(-60)));
   }

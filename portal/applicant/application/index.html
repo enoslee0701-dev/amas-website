@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131637">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131650">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609131637"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609131637"></script>
-<script src="../../../assets/js/portal/api.js?v=202609131637"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609131637"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609131637"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609131637"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609131650"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609131650"></script>
+<script src="../../../assets/js/portal/api.js?v=202609131650"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609131650"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609131650"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609131650"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -880,7 +880,8 @@
   }
   function trackSave(p){
     saveTail = p;
-    const done = () => { if (saveTail === p) { saveTail = null; saveQueued = false; } };
+    const done = () => { if (saveTail === p) { saveTail = null; saveQueued = false; }
+                         refreshStashExport(); };
     p.then(done, done);
     return p;
   }
@@ -996,14 +997,32 @@
     return lines.join("\n");
   }
 
-  /* 「上次确认被拦下了，请重新复制」这件事必须**粘住**，不能只提示一次：
-     存储一直被拒的时候，自动保存每失败一次就会重画这个框（内容要保持最新），
-     一次性的提示会被下一次重画抹掉 —— 他只来得及瞥一眼，然后再也看不见。
-     由这个标志决定提示在不在；只有确认真的通过了才清掉。 */
-  let stashRecopy = false;
+  /* 确认的**基准**：他被要求复制的是哪一份。
+
+     这个基准只能由**他自己的动作**推进，绝不能跟着自动重画走。
+     监督实测（event0ff8）：上一版把基准放在每次渲染的闭包里 ——
+     存储一直被拒时自动保存每 800ms 失败一次就重画一遍，
+     新闭包顺手把基准推成了最新内容；他**没有重新复制**，
+     等 1400ms 之后点「我已复制」就直接走了。文案拦不住这种绕过。
+
+     所以：自动重画只更新**显示**（内容必须最新）并如实提示「请重新复制」，
+     基准原地不动；只有他点确认那一下才把基准推到他眼前这一份，
+     并且那一下**不放行** —— 要他再确认一次、期间没再改，才算数。
+
+     「请重新复制」同样要粘住：一次性提示会被下一次重画抹掉。 */
+  let stashRecopy = false, stashBaseline = null, stashAct = null, stashProceed = null;
+  /** 复制框只要在屏幕上，它就是他要抄走的那一份 —— 不能停在旧内容上。
+      登录过期那条路每次自动保存失败都会重新走一遍 showExpired，顺带刷新了；
+      冲突那条路不会（showConflict 不碰这个框），于是框里一直是旧的，
+      他完全可能照着抄走。这里让**每一次保存尝试结束**都刷新一遍：
+      只更新显示与提示，基准照旧不动。 */
+  function refreshStashExport(){
+    if (document.getElementById("stashFailBox")) showStashFailed(stashAct, stashProceed, false);
+  }
   function showStashFailed(actionLabel, onProceed, focus){
     const act = actionLabel || "重新载入";
     const proceed = onProceed || (() => location.reload());
+    stashAct = act; stashProceed = proceed;      // 刷新时按同一条路的动作重画
     let box = document.getElementById("stashFailBox");
     const first = !box;
     if (first) {
@@ -1014,7 +1033,11 @@
       box.style.margin = "12px 0";
       const host = document.getElementById("appForm") || main;
       (host.parentNode || main).insertBefore(box, host);
+      stashBaseline = null; stashRecopy = false;   // 新出现的框：从头开始
     }
+    const cur = draftExportText();
+    if (stashBaseline === null) stashBaseline = cur;   // 首次出现：他要复制的就是这一份
+    else if (cur !== stashBaseline) stashRecopy = true; // 自动重画：只提示，不推进基准
     /* **每次都重画**，内容和动作都可能已经不是上一次那一套了。
        原来这里是「发现框已经在就 select() 然后 return」——
        监督实测（eventde1b）：存储一直被拒时他对着这个框继续改、再点一次
@@ -1031,8 +1054,7 @@
     const ta = document.createElement("textarea");
     ta.readOnly = true;
     ta.style.cssText = "width:100%;min-height:160px;margin-top:8px;font:12px/1.6 Consolas,monospace";
-    const shown = draftExportText();
-    ta.value = shown;
+    ta.value = cur;
     box.appendChild(ta);
     const later = document.createElement("button");
     later.type = "button"; later.className = "link"; later.textContent = "我已复制，" + act;
@@ -1041,8 +1063,12 @@
          而自动保存的 800ms 防抖还没到点 —— 就这么走了，那一笔既没存下、
          也不在他复制走的那一份里（监督实测 event0c63）。
          变了就留在这一页、把导出刷新成最新的，请他重新复制；没变才放行。 */
-      if (draftExportText() !== shown) {
-        stashRecopy = true;                     // 粘住，直到他真的确认过一次
+      const now = draftExportText();
+      if (now !== stashBaseline) {
+        /* 他确认的不是他被要求复制的那一份。**只有这一下**能推进基准 ——
+           推到他眼前这一份，但这一次不放行：请他复制之后再确认一次。 */
+        stashBaseline = now;
+        stashRecopy = true;
         showStashFailed(act, proceed, true);
         return;
       }
