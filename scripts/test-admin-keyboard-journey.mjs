@@ -141,22 +141,35 @@ window.supabase = { createClient: function(){
   var reply = function(v){ return Promise.resolve(v); };
   function table(name){
     var mode = "select", cols = null, eqs = {};
+    var rng = null;
     var q = {
       select:function(c){ cols = (c === undefined ? null : c); return q; },
       eq:function(k,v){ eqs[k]=v; return q; },
       in:function(){return q;}, match:function(){return q;},
-      order:function(){return q;}, range:function(){return q;}, limit:function(){return q;},
+      order:function(){return q;},
+      /* 真正按 range 切片 —— 夹具不模拟分页的话，「翻页没问题」就是空话。 */
+      range:function(a,b){ rng = { from:a, to:b }; return q; },
+      limit:function(){return q;},
       maybeSingle:function(){return q;}, single:function(){return q;},
       insert:function(){ mode="insert"; return q; }, update:function(){ mode="update"; return q; },
       then:function(res, rej){
         var sc = S();
         /* 每一次查询都留痕：表、模式、列投影、eq 条件 —— 断言就读这里。 */
         try { (window.__q = window.__q || []).push({ name:name, mode:mode, cols:cols, eq:eqs }); } catch(e){}
-        beacon({ kind:"table", name:name, mode:mode, cols:cols, eq:eqs, page:location.pathname });
+        beacon({ kind:"table", name:name, mode:mode, cols:cols, eq:eqs, range:rng, page:location.pathname });
         var t = (mode === "select") ? ((sc.tables && sc.tables[name]) || { data:[], error:null })
                                     : (sc.write || { data:[], error:null });
         var out = { data:t.data, error:t.error||null,
           status: t.status != null ? t.status : (t.error ? 500 : 200) };
+        if (mode === "select" && rng && Array.isArray(t.data)) {
+          /* 指定 from 的那一页失败一次（用来验「失败保留已有列表且能重试」）。 */
+          if (window.__failFrom === rng.from && !window.__failedOnce) {
+            window.__failedOnce = true;
+            out = { data:null, error:{ message:"这一次没能读到申请列表。" }, status:500 };
+          } else {
+            out = { data: t.data.slice(rng.from, rng.to + 1), error:null, status:200 };
+          }
+        }
         /* 按表扣住：确定性地造出「正在等这次读取回来」那一段。 */
         if (mode === "select" && window.__holdSelect === name) {
           return new Promise(function(r){
@@ -444,6 +457,122 @@ try {
                marked: !!(a.dataset && a.dataset.probeMark) };})()`);
     ok("Rr14 关掉之后焦点回到**那一行的新节点**（不是旧的、也不是 body）",
        land2.open === "app-3" && land2.marked === false, JSON.stringify(land2));
+  }
+
+  if (RUN("Pg")) {
+    console.log("\n=== Pg 队列分页：「载入更早的」这一路（普通按钮，不是原生 select）===");
+    /* 上一包把「加载更多换页」和原生 <select> 一并说成 headless 驱动不了 ——
+       **说错了，而且当时并没有失败证据**。核过控件：#btnMore 是普通 <button>
+       （admissions/index.html:277），键盘完全驱动得了。
+       夹具这一次**真正按 range 切片**（PAGE=300）：
+       第 1 页 300 份、第 2 页 300 份、第 3 页 2 份，
+       否则「翻页没问题」只是因为夹具根本没分页。 */
+    const P1 = "第一页那位-P1UNIQ", P2 = "第二页那位-P2UNIQ", P3 = "第三页那位-P3UNIQ";
+    const many = [];
+    for (let i = 0; i < 602; i++) {
+      const nm = i === 0 ? P1 : (i === 300 ? P2 : (i === 600 ? P3 : "申请人" + i));
+      many.push(mkApp("ap" + String(i).padStart(4, "0"), nm, "教会" + i));
+    }
+    const SCEN_MANY = JSON.parse(JSON.stringify(SCEN));
+    SCEN_MANY.tables.applications = { data: many };
+    await cdp.send("Page.addScriptToEvaluateOnNewDocument", {
+      source: "window.__SCEN = " + JSON.stringify(SCEN_MANY) + "; window.__q=[]; window.__rpc=[];" });
+    await cdp.send("Page.navigate", { url: `${BASE}/portal/admin/admissions/` });
+    await sleep(3500);
+
+    const btn = await cdp.ev(`(()=>{const b=document.getElementById("btnMore");
+      return b ? { tag:b.tagName, type:b.type||"", disabled:!!b.disabled,
+                   text:(b.textContent||"").trim() } : null;})()`);
+    ok("Pg0 先核控件：「载入更早的」是**普通 button**，不是原生 <select>，而且没被禁用",
+       !!btn && btn.tag === "BUTTON" && btn.disabled === false, JSON.stringify(btn));
+    const first = await rowsShown();
+    ok("Pg1 首屏只读到第一页 300 份", first.length === 300, "行数 " + first.length);
+    const q1 = probeLog.filter(r => r.kind === "table" && r.name === "applications");
+    ok("Pg1b 第一次请求的 range 是 0..299",
+       q1.length >= 1 && q1[q1.length - 1].range && q1[q1.length - 1].range.from === 0,
+       JSON.stringify(q1.map(r => r.range)));
+
+    const mb = await tabTo((w) => w.id === "btnMore", 30);
+    ok("Pg2 真实 Tab 走得到它", mb.hit === true, JSON.stringify(mb.at));
+    await press("Enter");
+    ok("Pg3 Enter 之后第二页加载进来了（600 份）",
+       await until(async () => (await rowsShown()).length === 600, 12000),
+       "行数 " + (await rowsShown()).length);
+    const ids = await rowsShown();
+    ok("Pg4 前一页的记录**还在**（第一页那一份仍然在列表里）",
+       ids.indexOf("ap0000") > -1, JSON.stringify(ids.slice(0, 2)));
+    ok("Pg5 新页确实出现了（第二页那一份在列表里）", ids.indexOf("ap0300") > -1);
+    ok("Pg6 没有重复（600 个 id 互不相同）", new Set(ids).size === ids.length,
+       "unique " + new Set(ids).size + " / " + ids.length);
+    const q2 = probeLog.filter(r => r.kind === "table" && r.name === "applications");
+    ok("Pg7 第二次请求的 range 是 300..599（真的按偏移取下一页）",
+       q2.length >= 2 && q2[q2.length - 1].range && q2[q2.length - 1].range.from === 300,
+       JSON.stringify(q2.map(r => r.range)));
+
+    /* 用搜索框缩到第二页那一份 —— 既是真实用法，也避免 Tab 过 600 行。
+       注意方向：#fQ 在「载入更早的」**之前**，所以要 Shift+Tab 往回走。
+       上一次跑我一路正向 Tab，走进了 600 行里再也回不来 ——
+       那是**量具方向错了**，不是产品够不到。 */
+    const backTo = async (pred, max) => {
+      for (let i = 1; i <= (max || 40); i++) {
+        await press("Tab", true);
+        const w = await where();
+        if (pred(w)) return { hit: true, steps: -i, at: w };
+      }
+      return { hit: false, at: await where() };
+    };
+    const sb = await backTo((w) => w.id === "fQ", 40);
+    ok("Pg8 前提：Shift+Tab 往回走得到搜索框", sb.hit === true, JSON.stringify(sb.at));
+    await typeText("P2UNIQ");
+    ok("Pg9 前提：筛到只剩第二页那一份",
+       JSON.stringify(await rowsShown()) === JSON.stringify(["ap0300"]),
+       JSON.stringify(await rowsShown()));
+    const beforeOpen = probeLog.length;
+    const vw2 = await tabTo((w) => w.open === "ap0300", 30);
+    ok("Pg10 前提：Tab 走得到它那一行的「查看」", vw2.hit === true, JSON.stringify(vw2.at));
+    await press("Enter");
+    ok("Pg11 打开的详情正是**第二页那一份**（唯一标识在详情里）",
+       await until(async () => (await detailText()).indexOf("P2UNIQ") > -1, 9000),
+       JSON.stringify((await detailText()).slice(0, 50)));
+    const corr2 = probeLog.slice(beforeOpen).filter(r => r.kind === "table" && r.eq && r.eq.application_id === "ap0300");
+    ok("Pg12 请求关联：这一次打开发出的读取带的就是它的 id", corr2.length >= 1,
+       JSON.stringify(probeLog.slice(beforeOpen).filter(r => r.kind === "table").map(r => r.eq)));
+    const cl = await tabTo((w) => w.id === "dClose", 45);
+    if (cl.hit) await press("Enter");
+    const land = await where();
+    ok("Pg13 关掉之后回到原来的上下文：焦点落在那一行的「查看」上",
+       land.open === "ap0300", JSON.stringify(land));
+    ok("Pg14 搜索框里的字也还在", (await searchVal()) === "P2UNIQ", JSON.stringify(await searchVal()));
+
+    /* 失败路径：下一页读失败，已有列表必须保留，而且要能重试。 */
+    await cdp.ev(`(()=>{ window.__failFrom = 600; window.__failedOnce = false;
+      const e=document.getElementById("fQ"); if(e){ e.value=""; e.dispatchEvent(new Event("input",{bubbles:true})); }
+      return true; })()`);
+    ok("Pg15 前提：清掉搜索，600 份都回来了",
+       await until(async () => (await rowsShown()).length === 600, 8000),
+       "行数 " + (await rowsShown()).length);
+    const mb2 = await tabTo((w) => w.id === "btnMore", 30);
+    ok("Pg16 前提：又走到「载入更早的」", mb2.hit === true, JSON.stringify(mb2.at));
+    await press("Enter");
+    await sleep(1500);
+    ok("Pg17 这一页读失败了，**已经读到的 600 份照常还在**",
+       (await rowsShown()).length === 600, "行数 " + (await rowsShown()).length);
+    const note = await cdp.ev(`(()=>{const m=document.getElementById("main");
+      return m ? (m.textContent||"").replace(/\s+/g," ") : "";})()`);
+    ok("Pg18 而且说得出「这一次没读到」，不是装作已经到底了",
+       /没能读到|没取到|没读到/.test(note) && !/已经是全部|已到底/.test(note),
+       JSON.stringify(note.slice(0, 100)));
+    const mb3 = await tabTo((w) => w.id === "btnMore", 30);
+    ok("Pg19 失败之后那个按钮还在，能再按一次", mb3.hit === true, JSON.stringify(mb3.at));
+    await press("Enter");
+    ok("Pg20 重试成功：第三页进来了（602 份），而且仍然没有重复",
+       await until(async () => (await rowsShown()).length === 602, 12000) &&
+       new Set(await rowsShown()).size === 602,
+       "行数 " + (await rowsShown()).length);
+    const q3 = probeLog.filter(r => r.kind === "table" && r.name === "applications" && r.range);
+    ok("Pg21 重试要的是**同一个 range**（600 起），失败没有把偏移推进",
+       q3.filter(r => r.range.from === 600).length === 2,
+       JSON.stringify(q3.map(r => r.range.from)));
   }
 
   if (RUN("A")) {
