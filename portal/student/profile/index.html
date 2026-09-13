@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>我的资料 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140307">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140337">
 <style>
 .sec{margin-bottom:18px}
 .sec h2{font-size:16px;color:var(--navy);margin:0 0 4px}
@@ -27,11 +27,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609140307"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609140307"></script>
-<script src="../../../assets/js/portal/api.js?v=202609140307"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609140307"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609140307"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609140337"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609140337"></script>
+<script src="../../../assets/js/portal/api.js?v=202609140337"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609140337"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609140337"></script>
 <script>
 /* PORTAL-2B 学生资料页（2B-1）
    Single Person Model：人物主数据在 profiles，学籍数据在 student_records，
@@ -126,6 +126,7 @@
        「联系电话已经填好了 · 回到学员中心 →」——
      把**上一版**的结论说成当前这一版，还顺手邀请他带着没保存的改动离开
      （本轮实测 Se2/Se3）。这与本页既有的 sameVersion 口径是同一条原则。 */
+  let savedPhone = (self.phone || "").trim();          // 服务端已经存着的那一版
   function renderPhNote(state){
     const box = document.getElementById("phNote");
     if (!box) return;
@@ -137,7 +138,14 @@
         '回到学员中心 →</a></div></div>'
       : state === "pending"
       ? '<div class="msg warn show" style="margin:0 0 12px" role="status">' +
-        '你刚改的这一版**还没保存**。保存之后再离开。</div>'
+        '你刚改的这一版<b>还没保存</b>。保存之后再离开。</div>'
+      : state === "stale"
+      /* 在途期间他又改了：成功的是**提交出去的那一版**，不是眼前这一版。
+         两版都要说清楚，输入一个字都不动，也不给「回学员中心」那条出口
+         —— 那等于邀请他带着没保存的改动离开。 */
+      ? '<div class="msg warn show" style="margin:0 0 12px" role="status">' +
+        '刚才提交的那一版（电话：<b>' + UI.esc(savedPhone || "（留空）") + '</b>）已经保存；' +
+        '你之后改的这一版<b>还没保存</b>。</div>'
       : '<div class="msg info show" style="margin:0 0 12px" role="status">' +
         '<b>你还没有填写联系电话。</b>教务在需要时会用这个号码联系你。' +
         '<div style="margin-top:8px"><button class="btn ghost" type="button" data-gophone ' +
@@ -162,7 +170,9 @@
     if (el) el.addEventListener("input", () => {
       dirty = true;
       /* 存好之后又动了电话这一格：那块提示不能再说「已经填好了」。 */
-      if (id === "ph" && phState === "done") { phState = "pending"; renderPhNote("pending"); }
+      if (id === "ph" && (phState === "done" || phState === "stale")) {
+        phState = "pending"; renderPhNote("pending");
+      }
     });
   });
   UI.formGuard(() => dirty);
@@ -175,6 +185,7 @@
     /* 提交的是**这一刻**的这三个值。RPC 在途期间用户可能继续打字，
        所以把提交版本先拍下来 —— 成功只对这一版成立。 */
     const sentSnap = ["nm", "ph", "ct"].map((id) => (document.getElementById(id) || {}).value || "").join("\u0001");
+    const sentPhone = (document.getElementById("ph") || {}).value.trim();   // 这一次**发出去的**那一版
 
     const { data: d2, error: e2 } = await Api.rpc("update_my_contact", {
       p_display_name: document.getElementById("nm").value.trim() || null,
@@ -201,10 +212,17 @@
     UI.toast(sameVersion ? "资料已保存" : "刚才提交的那一版已保存；之后改的还没保存");
     /* 存完之后把那块提示按**现在框里的值**改写：填好了就说填好了，并给回学员中心的路。
        只在这一版就是提交的那一版时才敢说「已经填好」—— 否则他之后改的那一版还没存。 */
+    /* 原来只在 sameVersion 时更新这块提示 —— 于是「首次为空 → 填上 → 在途又改 →
+       旧版成功」这条路上，提示会一直停在「你还没有填写联系电话」：
+       既否认了刚存进去的那一版，也没说眼前这一版还没保存（本轮实测 Sp3/Sp4）。
+       现在两支都更新，并且各说各的版本。 */
+    savedPhone = sentPhone;
     if (sameVersion) {
-      phState = (document.getElementById("ph") || {}).value.trim() ? "done" : "empty";
-      renderPhNote(phState);
+      phState = savedPhone ? "done" : "empty";
+    } else {
+      phState = "stale";
     }
+    renderPhNote(phState);
   });
 })();
 </script>

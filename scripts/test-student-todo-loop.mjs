@@ -101,6 +101,22 @@ let savesPressed = 0;
    所以要能挑着跑，而不是靠「这次先不跑」蒙混。不设 ONLY 时全跑。 */
 const ONLY = String(process.env.ONLY || "").split(",").map((x) => x.trim()).filter(Boolean);
 const RUN = (g) => !ONLY.length || ONLY.indexOf(g) > -1;
+/* **组隔离**（监督口径：不许靠加长 timeout 赌绿）。
+   Sf / Se / Sp 这三组都会把页面留在「改过没保存」的状态再离开，
+   各自会触发一次 beforeunload 原生对话框。实测：一个浏览器会话里连着跑
+   第二个这样的组之后，CDP 的 Input / Runtime / Page.handleJavaScriptDialog
+   会**一起**不再响应 —— 连每步都设了 2.5s 上限的诊断都返回不了。
+   这是探针/会话层面的问题；**产品侧这三组各自分开跑都是绿的**。
+   在定位清楚之前宁可**拒跑**，也不给一个含糊的结果，更不去调长超时。 */
+const DIRTY_GROUPS = ["Sf", "Se", "Sp"];
+const dirtySelected = ONLY.length ? DIRTY_GROUPS.filter((g) => ONLY.indexOf(g) > -1) : DIRTY_GROUPS;
+if (dirtySelected.length > 1) {
+  console.error("  拒跑：一个进程里最多只能跑 " + DIRTY_GROUPS.join(" / ") + " 中的**一个**。");
+  console.error("  这次选了：" + dirtySelected.join(", "));
+  console.error("  请分开跑：ONLY=St,A,G / ONLY=Sf,A,G / ONLY=Se,A,G / ONLY=Sp,A,G");
+  console.error("  理由见 web-round111.md「组合态」一节 —— 不是把超时调长能解决的事。");
+  process.exit(2);
+}
 const ok = (name, cond, detail) => { if (cond) { pass++; console.log("  PASS  " + name); }
   else { fail++; console.log("  FAIL  " + name + (detail ? "  ← " + detail : "")); } };
 const b64 = (s) => Buffer.from(s, "utf8").toString("base64");
@@ -206,6 +222,16 @@ window.supabase = { createClient: function(){
       var _save = function(o){ try { localStorage.setItem("__stu", JSON.stringify(o)); } catch(e){} };
       if (name === "update_my_contact") {
         var st0 = _st();
+        if (st0.holdSave) {                       // 扣住：由测试显式放行
+          return new Promise(function(r){
+            window.__heldSave = true;
+            window.__releaseSave = function(){
+              window.__heldSave = false;
+              var st1 = _st(); st1.phone = String((args && args.p_phone) || "").trim(); _save(st1);
+              r({ data:{ ok:true }, error:null, status:200 });
+            };
+          });
+        }
         if (st0.failSave) {                       // 失败：**什么都不写**
           return reply({ data:null, error:{ code:"server_error", message:"这一次没能保存，请稍后再试。" }, status:500 });
         }
@@ -293,7 +319,8 @@ try {
     pageErrors.push(String(p?.exceptionDetails?.exception?.description || p?.exceptionDetails?.text || "").slice(0, 200));
   });
 
-  const KEYS = { Tab:{code:"Tab",key:"Tab",vk:9}, Enter:{code:"Enter",key:"Enter",vk:13} };
+  const KEYS = { Tab:{code:"Tab",key:"Tab",vk:9}, Enter:{code:"Enter",key:"Enter",vk:13},
+                 End:{code:"End",key:"End",vk:35} };
   /* 原生对话框开着的时候渲染进程是阻塞的，按键会一直卡到超时。
      接住这种情况：把对话框收掉再补一次，而不是让整支探针挂掉。 */
   let dialogSeen = 0;
@@ -555,6 +582,68 @@ try {
        (await cdp.ev(`(window.__rpc||[]).filter(r=>r.name==="update_my_contact").length`)) === 1,
        JSON.stringify(await cdp.ev(`(window.__rpc||[]).map(r=>r.name)`)));
   }
+  if (RUN("Sp")) {
+    console.log("\n=== Sp 首次为空 → 填上 → 在途又改 → 旧版成功：提示说的是哪一版 ===");
+    /* 监督点名的那条路：sameVersion=false 时我原来**什么都没做**，
+       phState 还停在 empty，于是提示仍说「你还没有填写联系电话」——
+       既否认了刚存进去的那一版，也没说眼前这一版还没保存。
+       这里把本地 RPC **确定性扣住**再放行，不靠 sleep 赌。 */
+    await goStudentHome();
+    const g = await tabTo((w) => w.tag === "A" && /student\/profile\/$/.test(w.href || "") &&
+      /去处理/.test(w.text || ""), 40);
+    ok("Sp0 前提：从待办走到资料页", g.hit === true &&
+       (await (async () => { await press("Enter");
+         return until(async () => /\/portal\/student\/profile\/$/.test(await path_()), 9000); })()) === true);
+    await sleep(2200);
+    await cdp.ev(`(()=>{ const o = JSON.parse(localStorage.getItem("__stu")||"{}");
+      o.holdSave = true; localStorage.setItem("__stu", JSON.stringify(o)); return true; })()`);
+    const j = await tabTo((w) => w.tag === "BUTTON" && /去填联系电话/.test(w.text || ""), 30);
+    ok("Sp1 前提：按「去填联系电话」，焦点进那一格", j.hit === true &&
+       (await (async () => { await press("Enter"); await sleep(200);
+         return (await where()).id === "ph"; })()) === true);
+    await typeText("0123456789");
+    const sv = await tabTo((w) => w.id === "save", 20);
+    ok("Sp2 前提：按下保存", sv.hit === true, JSON.stringify(sv.at));
+    await press("Enter"); savesPressed += 1;
+    ok("Sp3 前提：这一笔被扣住了（还没回来）",
+       await until(async () => cdp.ev(`(()=>!!window.__heldSave)()`), 8000));
+    /* 在途期间他又接着改 —— 这一版还没发出去。 */
+    const ph2 = await tabTo((w) => w.id === "ph", 25);
+    /* Tab 进输入框时浏览器**会把已有内容全选**，直接打字就替换掉了
+       （上一次跑读回来是 "999"，不是接着打的）—— 先按 End 收掉选中。
+       这是量具的事，不是产品的。 */
+    await press("End");
+    ok("Sp4 前提：回到那一格接着改（先 End 取消全选）", ph2.hit === true, JSON.stringify(ph2.at));
+    await typeText("999");
+    ok("Sp5 前提：现在框里是他改过的那一版", (await phoneVal()) === "0123456789999",
+       JSON.stringify(await phoneVal()));
+    await cdp.ev(`(()=>{ if (window.__releaseSave) window.__releaseSave(); return true; })()`);
+    ok("Sp6 前提：旧那一版回来了（成功）",
+       await until(async () => (await toastText()).length > 0, 9000), JSON.stringify(await toastText()));
+    await sleep(400);
+    const note = await mainText();
+    ok("Sp7 不能再说「你还没有填写联系电话」（明明存进去了一版）",
+       !/你还没有填写联系电话/.test(note), JSON.stringify(note.slice(0, 160)));
+    ok("Sp8 要说清楚**已保存的是提交出去的那一版**",
+       /刚才提交的那一版/.test(note) && /0123456789/.test(note), JSON.stringify(note.slice(0, 160)));
+    ok("Sp9 也要说清楚**眼前这一版还没保存**", /还没保存/.test(note), JSON.stringify(note.slice(0, 160)));
+    ok("Sp10 他改的那一版一个字都没丢", (await phoneVal()) === "0123456789999",
+       JSON.stringify(await phoneVal()));
+    ok("Sp11 这种时候不给「回到学员中心」那条出口（不邀请他带着没保存的改动离开）",
+       (await cdp.ev(`(()=>{const b=document.getElementById("phNote");
+         return b ? !/回到学员中心/.test(b.textContent||"") : null;})()`)) === true,
+       JSON.stringify(await cdp.ev(`(()=>{const b=document.getElementById("phNote");
+         return b?(b.textContent||"").trim():null;})()`)));
+    ok("Sp12 提示里不会冒出 Markdown 星号（HTML 字符串里写 ** 会原样显示）",
+       (await cdp.ev(`(()=>{const b=document.getElementById("phNote");
+         return b ? (b.textContent||"").indexOf("**") < 0 : null;})()`)) === true,
+       JSON.stringify(await cdp.ev(`(()=>{const b=document.getElementById("phNote");
+         return b?(b.textContent||"").trim():null;})()`)));
+    ok("Sp13 全程只发了这一笔写入（在途期间的改动没有偷偷再发）",
+       (await cdp.ev(`(window.__rpc||[]).filter(r=>r.name==="update_my_contact").length`)) === 1,
+       JSON.stringify(await cdp.ev(`(window.__rpc||[]).map(r=>r.name)`)));
+  }
+
   if (RUN("A")) {
     console.log("\n=== A 记账口径自检 ===");
     await sleep(600);
