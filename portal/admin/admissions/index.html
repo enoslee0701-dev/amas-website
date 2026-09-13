@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>招生审核 | AMAS 管理后台</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130801">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130820">
 <style>
 .qtable{width:100%;border-collapse:collapse;font-size:13px}
 .qtable th,.qtable td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:top}
@@ -34,12 +34,12 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130801"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130801"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130801"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130801"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130801"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609130801"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130820"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130820"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130820"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130820"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130820"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609130820"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -198,7 +198,11 @@
     if (pagesLoaded > 0) renderList();
     const { data, error } = await Api.select("applications", {
       columns: "id,applicant_id,pathway,status,form_data,locked_fields,submitted_at,decided_at,updated_at,applicant_visible_message,assigned_reviewer",
-      order: { column: "submitted_at", asc: false }, range: { from, to: from + PAGE - 1 },
+      /* 次级键 id 是必须的：submitted_at 有并列（同一秒提交、以及草稿的 null），
+         只按它排的话，两次查询之间并列行的先后没有保证，翻页会在边界重复**和漏**。
+         重复能被 id 去重盖住，漏掉的那一份没有人会发现。 */
+      order: [{ column: "submitted_at", asc: false }, { column: "id", asc: false }],
+      range: { from, to: from + PAGE - 1 },
     });
     /* 上一代的晚回：整条丢掉，连 pageInflight 都不碰（新一代已经把它清成 false）。 */
     if (gen !== generation) return;
@@ -274,7 +278,13 @@
         ` style="width:auto;padding:0 18px">` +
         (pageInflight ? "读取中…" : "载入更早的 " + PAGE + " 份") + `</button></div></div>`
       : (pagesLoaded > 1
-          ? `<div class="msg info show" style="margin-bottom:10px">已经是全部：共读到 <b>${rows.length}</b> 份。</div>`
+          /* 不能无条件说「已经是全部」。offset 分页是**分几次去读**，不是一次快照：
+             这期间有人撤回，后面的行会往前挪，挪进已经读过的窗口里 —— 那一份就漏了，
+             而且最后一页正好是短的，看上去像「到底了」。
+             （翻页期间新提交则相反：会把末尾挤出窗口，但页是满的，按钮还在。） */
+          ? `<div class="msg info show" style="margin-bottom:10px">到这一次为止读到 <b>${rows.length}</b> 份，` +
+            `没有更多了。<br>分页是分几次读的 —— 如果这期间有人提交或撤回，边界附近可能有出入；` +
+            `要确认完整，请点「刷新」重读一次。</div>`
           : "");
     const moreErrNote = moreErr
       ? `<div class="msg err show" style="margin-bottom:10px">更早的那一页没能读到（${UI.esc(moreErr)}）。` +

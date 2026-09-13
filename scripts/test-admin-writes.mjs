@@ -134,7 +134,10 @@ window.supabase = {
          并把每一次请求的 range 记下来，好断言「有没有跳页、重试有没有换页」。
          另外支持按 range 注入一次性失败与延迟，用来造并发与晚回。 */
       var q = { select:function(){return q;}, eq:function(){return q;}, in:function(){return q;},
-        order:function(){return q;}, limit:function(){return q;}, maybeSingle:function(){return q;},
+        order:function(c, o){ (q.__ord = q.__ord || []).push(c + ":" + (o && o.ascending ? "asc" : "desc"));
+          try { (window.__orders = window.__orders || {})[name] = q.__ord.slice(); } catch (e) {}
+          return q; },
+        limit:function(){return q;}, maybeSingle:function(){return q;},
         range:function(a, b){ q.__range = [a, b]; return q; },
         then:function(res, rej){
           var sc = S();
@@ -966,8 +969,10 @@ try {
   ok("Pg4b 没有重复行", !!m4 && m4.rows === m4.uniq, JSON.stringify(m4));
 
   const m5 = await listVis();
-  ok("Pg5 一页没取满就说已经是全部，并收起载入入口",
-     /已经是全部/.test(m5 || "") &&
+  /* 文案已按 Od 段的完整性口径改过：不再无条件说「已经是全部」。
+     这里验的仍是那个不变量 —— 取不满就收起载入入口，并说明没有更多了。 */
+  ok("Pg5 一页没取满就收起载入入口，并说明到这一次为止没有更多了",
+     /到这一次为止/.test(m5 || "") && /没有更多了/.test(m5 || "") &&
      (await cdp.ev(`!document.getElementById("btnMore")`)) === true, (m5 || "").slice(0, 220));
 
   // M6 对照：没到上限时一句截断提示都不该有
@@ -1079,6 +1084,33 @@ try {
   ok("Pc5 对照：顺序点两次，range 依次前进（不是一律拒绝）",
      JSON.stringify(pr6) === JSON.stringify(
        ["applications:300..599", "applications:600..899"]), JSON.stringify(pr6));
+
+  // ════════ Od 分页的完整性：唯一稳定次序 + 不再无条件说「已经是全部」════════
+  console.log("\n=== Od 排序键要唯一稳定 ===");
+  /* 只按 submitted_at 排时，同一秒提交的、以及草稿（submitted_at 为 null）的那些行
+     彼此并列，而数据库对并列行先后不作承诺 —— offset 分页在页边界会重复**和漏**。
+     重复被 id 去重盖住，漏掉的那一份没有人会发现。
+     算法层面的反例在 scripts/test-paging-model.mjs（纯模型）；
+     这里验的是**页面实际发出的查询参数**对不对。 */
+  await open("portal/admin/admissions/", { tables: Object.assign({}, TABLES, {
+    applications: { data: manyApps(340, 0) } }) }, 3200);
+  const ord = await cdp.ev(`((window.__orders||{}).applications)||null`);
+  ok("Od1 队列查询带了两个排序键，第二个是 id（唯一且稳定）",
+     Array.isArray(ord) && ord.length === 2 && ord[0] === "submitted_at:desc" && ord[1] === "id:desc",
+     JSON.stringify(ord));
+
+  await cdp.ev(`(()=>{const b=document.getElementById("btnMore"); if(b) b.click(); return !!b;})()`);
+  await sleep(1200);
+  const done = await listVis();
+  ok("Od2 读完之后不再无条件断言「已经是全部」",
+     !/已经是全部/.test(done || ""), (done || "").slice(0, 240));
+  ok("Od2b 而是说清楚这是「到这一次为止」，并讲明分页期间增删会有出入",
+     /到这一次为止/.test(done || "") && /提交或撤回/.test(done || "") && /刷新/.test(done || ""),
+     (done || "").slice(0, 300));
+
+  const ord2 = await cdp.ev(`((window.__orders||{}).applications)||null`);
+  ok("Od3 第二页用的是同一套排序键（页与页之间次序一致）",
+     JSON.stringify(ord2) === JSON.stringify(ord), JSON.stringify(ord2));
 
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");

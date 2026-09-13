@@ -59,7 +59,14 @@
     let q = c.from(table).select(build?.columns || "*");
     if (build?.eq) for (const [k, v] of Object.entries(build.eq)) q = q.eq(k, v);
     if (build?.in) for (const [k, v] of Object.entries(build.in)) q = q.in(k, v);
-    if (build?.order) q = q.order(build.order.column, { ascending: !!build.order.asc, nullsFirst: false });
+    /* order 可以给一个，也可以给一串。给一串是为了**唯一稳定的次序**：
+       只按 submitted_at 排时，同一秒提交的、以及草稿（submitted_at 为 null）的那些行
+       彼此并列，而数据库对并列行的先后不作承诺 —— offset 分页在页边界会重复、也会漏。 */
+    if (build?.order) {
+      for (const o of (Array.isArray(build.order) ? build.order : [build.order])) {
+        q = q.order(o.column, { ascending: !!o.asc, nullsFirst: false });
+      }
+    }
     if (build?.limit) q = q.limit(build.limit);
     /* 分页：range 与 limit 不要同时给。招生队列用 range 一页页取，
        好让「只读到这些」变成可以补齐的事实，而不是一句无声的截断。 */
