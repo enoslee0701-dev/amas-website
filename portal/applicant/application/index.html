@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130847">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130911">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130847"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130847"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130847"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130847"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130847"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609130847"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130911"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130911"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130911"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130911"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130911"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609130911"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -38,7 +38,7 @@
   };
   const EDITABLE = ["draft","needs_information"];
 
-  let app = null, programs = [], reqs = [], reqsUnknown = false, dirty = false, saveTimer = null, step = 0;
+  let app = null, programs = [], catalogFailed = false, reqs = [], reqsUnknown = false, dirty = false, saveTimer = null, step = 0;
 
   /* 这一页有四条写入：创建草稿、自动保存、标记补件完成、提交申请。
      判据与 portal/admin/*（第六包）同一套：
@@ -172,11 +172,13 @@
 
   // ---------- 载入 ----------
   UI.loading(main, 4);
-  const [{ data: appRows, error: appErr }, { data: pcRows }] = await Promise.all([
+  const [{ data: appRows, error: appErr }, { data: pcRows, error: pcErr }] = await Promise.all([
     Api.rpc("my_application"),
     Api.select("program_catalog", { columns: "code,name_zh,short_label,category,intake_note_zh,is_open_for_application", order: { column: "sort_order", asc: true } }),
   ]);
   if (appErr) return UI.error(main, { message: appErr.message, onRetry: () => location.reload() });
+  /* 目录读不到 ≠ 没有可选项目，更 ≠ 他选的那个不开放。读不到就别下判断。 */
+  catalogFailed = !!pcErr || !Array.isArray(pcRows);
   programs = (pcRows || []).filter(p => p.is_open_for_application);
   app = (appRows && appRows[0]) || null;
 
@@ -344,6 +346,15 @@
      application_validate_form，他坚持提交就照样提交，由服务端判。 */
   function isBlankField(f){
     const v = f.name === "__pathway" ? app.pathway : app.form_data[f.name];
+    /* 项目这一项的规则是明确的（0010_program_catalog.sql:55-63）：
+       恰好一项、在目录里、且 is_open_for_application。
+       选了一个已经停招的，跟没选一样交不上去 —— 但**目录读不到时不下判断**。 */
+    if (f.name === "programs") {
+      const arr = Array.isArray(v) ? v : [];
+      if (!arr.length) return true;
+      if (catalogFailed) return false;
+      return !programs.some(p => p.code === arr[0]);
+    }
     if (v === null || v === undefined) return true;
     if (Array.isArray(v)) {
       if (f.type === "rows") {
@@ -357,7 +368,11 @@
   function missingRequired(){
     const out = [];
     F.STEPS.forEach((st, i) => st.fields.forEach(f => {
-      if (f.required && isBlankField(f)) out.push({ label: f.label, step: i, stepTitle: st.title });
+      if (!f.required || !isBlankField(f)) return;
+      /* 「选了但已停招」不是「没填」，清单里要说出真正的原因。 */
+      const closed = f.name === "programs" && !catalogFailed &&
+        Array.isArray(app.form_data.programs) && app.form_data.programs.length > 0;
+      out.push({ label: f.label + (closed ? "（已不开放申请，请换一个）" : ""), step: i, stepTitle: st.title });
     }));
     return out;
   }
@@ -432,9 +447,23 @@
     const bar = document.getElementById("stepBar");
     bar.innerHTML = F.STEPS.map((s, i) =>
       `<button type="button" role="tab" data-step="${i}" class="${i === step ? "on" : ""}" aria-selected="${i === step}">${
-        UI.esc(s.title)}${missByStep[i] ? `<span class="who" style="margin-left:5px">还差 ${missByStep[i]}</span>` : ""}</button>`).join("");
+        UI.esc(s.title)}<span class="who" data-missbadge="${i}" style="margin-left:5px"></span></button>`).join("");
     bar.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { step = +b.dataset.step; buildSteps(); renderStep(); }));
+    refreshStepBadges();
     renderStep();
+  }
+
+  /* 角标要跟着填写走。但**只能改角标**：调 buildSteps() 会连表单一起重绘，
+     正在打字的输入框当场失焦。所以这里只写那几个 span 的文字。 */
+  function refreshStepBadges(){
+    const bar = document.getElementById("stepBar");
+    if (!bar) return;
+    const by = {};
+    for (const m of missingRequired()) by[m.step] = (by[m.step] || 0) + 1;
+    bar.querySelectorAll("[data-missbadge]").forEach(el => {
+      const n = by[+el.dataset.missbadge] || 0;
+      el.textContent = n ? "还差 " + n : "";
+    });
   }
 
   function renderStep(){
@@ -470,9 +499,30 @@
       ctl = `<textarea id="fd-${f.name}" data-f="${f.name}" maxlength="${f.max || 2000}" ${dis}>${UI.esc(v || "")}</textarea>`;
     } else if (f.type === "program") {
       const cur = Array.isArray(v) ? v[0] : "";
-      ctl = `<select id="fd-programs" data-f="programs" ${dis}><option value="">请选择一个项目</option>` +
-        programs.map(p => `<option value="${p.code}"${cur === p.code ? " selected" : ""}>${UI.esc(p.name_zh)}${p.short_label ? "（" + UI.esc(p.short_label) + "）" : ""}</option>`).join("") +
-        `</select><div class="fhint">一份申请对应一个主项目；如需申请其他项目，请在本申请结束后另行提交。</div>`;
+      const opts = programs.map(p => `<option value="${p.code}"${cur === p.code ? " selected" : ""}>${UI.esc(p.name_zh)}${p.short_label ? "（" + UI.esc(p.short_label) + "）" : ""}</option>`).join("");
+      const known = programs.some(p => p.code === cur);
+      if (catalogFailed) {
+        /* 读不到目录：他之前选的那个照旧留着、照旧显示，但不评价它 ——
+           否则就是拿「我没读到」当「它不开放」。 */
+        ctl = `<select id="fd-programs" data-f="programs" ${dis}>` +
+          (cur ? `<option value="${UI.esc(cur)}" selected>${UI.esc(cur)}</option>` : `<option value="">请选择一个项目</option>`) +
+          opts + `</select>` +
+          `<div class="msg warn show" style="margin:6px 0">这一次没能读到课程目录，所以这里列不全可选项目。` +
+          (cur ? `你之前选的「${UI.esc(cur)}」保留着，现在无法确认它是否仍然招生。` : "") +
+          `请刷新后再选。</div>`;
+      } else {
+        /* 之前选的那个如果已经不在开放目录里（当初开放、后来停招，或从 ?program= 带进来的），
+           原来这里没有对应的 option —— 选择器会显示成空白的「请选择一个项目」，
+           而 form_data.programs 里那个代码还在。人看见空白以为没选，提交却被退回。 */
+        ctl = `<select id="fd-programs" data-f="programs" ${dis}><option value="">请选择一个项目</option>` +
+          (cur && !known ? `<option value="${UI.esc(cur)}" selected>${UI.esc(cur)}（已不开放申请）</option>` : "") +
+          opts + `</select>` +
+          (cur && !known
+            ? `<div class="msg warn show" style="margin:6px 0">你之前选的这个项目<b>已不开放申请</b>，` +
+              `这样提交会被退回。请换一个开放的项目。</div>`
+            : "") +
+          `<div class="fhint">一份申请对应一个主项目；如需申请其他项目，请在本申请结束后另行提交。</div>`;
+      }
     } else if (f.type === "pathway") {
       ctl = `<div class="cbs" data-f="__pathway">` + F.PATHWAYS.map(p =>
         `<label class="cb"><input type="radio" name="pathway" value="${p.value}" ${app.pathway === p.value ? "checked" : ""} ${dis}>
@@ -564,6 +614,7 @@
   // ---------- 自动保存 ----------
   function touch(){
     dirty = true;
+    refreshStepBadges();          // 补填之后当场更新，且不碰表单（不丢焦点）
     setSaveState("正在编辑…");
     clearTimeout(saveTimer);
     saveTimer = setTimeout(save, 800);

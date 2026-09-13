@@ -252,8 +252,15 @@ try {
   const DRAFT_THIN = { id:"app-fixture-1", applicant_id:"u-appl", pathway:"undecided", status:"draft",
     locked_fields:[], form_data:{ name_zh:"测试申请人" }, submitted_at:null, updated_at:"2026-09-10T00:00:00Z" };
   const DRAFT = { ...DRAFT_THIN, pathway:"degree", form_data: { ...FULL_FORM } };
+  /* 课程目录的夹具要带上 is_open_for_application —— 页面正是按它过滤可选项的
+     （programs = pcRows.filter(p => p.is_open_for_application)）。少了这一列，
+     选择器在所有用例里都是空的，等于没测到。 */
   const BASE_TABLES = {
-    program_catalog: { data: [{ code:"bth", name_zh:"神学本科", short_label:"B.Th" }] },
+    program_catalog: { data: [
+      { code:"bth", name_zh:"神学本科", short_label:"B.Th", is_open_for_application: true },
+      { code:"cert", name_zh:"证书课程", short_label:"Cert", is_open_for_application: true },
+      { code:"closed", name_zh:"已停招项目", short_label:"Old", is_open_for_application: false },
+    ] },
     application_requirements: { data: [] },
   };
   const open = async (scen, wait) => {
@@ -938,7 +945,10 @@ try {
   const full = {};
   for (const st of (STEPS || [])) for (const f of st.req) {
     if (f.name === "__pathway") continue;
-    full[f.name] = f.type === "checkboxes" ? ["x"]
+    /* programs 的真实形状是「目录里一个开放代码的数组」，不是随便一个字符串 ——
+       页面按 0010_program_catalog.sql:55-63 那条规则判它，塞 "x" 会被判成没选。 */
+    full[f.name] = f.type === "program" ? ["bth"]
+      : f.type === "checkboxes" ? ["x"]
       : f.type === "rows" ? [{ school: "x" }]
       : f.type === "month" ? "2020-01" : "x";
   }
@@ -966,6 +976,76 @@ try {
   ok("N6 服务端说缺项时，也要指出在第几步",
      /手机/.test(n6 || "") && (/第 *\d+ *步/.test(n6 || "") || /第[一二三四五六]步/.test(n6 || "")),
      JSON.stringify(n6));
+
+  // ════════ Pb 缺项计数要跟着填写走，且不能把焦点弄丢 ════════
+  console.log("\n=== Pb 补填之后计数要当场更新 ===");
+  /* 上一包在步骤条上加了「还差 N」，但 touch() 里没有刷新它 ——
+     填完一项之后那个数字停在旧值上，人会以为自己没填进去。
+     而直接调 buildSteps() 又会整段重绘表单，正在打字的输入框当场失焦。 */
+  const badge = async (i) => cdp.ev(`(()=>{const b=document.querySelector('[data-step="${i}"]');
+    return b ? (b.textContent||"").replace(/\\s+/g," ").trim() : null;})()`);
+  await open({ ...withApp, rpc: { my_application: { data: [DRAFT_THIN] } } });
+  const b0 = await badge(0);
+  ok("Pb0 前提：第 1 步上标着还差几项", /还差 *\d+/.test(b0 || ""), String(b0));
+  const n0 = Number((b0 || "").match(/还差 *(\d+)/)[1]);
+
+  await cdp.ev(`(()=>{const el=document.getElementById("fd-nationality");
+    if(!el) return false; el.focus(); el.value="中国";
+    el.dispatchEvent(new Event("input",{bubbles:true})); return true;})()`);
+  await sleep(300);
+  const b1 = await badge(0);
+  const n1 = Number(((b1 || "").match(/还差 *(\d+)/) || [0, n0])[1]);
+  ok("Pb1 填上一项之后，计数当场少一", n1 === n0 - 1, b0 + " → " + b1);
+  ok("Pb2 而且正在打字的那个输入框没有失焦",
+     (await cdp.ev(`document.activeElement && document.activeElement.id`)) === "fd-nationality",
+     await cdp.ev(`document.activeElement && document.activeElement.id`));
+
+  console.log("\n=== Pr 项目一致性：已不开放的项目不能悄悄变成空白 ===");
+  /* 规则是明确的（0010_program_catalog.sql:55-63）：programs 恰好一项、必须在目录里、
+     且必须 is_open_for_application。前端按这个过滤了下拉 —— 但草稿里**已经存着**
+     一个不在开放目录里的代码时（当初开放、后来停招，或者从 ?program= 带进来的），
+     选择器里没有对应的 option，于是显示成「请选择一个项目」的空白，
+     而 form_data.programs 里那个代码还在：人看见空白，以为没选；
+     提交则被服务端以 missing:['programs'] 退回；新加的「还差」也把它当已填。 */
+  const CLOSED_DRAFT = { ...DRAFT, form_data: { ...DRAFT.form_data, programs: ["closed"] } };
+  await open({ ...withApp, rpc: { my_application: { data: [CLOSED_DRAFT] } } });
+  await cdp.ev(`(()=>{const t=document.querySelector('[data-step="3"]'); if(t) t.click(); return !!t;})()`);
+  await sleep(400);
+  const pr1 = await cdp.ev(`(()=>{const f=document.getElementById("appForm");
+    if(!f) return null; const k=f.cloneNode(true); k.querySelectorAll("[hidden]").forEach(n=>n.remove());
+    return (k.textContent||"").replace(/\\s+/g," ").trim();})()`);
+  ok("Pr1 已停招的那个选择不被显示成空白，页面说得出它已不开放",
+     /不开放|已停招/.test(pr1 || ""), (pr1 || "").slice(0, 240));
+  ok("Pr1b 并说清楚这样提交会被退回，要换一个",
+     /退回|换一个|重新选/.test(pr1 || ""), (pr1 || "").slice(0, 240));
+
+  const prb = await cdp.ev(`(()=>{const b=document.querySelector('[data-step="3"]');
+    return b ? (b.textContent||"").replace(/\\s+/g," ").trim() : null;})()`);
+  ok("Pr2 这一步的「还差」把它算进去，不当成已填", /还差 *[1-9]/.test(prb || ""), String(prb));
+
+  /* 对照：选的是开放项目时，一句警告都不该有，也不该算缺项。 */
+  await open({ ...withApp, rpc: { my_application: { data: [DRAFT] } } });
+  await cdp.ev(`(()=>{const t=document.querySelector('[data-step="3"]'); if(t) t.click(); return !!t;})()`);
+  await sleep(400);
+  const pr3 = await cdp.ev(`(()=>{const f=document.getElementById("appForm");
+    return f ? (f.textContent||"").replace(/\\s+/g," ").trim() : null;})()`);
+  ok("Pr3 对照：选的是开放项目时不出现任何警告",
+     !/不开放|已停招|退回/.test(pr3 || ""), (pr3 || "").slice(0, 200));
+  const prb3 = await cdp.ev(`(()=>{const b=document.querySelector('[data-step="3"]');
+    return b ? (b.textContent||"").trim() : null;})()`);
+  ok("Pr3b 对照：也不算缺项", !/还差/.test(prb3 || ""), String(prb3));
+
+  /* 课程目录读不到时，不能假装「没有可选项目」，也不能据此说他选的项目无效。 */
+  await open({ tables: { ...BASE_TABLES, program_catalog: { data:null, error:{ message:"boom" }, status:500 } },
+    rpc: { my_application: { data: [CLOSED_DRAFT] } } });
+  await cdp.ev(`(()=>{const t=document.querySelector('[data-step="3"]'); if(t) t.click(); return !!t;})()`);
+  await sleep(400);
+  const pr4 = await cdp.ev(`(()=>{const f=document.getElementById("appForm");
+    return f ? (f.textContent||"").replace(/\\s+/g," ").trim() : null;})()`);
+  ok("Pr4 课程目录读不到时明说未知，不假装没有可选项目",
+     /没能读到|没读到/.test(pr4 || ""), (pr4 || "").slice(0, 240));
+  ok("Pr4b 并且不据此判定他选的项目无效（读不到 ≠ 不开放）",
+     !/已停招|不开放/.test(pr4 || ""), (pr4 || "").slice(0, 240));
 
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");
