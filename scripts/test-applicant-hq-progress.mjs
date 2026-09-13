@@ -411,6 +411,54 @@ try {
        /当前未查询到总校确认记录/.test(await hqText() || ""), JSON.stringify(await hqText()));
   }
 
+  if (RUN("C")) {
+    console.log("\n=== C 枚举白名单与字段类型：原型上的名字不算合法状态，坏类型不许把页面炸掉 ===");
+    /* 上一版的白名单判据是 `HQ_T[String(r.status||"")]` —— 对象字面量的原型上
+       挂着 constructor / toString / hasOwnProperty …，它们**都是真值**，
+       于是 status:"constructor" 会被当成合法状态放行，
+       再到 render 里 `UI.esc(HQ_T[st])` 就把函数源码渲染出去了。
+       真值判断不能当枚举白名单。 */
+    const protoKeys = ["constructor", "toString", "hasOwnProperty", "valueOf", "isPrototypeOf"];
+    for (const k of protoKeys) {
+      await openWith({ data:[row(k)] });
+      const t = await hqText();
+      /* 这里要看的是**他眼睛看得见的文字**，不是整页 HTML ——
+         整页 HTML 连内联 <script> 一起算，会把源码注释里的例子也匹配上
+         （本轮修后第一次跑就是这样假红的，量具的毛病，不是产品的）。 */
+      const seen = await cdp.ev(`(()=>{const m=document.getElementById("main");
+        return m ? (m.textContent||"") : "";})()`);
+      ok("C0 status=\"" + k + "\" 算未知（不是合法状态）",
+         /暂时无法获取总校确认进度/.test(t || ""), JSON.stringify(t));
+      ok("C0b status=\"" + k + "\" 时他看不到任何函数源码",
+         seen.indexOf("native code") < 0 && seen.indexOf("function ") < 0,
+         JSON.stringify(seen.slice(0, 80)));
+    }
+    await openWith({ data:[row(123)] });
+    ok("C1 status 不是字符串（数字）→ 未知",
+       /暂时无法获取总校确认进度/.test(await hqText() || ""), JSON.stringify(await hqText()));
+    await openWith({ data:[row({ pending: true })] });
+    ok("C2 status 是对象 → 未知",
+       /暂时无法获取总校确认进度/.test(await hqText() || ""), JSON.stringify(await hqText()));
+
+    /* 字段类型错了也不能把整页炸掉：.trim 只能对字符串调。 */
+    await openWith({ data:[row("approved", { applicant_visible_note: {} })] });
+    const t1 = await hqText();
+    ok("C3 备注是对象时，这一段照样渲染得出来（没有把申请页炸掉）",
+       /总校确认已通过/.test(t1 || ""), JSON.stringify(t1));
+    /* 必须先有这一段，否则「没出现 [object Object]」只是因为整页都没渲染出来（空过）。 */
+    ok("C3b 而且不会把它显示成 [object Object]",
+       !!t1 && !/\[object Object\]/.test(t1), JSON.stringify(t1));
+    ok("C3c 整页也还在（状态徽章仍在）", (await badge()) === "已录取", JSON.stringify(await badge()));
+    await openWith({ data:[row("approved", { applicant_visible_note: 123 })] });
+    const t2 = await hqText();
+    ok("C4 备注是数字时同样不崩，也不把 123 当成总校说明",
+       /总校确认已通过/.test(t2 || "") && !/总校说明/.test(t2 || ""), JSON.stringify(t2));
+    await openWith({ data:[row("approved", { confirmed_at: {} })] });
+    ok("C5 时间字段是对象时不显示时间，也不写出 Invalid Date",
+       /总校确认已通过/.test(await hqText() || "") &&
+       !/Invalid Date/.test(await hqText() || ""), JSON.stringify(await hqText()));
+  }
+
   if (RUN("F")) {
     console.log("\n=== F 按下重新读取之后他走开了：结果回来不能把焦点抢回去 ===");
     /* 与 teachers 页第九十七包 Ns5 同一条边界：捕获之后还要 await 读取，
