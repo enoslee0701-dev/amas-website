@@ -293,6 +293,70 @@ try {
   ok("Q5b 说清楚没读到具体是哪几项并指向刷新",
      /没能读到具体是哪几项/.test(q5 || "") && (await hasReload()) === true, JSON.stringify(q5));
 
+  console.log("\n=== R 「刷新重新读取」这个入口本身会不会弄丢他的编辑 ===");
+  /* 上一包给不同步的情形加了这个按钮，回调直接 location.reload()。
+     可他是在**提交被挡回来之后**看到它的 —— 那时候他很可能正接着改。
+     共享层 UI.formGuard 只在 beforeunload 弹一句「确定离开？」；
+     离开守卫会在 pagehide 暂存，但**存储被拒时那条路是空的** ——
+     页面上这一份就是唯一的一份，一重载就没了。 */
+  const typeCalling = async (v) => cdp.ev(`(()=>{const el=document.getElementById("fd-calling");
+    if(!el) return false; el.focus(); el.value=${JSON.stringify(v)};
+    el.dispatchEvent(new Event("input",{bubbles:true})); return true;})()`);
+  const goStep4 = async () => { await cdp.ev(`(()=>{const t=document.querySelector('[data-step="3"]');
+    if(t) t.click(); return !!t;})()`); await sleep(350); };
+  const clickReload = async () => cdp.ev(`(()=>{const b=document.querySelector("#subErr [data-reqreload]");
+    if(b) b.click(); return !!b;})()`);
+  const reqCard = async () => cdp.ev(`(()=>{const c=document.querySelector(".rqlist");
+    return c ? (c.textContent||"").replace(/\s+/g," ").trim() : null;})()`);
+
+  // 存储被拒 + 未保存编辑 + 点这个刷新入口
+  await openPending(1);                                // 多于 → 会出现刷新按钮
+  await denyStorage();
+  await goStep4();
+  await typeCalling("提交被挡之后又写的一段");
+  await sleep(150);                                    // 防抖没到，只有他自己手里这一份
+  await probeSet();
+  ok("R0 前提：刷新入口在", (await clickReload()) === true);
+  await sleep(1600);
+  ok("R1 页面没有被重载（他那一份是唯一的副本）", (await probeGone()) === false);
+  ok("R2 他写的那一段还在", (await callingVal()) === "提交被挡之后又写的一段", JSON.stringify(await callingVal()));
+
+  // 读取成功：清单真的换成新的
+  await openPending(1);
+  await goStep4();
+  await typeCalling("读取成功这一场");
+  await cdp.ev(`(()=>{ window.__SCEN.tables.application_requirements =
+    { data:[{ id:"rq-9", label:"新读到的条目", detail:null, resolved:false, created_at:"2026-09-02T00:00:00Z" }] };
+    return true;})()`);
+  await probeSet();
+  await clickReload();
+  await sleep(1600);
+  ok("R3 清单换成了重新读到的那一份",
+     /新读到的条目/.test((await reqCard()) || "") && !/受洗证明扫描件/.test((await reqCard()) || ""),
+     JSON.stringify(await reqCard()));
+  ok("R4 编辑仍在，页面也没重载",
+     (await callingVal()) === "读取成功这一场" && (await probeGone()) === false,
+     JSON.stringify(await callingVal()));
+  ok("R5 说清楚是刚刚重新读到的，且不谎称已保存",
+     /重新读(取|到|过)/.test((await errText()) || "") && !/已保存/.test((await errText()) || ""),
+     JSON.stringify(await errText()));
+
+  // 读取失败：不许假装是最新的
+  await openPending(1);
+  await goStep4();
+  await typeCalling("读取失败这一场");
+  await cdp.ev(`(()=>{ window.__SCEN.tables.application_requirements =
+    { data:null, error:{ message:"boom" }, status:500 }; return true;})()`);
+  await probeSet();
+  await clickReload();
+  await sleep(1600);
+  ok("R6 读失败时如实说没能重新读到，不假称最新",
+     /没能重新读到|没能读到/.test((await errText()) || "") && !/已经是最新|最新的了/.test((await errText()) || ""),
+     JSON.stringify(await errText()));
+  ok("R7 读失败也不许把他的编辑弄丢，页面也没重载",
+     (await callingVal()) === "读取失败这一场" && (await probeGone()) === false,
+     JSON.stringify(await callingVal()));
+
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
   ok("G2 全程没有页面异常", pageErrors.length === 0, JSON.stringify(pageErrors.slice(0, 2)));

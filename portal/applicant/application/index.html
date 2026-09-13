@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131820">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131833">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609131820"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609131820"></script>
-<script src="../../../assets/js/portal/api.js?v=202609131820"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609131820"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609131820"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609131820"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609131833"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609131833"></script>
+<script src="../../../assets/js/portal/api.js?v=202609131833"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609131833"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609131833"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609131833"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -614,14 +614,14 @@
 
     let note = "";
     if (!mine.length) {
-      note = "这一次没能读到具体是哪几项，请刷新页面重新读取。";
+      note = "这一次没能读到具体是哪几项，可以用下面的入口重新读一次。";
     } else if (!known) {
-      note = "这一次没能确认还剩几项，下面这几项是这一页上一次读到的，可能已经不是最新的 —— 请刷新页面重新读取。";
+      note = "这一次没能确认还剩几项，下面这几项是这一页上一次读到的，可能已经不是最新的 —— 可以重新读一次。";
     } else if (diff > 0) {
-      note = "另外还有 " + diff + " 项这一次没能读到，请刷新页面重新读取。";
+      note = "另外还有 " + diff + " 项这一次没能读到，可以重新读一次。";
     } else if (diff < 0) {
       note = "这一页列出的比服务端说的多 " + (-diff) + " 项 —— 多出来的可能是已经完成、" +
-             "或者已经被撤下的旧条目。以服务端说的为准，请刷新页面重新读取。";
+             "或者已经被撤下的旧条目。以服务端说的为准，可以重新读一次。";
     }
 
     err.innerHTML =
@@ -633,7 +633,7 @@
         : "这几项还没标记："}</div><ul style="margin:2px 0 8px 18px">${lines}</ul>` : "") +
       (note ? `<div class="who" style="margin:6px 0 8px">${note}</div>` : "") +
       (lines ? `<button class="btn" type="button" data-goreq style="width:auto;padding:0 16px;margin-right:8px">去看这几项</button>` : "") +
-      (stale ? `<button class="btn ghost" type="button" data-reqreload style="width:auto;padding:0 16px">刷新重新读取</button>` : "");
+      (stale ? `<button class="btn ghost" type="button" data-reqreload style="width:auto;padding:0 16px">重新读取补件清单</button>` : "");
     err.classList.add("show");
     err.setAttribute("role", "alert");
     err.querySelector("[data-goreq]")?.addEventListener("click", () => {
@@ -644,7 +644,43 @@
       const cb = li.querySelector("input[type=checkbox]");
       if (cb) cb.focus();
     });
-    err.querySelector("[data-reqreload]")?.addEventListener("click", () => location.reload());
+    err.querySelector("[data-reqreload]")?.addEventListener("click", reloadRequirements);
+  }
+
+  /** 只**重新读补件清单**，不动表单。
+
+      上一包这个按钮直接 `location.reload()`。可他是在**提交被挡回来之后**
+      看到它的 —— 那时候很可能正接着改：共享层 UI.formGuard 只弹一句
+      「确定离开？」，而存储被拒时离开守卫那条暂存是空的，
+      页面上这一份就是唯一的一份，一重载就没了（监督点名，实测 R1/R2 成立）。
+
+      重画表单用的是 app.form_data —— 他每敲一个字就已经写进去了，所以编辑原样还在；
+      step 也保持在他所在的那一步。读不到就说读不到，不假称是最新的，
+      更不说「已保存」（这个按钮跟保存没有关系）。 */
+  async function reloadRequirements(){
+    const btn = document.querySelector("#subErr [data-reqreload]");
+    if (btn) {
+      if (btn.disabled) return;                 // 在途期间吞掉重复点击
+      btn.disabled = true; btn.textContent = "正在重新读取…";
+    }
+    await loadRequirements();
+    render();                                   // 按 app.form_data 重画：未保存的编辑不丢
+    const err = document.getElementById("subErr");
+    if (!err) return;
+    const left = reqs.filter(r => !r.resolved);
+    if (reqsUnknown) {
+      err.innerHTML = `<b>这一次没能重新读到补件清单。</b>` +
+        `<div class="who" style="margin-top:6px">上面显示的还是刚才那一份，不一定是最新的。` +
+        `你填的内容都还在，请稍后再试一次。</div>`;
+    } else if (!left.length) {
+      err.innerHTML = `<b>刚刚重新读过：补件条目都已经标记为「已补」。</b>` +
+        `<div class="who" style="margin-top:6px">可以再试一次提交 —— 能不能交上去由服务端判定。</div>`;
+    } else {
+      err.innerHTML = `<b>刚刚重新读过：现在还有 ${left.length} 项没有标记为「已补」。</b>` +
+        `<ul style="margin:6px 0 8px 18px">${left.map(r => `<li>${UI.esc(r.label)}</li>`).join("")}</ul>` +
+        `<div class="who">标记完成之后再提交。</div>`;
+    }
+    err.classList.add("show");
   }
 
   function renderRequirementsUnknown(got){
