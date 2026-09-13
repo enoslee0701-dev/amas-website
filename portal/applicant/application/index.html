@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130930">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130944">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130930"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130930"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130930"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130930"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130930"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609130930"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130944"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130944"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130944"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130944"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130944"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609130944"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -346,16 +346,50 @@
 
      这里只做**提示**，不封死：必填与格式的权威判定在
      application_validate_form，他坚持提交就照样提交，由服务端判。 */
+  /* application_validate_program（0010_program_catalog.sql:55-63）要求三件事：
+       **恰好一项**、在目录里、且 is_open_for_application。
+     上一包只做了后两件 —— 只看 arr[0] 开不开放。于是一份历史草稿
+     programs=["bth","cert"]：下拉是单选、只显示第一个，第二个代码根本看不见；
+     数量那条没人判，这一步显示成已完成；提交被退回，而他看着下拉里明明选着
+     一个正常项目，没有任何东西能解释。 */
+  function programIssue(){
+    const arr = Array.isArray(app.form_data.programs) ? app.form_data.programs : [];
+    if (catalogFailed) return { kind: "unknown", codes: arr };
+    if (!arr.length) return { kind: "empty", codes: arr };
+    if (arr.length > 1) return { kind: "multi", codes: arr };
+    return programs.some(p => p.code === arr[0])
+      ? { kind: "none", codes: arr } : { kind: "closed", codes: arr };
+  }
+  const progName = (code) => {
+    const p = programs.find(x => x.code === code);
+    return p ? p.name_zh : String(code);
+  };
+  /** 项目那块警告的内容。fieldHtml 与 refreshProgramSync 都用它，省得两处说法不一致。 */
+  function programWarnHtml(){
+    const it = programIssue();
+    if (it.kind === "multi") {
+      /* 不静默丢他原来的值：两个都列出来，由他自己选定一个。 */
+      return `<div class="msg warn show" style="margin:6px 0">这份草稿里存了 <b>${it.codes.length}</b> 个项目：` +
+        it.codes.map(c => UI.esc(progName(c))).join("、") +
+        `。一份申请<b>只能对应一个</b>，这样提交会被退回。<br>` +
+        `下拉里现在选中的是「${UI.esc(progName(it.codes[0]))}」—— 换一个，或者` +
+        `<button class="btn ghost" type="button" data-progfix style="width:auto;padding:0 14px;margin-left:4px">只保留选中的这一个</button></div>`;
+    }
+    if (it.kind === "closed") {
+      return `<div class="msg warn show" style="margin:6px 0">你之前选的这个项目<b>已不开放申请</b>，` +
+        `这样提交会被退回。请换一个开放的项目。</div>`;
+    }
+    return "";
+  }
+
   function isBlankField(f){
     const v = f.name === "__pathway" ? app.pathway : app.form_data[f.name];
     /* 项目这一项的规则是明确的（0010_program_catalog.sql:55-63）：
        恰好一项、在目录里、且 is_open_for_application。
        选了一个已经停招的，跟没选一样交不上去 —— 但**目录读不到时不下判断**。 */
     if (f.name === "programs") {
-      const arr = Array.isArray(v) ? v : [];
-      if (!arr.length) return true;
-      if (catalogFailed) return false;
-      return !programs.some(p => p.code === arr[0]);
+      const k = programIssue().kind;
+      return !(k === "none" || k === "unknown");   // unknown = 目录没读到，不下判断
     }
     if (v === null || v === undefined) return true;
     if (Array.isArray(v)) {
@@ -372,9 +406,13 @@
     F.STEPS.forEach((st, i) => st.fields.forEach(f => {
       if (!f.required || !isBlankField(f)) return;
       /* 「选了但已停招」不是「没填」，清单里要说出真正的原因。 */
-      const closed = f.name === "programs" && !catalogFailed &&
-        Array.isArray(app.form_data.programs) && app.form_data.programs.length > 0;
-      out.push({ label: f.label + (closed ? "（已不开放申请，请换一个）" : ""), step: i, stepTitle: st.title });
+      let why = "";
+      if (f.name === "programs") {
+        const it = programIssue();
+        if (it.kind === "multi") why = "（存了 " + it.codes.length + " 个，只能对应一个）";
+        else if (it.kind === "closed") why = "（已不开放申请，请换一个）";
+      }
+      out.push({ label: f.label + why, step: i, stepTitle: st.title });
     }));
     return out;
   }
@@ -465,10 +503,7 @@
     if (sel) sel.querySelectorAll("[data-staleprog]").forEach(o => { if (o.value !== cur) o.remove(); });
     const box = document.querySelector("[data-progwarn]");
     if (!box) return;                       // 目录没读到的那一支不带这个容器
-    box.innerHTML = (!catalogFailed && cur && !known)
-      ? `<div class="msg warn show" style="margin:6px 0">你之前选的这个项目<b>已不开放申请</b>，` +
-        `这样提交会被退回。请换一个开放的项目。</div>`
-      : "";
+    box.innerHTML = programWarnHtml();
   }
 
   /* 角标要跟着填写走。但**只能改角标**：调 buildSteps() 会连表单一起重绘，
@@ -539,10 +574,7 @@
         ctl = `<select id="fd-programs" data-f="programs" ${dis}><option value="">请选择一个项目</option>` +
           (cur && !known ? `<option value="${UI.esc(cur)}" data-staleprog selected>${UI.esc(cur)}（已不开放申请）</option>` : "") +
           opts + `</select>` +
-          `<div data-progwarn>${cur && !known
-            ? `<div class="msg warn show" style="margin:6px 0">你之前选的这个项目<b>已不开放申请</b>，` +
-              `这样提交会被退回。请换一个开放的项目。</div>`
-            : ""}</div>` +
+          `<div data-progwarn>${programWarnHtml()}</div>` +
           `<div class="fhint">一份申请对应一个主项目；如需申请其他项目，请在本申请结束后另行提交。</div>`;
       }
     } else if (f.type === "pathway") {
@@ -590,6 +622,17 @@
           touch();
         });
       }
+    });
+    /* 「只保留选中的这一个」：警告那块会被重绘，所以用委托绑在表单上。
+       它只是把用户**当前选中的**那一个留下 —— 另一个代码在警告里已经列出来了，
+       不是背着他丢掉的。 */
+    form.addEventListener("click", (e) => {
+      const b = e.target && e.target.closest && e.target.closest("[data-progfix]");
+      if (!b) return;
+      const sel = document.getElementById("fd-programs");
+      if (!sel) return;
+      app.form_data.programs = sel.value ? [sel.value] : [];
+      touch();
     });
     form.querySelectorAll("[data-row]").forEach(el => el.addEventListener("input", () => {
       const [fname, idx, key] = el.dataset.row.split(":");

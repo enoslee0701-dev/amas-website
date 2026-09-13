@@ -1100,6 +1100,68 @@ try {
   ok("Ps3b 并且按「没读到」处理，不假装没有可选项目",
      /没能读到|没读到/.test(ps3 || ""), (ps3 || "").slice(0, 220));
 
+  // ════════ Pm 一份申请只能对应一个项目（0010:55-63 的另一半）════════
+  console.log("\n=== Pm 草稿里存了两个项目 ===");
+  /* application_validate_program 要求的是三件事：**恰好一项**、在目录里、且开放。
+     上一包只做了后两件 —— isBlankField 只看 arr[0] 开不开放。
+     于是一份历史草稿 programs=["bth","cert"]：
+       · 下拉是单选，只显示 arr[0]，第二个代码**根本看不见**；
+       · 数量那一条没人判，这一步显示成已完成；
+       · 提交被服务端以 missing:['programs'] 退回，而他看着下拉里明明选着
+         一个正常的项目 —— 没有任何东西能解释这次退回。 */
+  const MULTI = { ...DRAFT, form_data: { ...DRAFT.form_data, programs: ["bth", "cert"] } };
+  await open({ ...withApp, rpc: { my_application: { data: [MULTI] } } });
+  await cdp.ev(`(()=>{const t=document.querySelector('[data-step="3"]'); if(t) t.click(); return !!t;})()`);
+  await sleep(400);
+  const pm0 = await cdp.ev(`(()=>{const el=document.getElementById("fd-programs");
+    return el ? el.value : null;})()`);
+  ok("Pm0 前提：下拉里只看得见第一个", pm0 === "bth", String(pm0));
+
+  const pmb = await cdp.ev(`(()=>{const b=document.querySelector('[data-step="3"]');
+    return b ? (b.textContent||"").trim() : null;})()`);
+  ok("Pm1 这一步不能显示成已完成", /还差 *[1-9]/.test(pmb || ""), String(pmb));
+
+  const pm2 = await progWarn();
+  ok("Pm2 说清楚存了两个、一份申请只能对应一个",
+     /两个|2 个/.test(pm2 || "") && /只能对应一个|只能有一个/.test(pm2 || ""), (pm2 || "").slice(0, 260));
+  ok("Pm2b 两个都列出来，不静默丢掉他原来的值",
+     /神学本科/.test(pm2 || "") && /证书课程/.test(pm2 || ""), (pm2 || "").slice(0, 260));
+
+  ok("Pm3 给得出一键纠正的入口",
+     (await cdp.ev(`!!document.querySelector("[data-progfix]")`)) === true);
+  await cdp.ev(`(()=>{const b=document.querySelector("[data-progfix]"); if(b) b.click(); return !!b;})()`);
+  await sleep(400);
+  const pm3 = await cdp.ev(`(()=>({ n: (window.__lastPrograms||null), warn: (document.querySelector("[data-progwarn]")||{}).textContent||"" }))()`);
+  const pm3warn = await progWarn();
+  const pmb3 = await cdp.ev(`(()=>{const b=document.querySelector('[data-step="3"]');
+    return b ? (b.textContent||"").trim() : null;})()`);
+  ok("Pm3b 点了之后警告消失、这一步不再算缺",
+     !/只能对应一个/.test(pm3warn || "") && !/还差/.test(pmb3 || ""),
+     JSON.stringify({ w: (pm3warn || "").slice(0, 120), b: pmb3 }));
+
+  /* 切换回归：不点那个按钮，直接在下拉里换一个，也要纠正过来。 */
+  await open({ ...withApp, rpc: { my_application: { data: [MULTI] } } });
+  await cdp.ev(`(()=>{const t=document.querySelector('[data-step="3"]'); if(t) t.click(); return !!t;})()`);
+  await sleep(400);
+  ok("Pm4-0 前提：一开始仍在警告", /只能对应一个/.test((await progWarn()) || ""));
+  await pickProgram("cert");
+  await sleep(400);
+  const pm4 = await progWarn();
+  const pmb4 = await cdp.ev(`(()=>{const b=document.querySelector('[data-step="3"]');
+    return b ? (b.textContent||"").trim() : null;})()`);
+  ok("Pm4 直接在下拉里换一个，也立刻纠正过来",
+     !/只能对应一个/.test(pm4 || "") && !/还差/.test(pmb4 || ""),
+     JSON.stringify({ w: (pm4 || "").slice(0, 120), b: pmb4 }));
+  ok("Pm4b 而且没有失焦",
+     (await cdp.ev(`document.activeElement && document.activeElement.id`)) === "fd-programs");
+
+  /* 对照：正常单个开放项目时，这条警告一句都不该有。 */
+  await open({ ...withApp, rpc: { my_application: { data: [DRAFT] } } });
+  await cdp.ev(`(()=>{const t=document.querySelector('[data-step="3"]'); if(t) t.click(); return !!t;})()`);
+  await sleep(400);
+  ok("Pm5 对照：单个开放项目时不出现这条警告",
+     !/只能对应一个/.test((await progWarn()) || ""), (await progWarn() || "").slice(0, 160));
+
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
