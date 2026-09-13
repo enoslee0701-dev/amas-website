@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>我的资料 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140213">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140222">
 <style>
 .sec{margin-bottom:18px}
 .sec h2{font-size:16px;color:var(--navy);margin:0 0 4px}
@@ -27,11 +27,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609140213"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609140213"></script>
-<script src="../../../assets/js/portal/api.js?v=202609140213"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609140213"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609140213"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609140222"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609140222"></script>
+<script src="../../../assets/js/portal/api.js?v=202609140222"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609140222"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609140222"></script>
 <script>
 /* PORTAL-2B 学生资料页（2B-1）
    Single Person Model：人物主数据在 profiles，学籍数据在 student_records，
@@ -74,7 +74,14 @@
         '<div class="fld"><label for="nm">姓名</label>' +
           '<input id="nm" value="' + UI.esc(self.display_name || "") + '" maxlength="60">' +
           '<div class="h">用于门户显示。正式学籍姓名以入学申请与总校记录为准。</div></div>' +
-        '<div class="fld"><label for="ph">联系电话</label>' +
+          /* 待办「完善联系方式」（my_action_items，0019_student_role_gating.sql:158 起）
+           把他送到这一页来，理由是「你还没有填写联系电话」。
+           可这一页原来什么都不接：页面上不说他是来补什么的，也没有一步能到那一格 ——
+           键盘用户得自己在表单里找（本轮实测 St3/St4）。
+           这里不猜他从哪来，只按**这一页自己读到的事实**说：电话是空的就说它空着。
+           入口是按钮、由他按下才移焦点 —— 不在载入时抢焦点。 */
+        '<div id="phNote"></div>' +
+      '<div class="fld"><label for="ph">联系电话</label>' +
           '<input id="ph" value="' + UI.esc(self.phone || "") + '" maxlength="40" inputmode="tel">' +
           '<div class="h">教务需要时会通过这个号码联系你。</div></div>' +
         '<div class="fld"><label for="ct">备用联系方式</label>' +
@@ -107,6 +114,29 @@
     '</div>' : "");
 
   const err = document.getElementById("err");
+  /* 这一块有两个状态：还没填 / 已经填好（刚存完）。
+     「已经填好」那一版同时给出**完成出口** —— 待办是从学员中心点过来的，
+     做完了得有一条路回去，而不是让他自己在导航里找。 */
+  const phNote = document.getElementById("phNote");
+  function renderPhNote(filled){
+    if (!phNote) return;
+    phNote.innerHTML = filled
+      ? '<div class="msg ok show" style="margin:0 0 12px" role="status">' +
+        '联系电话已经填好了。' +
+        '<div style="margin-top:8px"><a class="link" href="' + A.ROOT + 'portal/student/">' +
+        '回到学员中心 →</a></div></div>'
+      : '<div class="msg info show" style="margin:0 0 12px" role="status">' +
+        '<b>你还没有填写联系电话。</b>教务在需要时会用这个号码联系你。' +
+        '<div style="margin-top:8px"><button class="btn ghost" type="button" data-gophone ' +
+        'style="width:auto;padding:0 18px">去填联系电话</button></div></div>';
+    const jump = phNote.querySelector("[data-gophone]");
+    if (jump) jump.addEventListener("click", () => {
+      const el = document.getElementById("ph");
+      el?.focus?.();
+      if (el && el.setSelectionRange) { try { el.setSelectionRange(el.value.length, el.value.length); } catch (e) {} }
+    });
+  }
+  if (!(self.phone || "").trim()) renderPhNote(false);
   /* 改了还没保存就离开时拦一下。共享层早就有 UI.formGuard（申请表单在用），
      这一页一直没挂 —— 用户改了手机号或联系方式，顺手点导航里的
      「首页 / 我的申请 / 帮助 / 退出」，输入就没了，连句提醒都没有。
@@ -150,6 +180,9 @@
     const sameVersion = nowSnap === sentSnap;
     if (sameVersion) dirty = false;
     UI.toast(sameVersion ? "资料已保存" : "刚才提交的那一版已保存；之后改的还没保存");
+    /* 存完之后把那块提示按**现在框里的值**改写：填好了就说填好了，并给回学员中心的路。
+       只在这一版就是提交的那一版时才敢说「已经填好」—— 否则他之后改的那一版还没存。 */
+    if (sameVersion) renderPhNote(!!(document.getElementById("ph") || {}).value.trim());
   });
 })();
 </script>
