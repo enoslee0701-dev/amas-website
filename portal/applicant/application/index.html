@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131851">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131909">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609131851"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609131851"></script>
-<script src="../../../assets/js/portal/api.js?v=202609131851"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609131851"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609131851"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609131851"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609131909"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609131909"></script>
+<script src="../../../assets/js/portal/api.js?v=202609131909"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609131909"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609131909"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609131909"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -364,7 +364,7 @@
             <button class="link" id="btnNext">下一步 →</button>
           </div>
           <button class="btn" id="btnSubmit" type="button">提交申请</button>
-          <div class="msg err" id="subErr" role="alert"></div>
+          <div class="msg err" id="subErr" role="alert" tabindex="-1"></div>
           <div class="hint">提交后，姓名、出生年月、性别、国籍、初信/受洗日期与申请项目将被锁定；其余字段仍可修改。</div>
         </div>` : `<div class="card">${renderReadonly(locked)}</div>`}
 
@@ -557,7 +557,7 @@
         if (it.kind === "multi") why = "（存了 " + it.codes.length + " 个，只能对应一个）";
         else if (it.kind === "closed") why = "（已不开放申请，请换一个）";
       }
-      out.push({ label: f.label + why, step: i, stepTitle: st.title });
+      out.push({ label: f.label + why, step: i, stepTitle: st.title, name: f.name });
     }));
     return out;
   }
@@ -587,6 +587,11 @@
     err.querySelector("[data-gofix]")?.addEventListener("click", () => {
       if (first) { step = first.step; buildSteps(); }
       err.classList.remove("show");
+      /* 重建之后，他刚才按的那个按钮已经不在了 —— 焦点会掉到 <body>，
+         键盘用户被扔回页首，得重新 Tab 一遍才能回到表单（本轮实测 K3d）。
+         直接送到第一个缺的字段：这也正是这个按钮承诺的事。 */
+      if (first && first.name && focusFormField(first.name)) return;
+      document.querySelector(`[data-step="${step}"]`)?.focus();
     });
     err.querySelector("[data-submitanyway]")?.addEventListener("click", () => submit(true));
   }
@@ -703,6 +708,10 @@
     }
     err.classList.add("show");
     bindReqReload(err);                         // 重画之后重新接上，别只剩一句话
+    /* render() 把整页重画了，他刚按下的那个按钮已经不在 —— 焦点会掉到 <body>
+       （本轮实测 K5e）。落到这条**刚刚变化的消息**上：他按的就是它，
+       读屏也正好读到结果。 */
+    err.focus();
   }
 
   function renderRequirementsUnknown(got){
@@ -748,7 +757,13 @@
     bar.innerHTML = F.STEPS.map((s, i) =>
       `<button type="button" role="tab" data-step="${i}" class="${i === step ? "on" : ""}" aria-selected="${i === step}">${
         UI.esc(s.title)}<span class="who" data-missbadge="${i}" style="margin-left:5px"></span></button>`).join("");
-    bar.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { step = +b.dataset.step; buildSteps(); renderStep(); }));
+    bar.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+      step = +b.dataset.step; buildSteps(); renderStep();
+      /* buildSteps() 把整条步骤条重画了，他刚按下的那个按钮已经被换掉 ——
+         焦点掉到 <body>，键盘用户被扔回页首（本轮实测 K1d）。
+         重新指到**当前这一步**的标签上：鼠标用户点的本来就是它，无感。 */
+      document.querySelector(`[data-step="${step}"]`)?.focus();
+    }));
     refreshStepBadges();
     renderStep();
   }
@@ -1421,7 +1436,7 @@
         names.pathway = "学习路径";
         renderMissing(err, (data.missing || []).map(m => ({
           label: names[m] || m, step: stepOfField(m),
-          stepTitle: (F.STEPS[stepOfField(m)] || {}).title,
+          stepTitle: (F.STEPS[stepOfField(m)] || {}).title, name: m,
         })), false);
         return;
       } else if (data.error === "requirements_pending") {
