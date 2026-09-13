@@ -63,7 +63,8 @@ const GROUPS = {
   },
   harness: {
     title: "测试设施自身（独占端口/独立 profile 的前提）",
-    suites: ["chrome-launcher", "local-config-override", "sdk-pin", "edge-validate"],
+    suites: ["chrome-launcher", "local-config-override", "sdk-pin", "edge-validate",
+             "verify-g1-guards"],
   },
   self: {
     title: "入口自己的判定逻辑（全程离线，不开浏览器）",
