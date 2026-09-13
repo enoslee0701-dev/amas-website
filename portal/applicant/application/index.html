@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131650">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131707">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609131650"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609131650"></script>
-<script src="../../../assets/js/portal/api.js?v=202609131650"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609131650"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609131650"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609131650"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609131707"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609131707"></script>
+<script src="../../../assets/js/portal/api.js?v=202609131707"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609131707"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609131707"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609131707"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -95,6 +95,33 @@
     } catch (e) { return null; }
   }
   function clearStash(){ try { sessionStorage.removeItem(DRAFT_KEY); } catch (e) {} }
+
+  /* 普通离开这条路（点站内导航、刷新、关标签页）。
+     共享层的 UI.formGuard 只**提醒** —— beforeunload 弹浏览器那句「确定离开？」，
+     他一旦选「离开」，屏幕上这份唯一的编辑就没了。而暂存/恢复这套东西
+     页面里早就有（stashDraft / offerRestore），只是这条路上一直没接。
+     实测（web-round70 探针）：未到 800ms 防抖、保存还在途、保存被明确拒绝
+     这三个时点上离开，回来都是一片空白 —— 401 那一格例外，
+     因为登录过期那条路自己会暂存。
+
+     四条边界：
+       · 只在 dirty 时存 —— 已保存的正常导航不受影响，也不会把旧东西翻出来；
+       · pagehide 与 visibilitychange(hidden) 都挂：手机上被系统回收时
+         beforeunload / pagehide 都可能不来，多一个入口多一分机会；
+       · 他自己选了「丢弃我的编辑」就不要再塞回去 —— 那是他明确的决定；
+       · 存不下就什么都不说：这时候页面正在离开，弹什么他也看不见，
+         更不能在别处谎称已经暂存。
+     **只绑一次**：bindEditor() 是跟着 render() 走的，绑在那里会随每次重画累积。 */
+  let leavingDiscard = false, leaveGuardBound = false;
+  function bindLeaveGuard(){
+    if (leaveGuardBound) return;
+    leaveGuardBound = true;
+    const keep = () => { if (dirty && !leavingDiscard) stashDraft(); };
+    window.addEventListener("pagehide", keep);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") keep();
+    });
+  }
 
   /** 载入后如果有上次没存成的草稿，给一条提示与两个选择。**不自动应用**。 */
   function offerRestore(){
@@ -196,6 +223,7 @@
   render();
   // 上次没存成的草稿若还在这个标签页里，给一条提示让他自己决定要不要恢复
   offerRestore();
+  bindLeaveGuard();
 
   async function loadRequirements(){
     if (!app) return;
@@ -973,6 +1001,10 @@
     const stale = nowSnap !== sentSnap;
     if (!stale) {
       dirty = false;
+      /* 都落到服务端了，暂存就没有意义了 —— 留着它，下次刷新会跳出
+         「你上次**没能保存成功**的编辑还留着」，而那一份其实早就存上了。
+         离开守卫让这种陈旧暂存变得更容易出现，所以在这里收掉。 */
+      clearStash();
       setSaveState("已保存 " + new Date().toLocaleTimeString("zh-CN", { hour12: false }));
     } else {
       setSaveState("刚才那一版已保存，你之后的修改还没保存");
@@ -1111,7 +1143,10 @@
       const plain = document.createElement("button");
       plain.type = "button"; plain.className = "link";
       plain.textContent = "直接重新载入（丢弃我的编辑）";
-      plain.addEventListener("click", () => { clearStash(); location.reload(); });
+      plain.addEventListener("click", () => {
+        leavingDiscard = true;                  // 他明确要丢，离开守卫别再塞回来
+        clearStash(); location.reload();
+      });
       box.appendChild(keep);
       box.appendChild(document.createTextNode(" · "));
       box.appendChild(plain);
