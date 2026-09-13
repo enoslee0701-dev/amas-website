@@ -383,6 +383,11 @@ try {
   const TODO = { source_type:"profile", source_id:"u-stu", title:"完善联系方式",
     reason:"你还没有填写联系电话，教务在需要时无法联系到你。",
     target_url:"portal/student/profile/", status:"open", priority:20 };
+  /* my_action_items 的第三条：建立信仰成长档案，target_url 是**站外**的 discover.html
+     （0019_student_role_gating.sql 那一段 union）。入口完整性就要查它。 */
+  const TODO_CP = { source_type:"christian_profile", source_id:"u-stu", title:"建立你的信仰成长档案",
+    reason:"完成评估后可以看到自己的成长画像与学习建议。评估在「AMAS 神学院」App 中进行。",
+    target_url:"discover.html", status:"open", priority:30 };
   const scenSrc = () => "window.__SCEN = " + JSON.stringify({
     uid:"u-stu", aal:"aal1", roles:[{ role:"student" }],
     tables: { program_catalog: { data:[{ code:"bth", name_zh:"神学本科", short_label:"B.Th" }] } },
@@ -393,7 +398,7 @@ try {
       my_student_record: { data:[{ id:"stu-1", student_number:"B26-0007", status:"active",
         program_code:"bth", created_at:"2026-09-01T00:00:00Z", activated_at:"2026-09-05T00:00:00Z" }] },
       my_student_timeline: { data: [] },
-      my_action_items: { data: [TODO] },      // 是否还剩这一条由共享状态决定
+      my_action_items: { data: [TODO, TODO_CP] },   // profile 那条是否还剩由共享状态决定
       my_student_capabilities: { data:{} },
       /* my_learning 也是行集合：页面数的是 learn.length 与 availability。 */
       my_learning: { data: Array.from({ length: 67 }, (_, i) => ({
@@ -642,6 +647,47 @@ try {
     ok("Sp13 全程只发了这一笔写入（在途期间的改动没有偷偷再发）",
        (await cdp.ev(`(window.__rpc||[]).filter(r=>r.name==="update_my_contact").length`)) === 1,
        JSON.stringify(await cdp.ev(`(window.__rpc||[]).map(r=>r.name)`)));
+  }
+
+  if (RUN("Cp")) {
+    console.log("\n=== Cp 待办「建立你的信仰成长档案」：点进去之后回不回得来 ===");
+    /* 入口完整性三问：① 那个 target_url 真有页面吗？② 这个角色到得了吗？
+       ③ 做完之后有没有一条明确的出口？
+       前两问 discover.html 都过（它是公开页，没有守卫）；第三问是这一包要查的。 */
+    await goStudentHome();
+    ok("Cp0 前提：待办里确实有这一条", (await mainText()).indexOf("建立你的信仰成长档案") > -1,
+       JSON.stringify((await mainText()).slice(0, 140)));
+    const cp = await tabTo((w) => w.tag === "A" && /discover\.html/.test(w.href || "") &&
+      /去处理/.test(w.text || ""), 40);
+    ok("Cp1 Tab 走得到它的「去处理 →」", cp.hit === true, JSON.stringify(cp.at));
+    await press("Enter");
+    ok("Cp2 ① 那个 target_url 真的有页面（走过去了，不是 404）",
+       await until(async () => /\/discover\.html$/.test(await path_()), 9000),
+       JSON.stringify(await path_()));
+    await sleep(1200);
+    ok("Cp3 ② 学员这个身份到得了（公开页，没有被守卫挡回去）",
+       (await cdp.ev(`(()=>document.querySelectorAll("h1").length > 0)()`)) === true);
+    /* ③ 出口：这一页有没有任何一条能回门户的路。 */
+    const outs = await cdp.ev(`(()=>[...document.querySelectorAll("a")]
+      .map(a=>({ href:a.getAttribute("href")||"", text:(a.textContent||"").replace(/\s+/g," ").trim().slice(0,14) }))
+      .filter(x=>/portal/.test(x.href)))()`);
+    ok("Cp4 ③ 做完之后回得到门户（页面上有一条通往 portal 的出口）",
+       Array.isArray(outs) && outs.length >= 1, JSON.stringify(outs));
+    if (Array.isArray(outs) && outs.length) {
+      const back = await tabTo((w) => w.tag === "A" && /portal\/student\/$/.test(w.href || ""), 40);
+      ok("Cp5 而且那条出口用键盘走得到、按下去真的回到了学员中心",
+         back.hit === true &&
+         (await (async () => { await press("Enter");
+           return until(async () => /\/portal\/student\/$/.test(await path_()), 9000); })()) === true,
+         JSON.stringify(await path_()));
+    }
+    /* 反控：**不是**从门户过来的普通访客，这一页不该多出门户入口。 */
+    await cdp.send("Page.navigate", { url: `${BASE}/discover.html` });
+    await sleep(1500);
+    const outsPlain = await cdp.ev(`(()=>[...document.querySelectorAll("a")]
+      .map(a=>a.getAttribute("href")||"").filter(h=>/portal/.test(h)))()`);
+    ok("Cp6 反控：普通访客直接打开这一页时，**不**多出任何门户入口",
+       Array.isArray(outsPlain) && outsPlain.length === 0, JSON.stringify(outsPlain));
   }
 
   if (RUN("A")) {

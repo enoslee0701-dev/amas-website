@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>学员中心 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609140337">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609140345">
 <style>
 .idcard{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);color:#fff;border-radius:16px;padding:20px 22px;margin-bottom:18px}
 .idcard h2{margin:0;font-size:19px;color:#fff}
@@ -31,11 +31,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609140337"></script>
-<script src="../../assets/js/portal/auth.js?v=202609140337"></script>
-<script src="../../assets/js/portal/api.js?v=202609140337"></script>
-<script src="../../assets/js/portal/ui.js?v=202609140337"></script>
-<script src="../../assets/js/portal/shell.js?v=202609140337"></script>
+<script src="../../assets/js/supabase-config.js?v=202609140345"></script>
+<script src="../../assets/js/portal/auth.js?v=202609140345"></script>
+<script src="../../assets/js/portal/api.js?v=202609140345"></script>
+<script src="../../assets/js/portal/ui.js?v=202609140345"></script>
+<script src="../../assets/js/portal/shell.js?v=202609140345"></script>
 <script>
 /* PORTAL-2 学员中心（V1）
    原则：状态机与 DB 是权威源，UI 不模拟业务状态；没有真实数据就显示真实空态，绝不填充假数据。
@@ -102,6 +102,14 @@
   }
   const actionItems = ["learning", "practice", "feedback"].map(k => picked[k]).filter(Boolean);
   const STATUS = { open: "待处理", waiting: "等待教务" };
+  /* 待办里有**站外**的目标（my_action_items 的 christian_profile 那条指向 discover.html）。
+     点过去之后那一页是公开站点，原本**一条回门户的路都没有** ——
+     做完 3 分钟探索就卡在官网上，只能按浏览器后退（本轮实测 Cp4）。
+     所以门户这边给站外入口加一个回程标记；那一页只在**带着标记**时才多出
+     「回到学员中心」，普通访客看到的仍是原样（反控 Cp6）。
+     判据只看「是不是门户内的路径」，不写死某一个页面。 */
+  const withBack = (u) => String(u || "").indexOf("portal/") === 0
+    ? u : (u + (String(u).indexOf("?") > -1 ? "&" : "?") + "from=portal");
   const todo = actionItems.length
     ? actionItems.map(a =>
         '<div class="act">' +
@@ -109,7 +117,7 @@
           '<span class="badge">' + UI.esc(STATUS[a.status] || a.status) + '</span>' +
           '<div class="none">' + UI.esc(a.reason) + '</div>' +
           (a.status === "waiting" ? "" :
-            '<a class="link" href="' + A.ROOT + UI.esc(a.target_url) + '">去处理 →</a>') +
+            '<a class="link" href="' + A.ROOT + UI.esc(withBack(a.target_url)) + '">去处理 →</a>') +
         '</div>').join("")
     : (actsErr || !Array.isArray(acts)
         ? '<p class="none">这一次没能读到你的待办事项（可能是网络不稳或服务端暂时不可用）。' +
@@ -162,7 +170,7 @@
         '<p class="none">你还没有建立信仰成长档案。完成评估后可以看到自己的成长画像与学习建议；' +
         '评估在「AMAS 神学院」App 中进行。</p>' +
         '<p class="none">也可以先做 3 分钟快速探索，初步了解学习起点（结果仅作参考，不构成评定）。</p>' +
-        '<a class="link" href="' + A.ROOT + 'discover.html">建立你的信仰成长档案 →</a></div>' +
+        '<a class="link" href="' + A.ROOT + 'discover.html?from=portal">建立你的信仰成长档案 →</a></div>' +
     '</div>' +
 
     // ---------- 最近活动：真实的学籍状态历史 ----------

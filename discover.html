@@ -222,6 +222,26 @@
 </head>
 <body>
 <div class="wrap">
+<!-- 从门户的待办点过来的人（?from=portal）需要一条回得去的路：
+     这一页原本一条通往 portal 的链接都没有，做完只能按浏览器后退。
+     **只在带着这个标记时**才插入，普通访客看到的页面一字不变。 -->
+<script>
+(function(){
+  try {
+    if (new URLSearchParams(location.search).get("from") !== "portal") return;
+    var bar = document.createElement("div");
+    bar.style.cssText = "margin:0 0 14px";
+    var a = document.createElement("a");
+    a.href = "portal/student/";
+    a.textContent = "← 回到学员中心";
+    a.style.cssText = "display:inline-flex;align-items:center;min-height:44px;padding:0 16px;" +
+      "border-radius:999px;border:1px solid #c3ccdb;color:#102f55;text-decoration:none;font-size:14px";
+    bar.appendChild(a);
+    var wrap = document.currentScript && document.currentScript.parentNode;
+    if (wrap) wrap.insertBefore(bar, wrap.firstChild);
+  } catch (e) {}
+})();
+</script>
 
   <!-- ============ 着陆页 ============ -->
   <div id="landing" class="fade">
