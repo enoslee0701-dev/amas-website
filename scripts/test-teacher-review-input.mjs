@@ -117,8 +117,17 @@ window.supabase = { createClient: function(){
         var sc = S();
         var t = (mode === "select") ? ((sc.tables && sc.tables[name]) || { data:[], error:null })
                                     : (sc.write || { data:[], error:null });
-        return Promise.resolve({ data:t.data, error:t.error||null,
-          status: t.status != null ? t.status : (t.error ? 500 : 200) }).then(res, rej);
+        var out = { data:t.data, error:t.error||null,
+          status: t.status != null ? t.status : (t.error ? 500 : 200) };
+        /* 列表读取可以被扣住：这样才能确定性地制造出「正在 loading」那一段，
+           而不是靠 sleep 赌。放行由测试显式调用 window.__releaseSelect()。 */
+        if (mode === "select" && window.__holdSelect) {
+          return new Promise(function(r){
+            window.__heldSelect = true;
+            window.__releaseSelect = function(){ window.__holdSelect = false; window.__heldSelect = false; r(out); };
+          }).then(res, rej);
+        }
+        return Promise.resolve(out).then(res, rej);
       } };
     return q;
   }
@@ -259,6 +268,16 @@ try {
     return { hit: false, at: await active() };
   };
   /** 真实 Tab 走到某个筛选标签并按下。 */
+  /* 点了筛选就返回，不等 —— 要的就是「还在 loading」那一段。 */
+  const tabToFilterNoWait = async (f, max) => {
+    for (let i = 1; i <= (max || 60); i++) {
+      await press("Tab");
+      const v = await cdp.ev(`(()=>{const a=document.activeElement;
+        return a && a.dataset ? (a.dataset.f || "") : "";})()`);
+      if (v === f) { await press("Enter"); return { hit: true, steps: i }; }
+    }
+    return { hit: false, at: await active() };
+  };
   const tabToFilter = async (f, max) => {
     for (let i = 1; i <= (max || 60); i++) {
       await press("Tab");
@@ -552,6 +571,93 @@ try {
   ok("Lv9 核实回来之后焦点也没有掉到 <body>", lvAfter.where !== "BODY", JSON.stringify(lvAfter));
   ok("Lv10 全程只发出过那一笔（未知结果不会被自动重发）",
      postCount() === 1, "POST " + postCount() + " 笔");
+
+  // ════════ Ns 等待期间他走开了：重绘不能把焦点抢回来 ════════
+  console.log("\n=== Ns 读列表的那段时间里他去动导航：数据回来会不会把焦点抢回去 ===");
+  /* 上一包只在**捕获那一刻**判断「他在不在这片区域里」。可是捕获之后要 await
+     列表读取，这段时间他完全可以走开 —— 数据回来时 putHimBack 是**无条件** focus 的。
+     所以把列表读取扣住，确定性地造出「正在 loading」那一段，
+     让他真实 Tab 走到 main 外面，再放行数据。 */
+  const outsideMain = async () => cdp.ev(`(()=>{const a=document.activeElement;
+    const m=document.getElementById("main");
+    if(!a || a===document.body) return { out:false, where:"BODY" };
+    return { out: !!(m && !m.contains(a)), where:a.tagName, id:a.id||"",
+             cls:(a.className||"").toString().slice(0,24),
+             text:(a.textContent||"").replace(/\\s+/g," ").trim().slice(0,18) };})()`);
+  const tabOutOfMain = async (max) => {
+    for (let i = 1; i <= (max || 20); i++) {
+      await press("Tab");
+      const w = await outsideMain();
+      if (w.out) return { hit: true, steps: i, at: w };
+    }
+    return { hit: false, at: await outsideMain() };
+  };
+  await openPage();
+  edgeScript = []; edgeCalls = [];
+  ok("Ns0 前提：两条都在", JSON.stringify(await cardIds()) === JSON.stringify(["tvr-1","tvr-2"]));
+  await cdp.ev(`(()=>{ window.__holdSelect = true; return true; })()`);
+  const ns1 = await tabToFilterNoWait("all", 80);
+  ok("Ns1 前提：真实按键点了「全部」筛选", ns1.hit === true, JSON.stringify(ns1));
+  ok("Ns2 前提：列表读取确实被扣住了（页面正卡在 loading）",
+     await until(async () => cdp.ev(`(()=>!!window.__heldSelect)()`), 6000));
+  const ns3 = await tabOutOfMain(20);
+  ok("Ns3 前提：他趁这段时间用真实 Tab 走到了 main 外面（导航）", ns3.hit === true,
+     JSON.stringify(ns3));
+  const beforeRelease = await outsideMain();
+  await cdp.ev(`(()=>{ if(window.__releaseSelect) window.__releaseSelect(); return true; })()`);
+  await until(async () => (await cardIds()).length === 2, 8000);
+  await sleep(600);
+  ok("Ns4 前提：数据回来了，列表确实重绘了（不是因为没渲染才没抢）",
+     JSON.stringify(await cardIds()) === JSON.stringify(["tvr-1","tvr-2"]),
+     JSON.stringify(await cardIds()));
+  const afterRelease = await outsideMain();
+  ok("Ns5 焦点没有被抢回去 —— 他还站在刚才走到的那个地方",
+     afterRelease.out === true && afterRelease.text === beforeRelease.text,
+     JSON.stringify({ beforeRelease, afterRelease }));
+
+  // ════════ Sn 两个快照时点：msg 在确认前取、sentRaw 在确认后取 ════════
+  console.log("\n=== Sn 确认框开着的时候，他还改得到那个说明框吗 ===");
+  /* msg（真正发出去的那一版）是在**确认框之前**取的，
+     sentRaw（用来判断草稿该不该清）是在**确认之后**取的。
+     两个时点不同 —— 只有「确认框开着时他还能改说明框」才会出问题。
+     先查这条路**是不是真的走得到**：走不到就不改，不凭空扩大修复。 */
+  await openPage();
+  edgeHold = true; heldEdge = []; edgeCalls = [];
+  edgeScript = [ { status:200, body:{ ok:true, status:"approved" } } ];
+  const sn0 = await tabToId("m-tvr-1", 140);
+  ok("Sn0 前提：走到第一条的说明框并写下一段话", sn0.hit === true);
+  await typeText("原稿");
+  const snBefore = await taVal("tvr-1");
+  const sn1 = await tabToAct("tvr-1", "approve", 140);
+  ok("Sn1 前提：走到「通过」并按下，确认框开着",
+     sn1.hit === true &&
+     (await (async () => { await press("Enter"); await sleep(500); return modalUp(); })()) === true);
+  /* 键盘：Tab 被圈在对话框里（ui.js:87-92），一路按下去也出不去；顺手打几个字。 */
+  for (let i = 0; i < 8; i++) await press("Tab");
+  await typeText("XYZ");
+  ok("Sn2 确认框开着时，键盘改不到那个说明框（Tab 被圈住了）",
+     (await taVal("tvr-1")) === snBefore, JSON.stringify({ snBefore, now: await taVal("tvr-1") }));
+  /* 鼠标：说明框那个位置上，命中的是遮罩 / 对话框本身，点不到它。 */
+  const hit = await cdp.ev(`(()=>{const c=document.querySelector('.rq[data-id="tvr-1"]');
+    const t=c?c.querySelector("textarea"):null; if(!t) return { none:true };
+    const r=t.getBoundingClientRect();
+    const el=document.elementFromPoint(Math.round(r.left+r.width/2), Math.round(r.top+r.height/2));
+    return { inModal: !!(el && el.closest && el.closest(".portal-modal")),
+             tag: el?el.tagName:"", cls: el?(el.className||"").toString().slice(0,20):"" };})()`);
+  ok("Sn3 鼠标也点不到它（那个位置命中的是遮罩/对话框）", hit.inModal === true, JSON.stringify(hit));
+  await confirmIt();
+  ok("Sn4 前提：这一笔发出去了，带的就是原稿",
+     await until(async () => heldEdge.length === 1, 8000) &&
+     (() => { try { return JSON.parse(heldEdge[0].body).message === snBefore; } catch (e) { return false; } })(),
+     JSON.stringify(heldEdge.map(h => h.body)));
+  await markStatus("tvr-1", "approved");
+  await heldEdge[0].send();
+  heldEdge = [];
+  await until(async () => (await cardStatus("tvr-1")) === "approved", 8000);
+  await sleep(1000);
+  ok("Sn5 两个快照时点之间没有可达的改动路径，所以结果一致：这一版被正常清掉",
+     (await taVal("tvr-1")) === "", JSON.stringify(await taVal("tvr-1")));
+  edgeHold = false; heldEdge = []; edgeScript = [];
 
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");

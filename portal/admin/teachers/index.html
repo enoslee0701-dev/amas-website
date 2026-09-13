@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>教师验证审核 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140045">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140051">
 <style>
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .tab{min-height:44px;padding:0 15px;border:1px solid var(--line);border-radius:99px;background:#fff;
@@ -37,11 +37,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609140045"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609140045"></script>
-<script src="../../../assets/js/portal/api.js?v=202609140045"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609140045"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609140045"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609140051"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609140051"></script>
+<script src="../../../assets/js/portal/api.js?v=202609140051"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609140051"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609140051"></script>
 <script>
 /* 管理端教师验证审核台。
 
@@ -150,6 +150,14 @@
   };
   const putHimBack = (k) => {
     if (!k) return;
+    /* 捕获之后还要 await 列表读取 —— **那段时间他完全可以走开**（去导航、去别处）。
+       上一版这里是无条件 focus 的：他走到「跳到主要内容」，数据一回来就被拽回
+       列表里的筛选按钮（本轮实测 Ns5）。
+       所以放回去之前再看一眼：只有焦点**本来就是被这次重绘打掉的**
+       （落在 <body>，或落在已经脱离文档的旧节点上）才放回去；
+       他此刻正站在某个活着的控件上，就一个字都别动。 */
+    const now = document.activeElement;
+    if (now && now !== document.body && now.isConnected) return;
     let el = null;
     if (k.kind === "filter") el = main.querySelector('[data-f="' + CSS.escape(k.f) + '"]');
     else {
