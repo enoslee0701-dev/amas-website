@@ -138,7 +138,7 @@ window.supabase = {
           return reply({ data:{ currentLevel:"aal1", nextLevel:"aal1" }, error:null }); } }
       },
       from: function(){ var q={ select:function(){return q;}, eq:function(){return q;},
-        order:function(){return q;}, limit:function(){return q;}, maybeSingle:function(){return q;},
+        order:function(){return q;}, range:function(){return q;}, limit:function(){return q;}, maybeSingle:function(){return q;},
         then:function(r){ return Promise.resolve({ data:[], error:null, status:200 }).then(r); } }; return q; },
       rpc: function(name){
         var r = (S().rpc && S().rpc[name]) || { data:{ ok:true, flow_id:"flow-fixture-1" }, error:null };

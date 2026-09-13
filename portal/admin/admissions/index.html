@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>招生审核 | AMAS 管理后台</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130718">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130735">
 <style>
 .qtable{width:100%;border-collapse:collapse;font-size:13px}
 .qtable th,.qtable td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:top}
@@ -34,12 +34,12 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130718"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130718"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130718"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130718"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130718"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609130718"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130735"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130735"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130735"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130735"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130735"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609130735"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -62,6 +62,12 @@
   /* G1 指派：候选人、读取是否不明、以及我自己是谁（用于「指派给我」这一档筛选）。
      终态一律不可改指派 —— 与 0027 的 assign_application_reviewer 同一口径。 */
   let reviewers = [], reviewersUnknown = false, reviewersUndated = 0, myUid = null, myUidUnknown = false;
+  /* 队列原来是一次性 limit:300，而所有筛选都在这 300 份之上做 ——
+     申请一过 300，更早的根本没进浏览器，页面却从没说过这是个上限：
+     筛「待审核」会说「没有符合条件的申请」，搜姓名搜不到，「全部时间」其实是「最新 300 份」。
+     改成一页页取：取满就说「可能还有更早的没读到」并给一条真出路。 */
+  const PAGE = 300;
+  let pagesLoaded = 0, maybeMore = false, moreErr = null;
   const TERMINAL = ["accepted", "rejected", "withdrawn"];
 
   main.innerHTML = `
@@ -166,13 +172,39 @@
 
   async function load(){
     UI.loading("#list", 4);
+    rows = []; pagesLoaded = 0; maybeMore = false; moreErr = null;
+    await loadPage();
+  }
+
+  async function loadPage(){
+    const from = pagesLoaded * PAGE;
     const { data, error } = await Api.select("applications", {
       columns: "id,applicant_id,pathway,status,form_data,locked_fields,submitted_at,decided_at,updated_at,applicant_visible_message,assigned_reviewer",
-      order: { column: "submitted_at", asc: false }, limit: 300,
+      order: { column: "submitted_at", asc: false }, range: { from, to: from + PAGE - 1 },
     });
-    if (error) return UI.error("#list", { message: error.message, onRetry: load });
-    rows = data || [];
+    if (error || !Array.isArray(data)) {
+      const msg = (error && error.message) || "这一次没能读到申请列表。";
+      if (!pagesLoaded) return UI.error("#list", { message: msg, onRetry: load });
+      /* 后续页失败：已经读到的那些照常显示，但要说清楚更早的这一页没取到 ——
+         不能让它看起来像「已经到底了」。 */
+      moreErr = msg; renderList(); return;
+    }
+    /* 边取边有人提交时，偏移分页可能把同一行取两次。按 id 去重。 */
+    const seen = new Set(rows.map(r => r.id));
+    for (const r of data) if (!seen.has(r.id)) { rows.push(r); seen.add(r.id); }
+    pagesLoaded += 1;
+    maybeMore = data.length >= PAGE;      // 取满了就可能还有更早的
+    moreErr = null;
     renderList();
+  }
+
+  function bindMore(){
+    const b = document.getElementById("btnMore");
+    if (!b) return;
+    b.addEventListener("click", async () => {
+      b.disabled = true; b.textContent = "读取中…";
+      await loadPage();
+    });
   }
 
   /* 提交时间是这一列里唯一能定位到时间轴上的东西，但有两种行放不上去：
@@ -215,6 +247,20 @@
       return true;
     });
 
+    /* 只读到一部分就说只读到一部分。到底了才说到底了。 */
+    const truncNote = maybeMore
+      ? `<div class="msg warn show" style="margin-bottom:10px">目前只读到最新的 <b>${rows.length}</b> 份，` +
+        `<b>可能还有更早的没读到</b>。下面的筛选与搜索都只在这些里面找。` +
+        `<div style="margin-top:8px"><button class="btn ghost" type="button" id="btnMore" ` +
+        `style="width:auto;padding:0 18px">载入更早的 ${PAGE} 份</button></div></div>`
+      : (pagesLoaded > 1
+          ? `<div class="msg info show" style="margin-bottom:10px">已经是全部：共读到 <b>${rows.length}</b> 份。</div>`
+          : "");
+    const moreErrNote = moreErr
+      ? `<div class="msg err show" style="margin-bottom:10px">更早的那一页没能读到（${UI.esc(moreErr)}）。` +
+        `上面这些是已经读到的，<b>不代表全部</b>。</div>`
+      : "";
+
     const offNote =
       (unplaceable
         ? `<div class="msg info show" style="margin-bottom:10px">另有 <b>${unplaceable}</b> 份` +
@@ -228,10 +274,14 @@
         : "");
 
     if (!list.length) {
-      return UI.render("#list", offNote + UI.box("🔎", "没有符合条件的申请", "调整筛选条件后再试。"));
+      UI.render("#list", truncNote + moreErrNote + offNote + UI.box("🔎",
+        maybeMore ? "在已读到的 " + rows.length + " 份里没有符合条件的申请" : "没有符合条件的申请",
+        maybeMore ? "可能还有更早的没读到 —— 先载入更早的，或缩小筛选范围再看。" : "调整筛选条件后再试。"));
+      bindMore();
+      return;
     }
 
-    document.getElementById("list").innerHTML = offNote + `<div class="qwrap"><table class="qtable">
+    document.getElementById("list").innerHTML = truncNote + moreErrNote + offNote + `<div class="qwrap"><table class="qtable">
       <thead><tr><th>申请人</th><th>项目 / 路径</th><th>状态</th><th>审核人</th><th>提交时间</th><th></th></tr></thead>
       <tbody>${list.map(r => {
         const d = r.form_data || {};
@@ -253,6 +303,7 @@
         </tr>`;
       }).join("")}</tbody></table></div>`;
 
+    bindMore();
     document.querySelectorAll("[data-open]").forEach(b =>
       b.addEventListener("click", () => openDetail(b.dataset.open)));
   }

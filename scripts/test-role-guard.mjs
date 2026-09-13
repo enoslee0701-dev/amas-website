@@ -166,7 +166,7 @@ window.supabase = {
           session: { access_token: "stub", user: { id: "u-1" } } }, error: null }); }
       },
       from: function(){ var q = { select:function(){return q;}, eq:function(){return q;},
-        in:function(){return q;}, order:function(){return q;}, limit:function(){return q;},
+        in:function(){return q;}, order:function(){return q;}, range:function(){return q;}, limit:function(){return q;},
         maybeSingle:function(){return q;},
         then:function(r){ return Promise.resolve({ data: [], error: null }).then(r); } }; return q; },
       rpc: function(name, args){

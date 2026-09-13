@@ -100,7 +100,7 @@ window.supabase = {
     var fail = function(name){ return (S().failRpc || []).indexOf(name) > -1; };
     function table(name){
       var q = { select:function(){return q;}, eq:function(){return q;}, in:function(){return q;},
-        order:function(){return q;}, limit:function(){return q;}, maybeSingle:function(){return q;},
+        order:function(){return q;}, range:function(){return q;}, limit:function(){return q;}, maybeSingle:function(){return q;},
         then:function(res, rej){
           var t = (S().tables && S().tables[name]) || { data: [], error: null };
           return Promise.resolve({ data:t.data, error:t.error||null, status:t.error?500:200 }).then(res, rej);

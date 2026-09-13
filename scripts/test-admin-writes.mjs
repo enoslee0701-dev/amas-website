@@ -130,7 +130,7 @@ window.supabase = {
     var reply = function(v){ return Promise.resolve(v); };
     function table(name){
       var q = { select:function(){return q;}, eq:function(){return q;}, in:function(){return q;},
-        order:function(){return q;}, limit:function(){return q;}, maybeSingle:function(){return q;},
+        order:function(){return q;}, range:function(){return q;}, limit:function(){return q;}, maybeSingle:function(){return q;},
         then:function(res, rej){
           var t = (S().tables && S().tables[name]) || { data: [], error: null };
           return Promise.resolve({ data:t.data, error:t.error||null, status:t.error?500:200 }).then(res, rej);
@@ -893,6 +893,75 @@ try {
 
   console.log("  NOT_RUN  0027 的 assign_application_reviewer 与 Edge 的 op=assign 分支：");
   console.log("           本轮没有 apply、没有 deploy、没有对任何真实数据库执行 —— 上面验的全是客户端行为。");
+
+  // ════════ Pg 队列取数触到上限时，不能把「只读到这些」说成「就这些」════════
+  console.log("\n=== M 截断不能冒充全部 ===");
+  /* 队列是 limit: 300 的一次性取数，之后所有筛选都在这 300 份之上做。
+     申请总数一过 300，更早的那些根本没进浏览器 —— 而页面从头到尾没说过这是个上限。
+     筛「待审核」说「没有符合条件的申请」、搜姓名搜不到、「全部时间」其实是「最新 300 份」。
+     这是同一条纪律的又一个形态，而且是在做录取/拒绝决定的台子上。 */
+  const manyApps = (n, offset) => Array.from({ length: n }, (_, i) => Object.assign({}, APP, {
+    id: "app-bulk-" + (offset + i),
+    submitted_at: new Date(Date.now() - (offset + i) * 3600e3).toISOString(),
+    form_data: { name_zh: "申请人" + (offset + i), name_en: "X", church_name: "教会", programs: ["bth"] },
+  }));
+
+  // M1/M2/M3：正好取满一页
+  await open("portal/admin/admissions/", { tables: Object.assign({}, TABLES, {
+    applications: { data: manyApps(300, 0) } }) }, 3200);
+  const m1 = await listVis();
+  ok("Pg1 份数触到上限时明说可能还有更早的没读到",
+     /还有更早|没有全部读到|只读到/.test(m1 || ""), (m1 || "").slice(0, 220));
+  ok("Pg3 给得出一个能用的「载入更早的」入口",
+     (await cdp.ev(`(()=>{const b=document.getElementById("btnMore");
+       return !!b && !b.disabled;})()`)) === true);
+
+  await cdp.ev(`(()=>{const s=document.getElementById("fSt"); s.value="withdrawn";
+    s.dispatchEvent(new Event("change",{bubbles:true})); return true;})()`);
+  await sleep(400);
+  const m2 = await listVis();
+  /* 要的不是「不许出现这几个字」，而是**那句断言必须带上限定**：
+     「在已读到的 N 份里没有…」可以，光秃秃的「没有符合条件的申请 / 调整筛选条件后再试」不行。 */
+  ok("Pg2 截断时的空态必须带上「在已读到的 N 份里」这个限定",
+     /在已读到的 \d+ 份里没有符合条件的申请/.test(m2 || ""), (m2 || "").slice(0, 220));
+  ok("Pg2b 并且不再出现那句无限定的旧文案",
+     !/没有符合条件的申请 调整筛选条件后再试/.test(m2 || ""), (m2 || "").slice(0, 220));
+  ok("Pg2c 同时给出出路（先载入更早的，或缩小筛选）",
+     /先载入更早的/.test(m2 || ""), (m2 || "").slice(0, 220));
+
+  // M4：点「载入更早的」，更早的那些要真进来，且不重复
+  await open("portal/admin/admissions/", { tables: Object.assign({}, TABLES, {
+    applications: { data: manyApps(300, 0) } }) }, 3200);
+  await cdp.ev(`(()=>{window.__page2 = true; return true;})()`);
+  /* 第二页换一批 id：stub 不认 range，所以用切换 fixture 的办法模拟「更早的一页」。 */
+  await cdp.ev(`(()=>{const s=window.__SCEN; s.tables.applications.data =
+    ${JSON.stringify(JSON.stringify(0))} ? s.tables.applications.data : s.tables.applications.data; return true;})()`);
+  await cdp.ev(`(()=>{
+    const older = [];
+    for (let i = 300; i < 340; i++) older.push(Object.assign({}, window.__SCEN.tables.applications.data[0], {
+      id: "app-bulk-" + i, form_data: { name_zh: "申请人" + i, name_en: "X", church_name: "教会", programs: ["bth"] } }));
+    window.__SCEN.tables.applications.data = older; return older.length;})()`);
+  await cdp.ev(`(()=>{const b=document.getElementById("btnMore"); if(b) b.click(); return !!b;})()`);
+  await sleep(1400);
+  const m4 = await cdp.ev(`(()=>{const t=document.querySelectorAll("#list tbody tr");
+    const ids = Array.from(document.querySelectorAll("[data-open]")).map(b=>b.dataset.open);
+    return { rows: t.length, uniq: new Set(ids).size, has0: ids.includes("app-bulk-0"),
+             has320: ids.includes("app-bulk-320") };})()`);
+  ok("Pg4 更早的那一批确实进来了，原来的也还在", !!m4 && m4.has0 === true && m4.has320 === true, JSON.stringify(m4));
+  ok("Pg4b 没有重复行", !!m4 && m4.rows === m4.uniq, JSON.stringify(m4));
+
+  const m5 = await listVis();
+  ok("Pg5 一页没取满就说已经是全部，并收起载入入口",
+     /已经是全部|已全部读到/.test(m5 || "") &&
+     (await cdp.ev(`!document.getElementById("btnMore")`)) === true, (m5 || "").slice(0, 220));
+
+  // M6 对照：没到上限时一句截断提示都不该有
+  await open("portal/admin/admissions/", { tables: Object.assign({}, TABLES, {
+    applications: { data: manyApps(5, 0) } }) }, 3000);
+  const m6 = await listVis();
+  ok("Pg6 对照：总数没到上限时不出现任何截断提示",
+     !/还有更早|已读到|已经是全部/.test(m6 || "") &&
+     (await cdp.ev(`!document.getElementById("btnMore")`)) === true, (m6 || "").slice(0, 220));
 
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");

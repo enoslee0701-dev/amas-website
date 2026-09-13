@@ -139,7 +139,7 @@ window.supabase = {
           return q;
         },
         in:function(){ return q; },
-        match:function(){ return q; }, order:function(){ return q; }, limit:function(){ return q; },
+        match:function(){ return q; }, order:function(){ return q; }, range:function(){ return q; }, limit:function(){ return q; },
         maybeSingle:function(){ return q; }, single:function(){ return q; },
         insert:function(){ mode = "insert"; bump("insert:" + name); return q; },
         update:function(){ mode = "update"; bump("update:" + name); return q; },

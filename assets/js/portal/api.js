@@ -61,6 +61,9 @@
     if (build?.in) for (const [k, v] of Object.entries(build.in)) q = q.in(k, v);
     if (build?.order) q = q.order(build.order.column, { ascending: !!build.order.asc, nullsFirst: false });
     if (build?.limit) q = q.limit(build.limit);
+    /* 分页：range 与 limit 不要同时给。招生队列用 range 一页页取，
+       好让「只读到这些」变成可以补齐的事实，而不是一句无声的截断。 */
+    if (build?.range) q = q.range(build.range.from, build.range.to);
     if (build?.single) q = q.maybeSingle();
     const { data, error, status } = await q;
     return { data, error: normalize(error, status) };

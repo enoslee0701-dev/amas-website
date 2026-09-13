@@ -121,6 +121,7 @@ window.supabase = {
         eq: function(){ return q; },
         in: function(){ return q; },
         order: function(){ return q; },
+        range: function(){ return q; },
         limit: function(){ return q; },
         maybeSingle: function(){ return q; },
         then: function(res, rej){

@@ -209,7 +209,7 @@ window.supabase = {
         }
       },
       from: function(){ var q={ select:function(){return q;}, eq:function(){return q;},
-        order:function(){return q;}, limit:function(){return q;}, maybeSingle:function(){return q;},
+        order:function(){return q;}, range:function(){return q;}, limit:function(){return q;}, maybeSingle:function(){return q;},
         then:function(r){ return Promise.resolve({data:[],error:null}).then(r); } }; return q; },
       rpc: function(name){
         if (name === "my_roles") return reply({ data:(S().roles||["teacher"]).map(function(r){return {role:r};}), error:null });
