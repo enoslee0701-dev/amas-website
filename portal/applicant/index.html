@@ -6,15 +6,15 @@
 <meta name="robots" content="noindex">
 <title>申请者中心 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609131333">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609131351">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609131333"></script>
-<script src="../../assets/js/portal/auth.js?v=202609131333"></script>
-<script src="../../assets/js/portal/api.js?v=202609131333"></script>
-<script src="../../assets/js/portal/ui.js?v=202609131333"></script>
-<script src="../../assets/js/portal/shell.js?v=202609131333"></script>
+<script src="../../assets/js/supabase-config.js?v=202609131351"></script>
+<script src="../../assets/js/portal/auth.js?v=202609131351"></script>
+<script src="../../assets/js/portal/api.js?v=202609131351"></script>
+<script src="../../assets/js/portal/ui.js?v=202609131351"></script>
+<script src="../../assets/js/portal/shell.js?v=202609131351"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell;
@@ -46,13 +46,13 @@
   /* 待补充项数：读不到 ≠ 没有。原来只解构 data，读失败时 rq 是 null，
      pending 就成了 0，那条「有 N 项资料需要补充」的横幅**直接消失** ——
      申请人看到「需补充资料」的状态，却看不到任何待办，会以为已经补完了。 */
-  let pending = 0, pendingUnknown = false;
+  let pending = 0, reqTotal = 0, pendingUnknown = false;
   if (app && app.status === "needs_information") {
     const { data: rq, error: rqErr } = await Api.select("application_requirements", {
       columns: "id,resolved", eq: { application_id: app.id },
     });
     if (rqErr || !Array.isArray(rq)) pendingUnknown = true;
-    else pending = rq.filter(r => !r.resolved).length;
+    else { reqTotal = rq.length; pending = rq.filter(r => !r.resolved).length; }
   }
 
   const name = profile && profile.display_name ? profile.display_name : "";
@@ -73,6 +73,33 @@
     ? `<div class="msg info show" style="margin-top:10px"><b>招生同工留言：</b>${UI.esc(app.applicant_visible_message)}</div>`
     : "";
 
+  /* 「需补充资料」底下其实有三种**不同**的下一步，此前都压成同一句
+     「有资料需要你补充后重新提交」加一个「立即补充」：
+
+       · 还有没标完的       —— 去补（原有说法不动）；
+       · 条目全部标完了     —— 就差**重新提交**这一下。服务端正是按 unresolved = 0
+         放行的（0008_applications.sql:241-246），他要是不知道还差这一步，
+         就会守着一个「需补充资料」的状态一直等教务，而教务那边什么也不会来；
+       · 教务只写了留言、没列条目 —— review_application 的 p_requirements 是可选的
+         （0008 那一段 `if p_action = 'needs_information' and p_requirements is not null`），
+         所以这种情况是真会出现的。那就没有「都已完成」这回事，只能按留言补。
+
+     这里不新增任何业务规则，只是把服务端已有的那条规则如实说给他听。 */
+  let nextNote = "", actionLabel = s ? s.a : "";
+  if (app && app.status === "needs_information") {
+    const info = (t) => `<div class="msg info show" style="margin-top:10px">${t}</div>`;
+    if (pendingUnknown) {
+      nextNote = info("没能确认还有多少项资料需要补充（这一次没读到）。请打开申请页查看。");
+    } else if (pending) {
+      nextNote = info(`有 <b>${pending}</b> 项资料需要补充。`);
+    } else if (reqTotal) {
+      nextNote = info("需要补充的资料<b>都已标记为完成</b> —— 回到申请页重新提交。");
+      actionLabel = "去重新提交";
+    } else {
+      nextNote = info("教务这次<b>没有列出</b>具体的补充条目，请按上面的留言补充后重新提交。");
+    }
+  }
+
   main.innerHTML =
     "<h1>欢迎" + (name ? "，" + UI.esc(name) : "") + "</h1>" +
     '<p class="lead">这里可以提交并跟进你的入学申请。正式学员身份将在教务建档后开通。</p>' +
@@ -88,11 +115,9 @@
                  而不是让整行凭空消失。 */
               : (code ? `<div class="who" style="margin-top:4px">申请项目：<b>${UI.esc(code)}</b></div>` : "")}
             ${notice}
-            ${pendingUnknown
-              ? `<div class="msg info show" style="margin-top:10px">没能确认还有多少项资料需要补充（这一次没读到）。请打开申请页查看。</div>`
-              : (pending ? `<div class="msg info show" style="margin-top:10px">有 <b>${pending}</b> 项资料需要补充。</div>` : "")}
+            ${nextNote}
           </div>
-          <a class="btn" style="width:auto;padding:0 22px;margin:0" href="application/">${s.a}</a>
+          <a class="btn" style="width:auto;padding:0 22px;margin:0" href="application/">${UI.esc(actionLabel)}</a>
         </div>
       </div>` : `
       <div class="card" style="margin-bottom:16px">

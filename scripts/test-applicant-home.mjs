@@ -190,6 +190,50 @@ try {
      /没能确认|无法确认/.test(t5), t5.slice(0, 240));
   ok("P1b 也不谎称一个具体数字", !/有\s*0\s*项/.test(t5), t5.slice(0, 240));
 
+  // ════════ R 补完之后的下一步（needs_information 的三种不同处境）════════
+  console.log("\n=== R 补完之后，首页说的下一步对不对 ===");
+  /* 服务端 0008_applications.sql:241-246 说得很死：needs_information 重新提交时，
+     只要还有 resolved = false 的条目就回 requirements_pending，全部完成才放行。
+     而 review_application 的 p_requirements 是**可选**的（0008 那一段 `if … is not null`）——
+     教务完全可以只写一句留言、不列任何条目。
+     所以「需补充资料」底下其实有三种不同的下一步，首页此前都压成同一句
+     「有资料需要你补充后重新提交」+ 一个「立即补充」按钮：
+       还有没标完的  → 去补（已有）
+       全部标完了    → 就差**重新提交**这一下（缺）
+       教务没列条目  → 按留言补（缺，不能谎称「都已完成」） */
+  const btnText = async () => cdp.ev(`(()=>{const a=document.querySelector("#main a.btn");
+    return a ? (a.textContent||"").trim() : null;})()`);
+
+  await open({ tables: Object.assign({}, CAT, { application_requirements: {
+      data:[{ id:"r1", resolved:true }, { id:"r2", resolved:true }] } }),
+    rpc: { my_application: { data:[ appOf("needs_information", { applicant_visible_message: MSG }) ] } } });
+  const r1 = await vis();
+  ok("R0 前提：状态确实是需补充资料", /需补充资料/.test(r1), r1.slice(0, 120));
+  /* 判据不能用「重新提交」四个字 —— 状态描述里本来就有「…后重新提交。」，
+     那一句在**没补完**的时候也在，用它做判据等于白给一个绿。 */
+  ok("R1 条目全部标记完成时，首页说得出「都已标记为完成」",
+     /都已标记为完成/.test(r1), r1.slice(0, 300));
+  ok("R1b 并且不再同时说「还有几项要补」", !/有\s*\d+\s*项资料需要补充/.test(r1), r1.slice(0, 300));
+  ok("R2 入口按钮不再写「立即补充」（已经没有要补的了）",
+     (await btnText()) !== "立即补充", JSON.stringify(await btnText()));
+
+  await open({ tables: Object.assign({}, CAT, { application_requirements: { data:[] } }),
+    rpc: { my_application: { data:[ appOf("needs_information", { applicant_visible_message: MSG }) ] } } });
+  const r3 = await vis();
+  ok("R3 教务没有列具体条目时，不谎称「都已完成」",
+     !/都已标记|都已完成|全部标记完成/.test(r3), r3.slice(0, 300));
+  ok("R4 而是说清楚没有具体条目、按留言补充",
+     /没有列出|未列出|没有具体条目/.test(r3), r3.slice(0, 300));
+
+  // 对照：还有没标完的时候，原来的说法和入口一个字都不变
+  await open({ tables: Object.assign({}, CAT, { application_requirements: {
+      data:[{ id:"r1", resolved:false }, { id:"r2", resolved:true }] } }),
+    rpc: { my_application: { data:[ appOf("needs_information", { applicant_visible_message: MSG }) ] } } });
+  const r5 = await vis();
+  ok("R5 对照：还有 1 项没标完时，仍然是「有 1 项资料需要补充」",
+     /有\s*1\s*项/.test(r5), r5.slice(0, 300));
+  ok("R6 对照：这时候按钮仍然是「立即补充」", (await btnText()) === "立即补充", JSON.stringify(await btnText()));
+
   // ════════ S 状态卡与下一步（回归）════════
   console.log("\n=== S 状态卡与下一步 ===");
   await open({ tables: CAT, rpc: { my_application: { data: [] } } });
