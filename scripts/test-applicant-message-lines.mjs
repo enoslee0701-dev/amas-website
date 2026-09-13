@@ -261,131 +261,178 @@ try {
        JSON.stringify(n && { shown: n.shown, visible: n.visible }));
   };
 
-  console.log("\n=== Ms 同一段分项补件说明，在申请人侧四个节点上读不读得清 ===");
-  await open("/portal/applicant/application/");
-  const a1 = await nodeOf(".msg.info", "招生同工留言");
-  ok("Ms0 前提：申请页显示了这段留言", !!a1, JSON.stringify(a1 && a1.shown));
-  okNode("Ms1 申请页：三项分行看得见（不是挤成一行）", a1);
-  ok("Ms2 申请页：内容与教务写的一字不差", !!a1 && a1.text.indexOf(MSG) > -1,
-     JSON.stringify(a1 && a1.text));
-  ok("Ms3 申请页：没有产生任何写入", (await wrote()) === 0);
+  if (RUN("Ms")) {
+    console.log("\n=== Ms 同一段分项补件说明，在申请人侧四个节点上读不读得清 ===");
+    await open("/portal/applicant/application/");
+    const a1 = await nodeOf(".msg.info", "招生同工留言");
+    ok("Ms0 前提：申请页显示了这段留言", !!a1, JSON.stringify(a1 && a1.shown));
+    okNode("Ms1 申请页：三项分行看得见（不是挤成一行）", a1);
+    ok("Ms2 申请页：内容与教务写的一字不差", !!a1 && a1.text.indexOf(MSG) > -1,
+       JSON.stringify(a1 && a1.text));
+    ok("Ms3 申请页：没有产生任何写入", (await wrote()) === 0);
 
-  await open("/portal/applicant/");
-  const h1 = await nodeOf(".msg.info", "招生同工留言");
-  ok("Ms4 前提：首页也显示了同一段", !!h1, JSON.stringify(h1 && h1.shown));
-  okNode("Ms5 首页：三项分行看得见", h1);
+    await open("/portal/applicant/");
+    const h1 = await nodeOf(".msg.info", "招生同工留言");
+    ok("Ms4 前提：首页也显示了同一段", !!h1, JSON.stringify(h1 && h1.shown));
+    okNode("Ms5 首页：三项分行看得见", h1);
 
-  await open("/portal/applicant/history/");
-  const s1 = await nodeOf(".said", "请补以下三项");
-  ok("Ms6 前提：历史页卡片里也有这一段", !!s1, JSON.stringify(s1 && s1.shown));
-  okNode("Ms7 历史页卡片：三项分行看得见", s1);
-  /* 时间线要先展开（键盘按下「查看状态变化」）。 */
-  const btn = await cdp.ev(`(()=>{const b=[...document.querySelectorAll("[data-tl]")][0];
-    if(!b) return false; b.focus(); return true;})()`);
-  if (btn) {
-    await cdp.send("Input.dispatchKeyEvent", { type:"rawKeyDown", key:"Enter", code:"Enter",
-      windowsVirtualKeyCode:13, nativeVirtualKeyCode:13 });
-    await cdp.send("Input.dispatchKeyEvent", { type:"char", text:"\r", key:"Enter", code:"Enter" });
-    await cdp.send("Input.dispatchKeyEvent", { type:"keyUp", key:"Enter", code:"Enter",
-      windowsVirtualKeyCode:13, nativeVirtualKeyCode:13 });
-    await sleep(1200);
-  }
-  const t1 = await nodeOf(".tl-row em", "请补以下三项");
-  ok("Ms8 前提：时间线展开后也有这一段", !!t1, JSON.stringify(t1 && t1.shown));
-  okNode("Ms9 历史页时间线：三项分行看得见", t1);
-  /* 说清楚范围：历史页那条是**另一份已结束的申请**（app-old），
-     与当前这份（app-1）不是同一申请；这里比的是**同一段文本**在四处的呈现是否一致。
-     比的也是**全文**，不再只挑第一/第三项。 */
-  ok("Ms10 四处呈现的是**同一段全文**（历史页那条属另一份申请，只比文本）",
-     !!a1 && !!h1 && !!s1 && !!t1 &&
-     [a1, h1, s1, t1].every(n => n.text.indexOf(MSG) > -1), "");
-  /* 导航会把页内的 __q/__rpc 清零，所以这一条只能说**历史页这一程**没有写入，
-     不能说「全程」。申请页那一程由 Ms3 单独断言。 */
-  ok("Ms11 历史页这一程没有提交或审核写入", (await wrote()) === 0);
-
-  // ════════ Rf 收到分项补件 → 找到字段 → 存草稿 → **真刷新**后继续 ════════
-  console.log("\n=== Rf 补件→改字段→存草稿→刷新后继续 ===");
-  /* 前面几环此前已绿，不在这里重跑：
-       字段定位与「去修改」焦点落位 —— 第七十七包 K5c / F7；
-       自动保存与串行化 —— applicant-writes 287；
-       离开时的暂存/恢复 —— Ex / Rl 两组。
-     这一段只补**真刷新**这一环：服务端草稿回来之后他接着改的那一版还在不在。 */
-  const KEY = { Tab:{code:"Tab",key:"Tab",vk:9}, Enter:{code:"Enter",key:"Enter",vk:13},
-                End:{code:"End",key:"End",vk:35} };
-  const press = async (k) => {
-    const m = KEY[k];
-    await cdp.send("Input.dispatchKeyEvent", { type:"rawKeyDown",
-      windowsVirtualKeyCode:m.vk, nativeVirtualKeyCode:m.vk, code:m.code, key:m.key });
-    if (k === "Enter") await cdp.send("Input.dispatchKeyEvent", { type:"char", text:"\r", key:m.key, code:m.code });
-    await cdp.send("Input.dispatchKeyEvent", { type:"keyUp",
-      windowsVirtualKeyCode:m.vk, nativeVirtualKeyCode:m.vk, code:m.code, key:m.key });
-    await sleep(90);
-  };
-  const typeText = async (t) => {
-    for (const ch of String(t)) {
-      const vk = ch.toUpperCase().charCodeAt(0);
-      await cdp.send("Input.dispatchKeyEvent", { type:"keyDown", key:ch, windowsVirtualKeyCode:vk, nativeVirtualKeyCode:vk });
-      await cdp.send("Input.dispatchKeyEvent", { type:"char", text:ch, key:ch });
-      await cdp.send("Input.dispatchKeyEvent", { type:"keyUp", key:ch, windowsVirtualKeyCode:vk, nativeVirtualKeyCode:vk });
-      await sleep(16);
+    await open("/portal/applicant/history/");
+    const s1 = await nodeOf(".said", "请补以下三项");
+    ok("Ms6 前提：历史页卡片里也有这一段", !!s1, JSON.stringify(s1 && s1.shown));
+    okNode("Ms7 历史页卡片：三项分行看得见", s1);
+    /* 时间线要先展开（键盘按下「查看状态变化」）。 */
+    const btn = await cdp.ev(`(()=>{const b=[...document.querySelectorAll("[data-tl]")][0];
+      if(!b) return false; b.focus(); return true;})()`);
+    if (btn) {
+      await cdp.send("Input.dispatchKeyEvent", { type:"rawKeyDown", key:"Enter", code:"Enter",
+        windowsVirtualKeyCode:13, nativeVirtualKeyCode:13 });
+      await cdp.send("Input.dispatchKeyEvent", { type:"char", text:"\r", key:"Enter", code:"Enter" });
+      await cdp.send("Input.dispatchKeyEvent", { type:"keyUp", key:"Enter", code:"Enter",
+        windowsVirtualKeyCode:13, nativeVirtualKeyCode:13 });
+      await sleep(1200);
     }
-    await sleep(120);
-  };
-  const until = async (fn, ms) => { const t0 = Date.now();
-    while (Date.now() - t0 < (ms || 9000)) { try { if (await fn()) return true; } catch(e){} await sleep(120); } return false; };
-  /* 表单字段的 id 是 fd-<name>（focusFormField 用的就是它），不是 name 属性。 */
-  const phone = async () => cdp.ev(`(()=>{const e=document.getElementById("fd-phone"); return e?e.value:null;})()`);
+    const t1 = await nodeOf(".tl-row em", "请补以下三项");
+    ok("Ms8 前提：时间线展开后也有这一段", !!t1, JSON.stringify(t1 && t1.shown));
+    okNode("Ms9 历史页时间线：三项分行看得见", t1);
+    /* 说清楚范围：历史页那条是**另一份已结束的申请**（app-old），
+       与当前这份（app-1）不是同一申请；这里比的是**同一段文本**在四处的呈现是否一致。
+       比的也是**全文**，不再只挑第一/第三项。 */
+    ok("Ms10 四处呈现的是**同一段全文**（历史页那条属另一份申请，只比文本）",
+       !!a1 && !!h1 && !!s1 && !!t1 &&
+       [a1, h1, s1, t1].every(n => n.text.indexOf(MSG) > -1), "");
+    /* 导航会把页内的 __q/__rpc 清零，所以这一条只能说**历史页这一程**没有写入，
+       不能说「全程」。申请页那一程由 Ms3 单独断言。 */
+    ok("Ms11 历史页这一程没有提交或审核写入", (await wrote()) === 0);
 
-  /* 这一份处于 needs_information，补件条目指向 phone（不在锁定表里）。 */
-  scen.tables.application_requirements = { data:[{ id:"rq-1", label:"补填联系电话",
-    detail:"教务需要能联系到你", field:"phone", resolved:false, created_at:"2026-09-02T00:00:00Z" }] };
-  scen.rpc.my_application.data[0].locked_fields = ["name_zh"];
-  scen.rpc.my_application.data[0].form_data = { name_zh:"申请人甲", programs:["bth"], phone:"" };
-  await cdp.ev(`(()=>{ try{ localStorage.removeItem("__draft"); }catch(e){} return true; })()`).catch(() => {});
-  await open("/portal/applicant/application/");
-  ok("Rf0 前提：补件条目在，并给得出「去修改」（字段未锁）",
-     (await cdp.ev(`(()=>{const b=document.querySelector('[data-gofield="phone"]');
-       return !!b && /去修改/.test(b.textContent||"");})()`)) === true);
-  const hit = await (async () => { for (let i = 1; i <= 40; i++) { await press("Tab");
-    const on = await cdp.ev(`(()=>{const a=document.activeElement;
-      return !!(a && a.dataset && a.dataset.gofield === "phone");})()`); if (on) return true; } return false; })();
-  ok("Rf1 前提：键盘走得到「去修改」", hit === true);
-  await press("Enter"); await sleep(600);
-  ok("Rf2 前提：焦点落在那个字段上（此前 K5c/F7 已绿，这里只作前提）",
-     (await cdp.ev(`(()=>{const a=document.activeElement; return a ? a.id : "";})()`)) === "fd-phone",
-     JSON.stringify(await cdp.ev(`(()=>{const a=document.activeElement; return a?{id:a.id,tag:a.tagName}:null;})()`)));
-  await press("End");
-  await typeText("0123456789");
-  ok("Rf3 草稿真的存下去了（服务端收到的那一版带着新号码）",
-     await until(async () => cdp.ev(`(()=>{ try { const d=JSON.parse(localStorage.getItem("__draft")||"null");
-       return !!(d && d.form_data && d.form_data.phone === "0123456789"); } catch(e){ return false; } })()`), 12000),
-     JSON.stringify(await cdp.ev(`(()=>localStorage.getItem("__draft"))()`)));
-  /* 刷新**之前**先把这一程的账算清：这时 __rpc 还没被导航清零。 */
-  ok("Rf3b 刷新**之前**这一程也没有提交 / 标记补件（此时计数尚未被导航清零）",
-     (await cdp.ev(`(()=>((window.__rpc||[]).filter(r=>/^(submit_|resolve_|review_)/.test(r.name)).length))()`)) === 0,
-     JSON.stringify(await cdp.ev(`(()=>((window.__rpc||[]).map(r=>r.name)))()`)));
-  /* 排除另一个来源：页内暂存（sessionStorage）也能把值放回输入框。
-     先把它清掉，这样 Rf4 读回来的那一版只可能来自**服务端草稿**（本夹具里即共享状态）。 */
-  await cdp.ev(`(()=>{ try{ sessionStorage.clear(); }catch(e){} return true; })()`);
-  ok("Rf3c 前提：页内暂存已清空（排除它作为刷新后取值的来源）",
-     (await cdp.ev(`(()=>{ try{ return sessionStorage.length; }catch(e){ return -1; } })()`)) === 0);
-  /* **真刷新**：重新载入这一页，看他接着改的那一版还在不在。 */
-  await cdp.send("Page.navigate", { url: `${BASE}/portal/applicant/application/` });
-  await sleep(3000);
-  ok("Rf4 刷新之后那一版还在（服务端草稿读回来了）", (await phone()) === "0123456789",
-     JSON.stringify(await phone()));
-  ok("Rf5 补件条目仍然列着、仍是未完成（没有被谁悄悄标成已补）",
-     (await cdp.ev(`(()=>{const m=document.getElementById("main");
-       return /未完成 1 项/.test((m&&m.textContent)||"");})()`)) === true,
-     JSON.stringify(await cdp.ev(`(()=>{const m=document.getElementById("main");
-       return ((m&&m.textContent)||"").slice(0,80);})()`)));
-  ok("Rf6 刷新**之后**这一程同样没有提交 / 标记补件（与 Rf3b 合起来才覆盖前后两程）",
-     (await cdp.ev(`(()=>((window.__rpc||[]).filter(r=>/^(submit_|resolve_|review_)/.test(r.name)).length))()`)) === 0,
-     JSON.stringify(await cdp.ev(`(()=>((window.__rpc||[]).map(r=>r.name)))()`)));
+    // ════════ Rf 收到分项补件 → 找到字段 → 存草稿 → **真刷新**后继续 ════════
+  }
+  if (RUN("Rf")) {
+    console.log("\n=== Rf 补件→改字段→存草稿→刷新后继续 ===");
+    /* 前面几环此前已绿，不在这里重跑：
+         字段定位与「去修改」焦点落位 —— 第七十七包 K5c / F7；
+         自动保存与串行化 —— applicant-writes 287；
+         离开时的暂存/恢复 —— Ex / Rl 两组。
+       这一段只补**真刷新**这一环：服务端草稿回来之后他接着改的那一版还在不在。 */
+    const KEY = { Tab:{code:"Tab",key:"Tab",vk:9}, Enter:{code:"Enter",key:"Enter",vk:13},
+                  End:{code:"End",key:"End",vk:35} };
+    const press = async (k) => {
+      const m = KEY[k];
+      await cdp.send("Input.dispatchKeyEvent", { type:"rawKeyDown",
+        windowsVirtualKeyCode:m.vk, nativeVirtualKeyCode:m.vk, code:m.code, key:m.key });
+      if (k === "Enter") await cdp.send("Input.dispatchKeyEvent", { type:"char", text:"\r", key:m.key, code:m.code });
+      await cdp.send("Input.dispatchKeyEvent", { type:"keyUp",
+        windowsVirtualKeyCode:m.vk, nativeVirtualKeyCode:m.vk, code:m.code, key:m.key });
+      await sleep(90);
+    };
+    const typeText = async (t) => {
+      for (const ch of String(t)) {
+        const vk = ch.toUpperCase().charCodeAt(0);
+        await cdp.send("Input.dispatchKeyEvent", { type:"keyDown", key:ch, windowsVirtualKeyCode:vk, nativeVirtualKeyCode:vk });
+        await cdp.send("Input.dispatchKeyEvent", { type:"char", text:ch, key:ch });
+        await cdp.send("Input.dispatchKeyEvent", { type:"keyUp", key:ch, windowsVirtualKeyCode:vk, nativeVirtualKeyCode:vk });
+        await sleep(16);
+      }
+      await sleep(120);
+    };
+    const until = async (fn, ms) => { const t0 = Date.now();
+      while (Date.now() - t0 < (ms || 9000)) { try { if (await fn()) return true; } catch(e){} await sleep(120); } return false; };
+    /* 表单字段的 id 是 fd-<name>（focusFormField 用的就是它），不是 name 属性。 */
+    const phone = async () => cdp.ev(`(()=>{const e=document.getElementById("fd-phone"); return e?e.value:null;})()`);
 
-  console.log("\n=== G 外发 ===");
-  ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
-  ok("G2 全程没有页面异常", pageErrors.length === 0, JSON.stringify(pageErrors.slice(0, 2)));
+    /* 这一份处于 needs_information，补件条目指向 phone（不在锁定表里）。 */
+    scen.tables.application_requirements = { data:[{ id:"rq-1", label:"补填联系电话",
+      detail:"教务需要能联系到你", field:"phone", resolved:false, created_at:"2026-09-02T00:00:00Z" }] };
+    scen.rpc.my_application.data[0].locked_fields = ["name_zh"];
+    scen.rpc.my_application.data[0].form_data = { name_zh:"申请人甲", programs:["bth"], phone:"" };
+    await cdp.ev(`(()=>{ try{ localStorage.removeItem("__draft"); }catch(e){} return true; })()`).catch(() => {});
+    await open("/portal/applicant/application/");
+    ok("Rf0 前提：补件条目在，并给得出「去修改」（字段未锁）",
+       (await cdp.ev(`(()=>{const b=document.querySelector('[data-gofield="phone"]');
+         return !!b && /去修改/.test(b.textContent||"");})()`)) === true);
+    const hit = await (async () => { for (let i = 1; i <= 40; i++) { await press("Tab");
+      const on = await cdp.ev(`(()=>{const a=document.activeElement;
+        return !!(a && a.dataset && a.dataset.gofield === "phone");})()`); if (on) return true; } return false; })();
+    ok("Rf1 前提：键盘走得到「去修改」", hit === true);
+    await press("Enter"); await sleep(600);
+    ok("Rf2 前提：焦点落在那个字段上（此前 K5c/F7 已绿，这里只作前提）",
+       (await cdp.ev(`(()=>{const a=document.activeElement; return a ? a.id : "";})()`)) === "fd-phone",
+       JSON.stringify(await cdp.ev(`(()=>{const a=document.activeElement; return a?{id:a.id,tag:a.tagName}:null;})()`)));
+    await press("End");
+    await typeText("0123456789");
+    ok("Rf3 草稿真的存下去了（服务端收到的那一版带着新号码）",
+       await until(async () => cdp.ev(`(()=>{ try { const d=JSON.parse(localStorage.getItem("__draft")||"null");
+         return !!(d && d.form_data && d.form_data.phone === "0123456789"); } catch(e){ return false; } })()`), 12000),
+       JSON.stringify(await cdp.ev(`(()=>localStorage.getItem("__draft"))()`)));
+    /* 刷新**之前**先把这一程的账算清：这时 __rpc 还没被导航清零。 */
+    ok("Rf3b 刷新**之前**这一程也没有提交 / 标记补件（此时计数尚未被导航清零）",
+       (await cdp.ev(`(()=>((window.__rpc||[]).filter(r=>/^(submit_|resolve_|review_)/.test(r.name)).length))()`)) === 0,
+       JSON.stringify(await cdp.ev(`(()=>((window.__rpc||[]).map(r=>r.name)))()`)));
+    /* 页内暂存（sessionStorage）也能把值放回输入框，所以先清掉它 ——
+       但**清掉不等于排除**：pagehide / beforeunload 仍可能在离开时再写一次。
+       所以这里只说「已清空」这个事实，**不**下「只可能来自服务端草稿」这种绝对结论。 */
+    await cdp.ev(`(()=>{ try{ sessionStorage.clear(); }catch(e){} return true; })()`);
+    ok("Rf3c 前提：刷新前页内暂存已清空（**不等于**已排除 pagehide/beforeunload 再写回）",
+       (await cdp.ev(`(()=>{ try{ return sessionStorage.length; }catch(e){ return -1; } })()`)) === 0);
+    /* **真刷新**：重新载入这一页，看他接着改的那一版还在不在。 */
+    await cdp.send("Page.navigate", { url: `${BASE}/portal/applicant/application/` });
+    await sleep(3000);
+    ok("Rf4 刷新之后那一版还在（服务端草稿读回来了）", (await phone()) === "0123456789",
+       JSON.stringify(await phone()));
+    ok("Rf5 补件条目仍然列着、仍是未完成（没有被谁悄悄标成已补）",
+       (await cdp.ev(`(()=>{const m=document.getElementById("main");
+         return /未完成 1 项/.test((m&&m.textContent)||"");})()`)) === true,
+       JSON.stringify(await cdp.ev(`(()=>{const m=document.getElementById("main");
+         return ((m&&m.textContent)||"").slice(0,80);})()`)));
+    ok("Rf6 刷新**之后**这一程同样没有提交 / 标记补件（与 Rf3b 合起来才覆盖前后两程）",
+       (await cdp.ev(`(()=>((window.__rpc||[]).filter(r=>/^(submit_|resolve_|review_)/.test(r.name)).length))()`)) === 0,
+       JSON.stringify(await cdp.ev(`(()=>((window.__rpc||[]).map(r=>r.name)))()`)));
+  }
+  if (RUN("At")) {
+    console.log("\n=== At 补件区的附件说明：该出现时出现，不该出现时不出现 ===");
+    /* 门户全站没有任何文件输入口。补件里若有要交材料的，他会找不到地方传。
+       这里只验：说明**只在需补充资料时**出现，内容里不编造渠道、不加上传口、
+       不自动勾完成；普通草稿**不**出现。 */
+    scen.tables.application_requirements = { data:[{ id:"rq-1", label:"受洗证明扫描件",
+      detail:"请提供清晰扫描件", field:null, resolved:false, created_at:"2026-09-02T00:00:00Z" }] };
+    scen.rpc.my_application.data[0].status = "needs_information";
+    await cdp.ev(`(()=>{ try{ localStorage.removeItem("__draft"); }catch(e){} return true; })()`).catch(() => {});
+    await open("/portal/applicant/application/");
+    const noteTxt = await cdp.ev(`(()=>{const m=document.getElementById("main");
+      return ((m&&m.textContent)||"").replace(/\s+/g," ");})()`);
+    ok("At0 需补充资料时，说明出现了：门户不支持上传附件、按招生同工给的方式提交",
+       /门户目前不支持上传附件/.test(noteTxt) && /按招生同工告诉你的方式提交/.test(noteTxt),
+       JSON.stringify(noteTxt.slice(0, 160)));
+    ok("At1 **没有**编造任何渠道（没有 mailto:、没有新链接、没有电话号码）",
+       (await cdp.ev(`(()=>{const m=document.getElementById("main");
+         const as=[...m.querySelectorAll("a")].map(a=>a.getAttribute("href")||"");
+         return { mail: as.some(h=>/^mailto:/.test(h)),
+                  outer: as.some(h=>/^https?:/.test(h)),
+                  phone: /\d{7,}/.test((m.textContent||"")) };})()`)).mail === false,
+       JSON.stringify(await cdp.ev(`(()=>{const m=document.getElementById("main");
+         return [...m.querySelectorAll("a")].map(a=>a.getAttribute("href")||"");})()`)));
+    ok("At2 **没有**新增任何上传口（全页没有 file 输入）",
+       (await cdp.ev(`(()=>document.querySelectorAll('input[type=file]').length)()`)) === 0);
+    ok("At3 **没有**替他把条目勾成已完成（仍是未完成 1 项、勾选框未选中）",
+       /未完成 1 项/.test(noteTxt) &&
+       (await cdp.ev(`(()=>{const c=document.querySelector('[data-req]'); return c?!!c.checked:null;})()`)) === false,
+       JSON.stringify(noteTxt.slice(0, 80)));
+    ok("At4 也没有声称「已另寄 / 已提交」这类没发生过的事",
+       !/已另寄|已提交材料|已收到你的材料/.test(noteTxt), JSON.stringify(noteTxt.slice(0, 120)));
+    /* 反例：普通草稿不该被误导成必须线下交件。 */
+    scen.rpc.my_application.data[0].status = "draft";
+    await open("/portal/applicant/application/");
+    const draftTxt = await cdp.ev(`(()=>{const m=document.getElementById("main");
+      return ((m&&m.textContent)||"").replace(/\s+/g," ");})()`);
+    ok("At5 反例：普通草稿状态下**不**出现这句说明",
+       !/门户目前不支持上传附件/.test(draftTxt), JSON.stringify(draftTxt.slice(0, 120)));
+    ok("At6 这一段只是看，没有产生任何写入", (await wrote()) === 0);
+  }
+
+  if (RUN("G")) {
+    console.log("\n=== G 外发 ===");
+    ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
+    ok("G2 全程没有页面异常", pageErrors.length === 0, JSON.stringify(pageErrors.slice(0, 2)));
+  }
   cdp.ws.close();
 } finally {
   chrome.kill(); server.close();

@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140441">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140453">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609140441"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609140441"></script>
-<script src="../../../assets/js/portal/api.js?v=202609140441"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609140441"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609140441"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609140441"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609140453"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609140453"></script>
+<script src="../../../assets/js/portal/api.js?v=202609140453"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609140453"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609140453"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609140453"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -596,8 +596,18 @@
         ${requirementFieldLine(r)}
       </li>`).join("");
     const pending = reqs.filter(r => !r.resolved).length;
+    /* 门户现在**不支持上传附件**（全站没有任何文件输入口）。补件里若有要交材料的，
+       他在这一页会找不到地方传，容易以为自己漏了什么。这里如实说一句。
+       只说「门户不支持、按招生同工给的方式交」—— **不编造**邮箱或链接、
+       **不**声称已另寄、**不**替他判断哪些条目一定是文件、**不**加上传按钮。
+       只在「需补充资料」这个状态下出现：普通草稿不该被误导成必须线下交件。 */
+    const attachNote = app.status === "needs_information"
+      ? `<div class="msg info show" style="margin-top:10px"><b>需要交材料的条目：</b>
+门户目前不支持上传附件，请按招生同工告诉你的方式提交；不确定的话，直接问招生同工。</div>`
+      : "";
     return `<div class="card" style="margin-bottom:18px;border-left:4px solid var(--gold)">
       <h2 style="font-size:16px">需要补充的资料（未完成 ${pending} 项）</h2>
+      ${attachNote}
       <p class="sub">${EDITABLE.includes(app.status)
         ? "补充完成后勾选，全部完成才能重新提交。"
         : "以下是这次申请的补件记录，申请已提交，现在是<b>只读</b>的，不能修改。"}</p>
