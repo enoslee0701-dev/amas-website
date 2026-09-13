@@ -23,14 +23,18 @@
 > 它还只白名单了 `PGHOST` 却不传 `-h`，而 `PGHOSTADDR` 会盖过 `PGHOST`、`PGSERVICE` 能把目标指到任何地方；
 > 清理失败也照样打印「已删除」。这些现在都改掉了，并且有离线反例盯着（见 §4）。
 
-现在只有两种模式，**都不碰任何既有 cluster，而且没有 fallback**：
+**目前只实现了一种模式**，它不碰任何既有 cluster，而且没有 fallback：
 
-| 模式 | 条件 | 它创建什么 |
-|---|---|---|
-| `cluster` | `initdb` + `pg_ctl` + `psql` 都在 | 用 `initdb` 在**自己的临时目录**里建一个 cluster，只监听自己的 unix socket（`listen_addresses=''`，不开 TCP）。角色、库、数据全在这个一次性 cluster 里，删目录即全清 |
-| `container` | Docker 守护进程在，且**本机已有** postgres 镜像（只 `docker image inspect`，**绝不 pull**） | 一个全新容器 |
+| 模式 | 状态 | 条件 | 它创建什么 |
+|---|---|---|---|
+| `cluster` | **已实现** | `initdb` + `pg_ctl` + `psql` 都在 | 用 `initdb` 在**自己的临时目录**里建一个 cluster，只监听自己的 unix socket（`listen_addresses=''`，不开 TCP）。角色、库、数据全在这个一次性 cluster 里，删目录即全清 |
+| `container` | **未实现** | —— | —— |
 
-两样都没有 → **阻塞退出（NOT_RUN），不会退回去用现成的 cluster。**
+`container` 那一支**执行部分没有写**。所以 `plan()` 一律把它判为不支持
+（`containerSupported: false`），就算本机 Docker 守护进程在、镜像也在，也照样阻塞 ——
+不给人误以为有这条路可走。
+
+条件不满足 → **阻塞退出（NOT_RUN），不会退回去用现成的 cluster。**
 
 ```bash
 node scripts/verify-g1/run.mjs --plan    # 只打印它打算怎么做，不执行任何东西
@@ -40,7 +44,17 @@ node scripts/verify-g1/run.mjs           # 真跑
 连接目标是写死的：显式 `-h <自己的 socket 目录>`，并且把 libpq 会读的**全部**覆盖来源
 （`PGHOSTADDR`、`PGSERVICE`、`PGSERVICEFILE`、`PGPASSFILE`、`PGOPTIONS` …）从子进程环境里删掉。
 
-清理只报实际结果：停不掉或删不掉就**如实失败并说清楚残留在哪**，退出码 3，绝不假报已删除。
+收尾的规矩只有一条：**没有确认它停了，就绝不删这个目录。**
+
+- 不看「我以为我启没启起来」那个标志 —— 启动命令返回非零**不等于**进程没起来
+  （`-w` 等待超时就是这样），那时候去删数据目录，删的是一个**活着的 postmaster**；
+- 收尾一律去问 `pg_ctl status`（0=在跑 / 3=没在跑 / 4=目录不存在 / 其余=**不明**）；
+- 在跑 → 先停，**停完再确认一次**；
+- 停不掉、或状态不明 → **一次 `rm` 都不调**，保留目录，退出码 3，并给出准确路径与手动清理命令；
+- 确认停了才删，删完**还要复查**目录是不是真的没了 —— `rm` 返回成功也不算数。
+
+这套编排的副作用全部从 `io` 注入，被 `scripts/test-verify-g1-guards.mjs` 用**假适配器**打过
+（断言的是「实际调了哪几步、有没有调 `rm`、顺序对不对」，不是返回文案）。
 
 流程：自建 cluster → `prelude.sql`（补三个角色、`auth` schema、`auth.users`、读会话设置的
 `auth.uid()`）→ 按序装 27 个迁移 → `checks.sql`。
@@ -85,10 +99,22 @@ deno test --allow-net --allow-env scripts/verify-g1/edge-gate.test.ts
 - `Q1c/Q1d`：自建 cluster 时连接 host 就是它自己的 socket 目录，且不开 TCP；
 - `R1/R2/R3`：`PGHOSTADDR`、`PGSERVICE`、`PGSERVICEFILE`、`PGPASSWORD`、`PGOPTIONS` … 一律删掉，
   而无关的 `PATH`/`HOME` 照常保留（不是把环境清空了事）；
-- `S1/S1b/S1c/S2`：清理没成功时判失败、**不说「已删除」**、并点名残留路径；`S3` 是对照。
+- `S1/S1b/S1c/S2`：清理没成功时判失败、**不说「已删除」**、并点名残留路径；`S3` 是对照；
+- `T1`–`T9`（**用假适配器打真实编排**）：停不掉时**一次 `rm` 都不调**；进程活着时先停再确认再删
+  （断言调用顺序 `status,stop,status,rm,exists`）；状态不明不删；`stop` 说成功但状态仍是 running 也不删；
+  `rm` 说成功但复查发现目录还在仍判失败；数据目录压根没建起来时不去停、直接删。
 
-把旧 `run.sh` 的语义逐条移植回来跑同一套：**19 条里 15 条转红**，其中 `P2` 返回
-`existing-cluster`、`S1` 返回 `{"ok":true,"message":"== 已删除 …"}` —— 正是被退回的那两条。
+把旧 `run.sh` 的语义逐条移植回来跑同一套：19 条里 15 条转红，其中 `P2` 返回
+`existing-cluster`、`S1` 返回 `{"ok":true,"message":"== 已删除 …"}`。
+
+再把 `40b60a3` 的 `finally` 块语义原样搬回来跑扩充后的同一套：**39 条里 14 条转红**，其中
+
+```
+FAIL T1 停不掉时绝不删目录  ← rm,exists
+FAIL T3 状态不明时不删      ← rm,exists
+```
+
+—— postmaster 还活着、停不掉，旧代码直奔 `rm`。那正是这一轮被退回的那条。
 
 ## 五、还需要真实环境才能验的（不在这里）
 

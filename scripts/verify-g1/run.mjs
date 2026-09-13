@@ -70,24 +70,70 @@ export function plan(probe) {
       creates: ["临时 cluster 目录 " + path.join(dir, "pgdata"), "socket 目录 " + path.join(dir, "sock")],
     };
   }
-  if (probe.dockerDaemon && probe.localImage) {
-    return {
-      ...base, mode: "container", blocked: false,
-      image: probe.localImage,
-      containerName: "amas-g1-verify-" + Date.now(),
-      connect: { host: "127.0.0.1", port: probe.containerPort || 5433, db: "amas_g1", user: "postgres" },
-      creates: ["容器 amas-g1-verify-*（来自本机已有镜像 " + probe.localImage + "，不 pull）"],
-    };
-  }
+  /* 容器模式**没有实现**。之前 plan 会为它返回 blocked:false，等于声称「两种都能真跑」——
+     那是假话。在写完执行部分之前，它一律算不支持，不给任何人误以为有这条路。 */
   return {
-    ...base, mode: null, blocked: true,
+    ...base, mode: null, blocked: true, containerSupported: false,
     reason: [
       "没有 initdb / pg_ctl / psql（无法自建临时 cluster）",
-      probe.dockerDaemon ? "Docker 守护进程在，但本机没有可用的 postgres 镜像（不允许 pull）"
-                         : "Docker 守护进程没起（不允许启动它，也不允许 pull 镜像）",
+      "容器模式**尚未实现**" +
+        (probe.dockerDaemon
+          ? (probe.localImage ? "（本机有镜像 " + probe.localImage + " 也一样：执行部分没写）"
+                              : "（而且本机没有可用镜像，且不允许 pull）")
+          : "（而且 Docker 守护进程没起，不允许启动它，也不允许 pull 镜像）"),
       "**不会**退回去用现成的 cluster —— 那会往用户的 cluster 里留下角色等 cluster 级改动。",
     ],
   };
+}
+
+/** pg_ctl status 的退出码：0=在跑，3=没在跑，4=目录不存在/不是数据目录。
+    其余一律算「不明」—— 不明就不许删。 */
+export function statusFromExit(codeOrNull) {
+  if (codeOrNull === 0) return "running";
+  if (codeOrNull === 3) return "stopped";
+  if (codeOrNull === 4) return "no-datadir";
+  return "unknown";
+}
+
+/** 收尾的**实际编排**。所有副作用都从 io 注入，好用假适配器打。
+    规矩只有一条：**没有确认它停了，就绝不删这个目录。**
+      · 不看「我以为我启没启起来」那个标志 —— 启动命令失败但进程已经活着是常事；
+      · 停不掉、或状态不明 —— 保留目录，如实失败，把路径说出来；
+      · 确认 stopped / no-datadir 之后才删，删完还要再确认真的没了。 */
+export function teardown(ctx, io) {
+  const steps = [];
+  const dataDir = ctx.dataDir, tmpDir = ctx.tmpDir;
+
+  let st = statusFromExit(io.pgCtlStatus(dataDir));
+  steps.push("status:" + st);
+
+  if (st === "running") {
+    const stopped = io.pgCtlStop(dataDir);
+    steps.push("stop:" + (stopped ? "ok" : "fail"));
+    st = statusFromExit(io.pgCtlStatus(dataDir));      // 停完必须**再确认一次**
+    steps.push("status:" + st);
+  }
+
+  if (st !== "stopped" && st !== "no-datadir") {
+    return {
+      ok: false, steps, removed: false, kept: tmpDir,
+      message: "没能确认数据库已经停下来（当前状态：" + st + "）。" +
+        "**没有删除任何东西** —— 目录保留在：" + tmpDir +
+        "\n确认它停了之后再手动清理：pg_ctl -D " + dataDir + " -m immediate stop && rm -rf " + tmpDir,
+    };
+  }
+
+  const rmOk = io.rmDir(tmpDir);
+  steps.push("rm:" + (rmOk ? "ok" : "fail"));
+  const still = io.exists(tmpDir);
+  steps.push("exists:" + still);
+  if (!rmOk || still) {
+    return {
+      ok: false, steps, removed: false, kept: tmpDir,
+      message: "数据库已停下，但目录没能删掉，**仍然存在**：" + tmpDir + "\n请手动 rm -rf 它。",
+    };
+  }
+  return { ok: true, steps, removed: true, kept: null, message: "已清理：" + tmpDir };
 }
 
 /** 清理只报实际结果。停不掉/删不掉就如实失败并说清楚残留在哪。 */
@@ -164,12 +210,13 @@ const psql = (args) => run("psql", ["-h", p.connect.host, "-p", String(p.connect
   "-U", p.connect.user, "-v", "ON_ERROR_STOP=1", ...args]);
 
 fs.mkdirSync(p.sockDir, { recursive: true });
-let started = false, failed = false;
+let failed = false;
 try {
   if (!run("initdb", ["-D", p.dataDir, "-U", p.connect.user, "--auth=trust", "-E", "UTF8"])) throw new Error("initdb");
+  /* 启动命令返回非零**不等于**进程没起来（超时、-w 等待失败都会这样）。
+     所以这里不记任何「我以为启没启起来」的标志 —— 收尾一律去问 pg_ctl status。 */
   if (!run("pg_ctl", ["-D", p.dataDir, "-o",
       `-k ${p.sockDir} -p ${p.connect.port} -c listen_addresses=''`, "-w", "start"])) throw new Error("pg_ctl start");
-  started = true;
   if (!psql(["-d", "postgres", "-c", `create database ${p.connect.db}`])) throw new Error("createdb");
   if (!psql(["-d", p.connect.db, "-f", path.join(ROOT, "scripts/verify-g1/prelude.sql")])) throw new Error("prelude");
   for (const f of fs.readdirSync(path.join(ROOT, "supabase/migrations")).filter(x => x.endsWith(".sql")).sort()) {
@@ -182,13 +229,21 @@ try {
   failed = true;
   console.error("中断于：" + (e && e.message));
 } finally {
-  let stopped = true;
-  if (started) stopped = run("pg_ctl", ["-D", p.dataDir, "-m", "immediate", "-w", "stop"]);
-  let removed = true;
-  try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (e) { removed = false; }
-  if (fs.existsSync(tmpDir)) removed = false;
-  const rep = cleanupReport({ stopped, dataDirRemoved: removed, dataDir: tmpDir });
+  /* 真实适配器：status 用退出码、stop 与 rm 报成败、exists 复查。
+     编排逻辑本身在 teardown 里，被 test-verify-g1-guards 用假适配器打过。 */
+  const io = {
+    pgCtlStatus: (dir) => {
+      if (!fs.existsSync(dir)) return 4;
+      const r = spawnSync("pg_ctl", ["-D", dir, "status"], { encoding: "utf8", env: ENV });
+      return typeof r.status === "number" ? r.status : null;   // 起不来 → null → 不明
+    },
+    pgCtlStop: (dir) => run("pg_ctl", ["-D", dir, "-m", "immediate", "-w", "stop"]),
+    rmDir: (dir) => { try { fs.rmSync(dir, { recursive: true, force: true }); return true; } catch (e) { return false; } },
+    exists: (dir) => fs.existsSync(dir),
+  };
+  const rep = teardown({ dataDir: p.dataDir, tmpDir }, io);
   console[rep.ok ? "log" : "error"](rep.message);
+  console.error("  收尾步骤：" + rep.steps.join(" → "));
   if (!rep.ok) process.exit(3);
 }
 process.exit(failed ? 1 : 0);
