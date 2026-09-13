@@ -1285,6 +1285,73 @@ try {
   ok("Rq5 对应字段仍然锁着时，明说现在改不了、该找谁",
      /锁定|改不了/.test(rq5 || "") && /招生|教务|联系/.test(rq5 || ""), (rq5 || "").slice(0, 240));
 
+  // ════════ Rs 只读状态与非输入框字段（返修 5d02dbe）════════
+  console.log("\n=== Rs 只读页不该给「去修改」；非输入框字段要聚焦到真控件 ===");
+  /* 提交后真实锁定的就是这七个（0008_applications.sql:251），
+     needs_information 时 review_application 只把本次要求的那个 field 摘出去（0011:55-58）。
+     用真值，不用我自己编的空锁定表。 */
+  const LOCKED_AFTER_SUBMIT = ["name_zh","birth_ym","gender","nationality","conversion_date","baptism_date","programs"];
+  const unlockOne = (f) => LOCKED_AFTER_SUBMIT.filter(x => x !== f);
+  const reqRows2 = (rows) => ({ ...BASE_TABLES, application_requirements: { data: rows } });
+  const appWith = (status, locked) => ({ ...DRAFT, status, locked_fields: locked });
+  const REQ_BAPT = [{ id:"rb", label:"补受洗日期", detail:"", field:"baptism_date", resolved:false, created_at:"2026-09-10T00:00:00Z" }];
+  const REQ_EDU  = [{ id:"re", label:"补一段学历", detail:"", field:"education", resolved:true, created_at:"2026-09-10T00:00:00Z" }];
+
+  /* ① 只读状态（submitted / accepted）：补件历史要留着，但不能给「去修改」。
+     education 不在提交后的锁定表里 —— 上一版正是靠「字段没锁」就发了导航按钮，
+     一点就调 buildSteps()，而只读页根本没有 stepBar，当场 TypeError。 */
+  for (const st of ["submitted", "accepted"]) {
+    pageErrors = [];
+    await open({ tables: reqRows2(REQ_EDU),
+      rpc: { my_application: { data: [appWith(st, LOCKED_AFTER_SUBMIT)] } } });
+    const card = await cdp.ev(`(()=>{const c=document.querySelector(".rqlist");
+      const b = c && c.closest(".card"); return b ? (b.textContent||"").replace(/\\s+/g," ").trim() : null;})()`);
+    ok("Rs1-" + st + " 只读状态下补件历史仍然看得到", /补一段学历/.test(card || ""), (card || "").slice(0, 160));
+    ok("Rs2-" + st + " 但不给「去修改」入口",
+       (await cdp.ev(`!document.querySelector("[data-gofield]")`)) === true, String(card).slice(0, 120));
+    ok("Rs2b-" + st + " 并说明现在是只读的",
+       /只读|不可编辑|已锁定|不能修改/.test(card || ""), (card || "").slice(0, 200));
+    /* 就算有人凭空塞一个进来，处理器也不能炸。 */
+    await cdp.ev(`(()=>{const c=document.querySelector(".rqlist");
+      if(!c) return false; const b=document.createElement("button");
+      b.setAttribute("data-gofield","education"); b.textContent="X"; c.appendChild(b); b.click(); return true;})()`);
+    await sleep(400);
+    ok("Rs3-" + st + " 凭空塞一个 data-gofield 进来点它，也不抛异常",
+       !pageErrors.some(e => /TypeError/.test(e)), JSON.stringify(pageErrors.slice(0, 2)));
+  }
+
+  /* ② needs_information：真实解锁的那一个可以跳；仍锁的照旧说锁定。 */
+  await open({ tables: reqRows2(REQ_BAPT),
+    rpc: { my_application: { data: [appWith("needs_information", unlockOne("baptism_date"))] } } });
+  ok("Rs4 真实解锁的字段给得出「去修改」",
+     (await cdp.ev(`!!document.querySelector('[data-gofield="baptism_date"]')`)) === true);
+  await cdp.ev(`(()=>{const b=document.querySelector('[data-gofield="baptism_date"]'); if(b) b.click(); return !!b;})()`);
+  await sleep(500);
+  ok("Rs4b 跳过去之后那个输入框可编辑且被聚焦",
+     (await cdp.ev(`(()=>{const el=document.getElementById("fd-baptism_date");
+       return !!el && !el.disabled && document.activeElement === el;})()`)) === true);
+
+  await open({ tables: reqRows2([{ ...REQ_BAPT[0], field:"name_zh" }]),
+    rpc: { my_application: { data: [appWith("needs_information", unlockOne("baptism_date"))] } } });
+  ok("Rs5 仍在真实锁定表里的字段，照旧说锁定、不给跳转",
+     (await cdp.ev(`!document.querySelector("[data-gofield]")`)) === true);
+
+  /* ③ 非输入框的字段：rows / checkboxes / pathway 都没有 fd-<name>，
+     承诺了聚焦就得聚焦到**实际可编辑的控件**上。 */
+  for (const [f, label] of [["education", "学历"], ["languages", "使用语言"]]) {
+    await open({ tables: reqRows2([{ id:"rx", label:"补" + label, detail:"", field:f, resolved:false, created_at:"2026-09-10T00:00:00Z" }]),
+      rpc: { my_application: { data: [appWith("needs_information", unlockOne("baptism_date"))] } } });
+    ok("Rs6-" + f + " 给得出「去修改」", (await cdp.ev(`!!document.querySelector('[data-gofield="${f}"]')`)) === true);
+    await cdp.ev(`(()=>{const b=document.querySelector('[data-gofield="${f}"]'); if(b) b.click(); return !!b;})()`);
+    await sleep(500);
+    const got = await cdp.ev(`(()=>{const a=document.activeElement;
+      if(!a || a===document.body) return null;
+      const holder = a.closest && a.closest('[data-f="${f}"]');
+      return { tag:a.tagName, inHolder: !!holder, disabled: !!a.disabled };})()`);
+    ok("Rs6b-" + f + " 聚焦落在这一组真正能操作的控件上（没有 fd-" + f + " 这种输入框）",
+       !!got && got.inHolder === true && got.disabled === false, JSON.stringify(got));
+  }
+
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");

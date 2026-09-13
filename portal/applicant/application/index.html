@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131024">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131041">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609131024"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609131024"></script>
-<script src="../../../assets/js/portal/api.js?v=202609131024"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609131024"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609131024"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609131024"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609131041"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609131041"></script>
+<script src="../../../assets/js/portal/api.js?v=202609131041"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609131041"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609131041"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609131041"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -323,18 +323,47 @@
     if (editable) { buildSteps(); bindEditor(); }
     document.getElementById("btnReqReload")?.addEventListener("click", () => location.reload());
     /* 「去修改」：跳到那一步并把光标放进那个字段 —— 这是**有意**的导航，
-       表单本来就要重绘，和「打字时别重绘」是两回事。 */
-    document.querySelectorAll("[data-gofield]").forEach(b => b.addEventListener("click", () => {
+       表单本来就要重绘，和「打字时别重绘」是两回事。
+       用**委托**绑在 main 上，并且在处理器里再挡一道：不可编辑的状态下什么都不做。
+       只靠「不渲染按钮」不够 —— 那不是防御，只是没给入口。 */
+    main.addEventListener("click", (e) => {
+      const b = e.target && e.target.closest && e.target.closest("[data-gofield]");
+      if (!b) return;
+      if (!app || !EDITABLE.includes(app.status)) return;      // 只读状态：不导航
       const name = b.dataset.gofield;
       const i = stepOfField(name);
       if (i < 0) return;
+      if (!document.getElementById("stepBar")) return;         // 表单没渲染出来就别动
       step = i;
       buildSteps();
-      const el = document.getElementById("fd-" + name);
-      if (el) { el.focus(); el.scrollIntoView({ block: "center" }); }
-    }));
+      focusFormField(name);
+    });
     document.getElementById("btnWithdraw")?.addEventListener("click", withdraw);
     loadTimeline();
+  }
+
+  /* pathway / rows / checkboxes 都不是 fd-<name> 那种输入框：
+       __pathway / checkboxes → <div class="cbs" data-f="…"> 里的一组 radio/checkbox
+       rows                   → <div class="rowsets" data-f="…"> 里的一排 [data-row] 输入
+     承诺了「跳过去并聚焦」，就得聚焦到**这一组里真正能操作的那个控件**上，
+     而不是去找一个根本不存在的 fd-education。 */
+  function focusFormField(name){
+    const n = name === "pathway" ? "__pathway" : name;
+    const direct = document.getElementById("fd-" + n);
+    if (direct && !direct.disabled) {
+      direct.focus(); direct.scrollIntoView({ block: "center" }); return true;
+    }
+    const holder = document.querySelector('[data-f="' + n.replace(/"/g, '\\"') + '"]');
+    if (holder) {
+      const ctl = holder.querySelector(
+        "input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])");
+      if (ctl) { ctl.focus(); ctl.scrollIntoView({ block: "center" }); return true; }
+    }
+    /* rows 一行都没有时，能操作的只有「+ 添加一行」。 */
+    const add = document.querySelector('[data-addrow="' + n.replace(/"/g, '\\"') + '"]');
+    if (add && !add.disabled) { add.focus(); add.scrollIntoView({ block: "center" }); return true; }
+    if (holder) holder.scrollIntoView({ block: "center" });
+    return false;
   }
 
   /* 写成函数声明而不是 const：render() 的调用点在这些定义之前，
@@ -348,6 +377,16 @@
     if (!r.field) return "";                       // 纯文字说明，不硬造一个字段出来
     const i = stepOfField(r.field);
     const lab = fieldLabel(r.field === "pathway" ? "__pathway" : r.field);
+    /* 只读状态（已提交／终态）下这张表单根本没渲染出来 —— 连 stepBar 都不存在。
+       上一版只看「这个字段锁没锁」就发导航按钮，而 education 这类字段本来就不在
+       提交后的锁定表里（0008:251），于是只读页上照样出现「去修改」，
+       一点就调 buildSteps() 给不存在的 stepBar 设 innerHTML，当场 TypeError。
+       能不能导航，取决于**这份申请现在能不能编辑**，不是单看某个字段。 */
+    if (!EDITABLE.includes(app.status)) {
+      const where = (i >= 0 && lab) ? `对应字段：<b>${UI.esc(lab)}</b>（第 ${i + 1} 步）` :
+        `对应字段：<b>${UI.esc(r.field)}</b>`;
+      return `<div class="who" style="margin-top:4px">${where} —— 申请已提交，现在是<b>只读</b>的，不能修改。</div>`;
+    }
     if (i < 0 || !lab) {
       /* 表单版本漂移：这一版里没有这个字段名。照实说，不乱指一个。 */
       return `<div class="who" style="margin-top:4px">对应字段：<b>${UI.esc(r.field)}</b>` +
@@ -375,7 +414,9 @@
     const pending = reqs.filter(r => !r.resolved).length;
     return `<div class="card" style="margin-bottom:18px;border-left:4px solid var(--gold)">
       <h2 style="font-size:16px">需要补充的资料（未完成 ${pending} 项）</h2>
-      <p class="sub">补充完成后勾选，全部完成才能重新提交。</p>
+      <p class="sub">${EDITABLE.includes(app.status)
+        ? "补充完成后勾选，全部完成才能重新提交。"
+        : "以下是这次申请的补件记录，申请已提交，现在是<b>只读</b>的，不能修改。"}</p>
       <ul class="rqlist">${items}</ul>
     </div>`;
   }
@@ -531,6 +572,7 @@
     const missByStep = {};
     for (const m of missingRequired()) missByStep[m.step] = (missByStep[m.step] || 0) + 1;
     const bar = document.getElementById("stepBar");
+    if (!bar) return;                 // 只读页没有步骤条 —— 别对 null 设 innerHTML
     bar.innerHTML = F.STEPS.map((s, i) =>
       `<button type="button" role="tab" data-step="${i}" class="${i === step ? "on" : ""}" aria-selected="${i === step}">${
         UI.esc(s.title)}<span class="who" data-missbadge="${i}" style="margin-left:5px"></span></button>`).join("");
