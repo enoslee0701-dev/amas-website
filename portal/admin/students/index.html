@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>学籍管理 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140000">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140019">
 <style>
 .tabs{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap}
 .tabs button{min-height:40px;padding:0 16px;border:1.5px solid var(--line);border-radius:999px;background:#fff;
@@ -32,11 +32,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609140000"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609140000"></script>
-<script src="../../../assets/js/portal/api.js?v=202609140000"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609140000"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609140000"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609140019"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609140019"></script>
+<script src="../../../assets/js/portal/api.js?v=202609140019"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609140019"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609140019"></script>
 <script>
 /* PORTAL-2 学籍管理（教务侧）
    闭环：录取 → 记录总校审核确认 → 建档(pre_enrolled) → 正式注册(active)；学号可经专用通道更正。
@@ -73,7 +73,8 @@
 
   const panel = document.getElementById("panel");
   const errBox = document.getElementById("err");
-  const showErr = (m) => { errBox.textContent = m; errBox.classList.add("show"); };
+  const sayErr = (m) => { errBox.textContent = m; errBox.classList.add("show"); };
+  const showErr = sayErr;                       // 模块内其它地方仍按原名用
   const clearErr = () => errBox.classList.remove("show");
 
   main.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => {
@@ -263,6 +264,36 @@
   }
 
   // ---------- 服务端调用 ----------
+  /* **在途锁按「对象」记，不按「那一个对话框」记。**
+     上一包把互斥挂在 wrap 上 —— 他按 Esc 关掉、再打开**同一份申请**的框，
+     按钮是新的、当然是活的，于是同一份申请照样发出第二笔相反的结论
+     （本轮实测 Xl5：扣住 2 笔，都是 confirm_hq_approval）。
+     关掉对话框**不等于**取消已经发出去的请求 —— 这一点要对他说清楚。
+     锁在响应回来（成功或失败）时解开；换一个对象不受影响。 */
+  const busyTargets = new Set();
+  /* 解锁**不能只是 delete** —— 他面前那个**正开着**的框并不知道。
+     监督实测：旧那一笔放行、回执也被消费之后，重开的框仍然全禁、说明还停在
+     「还没有回结果」，他得再关一次、再开一次才能继续
+     （本轮修前 Xr8/Xr9/Xr12 成功路、Xr18/Xr19/Xr22 失败路）。
+     所以锁除了记「谁在途」，还要记「谁在等这把锁」，回结果时通知到人。 */
+  const lockWaiters = new Map();                       // 对象标识 → 正卡在它上面的框
+  function whenFreed(lock, fn){
+    let s = lockWaiters.get(lock);
+    if (!s) lockWaiters.set(lock, (s = new Set()));
+    s.add(fn);
+    return () => { const t = lockWaiters.get(lock);
+      if (!t) return; t.delete(fn); if (!t.size) lockWaiters.delete(lock); };
+  }
+  /** 这一笔回结果了：解锁，并把结果告诉还等着的那些框。ok=是否成功，why=服务端给的原因。 */
+  function freeLock(lock, ok, why){
+    if (!lock) return;
+    busyTargets.delete(lock);
+    const s = lockWaiters.get(lock);
+    if (!s) return;
+    lockWaiters.delete(lock);
+    [...s].forEach((fn) => { try { fn(ok, why); } catch (e) {} });
+  }
+
   /* 拿不到明确结论的三类 —— 它们共同的意思是「请求**可能已经生效**」：
        network       连响应都没拿到（请求是否送达未知）
        server_error  服务端回话了，但没给出结构化结论
@@ -274,8 +305,18 @@
   const UNKNOWN_TEXT = "没有拿到这次操作的结果，无法确认它是否已经生效。" +
     "在核实之前不要重复执行 —— 重复执行会写出第二条学籍记录。请刷新后核实当前状态。";
 
-  async function call(body, okMsg){
+  /** 这一位/这一份的上一次提交还没回来：不再发第二笔，并且当面说清楚。 */
+  const sayInFlight = (subject) => UI.toast(
+    "「" + subject + "」的上一次提交还没有回结果 —— 先等它回来。这一次没有发出。" +
+    "（刚才那一次并没有被取消。）", "err");
+
+  /* subject = 这一次是对**谁**做的。页面级横幅原来只有一句
+     「当前状态不允许该操作。」—— 列表里同时有好几名学生时，
+     他认不出说的是哪一行（本轮实测 As3）。对话框那几条不受影响：
+     它们的错误就显示在那个框里，框里本来就写着对象是谁。 */
+  async function call(body, okMsg, subject){
     clearErr();
+    const showErr = (m) => sayErr(subject ? subject + "：" + m : m);
     /* 原来这里是 `const { data, error } = await A.callFn(...)` —— 而 auth.js 的
        callFn 返回的是 `{ status, data }`，**根本没有 error 这个字段**。
        于是 `if (error)` 那一支永远不执行；接着只判 `data.ok === false`，
@@ -393,6 +434,14 @@
     if (!who || !who.identifiable) {
       return UI.toast("这一行既没读到姓名、也没有学号，认不出是对谁操作 —— 这一次不执行，请刷新后再试。", "err");
     }
+    /* 这一条不走 modal()，所以之前**一点互斥都没有**：确认框关掉之后焦点回到
+       行内那个按钮（ui.js:84），而按钮没有停用 —— 他原地再按一次就又发一笔。
+       服务端第二笔会按 activate_student 的契约回 {ok:false, error:'invalid_state'}
+       （s.status 已经是 active），于是屏幕上留下一条红色「当前状态不允许该操作。」，
+       而这次操作**其实成功了**（本轮实测 Av5/Av8：扣住 2 笔 activate_student/stu-1；
+       回执都回来之后那一行已是「在读」，横幅却说失败）。
+       所以按**这名学生**上锁；按钮不停用，以免焦点掉到 body —— 改成拦在这里并当面说明。 */
+    if (busyTargets.has(sid)) return sayInFlight(who.line);
     const ok = await UI.confirmDialog({
       title: "正式注册",
       text: "对象：" + who.line + "。确认把这名学生的学籍状态从「待正式注册」改为「在读」？" +
@@ -400,7 +449,11 @@
       confirmLabel: "确认注册",
     });
     if (!ok) return;
-    await call({ action: "activate_student", student_id: sid, message: "学籍已正式生效" }, "已完成正式注册");
+    if (busyTargets.has(sid)) return sayInFlight(who.line);
+    busyTargets.add(sid);
+    const res = await call({ action: "activate_student", student_id: sid, message: "学籍已正式生效" },
+                           "已完成正式注册", who.line);
+    freeLock(sid, !!res, res ? "" : (errBox.textContent || "").trim());
   }
 
   // ---------- 4. 学号纠错（双人控制）----------
@@ -456,14 +509,29 @@
         '</div></td></tr>'
       ).join("") + '</tbody></table></div></div>';
 
+    /* 描述在**绑定事件时**就定死，之后列表重绘也不会换掉对象（与在册学生那张表同一做法）。 */
+    const reqMap = Object.fromEntries(data.map(r => [r.id, r]));
     panel.querySelectorAll("[data-approve]").forEach(b => b.addEventListener("click", async () => {
+      const rid = b.dataset.approve, r = reqMap[rid] || {};
+      const subject = (r.display_name || "这一份纠错申请") +
+        (r.wrong_original ? " · " + r.wrong_original + " → " + r.replacement_original : "");
+      /* 和正式注册一样：确认框关掉后按钮还是活的，原地再按一次就再发一笔。
+         第二笔服务端按 approve_student_number_void 的契约回
+         {ok:false, error:'invalid_state'}（r.status 已不是 pending，
+         0015_student_number_states.sql:385），屏幕上就留下一条失败横幅，
+         而这一份其实已经确认成功（本轮实测 Ap4）。 */
+      if (busyTargets.has(rid)) return sayInFlight(subject);
       const ok = await UI.confirmDialog({
         title: "确认纠正误录学号",
-        text: "确认后：误录号将保留历史但不再占用分配资格，学生换成正确学号，登录别名同步更换，全过程写入审计。",
+        text: "对象：" + subject + "。确认后：误录号将保留历史但不再占用分配资格，" +
+              "学生换成正确学号，登录别名同步更换，全过程写入审计。",
         confirmLabel: "确认纠正",
       });
       if (!ok) return;
-      await call({ action: "approve_number_void", request_id: b.dataset.approve }, "学号纠错已完成");
+      if (busyTargets.has(rid)) return sayInFlight(subject);
+      busyTargets.add(rid);
+      const res = await call({ action: "approve_number_void", request_id: rid }, "学号纠错已完成", subject);
+      freeLock(rid, !!res, res ? "" : (errBox.textContent || "").trim());
     }));
     panel.querySelectorAll("[data-reject]").forEach(b => b.addEventListener("click", () => {
       modal({
@@ -475,36 +543,6 @@
         }, "已处理") }],
       });
     }));
-  }
-
-  /* **在途锁按「对象」记，不按「那一个对话框」记。**
-     上一包把互斥挂在 wrap 上 —— 他按 Esc 关掉、再打开**同一份申请**的框，
-     按钮是新的、当然是活的，于是同一份申请照样发出第二笔相反的结论
-     （本轮实测 Xl5：扣住 2 笔，都是 confirm_hq_approval）。
-     关掉对话框**不等于**取消已经发出去的请求 —— 这一点要对他说清楚。
-     锁在响应回来（成功或失败）时解开；换一个对象不受影响。 */
-  const busyTargets = new Set();
-  /* 解锁**不能只是 delete** —— 他面前那个**正开着**的框并不知道。
-     监督实测：旧那一笔放行、回执也被消费之后，重开的框仍然全禁、说明还停在
-     「还没有回结果」，他得再关一次、再开一次才能继续
-     （本轮修前 Xr8/Xr9/Xr12 成功路、Xr18/Xr19/Xr22 失败路）。
-     所以锁除了记「谁在途」，还要记「谁在等这把锁」，回结果时通知到人。 */
-  const lockWaiters = new Map();                       // 对象标识 → 正卡在它上面的框
-  function whenFreed(lock, fn){
-    let s = lockWaiters.get(lock);
-    if (!s) lockWaiters.set(lock, (s = new Set()));
-    s.add(fn);
-    return () => { const t = lockWaiters.get(lock);
-      if (!t) return; t.delete(fn); if (!t.size) lockWaiters.delete(lock); };
-  }
-  /** 这一笔回结果了：解锁，并把结果告诉还等着的那些框。ok=是否成功，why=服务端给的原因。 */
-  function freeLock(lock, ok, why){
-    if (!lock) return;
-    busyTargets.delete(lock);
-    const s = lockWaiters.get(lock);
-    if (!s) return;
-    lockWaiters.delete(lock);
-    [...s].forEach((fn) => { try { fn(ok, why); } catch (e) {} });
   }
 
   /** 通用表单弹窗（焦点可达、Esc 关闭）。lock 是这次操作的**对象标识**。 */
