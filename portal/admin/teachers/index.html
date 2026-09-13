@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>教师验证审核 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140027">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140041">
 <style>
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .tab{min-height:44px;padding:0 15px;border:1px solid var(--line);border-radius:99px;background:#fff;
@@ -37,11 +37,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609140027"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609140027"></script>
-<script src="../../../assets/js/portal/api.js?v=202609140027"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609140027"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609140027"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609140041"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609140041"></script>
+<script src="../../../assets/js/portal/api.js?v=202609140041"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609140041"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609140041"></script>
 <script>
 /* 管理端教师验证审核台。
 
@@ -113,6 +113,10 @@
 
   async function load() {
     const epoch = ++listEpoch;
+    /* 焦点锚点要在**这里**取：下一行的 UI.loading 就会把 main 清空，
+       到 render() 里再读已经晚了 —— 那时 activeElement 早就是 <body> 了
+       （本轮实测：第一版只在 render 里记，Fx3/Fx7 仍然是 BODY，就栽在这个顺序上）。 */
+    const keep = whereIsHe();
     UI.loading(main, 3);
     const build = {
       columns: "id,user_id,status,submitted_data,submitted_at,reviewed_at,applicant_visible_message,created_at",
@@ -126,10 +130,48 @@
       return UI.error(main, { message: error.message || Api.msg(error && error.code),
                               onRetry: load });
     }
-    render(data || []);
+    render(data || [], keep);
   }
 
-  function render(rows) {
+  /* 重绘会把 main 整个换掉。先记下他此刻站在哪个控件上（连光标位置一起），
+     重绘之后如果那个控件还在，就把他放回原处。
+     他**不在这一片区域里**的时候返回 null —— 那就什么都不做，绝不去抢焦点。 */
+  const whereIsHe = () => {
+    const a = document.activeElement;
+    if (!a || !main.contains(a)) return null;
+    if (a.dataset && a.dataset.f) return { kind: "filter", f: a.dataset.f };
+    const card = a.closest && a.closest(".rq");
+    if (!card) return null;
+    const id = card.dataset.id;
+    if (a.tagName === "TEXTAREA") return { kind: "ta", id, s: a.selectionStart, e: a.selectionEnd };
+    if (a.dataset && a.dataset.act) return { kind: "act", id, act: a.dataset.act };
+    if (a.dataset && a.dataset.verify) return { kind: "verify", id };
+    return { kind: "card", id };
+  };
+  const putHimBack = (k) => {
+    if (!k) return;
+    let el = null;
+    if (k.kind === "filter") el = main.querySelector('[data-f="' + CSS.escape(k.f) + '"]');
+    else {
+      const card = main.querySelector('.rq[data-id="' + CSS.escape(k.id) + '"]');
+      if (card) {
+        if (k.kind === "ta") el = card.querySelector("textarea");
+        else if (k.kind === "act") el = card.querySelector('[data-act="' + CSS.escape(k.act) + '"]');
+        else if (k.kind === "verify") el = card.querySelector("[data-verify]");
+        /* 原来那个控件没了（状态变了，动作也就换了）或还禁着 —— 至少把他留在这张卡上，
+           不要扔回页面开头。 */
+        if (!el || el.disabled) { card.setAttribute("tabindex", "-1"); el = card; }
+      }
+    }
+    if (!el) return;
+    try { el.focus(); } catch (e) { return; }
+    if (k.kind === "ta" && typeof k.s === "number" && el.setSelectionRange) {
+      try { el.setSelectionRange(k.s, k.e); } catch (e) {}      // 光标也回到原处
+    }
+  };
+
+  function render(rows, keep) {
+    if (keep === undefined) keep = whereIsHe();
     const tabs = [["submitted", "待审核"], ["needs_information", "需补充"],
                   ["approved", "已通过"], ["rejected", "未通过"], ["all", "全部"]];
     main.innerHTML =
@@ -144,6 +186,7 @@
     if (!rows.length) {
       UI.empty(list, { title: "没有符合条件的申请",
                        text: "换一个状态筛选看看，或稍后再来。" });
+      putHimBack(keep);
       return;
     }
     list.innerHTML = rows.map((r) => {
@@ -187,6 +230,7 @@
       const d = draftMsg.get(card.dataset.id);
       if (d) ta.value = d;
     });
+    putHimBack(keep);
   }
 
   /* 他每打一个字就记下来 —— 不能等到「提交时」才记，因为丢失恰恰发生在提交之前。 */
@@ -255,8 +299,14 @@
 
     const all = card.querySelectorAll("[data-act]");
     if (btn.disabled) return;                    // 在途期间吞掉重复点击
+    /* 顺序要紧：**禁用之前**先看他是不是正站在这个按钮上。
+       一禁用，焦点立刻掉到 <body> —— 键盘用户等于被扔回页面开头
+       （本轮实测 Fx2：在途期间 activeElement 就是 BODY）。 */
+    const hadFocus = document.activeElement === btn;
+    const sentRaw = (ta && ta.value) || "";      // 这一次**实际发出去**的那一版
     all.forEach((b) => { b.disabled = true; });
     btn.setAttribute("aria-busy", "true");
+    if (hadFocus) { card.setAttribute("tabindex", "-1"); card.focus(); }
 
     const { data, error } = await Api.fn("review-teacher-verification", {
       request_id: id, action: action, message: msg || null,
@@ -309,8 +359,11 @@
        不受 main 重渲染影响。两处都给：卡内提示 + toast。 */
     unlockActions();
     /* 这一条的说明已经**随请求发出去**了：草稿要清掉，
-       否则刷新回来框里还留着那段话，看上去像「还没提交」。 */
-    draftMsg.delete(id);
+       否则刷新回来框里还留着那段话，看上去像「还没提交」。
+       但只清**发出去的那一版** —— 在途期间说明框并没有被禁用（上面只禁了
+       [data-act] 按钮），他完全可能一边等一边补字；那些字还没有发出去，
+       无条件 delete 会把它们一并抹掉（本轮实测 Dr8：补的字变成空）。 */
+    if ((draftMsg.get(id) || "") === sentRaw) draftMsg.delete(id);
     ok.textContent = "已执行。";
     ok.hidden = false;
     UI.toast("审核已执行。");

@@ -202,7 +202,8 @@ try {
   });
 
   /* ── 真实按键 ─────────────────────────────────────────────────────── */
-  const KEYS = { Tab:{code:"Tab",key:"Tab",vk:9}, Enter:{code:"Enter",key:"Enter",vk:13} };
+  const KEYS = { Tab:{code:"Tab",key:"Tab",vk:9}, Enter:{code:"Enter",key:"Enter",vk:13},
+                 ArrowLeft:{code:"ArrowLeft",key:"ArrowLeft",vk:37} };
   const press = async (name, shift) => {
     const m = KEYS[name], mods = shift ? 8 : 0;
     await cdp.send("Input.dispatchKeyEvent", { type:"rawKeyDown", modifiers:mods,
@@ -278,6 +279,17 @@ try {
   const taVal = async (reqId) => cdp.ev(`(()=>{const c=document.querySelector('.rq[data-id="${reqId}"]');
     const t=c?c.querySelector("textarea"):null; return t?t.value:null;})()`);
   const cardIds = async () => cdp.ev(`(()=>[...document.querySelectorAll(".rq")].map(c=>c.dataset.id))()`);
+  const taDisabled = async (reqId) => cdp.ev(`(()=>{const c=document.querySelector('.rq[data-id="${reqId}"]');
+    const t=c?c.querySelector("textarea"):null; return t?!!t.disabled:null;})()`);
+  const cardStatus = async (reqId) => cdp.ev(`(()=>{const c=document.querySelector('.rq[data-id="${reqId}"]');
+    return c?(c.dataset.status||""):null;})()`);
+  /* 焦点落在哪儿：要能分清「哪一张卡的哪一个控件」，还要读得到光标位置。 */
+  const focusWhere = async () => cdp.ev(`(()=>{const a=document.activeElement;
+    if(!a || a===document.body) return { where:"BODY" };
+    const c=a.closest? a.closest(".rq"):null;
+    return { where: a.tagName, id: a.id||"", card: c?c.dataset.id:"",
+             act: (a.dataset&&a.dataset.act)||"", f:(a.dataset&&a.dataset.f)||"",
+             sel: (a.tagName==="TEXTAREA"? a.selectionStart : null) };})()`);
   const lastPostBody = () => { const p = edgeCalls.filter(c => c.method === "POST").slice(-1)[0];
     if (!p || !p.body) return null; try { return JSON.parse(p.body); } catch (e) { return null; } };
   const postCount = () => edgeCalls.filter(c => c.method === "POST").length;
@@ -301,6 +313,12 @@ try {
     rpc: {},
     write: { data:[], error:null },
   });
+  /* 服务端真的执行之后，列表重读到的就是新状态 —— 夹具要跟着改，
+     否则测的是一个现实里不存在的局面（approve 之后状态会变成 approved，
+     卡上的动作换成 暂停/撤销，说明框仍在）。 */
+  const markStatus = async (id, st) => cdp.ev(`(()=>{const r=window.__SCEN.tables.teacher_verification_requests.data
+    .find(x=>x.id===${JSON.stringify(id)}); if(!r) return false; r.status=${JSON.stringify(st)};
+    r.reviewed_at="2026-09-14T00:00:00Z"; return true;})()`);
   const openPage = async () => {
     await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: "window.__SCEN = " + JSON.stringify(mkScen()) + ";" });
     await cdp.send("Page.navigate", { url: `${BASE}/portal/admin/teachers/` });
@@ -354,6 +372,137 @@ try {
      (await taVal("tvr-2")) === REASON, JSON.stringify(await taVal("tvr-2")));
   ok("Tk13 全程没有多发出任何一笔审核请求（切筛选不是写入）",
      postCount() === 0, "POST " + postCount() + " 笔");
+
+  // ════════ Dr 在途期间他继续改说明：成功回执会不会把新打的也一并清掉 ════════
+  console.log("\n=== Dr 提交在途、他继续改说明：成功之后新打的那几个字还在吗 ===");
+  /* 上一包成功之后无条件 draftMsg.delete(id)。可是在途期间**说明框并没有被禁用**
+     （只禁了 [data-act] 按钮，:256-258）—— 他完全可能一边等一边补字。
+     那些字**还没有发出去**，却会被那一句 delete 连坐清掉。
+     所以：扣住 POST → 记下这一次**实际发出去**的那一版（snapshot）
+     → 再输入新内容 → 放行成功 → 等 900ms 自动刷新落地 → 看新内容还在不在。 */
+  const OLD = "先给甲的第一稿";
+  const ADD = "，另补一句";
+  await openPage();
+  edgeHold = true; heldEdge = []; edgeCalls = [];
+  edgeScript = [ { status:200, body:{ ok:true, status:"approved" } } ];
+  const dr0 = await tabToId("m-tvr-1", 140);
+  ok("Dr0 前提：真实 Tab 走到第一条的说明框", dr0.hit === true, JSON.stringify(dr0));
+  await typeText(OLD);
+  ok("Dr1 前提：第一稿打进去了", (await taVal("tvr-1")) === OLD, JSON.stringify(await taVal("tvr-1")));
+  const dr2 = await tabToAct("tvr-1", "approve", 140);
+  ok("Dr2 前提：走到第一条的「通过」并确认", dr2.hit === true &&
+     (await (async () => { await press("Enter"); await sleep(500); return confirmIt(); })()) === true,
+     JSON.stringify(dr2));
+  ok("Dr3 前提：POST 到达并被扣住，而且带的就是**当时那一版**（snapshot）",
+     await until(async () => heldEdge.length === 1, 8000) &&
+     (() => { try { return JSON.parse(heldEdge[0].body).message === OLD; } catch (e) { return false; } })(),
+     JSON.stringify(heldEdge.map(h => h.body)));
+  /* 先查清楚前提，不凭空造问题：在途期间说明框到底禁没禁用？ */
+  const taLive = await taDisabled("tvr-1");
+  ok("Dr4 前提：在途期间说明框并没有被禁用（所以他真的能继续打字）",
+     taLive === false, "textarea.disabled=" + JSON.stringify(taLive));
+  const dr5 = await tabToId("m-tvr-1", 140);
+  ok("Dr5 前提：走回说明框，接着补几个字", dr5.hit === true, JSON.stringify(dr5));
+  await typeText(ADD);
+  ok("Dr6 前提：现在框里是「旧稿+补充」", (await taVal("tvr-1")) === OLD + ADD,
+     JSON.stringify(await taVal("tvr-1")));
+  await markStatus("tvr-1", "approved");
+  await heldEdge[0].send();
+  heldEdge = [];
+  await until(async () => (await cardStatus("tvr-1")) === "approved", 8000);
+  await sleep(1200);
+  ok("Dr7 前提：自动刷新确实落地了（那一条已经变成已通过）",
+     (await cardStatus("tvr-1")) === "approved", JSON.stringify(await cardStatus("tvr-1")));
+  ok("Dr8 他在等待期间补的那几个字**还在**（没被成功回执连坐清掉）",
+     (await taVal("tvr-1")) === OLD + ADD, JSON.stringify(await taVal("tvr-1")));
+  ok("Dr9 而且没有因此多发一笔（补的字只是留着，不会被重新提交）",
+     postCount() === 1, "POST " + postCount() + " 笔");
+  edgeHold = false; heldEdge = []; edgeScript = [];
+
+  // ════════ Dc 没改过的那一版：发出去之后应当清掉（补上 Tk7 的空过）════════
+  console.log("\n=== Dc 发出去之后、期间一个字没改：那一版应当清掉 ===");
+  /* 上一包的 Tk7 读的是一张**本来就没输入**的卡，证明不了
+     「非空的稿子在提交之后被清掉」。这一组补上。 */
+  const SENT = "给乙的正式答复";
+  await openPage();
+  edgeHold = true; heldEdge = []; edgeCalls = [];
+  edgeScript = [ { status:200, body:{ ok:true, status:"approved" } } ];
+  const dc0 = await tabToId("m-tvr-2", 140);
+  ok("Dc0 前提：走到第二条的说明框并写下一段**非空**答复", dc0.hit === true);
+  await typeText(SENT);
+  ok("Dc1 前提：那段话确实在框里", (await taVal("tvr-2")) === SENT, JSON.stringify(await taVal("tvr-2")));
+  const dc2 = await tabToAct("tvr-2", "approve", 140);
+  ok("Dc2 前提：走到第二条的「通过」并确认", dc2.hit === true &&
+     (await (async () => { await press("Enter"); await sleep(500); return confirmIt(); })()) === true);
+  ok("Dc3 前提：POST 带的就是这段话",
+     await until(async () => heldEdge.length === 1, 8000) &&
+     (() => { try { return JSON.parse(heldEdge[0].body).message === SENT; } catch (e) { return false; } })(),
+     JSON.stringify(heldEdge.map(h => h.body)));
+  ok("Dc4 前提：这一次他一个字都没再改", (await taVal("tvr-2")) === SENT);
+  await markStatus("tvr-2", "approved");
+  await heldEdge[0].send();
+  heldEdge = [];
+  await until(async () => (await cardStatus("tvr-2")) === "approved", 8000);
+  await sleep(1200);
+  ok("Dc5 自动刷新之后，这段**已经发出去**的答复被清掉了（框里是空的）",
+     (await taVal("tvr-2")) === "", JSON.stringify(await taVal("tvr-2")));
+  edgeHold = false; heldEdge = []; edgeScript = [];
+
+  // ════════ Fx 自动刷新之后，焦点在哪儿 ════════
+  console.log("\n=== Fx 自动刷新之后焦点落在哪儿（原地保留 / 不抢别处）===");
+  await openPage();
+  edgeHold = true; heldEdge = []; edgeCalls = [];
+  edgeScript = [ { status:200, body:{ ok:true, status:"approved" } } ];
+  const fx0 = await tabToAct("tvr-1", "approve", 140);
+  ok("Fx0 前提：走到第一条的「通过」并确认", fx0.hit === true &&
+     (await (async () => { await press("Enter"); await sleep(500); return confirmIt(); })()) === true);
+  ok("Fx1 前提：POST 被扣住", await until(async () => heldEdge.length === 1, 8000));
+  /* 按下去之后那个按钮被禁用（:258）—— 焦点会立刻掉到 <body>。
+     键盘用户此刻等于被扔回页面开头。 */
+  const fxDuring = await focusWhere();
+  ok("Fx2 在途期间焦点不该掉到 <body>（应当还留在那张卡里）",
+     fxDuring.where !== "BODY" && fxDuring.card === "tvr-1", JSON.stringify(fxDuring));
+  await markStatus("tvr-1", "approved");
+  await heldEdge[0].send();
+  heldEdge = [];
+  await until(async () => (await cardStatus("tvr-1")) === "approved", 8000);
+  await sleep(1200);
+  const fxAfter = await focusWhere();
+  ok("Fx3 自动刷新之后焦点仍在那一条上（而不是 <body>）",
+     fxAfter.where !== "BODY" && fxAfter.card === "tvr-1", JSON.stringify(fxAfter));
+  edgeHold = false; heldEdge = []; edgeScript = [];
+
+  /* 他在等待期间把焦点移到**别处**：自动刷新不能把焦点抢回来。 */
+  console.log("\n=== Fx' 等待期间他去写另一条：自动刷新不该把焦点抢走 ===");
+  await openPage();
+  edgeHold = true; heldEdge = []; edgeCalls = [];
+  edgeScript = [ { status:200, body:{ ok:true, status:"approved" } } ];
+  const fy0 = await tabToAct("tvr-1", "approve", 140);
+  ok("Fx4 前提：第一条提交并扣住", fy0.hit === true &&
+     (await (async () => { await press("Enter"); await sleep(500); return confirmIt(); })()) === true &&
+     await until(async () => heldEdge.length === 1, 8000));
+  const fy1 = await tabToId("m-tvr-2", 140);
+  ok("Fx5 前提：他走到**第二条**的说明框写起来", fy1.hit === true, JSON.stringify(fy1));
+  await typeText("给乙的说明");
+  await press("ArrowLeft"); await press("ArrowLeft"); await press("ArrowLeft");
+  const selBefore = (await focusWhere()).sel;
+  /* 「给乙的说明」5 个字，左移 3 次 = 2。上一版这里写了 3，是**我算错**，不是产品的问题。 */
+  const WANT_SEL = "给乙的说明".length - 3;
+  ok("Fx6 前提：光标被他移到了中间（不是末尾）",
+     typeof selBefore === "number" && selBefore === WANT_SEL,
+     JSON.stringify({ selBefore, WANT_SEL }));
+  await markStatus("tvr-1", "approved");
+  await heldEdge[0].send();
+  heldEdge = [];
+  await until(async () => (await cardStatus("tvr-1")) === "approved", 8000);
+  await sleep(1200);
+  const fyAfter = await focusWhere();
+  ok("Fx7 自动刷新之后焦点仍在第二条的说明框里（没被抢走）",
+     fyAfter.where === "TEXTAREA" && fyAfter.card === "tvr-2", JSON.stringify(fyAfter));
+  ok("Fx8 而且光标还停在原处", fyAfter.sel === selBefore, JSON.stringify({ selBefore, now: fyAfter.sel }));
+  ok("Fx9 他写给第二条的那段话也还在", (await taVal("tvr-2")) === "给乙的说明",
+     JSON.stringify(await taVal("tvr-2")));
+  edgeHold = false; heldEdge = []; edgeScript = [];
 
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
