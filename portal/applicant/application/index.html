@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131109">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131135">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609131109"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609131109"></script>
-<script src="../../../assets/js/portal/api.js?v=202609131109"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609131109"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609131109"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609131109"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609131135"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609131135"></script>
+<script src="../../../assets/js/portal/api.js?v=202609131135"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609131135"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609131135"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609131135"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -323,6 +323,8 @@
 
     if (editable) { buildSteps(); bindEditor(); }
     document.getElementById("btnReqReload")?.addEventListener("click", () => location.reload());
+    /* 补件卡片是 render() 渲染的，绑定就跟着它走 —— 切步骤不该再绑一遍。 */
+    bindRequirementTicks();
     /* 「去修改」：跳到那一步并把光标放进那个字段 —— 这是**有意**的导航，
        表单本来就要重绘，和「打字时别重绘」是两回事。
        用**委托**绑在 main 上，并且在处理器里再挡一道：不可编辑的状态下什么都不做。
@@ -744,7 +746,23 @@
       const [n, i] = b.dataset.delrow.split(":");
       app.form_data[n].splice(+i, 1); touch(); renderStep();
     }));
-    document.querySelectorAll("[data-req]").forEach(cb => cb.addEventListener("change", async () => {
+  }
+
+  /* [data-req] 的 change 绑定原来写在 bindFieldEvents() 里，而它由 renderStep() 调用 ——
+     **每切一次步骤就再绑一遍**，而且是全局查询，打在不随步骤重建的补件卡片上。
+     实测一次勾选发了 4 个标记请求。绑定只跟着补件卡片自己的渲染走，并限定在卡片范围内。 */
+  function bindRequirementTicks(){
+    const list = document.querySelector(".rqlist");
+    if (!list) return;
+    list.querySelectorAll("[data-req]").forEach(cb => cb.addEventListener("change", async () => {
+      if (cb.dataset.busy === "1") return;       // 一次勾选只发一个请求
+      cb.dataset.busy = "1";
+      try { await tickRequirement(cb); } finally { delete cb.dataset.busy; }
+    }));
+  }
+
+  async function tickRequirement(cb){
+    {
       /* 「已补」是**对数据的断言**。自动保存有 800ms 防抖，他改完马上勾的话，
          那次修改可能还没写进去、甚至根本没写成 —— 这一勾就等于替没落地的数据打包票，
          刷新回来还是旧值。提交那条路早就先 save() 再决定交不交，这里也一样。 */
@@ -758,6 +776,14 @@
             : "你刚才的修改没有保存成功（" + (saved.message || "原因未知") +
               "），所以这一项没有标记为已补。内容还在页面上，修好再勾。",
             "err");
+        }
+        /* 这一次保存确认的可能是**旧那一版** —— 等它回来的功夫他又改了。
+           那就还没有任何证据说明最新内容落地了，不能标记，也不在这里闷头重存
+           （重存等于拿一个未经确认的版本反复覆盖）。 */
+        if ((saved && saved.stale) || dirty) {
+          cb.checked = false;
+          return UI.toast("保存还没跟上你最新的修改（刚才那一版存好时你又改了），" +
+            "这一项没有标记为已补。等这一次保存完成后再勾。", "err");
         }
       }
       const { error } = await Api.rpc("resolve_requirement", { p_req: cb.dataset.req });
@@ -773,7 +799,7 @@
       }
       await loadRequirements(); render();
       UI.toast("已标记完成");
-    }));
+    }
   }
 
   function bindEditor(){
@@ -825,6 +851,9 @@
       return { ok: false, unclear: false, conflict: true,
                message: "没有可比对的版本基准" };
     }
+    /* 记下**发出去的是哪一版**。保存是一次往返，这期间他完全可能继续改；
+       旧响应回来时若无条件 dirty = false，就等于拿旧版本的成功替新内容背书。 */
+    const sentSnap = JSON.stringify({ form_data: app.form_data, pathway: app.pathway });
     const { data: rows, error } = await Api.update("applications",
       { id: app.id, updated_at: app.updated_at },
       { form_data: app.form_data, pathway: app.pathway });
@@ -864,9 +893,17 @@
       return { ok: false, unclear: true, message: "没有拿到新的版本号" };
     }
     app.updated_at = nextVersion;
-    dirty = false;
-    setSaveState("已保存 " + new Date().toLocaleTimeString("zh-CN", { hour12: false }));
-    return { ok: true, unclear: false };
+    /* 只有页面上这一刻的内容还是发出去的那一版时，才能说「都保存好了」。
+       在途期间又改过的话，**保持 dirty** —— 新的那一笔还没落地。 */
+    const nowSnap = JSON.stringify({ form_data: app.form_data, pathway: app.pathway });
+    const stale = nowSnap !== sentSnap;
+    if (!stale) {
+      dirty = false;
+      setSaveState("已保存 " + new Date().toLocaleTimeString("zh-CN", { hour12: false }));
+    } else {
+      setSaveState("刚才那一版已保存，你之后的修改还没保存");
+    }
+    return { ok: true, unclear: false, stale: stale };
   }
 
   /** 暂存失败时的出口：不重载、不隐藏，把他填的内容原样摊出来，

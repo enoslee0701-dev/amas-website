@@ -158,6 +158,13 @@ window.supabase = {
             : ((sc.writes && sc.writes[name]) || { data: [{ id: "app-fixture-1", updated_at: "2026-09-11T00:00:00Z" }], error: null });
           var out = { data:t.data, error:t.error||null,
             status: t.status != null ? t.status : (t.error ? 500 : 200) };
+          /* 可控闸门：写入被扣住，直到测试显式放行。
+             只看「谁先被调用」不够 —— 要的是「谁先**完成**」。 */
+          if (mode !== "select" && sc.holdWrites) {
+            return new Promise(function(r){
+              (window.__held = window.__held || []).push(function(){ r(out); });
+            }).then(res, rej);
+          }
           var d = t.delay || 0;
           return (d ? new Promise(function(r){ setTimeout(function(){ r(out); }, d); })
                     : Promise.resolve(out)).then(res, rej);
@@ -1446,6 +1453,87 @@ try {
   const after = await listenerCount();
   ok("Rc5 render 再跑一次，main 上的 click 监听器没有多出来",
      before !== null && after !== null && after === before, JSON.stringify({ before, after }));
+
+  // ════════ Rd 慢保存期间继续编辑（返修 f161ac9）════════
+  console.log("\n=== Rd 标记之前，确认的必须是**最新**那一版 ===");
+  /* 上一包加了「勾之前先 await save()」，但 save() 成功时**无条件** dirty = false ——
+     保存在途时他又改了一笔，旧响应回来照样清掉 dirty，于是 await 到的是**旧版本**
+     的成功，标记却盖在新内容上：新值根本没落地。
+     另外 [data-req] 的 change 监听器绑在 bindFieldEvents() 里，而它由 renderStep()
+     调用 —— 每切一次步骤就再绑一遍，且用的是全局查询，打在不随步骤重建的补件卡片上。
+     所以先点一次「去修改」再勾，一次勾选会发两个 resolve。
+     这里用可控闸门按**完成顺序**验，不看调用先后。 */
+  const held = async () => cdp.ev(`((window.__held||[]).length)`);
+  const release = async (n) => cdp.ev(`(()=>{const q=window.__held||[]; let k=0;
+    while (q.length && k < ${n || 1}) { (q.shift())(); k++; } return k;})()`);
+  const typeBapt = async (v) => cdp.ev(`(()=>{const el=document.getElementById("fd-baptism_date");
+    if(!el) return false; el.focus(); el.value=${JSON.stringify(v)};
+    el.dispatchEvent(new Event("input",{bubbles:true})); return true;})()`);
+  const tick = async () => cdp.ev(`(()=>{const cb=document.querySelector("[data-req]"); if(!cb) return false;
+    cb.checked = true; cb.dispatchEvent(new Event("change",{bubbles:true})); return true;})()`);
+  const goFix = async () => { await cdp.ev(`(()=>{const b=document.querySelector('[data-gofield="baptism_date"]');
+    if(b) b.click(); return !!b;})()`); await sleep(400); };
+
+  const HOLD_SCEN = { tables: { ...BASE_TABLES, application_requirements: { data: REQ_ONE } },
+    rpc: { my_application: { data: [NEEDS_ONE] }, resolve_requirement: { data: { ok: true } } },
+    holdWrites: true };
+
+  // Rd1/Rd2/Rd3：闸住保存 → 勾 → 再改 → 放行旧保存 → 仍然不能标记
+  await open(HOLD_SCEN);
+  await goFix();
+  ok("Rd0 前提：改得动那个解锁字段", (await typeBapt("2011-05")) === true);
+  /* **不等防抖到点就勾** —— 这样被扣住的写入只有闸门发出的那一次，
+     放行谁、等的是谁，才没有歧义。 */
+  await sleep(120);
+  await tick();
+  await sleep(300);
+  ok("Rd0b 前提：闸门发出的那一次写入被扣住（且只有这一次）",
+     (await held()) === 1, String(await held()));
+  const d1 = await calls();
+  ok("Rd1 保存还没回来时，标记请求尚未发出", !(d1["rpc:resolve_requirement"] > 0), JSON.stringify(d1));
+
+  await typeBapt("2012-06");                            // 在途期间又改了一笔
+  await sleep(200);
+  await release(1);                                     // 放行闸门等的那一次（它确认的是旧值）
+  await sleep(1200);
+  const d2 = await calls();
+  ok("Rd2 旧保存回来了，但它确认的不是最新那一版 —— 仍然不标记",
+     !(d2["rpc:resolve_requirement"] > 0), JSON.stringify(d2));
+  const d3 = await cdp.ev(`(()=>{const cb=document.querySelector("[data-req]");
+    const t=document.getElementById("amas-toast");
+    return { checked: cb ? cb.checked : null, toast: t ? (t.textContent||"").trim() : null };})()`);
+  ok("Rd3 勾回到未勾，并说清楚是「保存没跟上最新修改」",
+     d3.checked === false && /最新|又改|还没跟上/.test(d3.toast || ""), JSON.stringify(d3));
+
+  // Rd4：一次勾选只能发一个标记请求（切过步骤也一样）
+  await open({ tables: { ...BASE_TABLES, application_requirements: { data: REQ_ONE } },
+    rpc: { my_application: { data: [NEEDS_ONE] }, resolve_requirement: { data: { ok: true } } } });
+  await goFix();                                        // 切一次步骤（旧代码会重复绑定）
+  await cdp.ev(`(()=>{const t=document.querySelector('[data-step="0"]'); if(t) t.click(); return !!t;})()`);
+  await sleep(300);
+  await tick();
+  await sleep(1400);
+  const d4 = await calls();
+  ok("Rd4 切过步骤之后，一次勾选仍然只发一个标记请求",
+     (d4["rpc:resolve_requirement"] || 0) === 1, JSON.stringify(d4));
+
+  // Rd5 对照：闸住 → 勾 → 不再编辑 → 放行 → 正常标记
+  await open(HOLD_SCEN);
+  await goFix();
+  await typeBapt("2013-07");
+  await sleep(120);
+  await tick();
+  await sleep(200);
+  await release(1);
+  await sleep(1400);
+  const d5 = await calls();
+  const d5t = await cdp.ev(`(()=>{const t=document.getElementById("amas-toast");
+    return t ? (t.textContent||"").trim() : null;})()`);
+  ok("Rd5 对照：保存期间没再改的话，放行之后正常标记",
+     (d5["rpc:resolve_requirement"] || 0) === 1, JSON.stringify(d5));
+  /* 不断言勾还在：夹具里那一行的 resolved 永远是 false，render() 之后必然回到未勾 ——
+     那是夹具的静态性质，不是产品行为。看回执文案才是真的。 */
+  ok("Rd5b 对照：如实报「已标记完成」", /已标记完成/.test(d5t || ""), JSON.stringify(d5t));
 
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");
