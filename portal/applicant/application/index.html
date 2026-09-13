@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131624">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131637">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609131624"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609131624"></script>
-<script src="../../../assets/js/portal/api.js?v=202609131624"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609131624"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609131624"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609131624"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609131637"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609131637"></script>
+<script src="../../../assets/js/portal/api.js?v=202609131637"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609131637"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609131637"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609131637"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -982,6 +982,25 @@
   /** 暂存失败时的出口：不重载、不隐藏，把他填的内容原样摊出来，
       并把光标放进去全选好，直接 Ctrl/Cmd+C 就能带走。
       不依赖剪贴板权限（navigator.clipboard 在很多环境下会被拒）。 */
+  /** 把当前草稿摊成可复制的纯文本。**导出与比对共用这一份** ——
+      否则「有没有变」和「他复制走的是什么」会对不上。
+      pathway 不在 form_data 里（单独存在 app.pathway），所以显式带上：
+      少了它，只改学习路径的那一次会被判成「没变」而直接放行。 */
+  function draftExportText(){
+    const lines = [];
+    Object.keys(app.form_data || {}).forEach((k) => {
+      const v = app.form_data[k];
+      lines.push(k + ": " + (typeof v === "string" ? v : JSON.stringify(v)));
+    });
+    lines.push("pathway: " + (app.pathway == null ? "" : app.pathway));
+    return lines.join("\n");
+  }
+
+  /* 「上次确认被拦下了，请重新复制」这件事必须**粘住**，不能只提示一次：
+     存储一直被拒的时候，自动保存每失败一次就会重画这个框（内容要保持最新），
+     一次性的提示会被下一次重画抹掉 —— 他只来得及瞥一眼，然后再也看不见。
+     由这个标志决定提示在不在；只有确认真的通过了才清掉。 */
+  let stashRecopy = false;
   function showStashFailed(actionLabel, onProceed, focus){
     const act = actionLabel || "重新载入";
     const proceed = onProceed || (() => location.reload());
@@ -1004,22 +1023,32 @@
        动作同理：从「冲突 → 重新载入」切到「过期 → 去重新登录」时，
        按钮的文字与回调都停在旧的那一套（点下去是重新载入，不是去登录）。
        textContent 一赋值就会把旧的 textarea 与旧按钮（连同旧回调）一起清掉。 */
-    box.textContent = "这个浏览器现在存不下草稿（可能是隐私模式、存储被禁用或空间已满），" +
+    box.textContent = (stashRecopy ? "你刚才又改了内容，下面这一份**已经重新导出** —— " +
+        "请重新复制之后再点一次。 " : "") +
+      "这个浏览器现在存不下草稿（可能是隐私模式、存储被禁用或空间已满），" +
       "所以**没有**" + act + " —— 页面上这一份是唯一的副本。" +
       "请先把下面的内容复制保存，再决定要不要" + act + "。 ";
     const ta = document.createElement("textarea");
     ta.readOnly = true;
     ta.style.cssText = "width:100%;min-height:160px;margin-top:8px;font:12px/1.6 Consolas,monospace";
-    const lines = [];
-    Object.keys(app.form_data || {}).forEach((k) => {
-      const v = app.form_data[k];
-      lines.push(k + ": " + (typeof v === "string" ? v : JSON.stringify(v)));
-    });
-    ta.value = lines.join("\n");
+    const shown = draftExportText();
+    ta.value = shown;
     box.appendChild(ta);
     const later = document.createElement("button");
     later.type = "button"; later.className = "link"; later.textContent = "我已复制，" + act;
-    later.addEventListener("click", proceed);
+    later.addEventListener("click", () => {
+      /* 确认时**再比一次**：他很可能在复制之后、点这个按钮之前又改了一笔，
+         而自动保存的 800ms 防抖还没到点 —— 就这么走了，那一笔既没存下、
+         也不在他复制走的那一份里（监督实测 event0c63）。
+         变了就留在这一页、把导出刷新成最新的，请他重新复制；没变才放行。 */
+      if (draftExportText() !== shown) {
+        stashRecopy = true;                     // 粘住，直到他真的确认过一次
+        showStashFailed(act, proceed, true);
+        return;
+      }
+      stashRecopy = false;
+      proceed();
+    });
     box.appendChild(document.createElement("br"));
     box.appendChild(later);
     /* 只有**他自己触发**的那一次才抢焦点。自动保存每 800ms 失败一次就选中一遍，
