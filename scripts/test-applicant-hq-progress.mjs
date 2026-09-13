@@ -86,7 +86,7 @@ class Cdp {
   }
 }
 let pass = 0, fail = 0, externalHits = 0;
-/* 分组开关：ONLY=Lv,Rd,G 就只跑这几组。
+/* 分组开关：ONLY=S,U,R,F,G 就只跑这几组。
    监督的口径是「不要整跑既有 66」——但被这次改动**真正影响到**的那几组必须跑，
    所以要能挑着跑，而不是靠「这次先不跑」蒙混。不设 ONLY 时全跑。 */
 const ONLY = String(process.env.ONLY || "").split(",").map((x) => x.trim()).filter(Boolean);
@@ -128,6 +128,18 @@ window.supabase = { createClient: function(){
                                     : (sc.write || { data:[], error:null });
         var out = { data:t.data, error:t.error||null,
           status: t.status != null ? t.status : (t.error ? 500 : 200) };
+        /* 按表扣住：确定性地造出「正在等这次读取回来」那一段。 */
+        if (mode === "select" && window.__holdSelect === name) {
+          return new Promise(function(r){
+            window.__heldSelect = true;
+            window.__releaseSelect = function(){
+              window.__holdSelect = null; window.__heldSelect = false;
+              var sc2 = S(); var t2 = (sc2.tables && sc2.tables[name]) || { data:[], error:null };
+              r({ data:t2.data, error:t2.error||null,
+                  status: t2.status != null ? t2.status : (t2.error ? 500 : 200) });
+            };
+          }).then(res, rej);
+        }
         return Promise.resolve(out).then(res, rej);
       } };
     return q;
@@ -260,105 +272,208 @@ try {
   }, over || {});
 
   // ════════ Q 请求本身：只要三列，只按 application_id ════════
-  console.log("\n=== Q 请求本身：列投影与查询条件 ===");
-  await openWith({ data:[row("pending")] });
-  const q1 = await hqQueries();
-  ok("Q0 前提：确实向 application_hq_approvals 发了一次读取", q1.length === 1,
-     JSON.stringify(q1));
-  ok("Q1 列投影**只有这三列**（不是 select *）",
-     q1[0] && q1[0].cols === "status,confirmed_at,applicant_visible_note", JSON.stringify(q1[0]));
-  ok("Q2 内部编号与确认人**连要都没要**",
-     q1[0] && q1[0].cols.indexOf("approval_reference") < 0 && q1[0].cols.indexOf("confirmed_by") < 0,
-     JSON.stringify(q1[0] && q1[0].cols));
-  ok("Q3 条件就是这一份申请的 application_id",
-     q1[0] && JSON.stringify(q1[0].eq) === JSON.stringify({ application_id: "app-1" }),
-     JSON.stringify(q1[0] && q1[0].eq));
-  ok("Q4 这一段没有产生任何写入", (await writes()).length === 0, JSON.stringify(await writes()));
+  if (RUN("Q")) {
+    console.log("\n=== Q 请求本身：列投影与查询条件 ===");
+    await openWith({ data:[row("pending")] });
+    const q1 = await hqQueries();
+    ok("Q0 前提：确实向 application_hq_approvals 发了一次读取", q1.length === 1,
+       JSON.stringify(q1));
+    ok("Q1 列投影**只有这三列**（不是 select *）",
+       q1[0] && q1[0].cols === "status,confirmed_at,applicant_visible_note", JSON.stringify(q1[0]));
+    ok("Q2 内部编号与确认人**连要都没要**",
+       q1[0] && q1[0].cols.indexOf("approval_reference") < 0 && q1[0].cols.indexOf("confirmed_by") < 0,
+       JSON.stringify(q1[0] && q1[0].cols));
+    ok("Q3 条件就是这一份申请的 application_id",
+       q1[0] && JSON.stringify(q1[0].eq) === JSON.stringify({ application_id: "app-1" }),
+       JSON.stringify(q1[0] && q1[0].eq));
+    ok("Q4 这一段没有产生任何写入", (await writes()).length === 0, JSON.stringify(await writes()));
 
-  // ════════ S 四种状态 + 空行 + 读取失败 ════════
-  console.log("\n=== S 四种状态各自怎么说 ===");
-  ok("S0 pending → 总校确认处理中",
-     /总校确认处理中/.test(await hqText() || ""), JSON.stringify(await hqText()));
-  ok("S0b pending 时不冒出「已通过 / 未通过」",
-     !/确认已通过|确认未通过/.test(await hqText() || ""), JSON.stringify(await hqText()));
+    // ════════ S 四种状态 + 空行 + 读取失败 ════════
+  }
+  if (RUN("S")) {
+    console.log("\n=== S 四种状态各自怎么说 ===");
+    /* 自带前提：原来这一组是接着 Q 组那一页读的，单独跑（ONLY=S）就什么都没有。 */
+    await openWith({ data:[row("pending")] });
+    ok("S0 pending → 总校确认处理中",
+       /总校确认处理中/.test(await hqText() || ""), JSON.stringify(await hqText()));
+    ok("S0b pending 时不冒出「已通过 / 未通过」",
+       !/确认已通过|确认未通过/.test(await hqText() || ""), JSON.stringify(await hqText()));
 
-  await openWith({ data:[row("approved", { applicant_visible_note: "请按通知办理入学手续" })] });
-  ok("S1 approved → 总校确认已通过",
-     /总校确认已通过/.test(await hqText() || ""), JSON.stringify(await hqText()));
-  ok("S1b 总校说明显示出来了", /请按通知办理入学手续/.test(await hqText() || ""),
-     JSON.stringify(await hqText()));
+    await openWith({ data:[row("approved", { applicant_visible_note: "请按通知办理入学手续" })] });
+    ok("S1 approved → 总校确认已通过",
+       /总校确认已通过/.test(await hqText() || ""), JSON.stringify(await hqText()));
+    ok("S1b 总校说明显示出来了", /请按通知办理入学手续/.test(await hqText() || ""),
+       JSON.stringify(await hqText()));
 
-  await openWith({ data:[row("rejected")] });
-  const rejText = await hqText();
-  ok("S2 rejected → 总校确认未通过", /总校确认未通过/.test(rejText || ""), JSON.stringify(rejText));
-  ok("S2b **不推导**录取被取消：上面的状态徽章仍然是「已录取」",
-     (await badge()) === "已录取", JSON.stringify(await badge()));
-  ok("S2c 这一段里不说「取消 / 作废 / 撤销录取」，也不断言学籍结果",
-     !/取消|作废|撤销|学籍已|不予/.test(rejText || ""), JSON.stringify(rejText));
+    await openWith({ data:[row("rejected")] });
+    const rejText = await hqText();
+    ok("S2 rejected → 总校确认未通过", /总校确认未通过/.test(rejText || ""), JSON.stringify(rejText));
+    ok("S2b **不推导**录取被取消：上面的状态徽章仍然是「已录取」",
+       (await badge()) === "已录取", JSON.stringify(await badge()));
+    ok("S2c 这一段里不说「取消 / 作废 / 撤销录取」，也不断言学籍结果",
+       !/取消|作废|撤销|学籍已|不予/.test(rejText || ""), JSON.stringify(rejText));
 
-  await openWith({ data: [] });                       // 读成功，但没有那一行
-  const emptyText = await hqText();
-  ok("S3 读成功但没有那一行 → 说「还没有总校确认的记录」",
-     /还没有总校确认的记录/.test(emptyText || ""), JSON.stringify(emptyText));
-  ok("S3b 不把「没有记录」说成「未通过」或「处理中」",
-     !/未通过|已通过|处理中/.test(emptyText || ""), JSON.stringify(emptyText));
+    await openWith({ data: [] });                       // 读成功，而且**确实**是空数组
+    const emptyText = await hqText();
+    ok("S3 明确的空数组 → 说「当前未查询到总校确认记录」",
+       /当前未查询到总校确认记录/.test(emptyText || ""), JSON.stringify(emptyText));
+    ok("S3b 不把「没查到」说成「未通过」或「处理中」",
+       !/未通过|已通过|处理中/.test(emptyText || ""), JSON.stringify(emptyText));
+    /* 不许替服务端断言「从来没有人记录过」—— 真实 RLS 还没验过（B3）。 */
+    ok("S3c 也不断言「从未有人记录」这类更强的话",
+       !/从未|从来没有|还没有人|没有人记/.test(emptyText || ""), JSON.stringify(emptyText));
 
-  await openWith({ data:null, error:{ message:"boom" }, status:500 });
-  const errText = await hqText();
-  ok("S4 读取失败 → 暂时无法获取总校确认进度",
-     /暂时无法获取总校确认进度/.test(errText || ""), JSON.stringify(errText));
-  ok("S4b 失败时不冒充任何一种结论",
-     !/已通过|未通过|处理中|还没有总校确认的记录/.test(errText || ""), JSON.stringify(errText));
+    await openWith({ data:null, error:{ message:"boom" }, status:500 });
+    const errText = await hqText();
+    ok("S4 读取失败 → 暂时无法获取总校确认进度",
+       /暂时无法获取总校确认进度/.test(errText || ""), JSON.stringify(errText));
+    ok("S4b 失败时不冒充任何一种结论",
+       !/已通过|未通过|处理中|还没有总校确认的记录/.test(errText || ""), JSON.stringify(errText));
 
-  // ════════ R 重新读取：真的重读，而且不是整页刷新 ════════
-  console.log("\n=== R 「重新读取」这条出口 ===");
-  const btnThere = await cdp.ev(`(()=>!!document.querySelector("[data-hqreload]"))()`);
-  ok("R0 前提：失败时给得出「重新读取」", btnThere === true);
-  await cdp.ev(`(()=>{ window.__stayProbe = 1;
-    window.__SCEN.tables.application_hq_approvals = { data:[ ${JSON.stringify(row("approved"))} ] };
-    return true; })()`);
-  const before = (await hqQueries()).length;
-  const hit = await (async () => {                    // 真实 Tab 走到那个按钮再按
-    for (let i = 1; i <= 60; i++) {
-      await press("Tab");
-      const on = await cdp.ev(`(()=>{const a=document.activeElement;
-        return !!(a && a.hasAttribute && a.hasAttribute("data-hqreload"));})()`);
-      if (on) return true;
-    }
-    return false;
-  })();
-  ok("R1 前提：真实 Tab 走得到「重新读取」", hit === true);
-  await press("Enter");
-  ok("R2 它真的**重读了一次**（不是刷新整页）",
-     await until(async () => (await hqQueries()).length === before + 1, 6000) &&
-     (await cdp.ev(`(typeof window.__stayProbe !== "undefined")`)) === true,
-     "读取次数 " + before + " → " + (await hqQueries()).length);
-  ok("R3 重读之后显示的是新结果", /总校确认已通过/.test(await hqText() || ""),
-     JSON.stringify(await hqText()));
-  ok("R4 重读也没有产生任何写入", (await writes()).length === 0, JSON.stringify(await writes()));
+    // ════════ R 重新读取：真的重读，而且不是整页刷新 ════════
+  }
+  if (RUN("R")) {
+    console.log("\n=== R 「重新读取」这条出口 ===");
+    await openWith({ data:null, error:{ message:"boom" }, status:500 });   // 自带前提
+    const btnThere = await cdp.ev(`(()=>!!document.querySelector("[data-hqreload]"))()`);
+    ok("R0 前提：失败时给得出「重新读取」", btnThere === true);
+    await cdp.ev(`(()=>{ window.__stayProbe = 1;
+      window.__SCEN.tables.application_hq_approvals = { data:[ ${JSON.stringify(row("approved"))} ] };
+      return true; })()`);
+    const before = (await hqQueries()).length;
+    const hit = await (async () => {                    // 真实 Tab 走到那个按钮再按
+      for (let i = 1; i <= 60; i++) {
+        await press("Tab");
+        const on = await cdp.ev(`(()=>{const a=document.activeElement;
+          return !!(a && a.hasAttribute && a.hasAttribute("data-hqreload"));})()`);
+        if (on) return true;
+      }
+      return false;
+    })();
+    ok("R1 前提：真实 Tab 走得到「重新读取」", hit === true);
+    await press("Enter");
+    ok("R2 它真的**重读了一次**（不是刷新整页）",
+       await until(async () => (await hqQueries()).length === before + 1, 6000) &&
+       (await cdp.ev(`(typeof window.__stayProbe !== "undefined")`)) === true,
+       "读取次数 " + before + " → " + (await hqQueries()).length);
+    ok("R3 重读之后显示的是新结果", /总校确认已通过/.test(await hqText() || ""),
+       JSON.stringify(await hqText()));
+    ok("R4 重读也没有产生任何写入", (await writes()).length === 0, JSON.stringify(await writes()));
 
-  // ════════ P 内部哨兵 / 文本安全 / 不该请求的状态 ════════
-  console.log("\n=== P 内部凭据、文本安全、其它状态 ===");
-  await openWith({ data:[row("approved", { applicant_visible_note: "<b>粗体</b>不该被当成标签" })] });
-  const html = await pageHtml();
-  ok("P0 内部编号一个字都没出现在页面上", html.indexOf(SENTINEL_REF) < 0);
-  ok("P1 确认人也没有出现在页面上", html.indexOf(SENTINEL_BY) < 0);
-  const noteNode = await cdp.ev(`(()=>{const n=document.querySelector("[data-hqnote]");
-    return n ? { text:n.textContent, kids:n.children.length, html:n.innerHTML } : null;})()`);
-  ok("P2 备注按**文本**呈现：容器里没有任何元素子节点",
-     noteNode && noteNode.kids === 0, JSON.stringify(noteNode));
-  ok("P3 而且原文一字不差（<b> 是字面量，不是标签）",
-     noteNode && noteNode.text === "<b>粗体</b>不该被当成标签", JSON.stringify(noteNode && noteNode.text));
+    // ════════ P 内部哨兵 / 文本安全 / 不该请求的状态 ════════
+  }
+  if (RUN("P")) {
+    console.log("\n=== P 内部凭据、文本安全、其它状态 ===");
+    await openWith({ data:[row("approved", { applicant_visible_note: "<b>粗体</b>不该被当成标签" })] });
+    const html = await pageHtml();
+    ok("P0 内部编号一个字都没出现在页面上", html.indexOf(SENTINEL_REF) < 0);
+    ok("P1 确认人也没有出现在页面上", html.indexOf(SENTINEL_BY) < 0);
+    const noteNode = await cdp.ev(`(()=>{const n=document.querySelector("[data-hqnote]");
+      return n ? { text:n.textContent, kids:n.children.length, html:n.innerHTML } : null;})()`);
+    ok("P2 备注按**文本**呈现：容器里没有任何元素子节点",
+       noteNode && noteNode.kids === 0, JSON.stringify(noteNode));
+    ok("P3 而且原文一字不差（<b> 是字面量，不是标签）",
+       noteNode && noteNode.text === "<b>粗体</b>不该被当成标签", JSON.stringify(noteNode && noteNode.text));
 
-  await openWith({ data:[row("approved")] }, { status:"submitted", decided_at:null });
-  ok("P4 还没录取的状态**完全不请求**这张表", (await hqQueries()).length === 0,
-     JSON.stringify(await hqQueries()));
-  ok("P5 那时页面上也没有这一段", (await hqText()) === null, JSON.stringify(await hqText()));
+    await openWith({ data:[row("approved")] }, { status:"submitted", decided_at:null });
+    ok("P4 还没录取的状态**完全不请求**这张表", (await hqQueries()).length === 0,
+       JSON.stringify(await hqQueries()));
+    ok("P5 那时页面上也没有这一段", (await hqText()) === null, JSON.stringify(await hqText()));
+  }
+  if (RUN("U")) {
+    console.log("\n=== U 契约之外的形状：一律算未知，不许当成「没有记录」 ===");
+    /* 上一版把 `!Array.isArray(data)` 和 `[]` 并成同一个 empty ——
+       「读到的东西不是契约里那张表」被说成了「确实没有记录」。两回事。
+       这张表 application_id 是主键（0012:36），所以多行本身就说明读到的不是它。 */
+    const unknownShows = async (label) => {
+      const t = await hqText();
+      const btn = await cdp.ev(`(()=>!!document.querySelector("[data-hqreload]"))()`);
+      ok(label + "：说「暂时无法获取总校确认进度」，并给得出「重新读取」",
+         /暂时无法获取总校确认进度/.test(t || "") && btn === true, JSON.stringify(t));
+      ok(label + "：不说成「未查询到记录」，也不冒充任何一种结论",
+         !/未查询到总校确认记录|已通过|未通过|处理中/.test(t || ""), JSON.stringify(t));
+    };
+    await openWith({ data: null, error: null });        // 200 但 data 是 null
+    await unknownShows("U0 data 是 null");
+    await openWith({ data: {}, error: null });          // 非数组真值（网关页/被改写的响应体）
+    await unknownShows("U1 data 是非数组真值");
+    await openWith({ data: [row("approved"), row("pending")] });   // 多行
+    await unknownShows("U2 读到两行（主键表不该有第二行）");
+    await openWith({ data: [row("weird_status")] });     // 契约之外的 status
+    await unknownShows("U3 status 不在契约内");
+    await openWith({ data: [{ confirmed_at: "2026-09-08T02:00:00Z" }] });   // 缺 status
+    await unknownShows("U4 行里根本没有 status");
+    await openWith({ data: [null] });                    // 行不是对象
+    await unknownShows("U5 行不是对象");
+    /* 反过来：明确的空数组仍然是「空」，不能被这次收紧误伤。 */
+    await openWith({ data: [] });
+    ok("U6 明确的空数组仍然是「当前未查询到总校确认记录」（没被误伤成未知）",
+       /当前未查询到总校确认记录/.test(await hqText() || ""), JSON.stringify(await hqText()));
+  }
 
-  console.log("\n=== G 外发 ===");
-  ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
-  ok("G2 全程没有调用任何 Edge Function", edgeCalls.length === 0, JSON.stringify(edgeCalls.slice(0, 2)));
-  ok("G3 全程没有页面异常", pageErrors.length === 0, JSON.stringify(pageErrors.slice(0, 2)));
+  if (RUN("F")) {
+    console.log("\n=== F 按下重新读取之后他走开了：结果回来不能把焦点抢回去 ===");
+    /* 与 teachers 页第九十七包 Ns5 同一条边界：捕获之后还要 await 读取，
+       这段时间他完全可以走开。扣住读取，确定性造出「正在等」那一段。 */
+    const outsideMain = async () => cdp.ev(`(()=>{const a=document.activeElement;
+      const m=document.getElementById("main");
+      if(!a || a===document.body) return { out:false, where:"BODY" };
+      return { out: !!(m && !m.contains(a)), where:a.tagName,
+               cls:(a.className||"").toString().slice(0,20),
+               text:(a.textContent||"").replace(/\s+/g," ").trim().slice(0,18) };})()`);
+    const tabToReload = async () => {
+      for (let i = 1; i <= 60; i++) {
+        await press("Tab");
+        const on = await cdp.ev(`(()=>{const a=document.activeElement;
+          return !!(a && a.hasAttribute && a.hasAttribute("data-hqreload"));})()`);
+        if (on) return true;
+      }
+      return false;
+    };
+    await openWith({ data:null, error:{ message:"boom" }, status:500 });
+    ok("F0 前提：这一次读失败了，页面上有「重新读取」",
+       (await cdp.ev(`(()=>!!document.querySelector("[data-hqreload]"))()`)) === true);
+    await cdp.ev(`(()=>{ window.__holdSelect = "application_hq_approvals";
+      window.__SCEN.tables.application_hq_approvals = { data:[ ${JSON.stringify(row("approved"))} ] };
+      return true; })()`);
+    ok("F1 前提：真实 Tab 走到「重新读取」并按下", (await tabToReload()) === true);
+    await press("Enter");
+    ok("F2 前提：这次读取确实被扣住了（不是靠 sleep 赌）",
+       await until(async () => cdp.ev(`(()=>!!window.__heldSelect)()`), 6000));
+    const outHit = await (async () => {
+      for (let i = 1; i <= 20; i++) { await press("Tab");
+        const w = await outsideMain(); if (w.out) return w; }
+      return null;
+    })();
+    ok("F3 前提：他趁这段时间真实 Tab 走到了 main 外面", !!outHit, JSON.stringify(outHit));
+    await cdp.ev(`(()=>{ if(window.__releaseSelect) window.__releaseSelect(); return true; })()`);
+    ok("F4 前提：结果回来了，这一段重画成了新结果",
+       await until(async () => /总校确认已通过/.test(await hqText() || ""), 8000),
+       JSON.stringify(await hqText()));
+    const after = await outsideMain();
+    ok("F5 焦点没有被抢回去 —— 他还站在刚才走到的那个地方",
+       after.out === true && after.text === (outHit || {}).text, JSON.stringify({ outHit, after }));
+    /* 正控：他**没有**走开时，重画之后焦点要回到这一段，不能掉进 body。 */
+    await openWith({ data:null, error:{ message:"boom" }, status:500 });
+    await cdp.ev(`(()=>{ window.__SCEN.tables.application_hq_approvals =
+      { data:[ ${JSON.stringify(row("approved"))} ] }; return true; })()`);
+    ok("F6 前提：又走到「重新读取」并按下", (await tabToReload()) === true);
+    await press("Enter");
+    await until(async () => /总校确认已通过/.test(await hqText() || ""), 8000);
+    const stay = await cdp.ev(`(()=>{const a=document.activeElement;
+      if(!a || a===document.body) return { where:"BODY" };
+      const b=a.closest? a.closest("#hqBox"):null;
+      return { where:a.tagName, inHq: !!b };})()`);
+    ok("F7 他没走开时，重画之后焦点回到这一段（没掉进 body）",
+       stay.where !== "BODY" && stay.inHq === true, JSON.stringify(stay));
+  }
+
+  if (RUN("G")) {
+    console.log("\n=== G 外发 ===");
+    ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
+    ok("G2 全程没有调用任何 Edge Function", edgeCalls.length === 0, JSON.stringify(edgeCalls.slice(0, 2)));
+    ok("G3 全程没有页面异常", pageErrors.length === 0, JSON.stringify(pageErrors.slice(0, 2)));
+  }
   cdp.ws.close();
 } finally {
   chrome.kill(); server.close();

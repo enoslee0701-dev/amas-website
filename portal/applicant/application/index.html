@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140116">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140124">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609140116"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609140116"></script>
-<script src="../../../assets/js/portal/api.js?v=202609140116"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609140116"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609140116"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609140116"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609140124"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609140124"></script>
+<script src="../../../assets/js/portal/api.js?v=202609140124"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609140124"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609140124"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609140124"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -261,13 +261,21 @@
       columns: HQ_COLS, eq: { application_id: app.id },
     });
     if (seq !== hqSeq) return;                          // 过期的那一次，丢掉
-    if (error) { hqState = "error"; hq = null; return; }
-    /* 读成功但没有那一行 = 还没有人记录过总校确认：
-       application_hq_approvals 的行是 confirm_hq_approval 写进去的
-       （0012:325 insert … on conflict）—— 没有行就是还没记过，
-       **不是**「没通过」。两者必须分开说。 */
-    if (!Array.isArray(data) || !data.length) { hqState = "empty"; hq = null; return; }
-    hqState = "ok"; hq = data[0];
+    if (error) { hqState = "unknown"; hq = null; return; }
+    /* 「空」只认**明确的空数组**这一种。
+       上一版把 `!Array.isArray(data)` 和 `[]` 并成了同一个 empty ——
+       那是把「契约之外的形状」当成了「确实没有记录」，两回事：
+       非数组（网关页、被改写的响应体）、多行（这张表 application_id 是主键，
+       0012:36 —— 出现多行就说明我们读到的东西不是契约里那张表）、
+       行里没有契约内的 status —— 这些一律算**未知**，并给「重新读取」。 */
+    if (!Array.isArray(data)) { hqState = "unknown"; hq = null; return; }
+    if (data.length === 0) { hqState = "empty"; hq = null; return; }
+    if (data.length !== 1) { hqState = "unknown"; hq = null; return; }
+    const r = data[0];
+    if (!r || typeof r !== "object" || !HQ_T[String(r.status || "")]) {
+      hqState = "unknown"; hq = null; return;
+    }
+    hqState = "ok"; hq = r;
   }
 
   /** 重读这一段：只重读，不整页刷新（整页刷新会把没保存的东西一起带走）。 */
@@ -288,14 +296,16 @@
       '<h2 style="font-size:15px;margin:0 0 8px">总校确认进度</h2>';
     const tail = '<div class="who" style="margin-top:8px">' +
       '这一段只反映总校确认的进度；录取状态见上方，学籍由教务另行建档。</div></div>';
-    if (hqState === "error") {
+    if (hqState === "unknown") {
       return head +
         '<div class="msg warn show" role="status">暂时无法获取总校确认进度。' +
         '<div style="margin-top:10px"><button class="btn ghost" type="button" data-hqreload ' +
         'style="width:auto;padding:0 18px">重新读取</button></div></div>' + tail;
     }
     if (hqState === "empty") {
-      return head + '<div class="msg info show" role="status">还没有总校确认的记录。</div>' + tail;
+      /* 措辞只说**我们这一次查到了什么**，不替服务端断言「从未有人记录过」：
+         真实 RLS 还没有验证过（B3 未解除），空结果也可能是别的原因。 */
+      return head + '<div class="msg info show" role="status">当前未查询到总校确认记录。</div>' + tail;
     }
     const st = String(hq && hq.status || "");
     const label = HQ_T[st];
@@ -304,9 +314,10 @@
         '<div style="margin-top:10px"><button class="btn ghost" type="button" data-hqreload ' +
         'style="width:auto;padding:0 18px">重新读取</button></div></div>' + tail;
     }
-    const when = hq.confirmed_at
+    const ts = hq.confirmed_at ? Date.parse(hq.confirmed_at) : NaN;
+    const when = Number.isFinite(ts)                    // 读不成时间就不显示，不写出 Invalid Date
       ? '<div class="who" style="margin-top:6px">时间：' +
-        UI.esc(new Date(hq.confirmed_at).toLocaleString("zh-CN")) + '</div>' : "";
+        UI.esc(new Date(ts).toLocaleString("zh-CN")) + '</div>' : "";
     /* 备注**不进 innerHTML**：这里只放一个空容器，正文在渲染之后用 textContent 写进去。 */
     const note = (hq.applicant_visible_note || "").trim()
       ? '<div class="msg info show" style="margin-top:10px"><b>总校说明：</b>' +
@@ -460,7 +471,14 @@
     if (hqBtn) hqBtn.addEventListener("click", reloadHq);
     if (hqFocusBack) {                                  // 是他按的重读：焦点别掉到 body
       hqFocusBack = false;
-      (hqBtn || main.querySelector("#hqBox"))?.focus?.();
+      /* 但**只恢复被这次重绘打掉的那一份**。按下之后还要等读取回来，
+         这段时间他完全可以走开（去导航、去别处）——
+         那时无条件 focus 就是把他从别处拽回来（teachers 页同一条边界，
+         第九十七包 Ns5 已经栽过一次）。 */
+      const now = document.activeElement;
+      if (!now || now === document.body || !now.isConnected) {
+        (hqBtn || main.querySelector("#hqBox"))?.focus?.();
+      }
     }
     /* 补件卡片是 render() 渲染的，绑定就跟着它走 —— 切步骤不该再绑一遍。 */
     bindRequirementTicks();
