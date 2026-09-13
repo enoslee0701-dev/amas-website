@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>学籍管理 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609132346">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140000">
 <style>
 .tabs{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap}
 .tabs button{min-height:40px;padding:0 16px;border:1.5px solid var(--line);border-radius:999px;background:#fff;
@@ -32,11 +32,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609132346"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609132346"></script>
-<script src="../../../assets/js/portal/api.js?v=202609132346"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609132346"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609132346"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609140000"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609140000"></script>
+<script src="../../../assets/js/portal/api.js?v=202609140000"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609140000"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609140000"></script>
 <script>
 /* PORTAL-2 学籍管理（教务侧）
    闭环：录取 → 记录总校审核确认 → 建档(pre_enrolled) → 正式注册(active)；学号可经专用通道更正。
@@ -363,6 +363,16 @@
       return UI.toast("这一行既没读到姓名、也没有学号，认不出是对谁操作 —— 这一次不执行，请刷新后再试。", "err");
     }
     modal({
+      /* 换发学号必须按**这名学生**上锁：它和总校确认那两个入口不一样 ——
+         服务端挡不住重复提交（每一次单看都合法），而每成功一次，
+         当时那个号就被记为 released_at 且「仍留在登记簿内，永不重新分配」
+         （0012_student_core.sql:329-336）。他按下之后回得慢、关掉框重开再提交一次，
+         中间那个号就**永久烧掉**了（本轮修前 Nx7：同一名学生扣住 2 笔，
+         B26-1111 与 B26-2222）。
+         对照：request_number_void 那一路有唯一约束兜底，第二笔会被服务端
+         挡成 request_already_pending（0015_student_number_states.sql:351），
+         页面也说得出具体原因，所以那一路这次不加锁、不动。 */
+      lock: sid,
       title: "换发学号",
       desc: "对象：" + who.line + "。现学号 " + (who.number || "尚未录入") + " 会记为 retired。" +
             "用于学号确实换发的情形：旧学号会记为 retired，作为历史身份标识**永久占用**，" +

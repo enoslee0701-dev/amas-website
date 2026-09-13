@@ -896,6 +896,126 @@ try {
   await sleep(600);
   if (await modalUp()) await pressEsc();
 
+  console.log("\n=== Nx 换发学号：关掉再重开，同一名学生会不会被换两次号 ===");
+  /* 「记录总校确认」「建立学籍」两个入口已经按对象上锁了，学号这一组还没有。
+     换发学号（correct_student_number）和它们不同的地方是：
+     **服务端根本挡不住重复提交** —— 每一次调用单看都合法，
+     旧号会被记为 released_at 且「仍留在登记簿内，永不重新分配」
+     （0012_student_core.sql:329-336）。也就是说，关掉重开再提交一次，
+     中间那个号就**永久烧掉**了。
+     （对照：request_number_void 有唯一约束兜底，第二笔会被服务端挡成
+      request_already_pending，0015_student_number_states.sql:351。）
+     驱动全程真实按键；判定读**状态**（扣住几笔、body 是哪个动作/哪个对象）。 */
+  const setStudents = async () => cdp.ev(`(()=>{
+    window.__SCEN.tables.student_records = { data:[
+      { id:"stu-1", user_id:"u-stu1", status:"pre_enrolled", student_number:"B26-0007",
+        program_code:"bth", activated_at:null, created_at:"2026-09-01T00:00:00Z" },
+      { id:"stu-2", user_id:"u-stu2", status:"pre_enrolled", student_number:"B26-0008",
+        program_code:"bth", activated_at:null, created_at:"2026-08-01T00:00:00Z" } ] };
+    window.__SCEN.tables.profiles = { data:[
+      { id:"u-stu1", display_name:"学生甲", email:"s1@example.invalid" },
+      { id:"u-stu2", display_name:"学生乙", email:"s2@example.invalid" } ] };
+    return true; })()`);
+  const goStudentsTab = async () => {
+    const t = await tabUntil(a => (a.attrs || "").indexOf("data-tab") > -1 &&
+      /在册学生/.test(a.text || ""), 30);
+    if (!t.hit) return false;
+    await press("Enter"); await sleep(1000);
+    return (await cdp.ev(`!!document.querySelector("[data-fixnum]")`)) === true;
+  };
+  const activeId = async () => cdp.ev(`(()=>{const a=document.activeElement; return a?(a.id||""):"";})()`);
+  /** 真实 Tab 走到某一格再打字；打之前确认**真的站在它上面**（不然就打到别人身上了）。 */
+  const typeInto = async (id, text) => {
+    for (let i = 0; i < 14; i++) {
+      if ((await activeId()) === id) { await typeText(text); return (await activeId()) === id; }
+      await press("Tab");
+    }
+    return false;
+  };
+  /** 真实 Tab 走到第 idx 个「换发学号」入口并按下去。 */
+  const openFix = async (idx) => {
+    const want = await cdp.ev(`(()=>{const bs=[...document.querySelectorAll("[data-fixnum]")];
+      return bs[${idx}] ? bs[${idx}].dataset.fixnum : null;})()`);
+    if (!want) return null;
+    for (let i = 1; i <= 90; i++) {
+      await press("Tab");
+      const v = await cdp.ev(`(()=>{const a=document.activeElement;
+        return a && a.dataset ? (a.dataset.fixnum || "") : "";})()`);
+      if (v === want) { await press("Enter"); await sleep(600);
+        return (await modalUp()) === true ? want : null; }
+    }
+    return null;
+  };
+  const fillFix = async (num, reason) =>
+    (await typeInto("f-num", num)) && (await typeInto("f-reason", reason));
+  const bodiesOf = () => heldEdge.map(h => { try { const b = JSON.parse(h.body);
+    return b.action + "/" + (b.student_id || b.application_id || "?") + "/" + (b.student_number || ""); }
+    catch (e) { return "?"; } });
+
+  await openAdmin("/portal/admin/students/");
+  await setStudents();
+  edgeHold = true; heldEdge = [];
+  ok("Nx0 前提：键盘走得到「在册学生」，而且列出了学生", (await goStudentsTab()) === true);
+  const sid1 = await openFix(0);
+  ok("Nx1 前提：第一名学生的「换发学号」框开着", sid1 === "stu-1", JSON.stringify(sid1));
+  ok("Nx2 前提：新学号和原因都真的打进去了", (await fillFix("B26-1111", "总校换发")) === true,
+     JSON.stringify(await cdp.ev(`(()=>{const g=(k)=>{const i=document.querySelector('.portal-modal [data-f="'+k+'"]');
+       return i?i.value:null;}; return { num:g("num"), reason:g("reason") };})()`)));
+  ok("Nx3 前提：按下「确认更正」", (await clickAct(/确认更正/)) === true);
+  ok("Nx4 前提：这一笔 POST 到达并被扣住，确实是这名学生的换发",
+     await until(async () => heldEdge.length === 1, 6000) &&
+     /^correct_student_number\/stu-1\//.test(bodiesOf()[0] || ""), JSON.stringify(bodiesOf()));
+  await pressEsc();
+  ok("Nx5 前提：框关掉了，但请求还在路上", (await modalUp()) === false);
+  const sid1b = await openFix(0);
+  ok("Nx6 前提：同一名学生的框又开起来了", sid1b === "stu-1", JSON.stringify(sid1b));
+  await fillFix("B26-2222", "再换一次");
+  await clickAct(/确认更正/);
+  await sleep(900);
+  ok("Nx7 同一名学生**不该**再发出第二笔换发（中间那个号会被永久烧掉）",
+     heldEdge.length === 1, "扣住 " + heldEdge.length + " 笔：" + JSON.stringify(bodiesOf()));
+  /* 这个框只有一个动作，不能用 actsAllOff（它要求 >= 2 个）—— 那样写永远判 false。 */
+  const nxNote = await noteText();
+  const nxActs = await actsState();
+  ok("Nx8 并且要让他知道为什么按不动（按状态判：给了说明、动作全禁）",
+     !!nxNote && nxActs.length >= 1 && nxActs.every(b => b.d),
+     JSON.stringify({ nxNote, nxActs }));
+  const nxToast = await toastText();
+  await heldEdge[0].send();
+  ok("Nx9 前提：旧那一笔的回执被前端消费了",
+     await until(async () => { const t = await toastText(); return t && t !== nxToast; }, 8000),
+     JSON.stringify(await toastText()));
+  edgeHold = false; heldEdge = [];
+  await sleep(600);
+  if (await modalUp()) await pressEsc();
+
+  /* 换一名学生不能被误伤。 */
+  await openAdmin("/portal/admin/students/");
+  await setStudents();
+  edgeHold = true; heldEdge = [];
+  ok("Nx10 前提：又到「在册学生」这一栏", (await goStudentsTab()) === true);
+  const s1 = await openFix(0);
+  await fillFix("B26-3333", "总校换发");
+  await clickAct(/确认更正/);
+  ok("Nx11 前提：第一名学生那一笔被扣住", s1 === "stu-1" &&
+     await until(async () => heldEdge.length === 1, 6000), JSON.stringify(bodiesOf()));
+  await pressEsc();
+  const s2 = await openFix(1);
+  ok("Nx12 第二名学生的框照常打开（真实 Tab 走过去）", s2 === "stu-2", JSON.stringify(s2));
+  const note2 = await noteText();
+  const acts2b = await actsState();
+  ok("Nx13 没有被第一名学生的在途锁误伤（没有那段说明、动作都还能按）",
+     note2 === null && acts2b.length >= 1 && acts2b.every(b => !b.d),
+     JSON.stringify({ note2, acts2b }));
+  await fillFix("B26-4444", "总校换发");
+  await clickAct(/确认更正/);
+  ok("Nx14 第二名学生能照常发出自己那一笔",
+     await until(async () => heldEdge.length === 2, 6000), JSON.stringify(bodiesOf()));
+  for (const hd of heldEdge) await hd.send();
+  edgeHold = false; heldEdge = [];
+  await sleep(800);
+  if (await modalUp()) await pressEsc();
+
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
   ok("G2 全程没有页面异常", pageErrors.length === 0, JSON.stringify(pageErrors.slice(0, 2)));
