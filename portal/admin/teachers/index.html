@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>教师验证审核 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140051">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140058">
 <style>
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .tab{min-height:44px;padding:0 15px;border:1px solid var(--line);border-radius:99px;background:#fff;
@@ -33,15 +33,18 @@
   border-radius:10px;font:inherit;font-size:13.5px;resize:vertical}
 .rsn textarea:focus{outline:none;border-color:var(--navy2);box-shadow:0 0 0 3px rgba(23,63,112,.12)}
 .rsn .h{font-size:12px;color:var(--muted);margin-top:5px}
+/* 待核实时留下的只读草稿：看得见、选得中、改不动 */
+.rsn.ro textarea{background:var(--wash);color:var(--muted);border-style:dashed;cursor:default}
+.rsn.ro label{color:var(--muted)}
 </style>
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609140051"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609140051"></script>
-<script src="../../../assets/js/portal/api.js?v=202609140051"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609140051"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609140051"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609140058"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609140058"></script>
+<script src="../../../assets/js/portal/api.js?v=202609140058"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609140058"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609140058"></script>
 <script>
 /* 管理端教师验证审核台。
 
@@ -214,7 +217,17 @@
         (unresolved.has(r.id)
           ? '<div class="msg warn show" role="alert" style="margin-top:12px">' +
               UI.esc(unresolved.get(r.id)) +
-              '</div><div class="acts"><button class="btn" type="button" data-verify="' + UI.esc(r.id) + '">' +
+              '</div>' +
+            /* 他刚写的那段话要**看得见**：只读、明确标注，可以选中复制。
+               这一支里一个动作按钮都没有，所以它发不出去；
+               文字不写进 HTML，由下面的草稿回填逻辑赋 value（同一条路径，不另开口子）。 */
+            ((draftMsg.get(r.id) || "").trim()
+              ? '<div class="rsn ro"><label for="m-' + UI.esc(r.id) + '">' +
+                  '你刚才写的审核说明（只读，这一次的结果还没有确认）</label>' +
+                  '<textarea id="m-' + UI.esc(r.id) + '" readonly aria-readonly="true"></textarea>' +
+                  '<div class="h">这段话还留着，可以选中复制。核实之后它会回到可编辑的状态。</div></div>'
+              : '') +
+            '<div class="acts"><button class="btn" type="button" data-verify="' + UI.esc(r.id) + '">' +
               '刷新核实这条的当前状态</button></div>'
           : acts.length
           ? '<div class="rsn"><label for="m-' + UI.esc(r.id) + '">审核说明（对方可见）</label>' +
@@ -257,8 +270,25 @@
     const card = main.querySelector('.rq[data-id="' + CSS.escape(id) + '"]');
     if (!card) return;
     card.querySelectorAll("[data-act]").forEach((b) => b.remove());
+    /* 原来这里是整块 rsn.remove() —— 他刚写的那段话当场从屏幕上消失，
+       连看一眼、选中复制都做不到（第九十六包 Lv4 把这个现状记了下来）。
+       改成**就地转成只读**：留着给他看、给他复制；
+       动作按钮上面已经全部移除，所以这段话发不出去，也不改变任何审批状态。 */
     const rsn = card.querySelector(".rsn");
-    if (rsn) rsn.remove();
+    if (rsn) {
+      const rta = rsn.querySelector("textarea");
+      if (rta && rta.value.trim()) {
+        rsn.classList.add("ro");
+        rta.readOnly = true;
+        rta.setAttribute("aria-readonly", "true");
+        const lab = rsn.querySelector("label");
+        if (lab) lab.textContent = "你刚才写的审核说明（只读，这一次的结果还没有确认）";
+        const hint = rsn.querySelector(".h");
+        if (hint) hint.textContent = "这段话还留着，可以选中复制。核实之后它会回到可编辑的状态。";
+      } else {
+        rsn.remove();                       // 本来就没写，不留一个空框占地方
+      }
+    }
     const box = card.querySelector(".msg.err");
     if (box) { box.textContent = text; box.hidden = false; }
     let acts = card.querySelector(".acts");
