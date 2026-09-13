@@ -1226,6 +1226,65 @@ try {
      !!p8 && p8.form_data && JSON.stringify(p8.form_data.programs) === JSON.stringify(["cert"]),
      JSON.stringify(p8 && p8.form_data && p8.form_data.programs));
 
+  // ════════ Rq 补件闭环：找得到要改哪一项（blueprint §6）════════
+  console.log("\n=== Rq 收到补件要求之后，得知道改哪个字段 ===");
+  /* 0011_requirement_field_unlock：补件条目可以携带 field，review_application 会
+     把这些 field 从 locked_fields 里精确移除 —— 也就是「教务专门为这一项给你解了锁」。
+     可是申请人这一侧：loadRequirements 连 field 这一列都没取
+     （columns: "id,label,detail,resolved,created_at"），renderRequirements 更不会显示。
+     于是他看到的只有一行文字，要在六步、四十来个字段里自己找那个「不再是灰的」框。 */
+  const NEEDS = { ...DRAFT, status: "needs_information",
+    locked_fields: ["name_zh", "birth_ym"] };      // birth_ym 已被这次补件解锁
+  const reqRows = (rows) => ({ ...BASE_TABLES, application_requirements: { data: rows } });
+  const rqCard = async () => cdp.ev(`(()=>{const c=document.querySelector(".rqlist");
+    const box = c && c.closest(".card");
+    return box ? (box.textContent||"").replace(/\\s+/g," ").trim() : null;})()`);
+
+  await open({ tables: reqRows([
+      { id:"r1", label:"补一份受洗证明", detail:"扫描件即可", field:"baptism_date", resolved:false, created_at:"2026-09-10T00:00:00Z" },
+    ]), rpc: { my_application: { data: [{ ...NEEDS, locked_fields: ["name_zh"] }] } } });
+  const rq0 = await rqCard();
+  ok("Rq0 前提：补件卡片在", /需要补充的资料/.test(rq0 || ""), (rq0 || "").slice(0, 120));
+  ok("Rq1 带 field 的条目说得出对应的是哪个字段",
+     /受洗日期/.test(rq0 || ""), (rq0 || "").slice(0, 240));
+  ok("Rq1b 并说出在第几步",
+     /第 *\d+ *步/.test(rq0 || ""), (rq0 || "").slice(0, 240));
+  ok("Rq2 给得出「去修改」的入口",
+     (await cdp.ev(`!!document.querySelector("[data-gofield]")`)) === true);
+
+  await cdp.ev(`(()=>{const b=document.querySelector("[data-gofield]"); if(b) b.click(); return !!b;})()`);
+  await sleep(500);
+  const jumped = await cdp.ev(`(()=>{const el=document.getElementById("fd-baptism_date");
+    return { there: !!el, disabled: el ? !!el.disabled : null,
+             focused: document.activeElement && document.activeElement.id };})()`);
+  ok("Rq2b 点了之后确实到了那个字段，而且它是可以改的",
+     jumped.there === true && jumped.disabled === false, JSON.stringify(jumped));
+
+  /* 不带 field 的条目（纯文字说明）不该硬造一个字段出来。 */
+  await open({ tables: reqRows([
+      { id:"r2", label:"请补充一段服事说明", detail:"", field:null, resolved:false, created_at:"2026-09-10T00:00:00Z" },
+    ]), rpc: { my_application: { data: [NEEDS] } } });
+  const rq3 = await rqCard();
+  ok("Rq3 对照：不带 field 的条目不显示字段行，也不给跳转",
+     !/对应字段/.test(rq3 || "") &&
+     (await cdp.ev(`!document.querySelector("[data-gofield]")`)) === true, (rq3 || "").slice(0, 200));
+
+  /* field 是表单里不认识的名字（表单版本漂移）：照实显示，不瞎猜、不给跳转。 */
+  await open({ tables: reqRows([
+      { id:"r3", label:"补一项", detail:"", field:"some_unknown_field", resolved:false, created_at:"2026-09-10T00:00:00Z" },
+    ]), rpc: { my_application: { data: [NEEDS] } } });
+  const rq4 = await rqCard();
+  ok("Rq4 字段名在这一版表单里认不出来时，照实说，不乱指一个",
+     /some_unknown_field/.test(rq4 || "") && !/第 *\d+ *步/.test(rq4 || ""), (rq4 || "").slice(0, 240));
+
+  /* 该字段仍然锁着：别把人支去点一个灰框。 */
+  await open({ tables: reqRows([
+      { id:"r5", label:"改一下中文姓名", detail:"", field:"name_zh", resolved:false, created_at:"2026-09-10T00:00:00Z" },
+    ]), rpc: { my_application: { data: [{ ...NEEDS, locked_fields: ["name_zh"] }] } } });
+  const rq5 = await rqCard();
+  ok("Rq5 对应字段仍然锁着时，明说现在改不了、该找谁",
+     /锁定|改不了/.test(rq5 || "") && /招生|教务|联系/.test(rq5 || ""), (rq5 || "").slice(0, 240));
+
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
