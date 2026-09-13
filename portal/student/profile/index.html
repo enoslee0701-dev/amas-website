@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>我的资料 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140222">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140307">
 <style>
 .sec{margin-bottom:18px}
 .sec h2{font-size:16px;color:var(--navy);margin:0 0 4px}
@@ -27,11 +27,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609140222"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609140222"></script>
-<script src="../../../assets/js/portal/api.js?v=202609140222"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609140222"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609140222"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609140307"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609140307"></script>
+<script src="../../../assets/js/portal/api.js?v=202609140307"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609140307"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609140307"></script>
 <script>
 /* PORTAL-2B 学生资料页（2B-1）
    Single Person Model：人物主数据在 profiles，学籍数据在 student_records，
@@ -118,25 +118,40 @@
      「已经填好」那一版同时给出**完成出口** —— 待办是从学员中心点过来的，
      做完了得有一条路回去，而不是让他自己在导航里找。 */
   const phNote = document.getElementById("phNote");
-  function renderPhNote(filled){
-    if (!phNote) return;
-    phNote.innerHTML = filled
+  /* 三种状态，各说各的事：
+       empty   还没填 —— 说清楚为什么要填，并给一步到那一格的入口；
+       done    刚存好 —— 给完成出口（回学员中心）；
+       pending 存好之后**又改了** —— 这一版还没保存。
+     第三种是必须的：只有前两种时，他存完再改号码，页面还停在
+       「联系电话已经填好了 · 回到学员中心 →」——
+     把**上一版**的结论说成当前这一版，还顺手邀请他带着没保存的改动离开
+     （本轮实测 Se2/Se3）。这与本页既有的 sameVersion 口径是同一条原则。 */
+  function renderPhNote(state){
+    const box = document.getElementById("phNote");
+    if (!box) return;
+    box.innerHTML =
+      state === "done"
       ? '<div class="msg ok show" style="margin:0 0 12px" role="status">' +
         '联系电话已经填好了。' +
         '<div style="margin-top:8px"><a class="link" href="' + A.ROOT + 'portal/student/">' +
         '回到学员中心 →</a></div></div>'
+      : state === "pending"
+      ? '<div class="msg warn show" style="margin:0 0 12px" role="status">' +
+        '你刚改的这一版**还没保存**。保存之后再离开。</div>'
       : '<div class="msg info show" style="margin:0 0 12px" role="status">' +
         '<b>你还没有填写联系电话。</b>教务在需要时会用这个号码联系你。' +
         '<div style="margin-top:8px"><button class="btn ghost" type="button" data-gophone ' +
         'style="width:auto;padding:0 18px">去填联系电话</button></div></div>';
-    const jump = phNote.querySelector("[data-gophone]");
+    const phNote = box;
+    const jump = box.querySelector("[data-gophone]");
     if (jump) jump.addEventListener("click", () => {
       const el = document.getElementById("ph");
       el?.focus?.();
       if (el && el.setSelectionRange) { try { el.setSelectionRange(el.value.length, el.value.length); } catch (e) {} }
     });
   }
-  if (!(self.phone || "").trim()) renderPhNote(false);
+  let phState = (self.phone || "").trim() ? null : "empty";
+  if (phState) renderPhNote("empty");
   /* 改了还没保存就离开时拦一下。共享层早就有 UI.formGuard（申请表单在用），
      这一页一直没挂 —— 用户改了手机号或联系方式，顺手点导航里的
      「首页 / 我的申请 / 帮助 / 退出」，输入就没了，连句提醒都没有。
@@ -144,7 +159,11 @@
   let dirty = false;
   ["nm", "ph", "ct"].forEach((id) => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener("input", () => { dirty = true; });
+    if (el) el.addEventListener("input", () => {
+      dirty = true;
+      /* 存好之后又动了电话这一格：那块提示不能再说「已经填好了」。 */
+      if (id === "ph" && phState === "done") { phState = "pending"; renderPhNote("pending"); }
+    });
   });
   UI.formGuard(() => dirty);
 
@@ -182,7 +201,10 @@
     UI.toast(sameVersion ? "资料已保存" : "刚才提交的那一版已保存；之后改的还没保存");
     /* 存完之后把那块提示按**现在框里的值**改写：填好了就说填好了，并给回学员中心的路。
        只在这一版就是提交的那一版时才敢说「已经填好」—— 否则他之后改的那一版还没存。 */
-    if (sameVersion) renderPhNote(!!(document.getElementById("ph") || {}).value.trim());
+    if (sameVersion) {
+      phState = (document.getElementById("ph") || {}).value.trim() ? "done" : "empty";
+      renderPhNote(phState);
+    }
   });
 })();
 </script>
