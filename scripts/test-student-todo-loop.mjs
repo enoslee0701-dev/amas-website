@@ -51,36 +51,52 @@ const chrome = spawn(CHROME, ["--headless=new", "--remote-debugging-port=0",
   `--user-data-dir=${prof}`, "--no-first-run", "--no-default-browser-check",
   "--host-resolver-rules=MAP *.supabase.co 0.0.0.0, MAP *.supabase.in 0.0.0.0",
   "--disable-gpu", "--hide-scrollbars", "about:blank"], { stdio: "ignore" });
-/* 看门狗：挂住时**自己收摊并退出**，而不是无限等下去。
-   到点只杀**本进程 spawn 的那一个** Chrome（绝不碰用户的浏览器），
-   删掉自己的临时 profile，打印一行 INCOMPLETE 并以非 0 退出。
-   它不降低任何断言，也不把挂起算成通过 —— 只是让挂起「响一声」而不是静默挂着。
-   缘由见 failures-web.jsonl 的 eventb5c5-combined-timeout：根因仍未结。 */
+/* 收摊与看门狗。要点（监督点名的几处证据弱点）：
+     · chrome.kill() 只是**发信号**，不等于已退出 —— 必须等**这个 PID** 真的退出；
+     · 没确认退出就 rm profile，会和 Chrome 重建目录赛跑 —— 所以**先确认再删**；
+     · 只认**本进程 spawn 的那个 PID 与那一个 profile**，
+       不看「系统里 Chrome 总数」（那证明不了属于本次的已退），也不碰旧目录、不碰用户 Chrome；
+     · 信号退出码按语义给：SIGINT=130 / SIGTERM=143 / SIGHUP=129。
+   缘由见 failures-web.jsonl 的 eventb5c5-combined-timeout（根因仍未结）。 */
+const CHILD_PID = chrome.pid;
+const MY_PROFILE = prof;
+let childExited = false;
+chrome.on("exit", () => { childExited = true; });
+const alive = (pid) => { try { process.kill(pid, 0); return true; } catch (e) { return false; } };
+async function shutdown(code, why){
+  stopWatchdog();
+  try { chrome.kill("SIGKILL"); } catch (e) {}
+  const t0 = Date.now();
+  while (!childExited && alive(CHILD_PID) && Date.now() - t0 < 5000) await sleep(100);
+  const exited = childExited || !alive(CHILD_PID);
+  try { server.close(); } catch (e) {}
+  let removed = false;
+  if (exited) {                       // **确认退出之后**才删，避免与重建竞态
+    try { fs.rmSync(MY_PROFILE, { recursive: true, force: true }); } catch (e) {}
+    removed = !fs.existsSync(MY_PROFILE);
+  }
+  console.log("  清理：本次 PID=" + CHILD_PID + " 已退出=" + exited +
+              "；profile=" + MY_PROFILE + " 删除=" + removed +
+              (exited ? "" : "（未确认退出，**不删** profile —— 宁可留下也不跟重建赛跑）") +
+              (why ? "；原因=" + why : ""));
+  process.exit(code);
+}
 const WATCHDOG_MS = Number(process.env.WATCHDOG_MS || 600000);
 let watchdogDone = false;
 const watchdogTimer = setTimeout(() => {
   if (watchdogDone) return;
-  console.log("\n  ⏱ INCOMPLETE：跑了 " + Math.round(WATCHDOG_MS / 1000) +
-              "s 还没结束，按看门狗约定自行退出（只杀本进程自己的 Chrome）。");
+  console.log("\n  ⏱ INCOMPLETE：跑了 " + Math.round(WATCHDOG_MS / 1000) + "s 还没结束，自行退出。");
   console.log("  这不是「通过」，也不是产品失败 —— 见 eventb5c5-combined-timeout（根因未结）。");
-  watchdogDone = true;
-  try { chrome.kill("SIGKILL"); } catch (e) {}
-  try { server.close(); } catch (e) {}
-  try { fs.rmSync(prof, { recursive: true, force: true }); } catch (e) {}
-  setTimeout(() => process.exit(3), 300);
+  shutdown(3, "watchdog");
 }, WATCHDOG_MS);
 const stopWatchdog = () => { watchdogDone = true; clearTimeout(watchdogTimer); };
-/* 被外部信号结束时也要收摊：否则 finally 根本不会跑，
-   每被 kill 一次就在系统临时目录里留下一个 profile（实测已累积数百个）。
-   同样只杀自己 spawn 的那个 Chrome。 */
-for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) {
-  process.on(sig, () => {
-    stopWatchdog();
-    try { chrome.kill("SIGKILL"); } catch (e) {}
-    try { server.close(); } catch (e) {}
-    try { fs.rmSync(prof, { recursive: true, force: true }); } catch (e) {}
-    process.exit(130);
-  });
+/* 被外部信号结束时也要收摊：否则 finally 不会跑，每被 kill 一次就留下一个 profile。
+   口径写明白：`ls -d $TMPDIR/amas-stu-*` = 37 个，是**本脚本自己**的残留；
+   先前注释里的「数百个」是我数错了 —— `ls` 没加 -d，数成了目录里的内容。
+   （$TMPDIR 下 amas-* 合计 776 个是**所有探针加夹具目录**，不是本脚本的。） */
+const SIG_CODE = { SIGINT: 130, SIGTERM: 143, SIGHUP: 129 };
+for (const sig of Object.keys(SIG_CODE)) {
+  process.on(sig, () => { shutdown(SIG_CODE[sig], sig); });
 }
 
 async function ownDebugPort() {
@@ -869,8 +885,17 @@ try {
   }
   cdp.ws.close();
 } finally {
-  chrome.kill(); server.close();
-  try { fs.rmSync(prof, { recursive: true, force: true }); } catch (e) {}
+  /* 正常结束也按同一条规矩：先确认这个 PID 退出，再删自己的 profile。 */
+  try { chrome.kill("SIGKILL"); } catch (e) {}
+  const t0 = Date.now();
+  while (!childExited && alive(CHILD_PID) && Date.now() - t0 < 5000) await sleep(100);
+  const exited = childExited || !alive(CHILD_PID);
+  try { server.close(); } catch (e) {}
+  let removed = false;
+  if (exited) { try { fs.rmSync(MY_PROFILE, { recursive: true, force: true }); } catch (e) {}
+                removed = !fs.existsSync(MY_PROFILE); }
+  console.log("  清理：本次 PID=" + CHILD_PID + " 已退出=" + exited +
+              "；profile 删除=" + removed + (exited ? "" : "（未确认退出，不删）"));
 }
 
 stopWatchdog();
