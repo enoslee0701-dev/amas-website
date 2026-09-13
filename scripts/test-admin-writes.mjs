@@ -124,16 +124,37 @@ const CFG = 'window.SUPA={url:"https://abcdefghijklmnopqrst.supabase.co",anonKey
 /** 表驱动 stub（沿用 test-portal-pages 的形状）。Edge 调用不走这里 ——
     它们是 fetch("/functions/v1/…")，在页面里改写 fetch 来控制结果。 */
 const STUB = `
+window.__failed_ = {};
 window.supabase = {
   createClient: function(){
     var S = function(){ return window.__SCEN || {}; };
     var reply = function(v){ return Promise.resolve(v); };
     function table(name){
+      /* range 不能是 no-op —— 那样分页测了等于没测。这里**真的按 range 切片**，
+         并把每一次请求的 range 记下来，好断言「有没有跳页、重试有没有换页」。
+         另外支持按 range 注入一次性失败与延迟，用来造并发与晚回。 */
       var q = { select:function(){return q;}, eq:function(){return q;}, in:function(){return q;},
-        order:function(){return q;}, range:function(){return q;}, limit:function(){return q;}, maybeSingle:function(){return q;},
+        order:function(){return q;}, limit:function(){return q;}, maybeSingle:function(){return q;},
+        range:function(a, b){ q.__range = [a, b]; return q; },
         then:function(res, rej){
-          var t = (S().tables && S().tables[name]) || { data: [], error: null };
-          return Promise.resolve({ data:t.data, error:t.error||null, status:t.error?500:200 }).then(res, rej);
+          var sc = S();
+          var t = (sc.tables && sc.tables[name]) || { data: [], error: null };
+          var out, key = null;
+          if (q.__range) {
+            key = q.__range[0] + ".." + q.__range[1];
+            try { (window.__ranges = window.__ranges || []).push(name + ":" + key); } catch (e) {}
+          }
+          if (key && sc.failRangeOnce === key && !window.__failed_[key]) {
+            window.__failed_[key] = 1;
+            out = { data:null, error:{ message:"boom" }, status:500 };
+          } else if (q.__range && Array.isArray(t.data)) {
+            out = { data: t.data.slice(q.__range[0], q.__range[1] + 1), error:null, status:200 };
+          } else {
+            out = { data:t.data, error:t.error||null, status:t.error?500:200 };
+          }
+          var d = (key && sc.rangeDelay && sc.rangeDelay[key]) || t.delay || 0;
+          return (d ? new Promise(function(r){ setTimeout(function(){ r(out); }, d); })
+                    : Promise.resolve(out)).then(res, rej);
         } };
       return q;
     }
@@ -929,30 +950,24 @@ try {
   ok("Pg2c 同时给出出路（先载入更早的，或缩小筛选）",
      /先载入更早的/.test(m2 || ""), (m2 || "").slice(0, 220));
 
-  // M4：点「载入更早的」，更早的那些要真进来，且不重复
+  /* Pg4/Pg5：stub 现在**真的按 range 切片**，所以直接用 340 份的真实分页来验，
+     不再靠中途换 fixture 那种把戏 —— 那种写法在 range 生效之后本来就不成立了。 */
   await open("portal/admin/admissions/", { tables: Object.assign({}, TABLES, {
-    applications: { data: manyApps(300, 0) } }) }, 3200);
-  await cdp.ev(`(()=>{window.__page2 = true; return true;})()`);
-  /* 第二页换一批 id：stub 不认 range，所以用切换 fixture 的办法模拟「更早的一页」。 */
-  await cdp.ev(`(()=>{const s=window.__SCEN; s.tables.applications.data =
-    ${JSON.stringify(JSON.stringify(0))} ? s.tables.applications.data : s.tables.applications.data; return true;})()`);
-  await cdp.ev(`(()=>{
-    const older = [];
-    for (let i = 300; i < 340; i++) older.push(Object.assign({}, window.__SCEN.tables.applications.data[0], {
-      id: "app-bulk-" + i, form_data: { name_zh: "申请人" + i, name_en: "X", church_name: "教会", programs: ["bth"] } }));
-    window.__SCEN.tables.applications.data = older; return older.length;})()`);
+    applications: { data: manyApps(340, 0) } }) }, 3200);
+  const p1ids = await cdp.ev(`(()=>Array.from(document.querySelectorAll("[data-open]")).map(b=>b.dataset.open))()`);
+  ok("Pg4-0 前提：第一页只有 300 份", (p1ids || []).length === 300, String((p1ids || []).length));
   await cdp.ev(`(()=>{const b=document.getElementById("btnMore"); if(b) b.click(); return !!b;})()`);
-  await sleep(1400);
-  const m4 = await cdp.ev(`(()=>{const t=document.querySelectorAll("#list tbody tr");
-    const ids = Array.from(document.querySelectorAll("[data-open]")).map(b=>b.dataset.open);
-    return { rows: t.length, uniq: new Set(ids).size, has0: ids.includes("app-bulk-0"),
-             has320: ids.includes("app-bulk-320") };})()`);
-  ok("Pg4 更早的那一批确实进来了，原来的也还在", !!m4 && m4.has0 === true && m4.has320 === true, JSON.stringify(m4));
+  await sleep(1200);
+  const m4 = await cdp.ev(`(()=>{const ids=Array.from(document.querySelectorAll("[data-open]")).map(b=>b.dataset.open);
+    return { rows: ids.length, uniq: new Set(ids).size,
+             has0: ids.includes("app-bulk-0"), has339: ids.includes("app-bulk-339") };})()`);
+  ok("Pg4 更早的那一批确实进来了，原来的也还在",
+     !!m4 && m4.rows === 340 && m4.has0 === true && m4.has339 === true, JSON.stringify(m4));
   ok("Pg4b 没有重复行", !!m4 && m4.rows === m4.uniq, JSON.stringify(m4));
 
   const m5 = await listVis();
   ok("Pg5 一页没取满就说已经是全部，并收起载入入口",
-     /已经是全部|已全部读到/.test(m5 || "") &&
+     /已经是全部/.test(m5 || "") &&
      (await cdp.ev(`!document.getElementById("btnMore")`)) === true, (m5 || "").slice(0, 220));
 
   // M6 对照：没到上限时一句截断提示都不该有
@@ -962,6 +977,108 @@ try {
   ok("Pg6 对照：总数没到上限时不出现任何截断提示",
      !/还有更早|已读到|已经是全部/.test(m6 || "") &&
      (await cdp.ev(`!document.getElementById("btnMore")`)) === true, (m6 || "").slice(0, 220));
+
+  // ════════ Pc 分页的并发/重绘/刷新（返修 bdb0e6e）════════
+  console.log("\n=== Pc 分页必须单飞且有世代 ===");
+  /* 监督的复现：loadPage 既没有请求互斥也没有世代。
+     两次并发同页请求 ranges=[0..299, 0..299] 都回 300，去重后 rows 仍是 300，
+     但 pagesLoaded 被各推进一次变成 2 —— 下一次直接要 600..899，**漏掉 300..599**。
+     真实入口不是「手速快」：旧 btnMore 只禁用了自己，任何一次筛选重绘都会
+     重建一个可用的新按钮，点它就并发了。
+     所以这一段用**真实的 range 记录**来断言有没有跳页，而不是换 fixture 蒙混。 */
+  const ranges = async () => (await cdp.ev(`(window.__ranges||[]).filter(x=>x.indexOf("applications:")===0)`)) || [];
+  const resetRanges = async () => cdp.ev(`(()=>{window.__ranges=[]; window.__failed_={}; return true;})()`);
+  const clickMore = async () => cdp.ev(`(()=>{const b=document.getElementById("btnMore");
+    if(!b || b.disabled) return "disabled-or-missing"; b.click(); return "clicked";})()`);
+  const bulk = (n) => Array.from({ length: n }, (_, i) => Object.assign({}, APP, {
+    id: "app-p-" + i, submitted_at: new Date(Date.now() - i * 3600e3).toISOString(),
+    form_data: { name_zh: "申请人" + i, name_en: "X", church_name: "教会", programs: ["bth"] } }));
+  const BIG = { tables: Object.assign({}, TABLES, { applications: { data: bulk(1000) } }) };
+
+  // ── C1 在途时重复点：只允许一个分页请求，偏移只被接受的那一次推进
+  await open("portal/admin/admissions/",
+    Object.assign({}, BIG, { rangeDelay: { "300..599": 900 } }), 3200);
+  await resetRanges();
+  await clickMore();                       // 触发 300..599（慢）
+  await sleep(120);
+  const mid = await cdp.ev(`(()=>{const b=document.getElementById("btnMore");
+    return b ? { present:true, disabled:!!b.disabled, text:(b.textContent||"").trim() } : { present:false };})()`);
+  ok("Pc1 在途时按钮是禁用的", mid.present === true && mid.disabled === true, JSON.stringify(mid));
+  const second = await clickMore();
+  ok("Pc1b 在途时再点点不动（不产生第二个请求）", second === "disabled-or-missing", String(second));
+  await sleep(1400);
+  const pr1 = await ranges();
+  /* 计数从 resetRanges() 之后算起 —— 首页那次请求在它之前就发完了。 */
+  ok("Pc1c 在途重复点之后，实际只发出了一次 300..599（没有重复、没有跳页）",
+     JSON.stringify(pr1) === JSON.stringify(["applications:300..599"]), JSON.stringify(pr1));
+
+  // ── C2 在途时改筛选触发重绘：重建出来的按钮也必须是禁用的
+  await open("portal/admin/admissions/",
+    Object.assign({}, BIG, { rangeDelay: { "300..599": 1200 } }), 3200);
+  await resetRanges();
+  await clickMore();
+  await sleep(150);
+  await cdp.ev(`(()=>{const s=document.getElementById("fPw"); s.value="bth";
+    s.dispatchEvent(new Event("change",{bubbles:true})); return true;})()`);
+  await sleep(200);
+  const rebuilt = await cdp.ev(`(()=>{const b=document.getElementById("btnMore");
+    return b ? { present:true, disabled:!!b.disabled } : { present:false };})()`);
+  ok("Pc2 筛选重绘后新建的按钮**仍然**是禁用的（单飞状态贯穿重绘）",
+     rebuilt.present === true && rebuilt.disabled === true, JSON.stringify(rebuilt));
+  const again = await clickMore();
+  await sleep(1600);
+  const pr2 = await ranges();
+  ok("Pc2b 重绘后再点也没有多发请求，更没有跳页",
+     again === "disabled-or-missing" &&
+     JSON.stringify(pr2) === JSON.stringify(["applications:300..599"]),
+     again + " / " + JSON.stringify(pr2));
+
+  // ── C3 第二页失败后重试：必须请求**同一个** range，不能跳过去
+  await open("portal/admin/admissions/",
+    Object.assign({}, BIG, { failRangeOnce: "300..599" }), 3200);
+  await resetRanges();
+  await clickMore();
+  await sleep(900);
+  const failTxt = await listVis();
+  ok("Pc3 第二页失败时明说更早的那一页没读到、上面这些不代表全部",
+     /没能读到/.test(failTxt || "") && /不代表全部/.test(failTxt || ""), (failTxt || "").slice(0, 200));
+  await clickMore();
+  await sleep(900);
+  const pr3 = await ranges();
+  ok("Pc3b 重试请求的仍是 300..599（失败没有推进偏移）",
+     JSON.stringify(pr3) === JSON.stringify(
+       ["applications:300..599", "applications:300..599"]), JSON.stringify(pr3));
+  const okTxt = await listVis();
+  ok("Pc3c 重试成功后那条失败提示消失", !/不代表全部/.test(okTxt || ""), (okTxt || "").slice(0, 160));
+
+  // ── C4 刷新之后旧页晚回：不许污染新列表，也不许推进新世代的偏移
+  await open("portal/admin/admissions/",
+    Object.assign({}, BIG, { rangeDelay: { "300..599": 1500 } }), 3200);
+  await resetRanges();
+  await clickMore();                        // 慢请求在途
+  await sleep(150);
+  await cdp.ev(`(()=>{const b=document.getElementById("fReload"); if(b) b.click(); return !!b;})()`);
+  await sleep(2200);                        // 等旧响应晚回
+  const pr4 = await ranges();
+  const st4 = await cdp.ev(`(()=>{const ids=Array.from(document.querySelectorAll("[data-open]")).map(b=>b.dataset.open);
+    return { rows: ids.length, uniq: new Set(ids).size };})()`);
+  ok("Pc4 刷新后旧页晚回不造成重复行", st4.rows === st4.uniq, JSON.stringify(st4));
+  await clickMore();
+  await sleep(2200);
+  const pr5 = await ranges();
+  const after = pr5.slice(pr4.length);
+  ok("Pc4b 刷新之后再点，要的仍是 300..599（旧响应没有推进偏移）",
+     after.length === 1 && after[0] === "applications:300..599", JSON.stringify({ pr4, pr5 }));
+
+  // ── C5 对照：正常一步步点，页码照常前进
+  await open("portal/admin/admissions/", BIG, 3200);
+  await resetRanges();
+  await clickMore(); await sleep(600);
+  await clickMore(); await sleep(600);
+  const pr6 = await ranges();
+  ok("Pc5 对照：顺序点两次，range 依次前进（不是一律拒绝）",
+     JSON.stringify(pr6) === JSON.stringify(
+       ["applications:300..599", "applications:600..899"]), JSON.stringify(pr6));
 
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");

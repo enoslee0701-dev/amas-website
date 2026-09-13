@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>招生审核 | AMAS 管理后台</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130735">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130801">
 <style>
 .qtable{width:100%;border-collapse:collapse;font-size:13px}
 .qtable th,.qtable td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:top}
@@ -34,12 +34,12 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130735"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130735"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130735"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130735"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130735"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609130735"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130801"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130801"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130801"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130801"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130801"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609130801"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -68,6 +68,15 @@
      改成一页页取：取满就说「可能还有更早的没读到」并给一条真出路。 */
   const PAGE = 300;
   let pagesLoaded = 0, maybeMore = false, moreErr = null;
+  /* 分页必须**单飞**且有**世代**，两样缺一不可：
+       单飞 —— 同一时刻只允许一个分页请求。而且这个状态要**贯穿重绘**：
+               旧按钮只禁用自己是不够的，任何一次筛选重绘都会重建一个新按钮，
+               新按钮如果是可用的，点下去就并发了。
+       世代 —— load() 刷新之后，上一代的晚回响应必须整条丢掉。
+               否则它会把 pagesLoaded 又推进一次，下一次直接跳过一整页
+               （实测：刷新后再点，要到的是 600..899，漏了 300..599）。
+     另外：偏移只由**被接受的那一次**响应推进；失败不推进，所以重试要的是同一个 range。 */
+  let pageInflight = false, generation = 0;
   const TERMINAL = ["accepted", "rejected", "withdrawn"];
 
   main.innerHTML = `
@@ -171,17 +180,29 @@
   await load();
 
   async function load(){
+    generation += 1;                 // 上一代的在途请求就此作废
+    pageInflight = false;
     UI.loading("#list", 4);
     rows = []; pagesLoaded = 0; maybeMore = false; moreErr = null;
     await loadPage();
   }
 
   async function loadPage(){
+    if (pageInflight) return;        // 单飞
+    const gen = generation;
     const from = pagesLoaded * PAGE;
+    pageInflight = true;
+    /* 已经有内容时立刻重绘一次，让按钮变成禁用的「读取中…」——
+       这样之后无论谁再触发重绘，读到的都是同一个在途状态。
+       首屏还在骨架态时不重绘，免得闪一下空态。 */
+    if (pagesLoaded > 0) renderList();
     const { data, error } = await Api.select("applications", {
       columns: "id,applicant_id,pathway,status,form_data,locked_fields,submitted_at,decided_at,updated_at,applicant_visible_message,assigned_reviewer",
       order: { column: "submitted_at", asc: false }, range: { from, to: from + PAGE - 1 },
     });
+    /* 上一代的晚回：整条丢掉，连 pageInflight 都不碰（新一代已经把它清成 false）。 */
+    if (gen !== generation) return;
+    pageInflight = false;
     if (error || !Array.isArray(data)) {
       const msg = (error && error.message) || "这一次没能读到申请列表。";
       if (!pagesLoaded) return UI.error("#list", { message: msg, onRetry: load });
@@ -200,11 +221,8 @@
 
   function bindMore(){
     const b = document.getElementById("btnMore");
-    if (!b) return;
-    b.addEventListener("click", async () => {
-      b.disabled = true; b.textContent = "读取中…";
-      await loadPage();
-    });
+    if (!b || b.disabled) return;
+    b.addEventListener("click", () => { loadPage(); });   // 禁用与文案由 renderList 统一管
   }
 
   /* 提交时间是这一列里唯一能定位到时间轴上的东西，但有两种行放不上去：
@@ -251,8 +269,10 @@
     const truncNote = maybeMore
       ? `<div class="msg warn show" style="margin-bottom:10px">目前只读到最新的 <b>${rows.length}</b> 份，` +
         `<b>可能还有更早的没读到</b>。下面的筛选与搜索都只在这些里面找。` +
-        `<div style="margin-top:8px"><button class="btn ghost" type="button" id="btnMore" ` +
-        `style="width:auto;padding:0 18px">载入更早的 ${PAGE} 份</button></div></div>`
+        `<div style="margin-top:8px"><button class="btn ghost" type="button" id="btnMore"` +
+        (pageInflight ? " disabled" : "") +
+        ` style="width:auto;padding:0 18px">` +
+        (pageInflight ? "读取中…" : "载入更早的 " + PAGE + " 份") + `</button></div></div>`
       : (pagesLoaded > 1
           ? `<div class="msg info show" style="margin-bottom:10px">已经是全部：共读到 <b>${rows.length}</b> 份。</div>`
           : "");
