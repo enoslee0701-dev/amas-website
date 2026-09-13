@@ -1047,6 +1047,59 @@ try {
   ok("Pr4b 并且不据此判定他选的项目无效（读不到 ≠ 不开放）",
      !/已停招|不开放/.test(pr4 || ""), (pr4 || "").slice(0, 240));
 
+  // ════════ Ps 选择变了，提示要跟着变（返修 d0b48df）════════
+  console.log("\n=== Ps 换成开放项目之后，旧警告不能还挂着 ===");
+  /* 那条「已不开放申请…这样提交会被退回」是在 fieldHtml 里渲染的，
+     而 fieldHtml 只在 renderStep() 时跑。改了下拉只会走 touch()，
+     角标更新了、**警告却原地不动** —— 他明明已经换成开放项目，页面还在说要被退回。
+     修的时候不能整段重绘（那会把正在操作的下拉弄失焦），只能换那一块。 */
+  const progWarn = async () => cdp.ev(`(()=>{const f=document.getElementById("appForm");
+    if(!f) return null; const k=f.cloneNode(true); k.querySelectorAll("[hidden]").forEach(n=>n.remove());
+    return (k.textContent||"").replace(/\\s+/g," ").trim();})()`);
+  const pickProgram = async (code) => cdp.ev(`(()=>{const el=document.getElementById("fd-programs");
+    if(!el) return false; el.focus(); el.value=${JSON.stringify(code)};
+    el.dispatchEvent(new Event("change",{bubbles:true})); return true;})()`);
+
+  const CLOSED2 = { ...DRAFT, form_data: { ...DRAFT.form_data, programs: ["closed"] } };
+  await open({ ...withApp, rpc: { my_application: { data: [CLOSED2] } } });
+  await cdp.ev(`(()=>{const t=document.querySelector('[data-step="3"]'); if(t) t.click(); return !!t;})()`);
+  await sleep(400);
+  ok("Ps0 前提：一开始确实在警告已不开放", /不开放/.test((await progWarn()) || ""));
+
+  ok("Ps0b 前提：换得到一个开放项目", (await pickProgram("bth")) === true);
+  await sleep(400);
+  const ps1 = await progWarn();
+  ok("Ps1 换成开放项目之后，那条警告消失", !/不开放|会被退回/.test(ps1 || ""), (ps1 || "").slice(0, 220));
+  ok("Ps1b 而且正在操作的下拉没有失焦",
+     (await cdp.ev(`document.activeElement && document.activeElement.id`)) === "fd-programs",
+     await cdp.ev(`document.activeElement && document.activeElement.id`));
+  const psb = await cdp.ev(`(()=>{const b=document.querySelector('[data-step="3"]');
+    return b ? (b.textContent||"").trim() : null;})()`);
+  ok("Ps1c 角标也跟着不再算它缺", !/还差/.test(psb || ""), String(psb));
+
+  /* 反过来：清空选择之后，要重新算成缺项，但不能说成「已不开放」。 */
+  ok("Ps2-0 前提：清得掉", (await pickProgram("")) === true);
+  await sleep(400);
+  const ps2 = await progWarn();
+  const psb2 = await cdp.ev(`(()=>{const b=document.querySelector('[data-step="3"]');
+    return b ? (b.textContent||"").trim() : null;})()`);
+  ok("Ps2 清空之后重新算成缺项", /还差 *[1-9]/.test(psb2 || ""), String(psb2));
+  ok("Ps2b 但不再说「已不开放」（他现在是没选，不是选了个停招的）",
+     !/不开放/.test(ps2 || ""), (ps2 || "").slice(0, 220));
+
+  /* 目录返回非数组真值：判了 !Array.isArray 之后还对原值 .filter 就会当场抛。 */
+  pageErrors = [];
+  await open({ tables: { ...BASE_TABLES, program_catalog: { data: {}, error: null, status: 200 } },
+    rpc: { my_application: { data: [CLOSED2] } } });
+  ok("Ps3 课程目录回了非数组真值时，页面不炸",
+     !pageErrors.some(e => /TypeError/.test(e)), JSON.stringify(pageErrors.slice(0, 2)));
+  /* 那条说明在项目字段旁边，得先翻到第 4 步 —— 页面默认停在第 1 步。 */
+  await cdp.ev(`(()=>{const t=document.querySelector('[data-step="3"]'); if(t) t.click(); return !!t;})()`);
+  await sleep(400);
+  const ps3 = await progWarn();
+  ok("Ps3b 并且按「没读到」处理，不假装没有可选项目",
+     /没能读到|没读到/.test(ps3 || ""), (ps3 || "").slice(0, 220));
+
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
