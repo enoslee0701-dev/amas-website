@@ -658,8 +658,19 @@ try {
     ok("Cp0 前提：待办里确实有这一条", (await mainText()).indexOf("建立你的信仰成长档案") > -1,
        JSON.stringify((await mainText()).slice(0, 140)));
     const cp = await tabTo((w) => w.tag === "A" && /discover\.html/.test(w.href || "") &&
-      /去处理/.test(w.text || ""), 40);
+      /去处理|去查看/.test(w.text || ""), 40);
     ok("Cp1 Tab 走得到它的「去处理 →」", cp.hit === true, JSON.stringify(cp.at));
+    /* 入口文案不能承诺这一页做不到的事：那边只是 3 分钟快速探索，不建档案。 */
+    const cardLink = await cdp.ev(`(()=>{const a=[...document.querySelectorAll("a")]
+      .filter(x=>/discover\.html/.test(x.getAttribute("href")||"") && !/去处理|去查看/.test(x.textContent||""))[0];
+      return a ? (a.textContent||"").replace(/\s+/g," ").trim() : null;})()`);
+    ok("Cp1b 首页那条入口的文案说的是「快速探索」，不是「建立档案」",
+       !!cardLink && /快速探索/.test(cardLink) && !/建立你的信仰成长档案/.test(cardLink),
+       JSON.stringify(cardLink));
+    /* 待办那条动作链接也不该说「去处理」—— 那一页处理不了任何事。
+       （待办的**标题**来自 SQL，本地改不了，只能如实记，见报告。） */
+    ok("Cp1c 待办里那条站外动作链接不说「去处理」",
+       !/去处理/.test((cp.at || {}).text || ""), JSON.stringify((cp.at || {}).text));
     await press("Enter");
     ok("Cp2 ① 那个 target_url 真的有页面（走过去了，不是 404）",
        await until(async () => /\/discover\.html$/.test(await path_()), 9000),
@@ -667,6 +678,46 @@ try {
     await sleep(1200);
     ok("Cp3 ② 学员这个身份到得了（公开页，没有被守卫挡回去）",
        (await cdp.ev(`(()=>document.querySelectorAll("h1").length > 0)()`)) === true);
+    /* ②b 这一页到底做不做「建立档案」这件事 —— 用它自己的代码说话。 */
+    /* 说得准一点：这一页**唯一**碰到的本地存储是 goApp() 里记「你从哪个按钮跳去 App」
+       的 amas_discover_src —— 那不是档案，也不是答题结果。
+       上一版我把断言写成「没有任何本地存储」，太宽了（实测 store=true）。
+       正则不用反斜杠转义：模板字面量会把 \( 吃成 (，正则会变成未闭合分组。 */
+    const persists = await cdp.ev(`(()=>{const t=document.documentElement.innerHTML;
+      const keys = (t.match(/(?:localStorage|sessionStorage)[.]setItem[(]\s*['"]([^'"]+)/g) || []);
+      return { storageCalls: keys.length,
+               onlySrcKey: /amas_discover_src/.test(t) && !/setItem[(]\s*['"](?!amas_discover_src)/.test(t),
+               net: /fetch[(]|supabase/.test(t),
+               saysQuick: /只是一次快速探索|不是完整的/.test(document.body.textContent||"") };})()`);
+    ok("Cp3b 这一页**不保存档案、也不往服务端写**（唯一的本地存储是跳 App 的来源标记）",
+       persists && persists.net === false && persists.onlySrcKey === true &&
+       persists.saysQuick === true, JSON.stringify(persists));
+    /* 真实路径要走完：开始 → 逐题作答 → 看到结果，再谈回程。
+       只开一页就返回证明不了「做完之后回得来」。 */
+    const startBtn = await tabTo((w) => /开始快速探索/.test(w.text || ""), 40);
+    ok("Cp3c 键盘走得到「开始快速探索」", startBtn.hit === true, JSON.stringify(startBtn.at));
+    await press("Enter");
+    ok("Cp3d 题目出来了", await until(async () => cdp.ev(`(()=>{const q=document.getElementById("quiz");
+      return !!(q && !q.classList.contains("hidden"));})()`), 8000));
+    /* 逐题作答：每次 Tab 到一个选项按下，直到结果出现（上限足够 10 题）。 */
+    let answered = 0;
+    for (let i = 0; i < 60; i++) {
+      const done = await cdp.ev(`(()=>{const r=document.getElementById("result");
+        return !!(r && !r.classList.contains("hidden"));})()`);
+      if (done) break;
+      await press("Tab");
+      const onOpt = await cdp.ev(`(()=>{const a=document.activeElement;
+        return !!(a && a.classList && a.classList.contains("opt"));})()`);
+      if (onOpt) { await press("Enter"); answered += 1; await sleep(160); }
+    }
+    ok("Cp3e 十道题用键盘答完了，结果页出来了（答了 " + answered + " 题）",
+       (await cdp.ev(`(()=>{const r=document.getElementById("result");
+         return !!(r && !r.classList.contains("hidden"));})()`)) === true &&
+       answered >= 10, "answered=" + answered);
+    ok("Cp3f 结果页自己也写明这**不是**完整档案",
+       /不代表完整信仰成长档案|不是完整的/.test(await cdp.ev(`(()=>document.body.textContent||"")()`)),
+       "");
+
     /* ③ 出口：这一页有没有任何一条能回门户的路。 */
     const outs = await cdp.ev(`(()=>[...document.querySelectorAll("a")]
       .map(a=>({ href:a.getAttribute("href")||"", text:(a.textContent||"").replace(/\s+/g," ").trim().slice(0,14) }))
@@ -680,6 +731,15 @@ try {
          (await (async () => { await press("Enter");
            return until(async () => /\/portal\/student\/$/.test(await path_()), 9000); })()) === true,
          JSON.stringify(await path_()));
+      await sleep(2200);
+      /* 回来之后**不许**谎称这件事做完了：这一页什么都没保存，
+         而 my_action_items 里 christian_profile 那条本来就是无条件出现的。 */
+      ok("Cp5b 回到学员中心之后，这条待办**还在**（没有被谎称已完成）",
+         (await mainText()).indexOf("建立你的信仰成长档案") > -1,
+         JSON.stringify((await mainText()).slice(0, 140)));
+      ok("Cp5c 而且首页没有冒出任何「已完成 / 已建立档案」的说法",
+         !/已建立档案|档案已完成|已完成信仰成长档案/.test(await mainText()),
+         JSON.stringify((await mainText()).slice(0, 140)));
     }
     /* 反控：**不是**从门户过来的普通访客，这一页不该多出门户入口。 */
     await cdp.send("Page.navigate", { url: `${BASE}/discover.html` });

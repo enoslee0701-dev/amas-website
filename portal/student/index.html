@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>学员中心 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609140345">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609140353">
 <style>
 .idcard{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);color:#fff;border-radius:16px;padding:20px 22px;margin-bottom:18px}
 .idcard h2{margin:0;font-size:19px;color:#fff}
@@ -31,11 +31,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609140345"></script>
-<script src="../../assets/js/portal/auth.js?v=202609140345"></script>
-<script src="../../assets/js/portal/api.js?v=202609140345"></script>
-<script src="../../assets/js/portal/ui.js?v=202609140345"></script>
-<script src="../../assets/js/portal/shell.js?v=202609140345"></script>
+<script src="../../assets/js/supabase-config.js?v=202609140353"></script>
+<script src="../../assets/js/portal/auth.js?v=202609140353"></script>
+<script src="../../assets/js/portal/api.js?v=202609140353"></script>
+<script src="../../assets/js/portal/ui.js?v=202609140353"></script>
+<script src="../../assets/js/portal/shell.js?v=202609140353"></script>
 <script>
 /* PORTAL-2 学员中心（V1）
    原则：状态机与 DB 是权威源，UI 不模拟业务状态；没有真实数据就显示真实空态，绝不填充假数据。
@@ -108,6 +108,10 @@
      所以门户这边给站外入口加一个回程标记；那一页只在**带着标记**时才多出
      「回到学员中心」，普通访客看到的仍是原样（反控 Cp6）。
      判据只看「是不是门户内的路径」，不写死某一个页面。 */
+  /* 适用范围（如实记，不泛化）：这是**字符串拼接**，只对「没有 #fragment 的站外目标」成立。
+     目标里若带 #fragment，参数会被拼到 hash 后面而失效 ——
+     现有的站外目标只有 discover.html（无 fragment），所以本包不为此另做通用处理，
+     也**不宣称**它对所有站外目标都对。 */
   const withBack = (u) => String(u || "").indexOf("portal/") === 0
     ? u : (u + (String(u).indexOf("?") > -1 ? "&" : "?") + "from=portal");
   const todo = actionItems.length
@@ -117,7 +121,10 @@
           '<span class="badge">' + UI.esc(STATUS[a.status] || a.status) + '</span>' +
           '<div class="none">' + UI.esc(a.reason) + '</div>' +
           (a.status === "waiting" ? "" :
-            '<a class="link" href="' + A.ROOT + UI.esc(withBack(a.target_url)) + '">去处理 →</a>') +
+            '<a class="link" href="' + A.ROOT + UI.esc(withBack(a.target_url)) + '">' +
+            /* 站外目标只是「去看看」，那边处理不了任何事；门户内的才是「去处理」。
+               待办的**标题**来自 my_action_items（SQL），本地改不了 —— 如实记在报告里。 */
+            (String(a.target_url || "").indexOf("portal/") === 0 ? "去处理 →" : "去查看 →") + '</a>') +
         '</div>').join("")
     : (actsErr || !Array.isArray(acts)
         ? '<p class="none">这一次没能读到你的待办事项（可能是网络不稳或服务端暂时不可用）。' +
@@ -170,7 +177,11 @@
         '<p class="none">你还没有建立信仰成长档案。完成评估后可以看到自己的成长画像与学习建议；' +
         '评估在「AMAS 神学院」App 中进行。</p>' +
         '<p class="none">也可以先做 3 分钟快速探索，初步了解学习起点（结果仅作参考，不构成评定）。</p>' +
-        '<a class="link" href="' + A.ROOT + 'discover.html?from=portal">建立你的信仰成长档案 →</a></div>' +
+        /* 这条链接指向的是官网那个 3 分钟快速探索 —— 它**不建立也不保存**任何档案
+           （discover.html 自己反复写明「网页版只是一次快速探索」「不是完整的信仰成长档案」，
+           唯一的本地存储是跳 App 时记下的来源标记）。
+           原来写「建立你的信仰成长档案 →」是承诺了那一页做不到的事。 */
+        '<a class="link" href="' + A.ROOT + 'discover.html?from=portal">开始 3 分钟快速探索 →</a></div>' +
     '</div>' +
 
     // ---------- 最近活动：真实的学籍状态历史 ----------
