@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131721">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131810">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609131721"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609131721"></script>
-<script src="../../../assets/js/portal/api.js?v=202609131721"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609131721"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609131721"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609131721"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609131810"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609131810"></script>
+<script src="../../../assets/js/portal/api.js?v=202609131810"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609131810"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609131810"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609131810"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -580,6 +580,44 @@
       err.classList.remove("show");
     });
     err.querySelector("[data-submitanyway]")?.addEventListener("click", () => submit(true));
+  }
+
+  /** 被服务端以 requirements_pending 挡回来时该说什么（蓝图 P1-14：
+      「RPC 拒绝并**回列缺失项**」）。
+
+      服务端按 unresolved = 0 放行重新提交（0008_applications.sql:241-246），
+      挡回来时只回一个数字。页面原来把那个数字原样念出来：
+      「还有 2 项补充资料未标记完成。」—— 哪两项、在哪里，一个字没有；
+      而同一个函数的 validation_failed 分支早就是逐项列出 +「去补填」。
+      补件清单客户端手里就有（reqs），这里把它用上。
+
+      **读不到 ≠ 没有**：客户端能列出的条数和服务端说的对不上时，如实说明差额，
+      不假装我们知道全部，也不把服务端的数字改写成自己的。 */
+  function renderPendingReqs(err, count){
+    const mine = reqs.filter(r => !r.resolved);
+    const n = Number(count);
+    const known = Number.isFinite(n) && n >= 0;
+    const shortfall = known ? n - mine.length : 0;
+    const lines = mine.map(r =>
+      `<li>${UI.esc(r.label)}${r.detail ? `（${UI.esc(r.detail)}）` : ""}</li>`).join("");
+    err.innerHTML =
+      `<b>这一次没有提交：还有${known ? " " + n + " " : ""}项补充资料没有标记为「已补」。</b>` +
+      (lines ? `<ul style="margin:6px 0 8px 18px">${lines}</ul>` : "") +
+      (lines && shortfall <= 0 ? "" :
+        `<div class="who" style="margin:6px 0 8px">${lines
+          ? "另外还有 " + shortfall + " 项这一次没能读到，"
+          : "这一次没能读到具体是哪几项，"}请刷新页面之后再看。</div>`) +
+      (lines ? `<button class="btn" type="button" data-goreq style="width:auto;padding:0 16px">去看这几项</button>` : "");
+    err.classList.add("show");
+    err.setAttribute("role", "alert");
+    err.querySelector("[data-goreq]")?.addEventListener("click", () => {
+      /* 带他到补件卡里**第一条还没完成**的那一项上。 */
+      const li = document.querySelector(".rqlist .rq:not(.done)");
+      if (!li) return;
+      li.scrollIntoView({ block: "center" });
+      const cb = li.querySelector("input[type=checkbox]");
+      if (cb) cb.focus();
+    });
   }
 
   function renderRequirementsUnknown(got){
@@ -1302,7 +1340,8 @@
         })), false);
         return;
       } else if (data.error === "requirements_pending") {
-        err.textContent = `还有 ${data.count} 项补充资料未标记完成。`;
+        renderPendingReqs(err, data.count);
+        return;
       } else err.textContent = "提交未成功，请检查后重试。";
       err.classList.add("show");
       return;

@@ -2113,10 +2113,19 @@ try {
   ok("Sf4 出口按钮说的是这条路真正的动作",
      (await proceedBtn()) === "我已复制，去重新登录", JSON.stringify(await proceedBtn()));
   const lh0 = loginHits;
-  await cdp.ev(`(()=>{const b=[...document.querySelectorAll("#stashFailBox button")]
+  const clickCopied = async () => cdp.ev(`(()=>{const b=[...document.querySelectorAll("#stashFailBox button")]
     .filter(x=>/我已复制/.test(x.textContent||""))[0]; if(b) b.click(); return !!b;})()`);
+  /* 第 69 包之后的口径：内容与他复制走的那一份不符时，**第一次确认不放行** ——
+     留页、刷新导出、请他重新复制；再确认一次（期间没再改）才走。
+     这两条原本停在旧口径上（一点就走），套件按监督要求几轮没复跑，直到这次才暴露。 */
+  await clickCopied();
+  await sleep(900);
+  ok("Sf5-0 内容变过，第一次确认不放行（留在这一页）",
+     loginHits === lh0 && (await cdp.ev(`!!document.getElementById("stashFailBox")`)) === true,
+     "loginHits " + lh0 + " → " + loginHits);
+  await clickCopied();
   await sleep(1200);
-  ok("Sf5 点「我已复制」之后走的是登录那条路（不是重新载入）",
+  ok("Sf5 复制之后再确认一次，走的是登录那条路（不是重新载入）",
      loginHits > lh0, "loginHits " + lh0 + " → " + loginHits);
 
   /* 从「冲突 → 重新载入」的出口切到「过期 → 去重新登录」：文字与回调都要跟着换。 */
@@ -2142,10 +2151,60 @@ try {
   ok("Sf7b 框里也换成了最新内容",
      (await taText() || "").indexOf("改成过期那条路") > -1, JSON.stringify((await taText() || "").slice(0, 120)));
   const lh1 = loginHits;
-  await cdp.ev(`(()=>{const b=[...document.querySelectorAll("#stashFailBox button")]
-    .filter(x=>/我已复制/.test(x.textContent||""))[0]; if(b) b.click(); return !!b;})()`);
+  await clickCopied();                               // 同上：内容变过，这一次不放行
+  await sleep(900);
+  ok("Sf8-0 切过路之后，内容变过同样先拦一次", loginHits === lh1, "loginHits " + lh1 + " → " + loginHits);
+  await clickCopied();
   await sleep(1200);
-  ok("Sf8 回调也换了：走的是登录，不是重新载入", loginHits > lh1, "loginHits " + lh1 + " → " + loginHits);
+  ok("Sf8 再确认一次，回调也换了：走的是登录，不是重新载入",
+     loginHits > lh1, "loginHits " + lh1 + " → " + loginHits);
+
+  // ════════ Pq 被「还有几项没补」挡回来时，说得出是哪几项（蓝图 P1-14）════════
+  console.log("\n=== Pq 回列缺失的补件条目 ===");
+  /* 服务端只回一个数字（0008_applications.sql:241-246 的 requirements_pending + count），
+     页面原样念出来：「还有 2 项补充资料未标记完成。」——
+     哪两项、在哪里，一个字没有。而同一个函数的 validation_failed 分支
+     早就是逐项列出 +「去补填」。清单客户端手里就有。 */
+  const REQS = [
+    { id:"rq-1", label:"受洗证明扫描件", detail:"教会盖章那一页", resolved:false, created_at:"2026-09-01T00:00:00Z" },
+    { id:"rq-2", label:"最高学历证书", detail:null, resolved:false, created_at:"2026-09-01T00:00:00Z" },
+    { id:"rq-3", label:"近期证件照", detail:null, resolved:true, created_at:"2026-09-01T00:00:00Z" },
+  ];
+  const PEND = { tables: { ...BASE_TABLES, application_requirements: { data: REQS } },
+    rpc: { my_application: { data: [{ ...DRAFT, status:"needs_information",
+             locked_fields:["name_zh","birth_ym","gender","nationality","conversion_date","programs"] }] },
+           submit_application: { data: { ok:false, error:"requirements_pending", count:2 } } },
+    writes: { applications: { data:[{ id:"app-fixture-1", updated_at:"2026-09-10T00:00:05Z" }] } } };
+
+  await open(PEND);
+  await clickSubmitRaw();
+  await sleep(1500);
+  const pq = await subErr();
+  ok("Pq0 前提：确实被挡回来了（这一次没有提交）",
+     /没有提交|未标记|没有标记/.test(pq || ""), JSON.stringify((pq || "").slice(0, 80)));
+  ok("Pq1 逐项说得出是哪几项",
+     /受洗证明扫描件/.test(pq || "") && /最高学历证书/.test(pq || ""), JSON.stringify(pq));
+  ok("Pq2 已经标记完成的那一项不混进来", !/近期证件照/.test(pq || ""), JSON.stringify(pq));
+  ok("Pq3 服务端说的数字照实写，不改写成自己的", /还有\s*2\s*项/.test(pq || ""), JSON.stringify(pq));
+  ok("Pq4 给得出「去看这几项」这条路",
+     (await cdp.ev(`!!document.querySelector("#subErr [data-goreq]")`)) === true);
+  await cdp.ev(`(()=>{const b=document.querySelector("#subErr [data-goreq]"); if(b) b.click(); return !!b;})()`);
+  await sleep(400);
+  ok("Pq5 点下去落到第一条还没完成的条目上",
+     (await cdp.ev(`(()=>{const a=document.activeElement;
+        return !!(a && a.matches && a.matches('.rqlist .rq:not(.done) input[type=checkbox]')
+                  && a.dataset.req === "rq-1");})()`)) === true,
+     JSON.stringify(await cdp.ev(`(()=>{const a=document.activeElement; return a?(a.dataset&&a.dataset.req)||a.tagName:null;})()`)));
+
+  /* 对照：清单读不到时不假装知道 —— 数字照说，条目说不出来就说不出来。 */
+  await open({ ...PEND, tables: { ...BASE_TABLES,
+    application_requirements: { data:null, error:{ message:"boom" }, status:500 } } });
+  await clickSubmitRaw();
+  await sleep(1500);
+  const pq6 = await subErr();
+  ok("Pq6 对照：读不到清单时不编条目，并说清楚要刷新再看",
+     /没能读到/.test(pq6 || "") && /还有\s*2\s*项/.test(pq6 || "") &&
+     !/受洗证明扫描件/.test(pq6 || ""), JSON.stringify(pq6));
 
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");
