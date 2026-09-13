@@ -128,7 +128,8 @@ window.supabase = { createClient: function(){
       onAuthStateChange: function(){ return { data:{ subscription:{ unsubscribe:function(){} } } }; }
     },
     from: table,
-    rpc: function(name){
+    rpc: function(name, args){
+      try { (window.__rpc = window.__rpc || []).push({ name: name, args: args || null }); } catch(e){}
       if (name === "resolve_requirement") return reply({ data:{ ok:true }, error:null, status:200 });
       if (name === "my_roles") return reply({ data:[{ role:"applicant" }], error:null, status:200 });
       if (name === "my_profile") return reply({ data:{ display_name:"测试申请人", email:"a@example.invalid" }, error:null, status:200 });
@@ -249,7 +250,7 @@ try {
 
   /* ── 真实按键 ───────────────────────────────────────────────────────── */
   const KEYS = { Tab:{code:"Tab",key:"Tab",vk:9}, Enter:{code:"Enter",key:"Enter",vk:13},
-                 Space:{code:"Space",key:" ",vk:32} };
+                 Space:{code:"Space",key:" ",vk:32}, ArrowDown:{code:"ArrowDown",key:"ArrowDown",vk:40} };
   const press = async (name, shift) => {
     const m = KEYS[name];
     const mods = shift ? 8 : 0;
@@ -263,11 +264,52 @@ try {
       windowsVirtualKeyCode:m.vk, nativeVirtualKeyCode:m.vk, code:m.code, key:m.key });
     await sleep(90);
   };
+  /** 真实打字：每个字符走 keyDown → char → keyUp，不用 insertText、不直接赋 value。 */
+  /* keyDown **不能带 text** —— 带了就等于连同 char 事件输入两遍，
+     实测敲出来的是「键键盘盘填填的的」。这是量具的毛病，不是产品的。 */
+  const typeText = async (text) => {
+    for (const ch of String(text)) {
+      const vk = ch.toUpperCase().charCodeAt(0);
+      await cdp.send("Input.dispatchKeyEvent", { type:"keyDown", key: ch,
+        windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk });
+      await cdp.send("Input.dispatchKeyEvent", { type:"char", text: ch, key: ch });
+      await cdp.send("Input.dispatchKeyEvent", { type:"keyUp", key: ch,
+        windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk });
+      await sleep(16);
+    }
+    await sleep(60);
+  };
+  /* 日期/月份输入是分段编辑器：只认 keyDown 的数字键，char 事件对它没用。 */
+  const typeDigits = async (digits) => {
+    for (const d of String(digits)) {
+      const vk = 48 + Number(d);
+      await cdp.send("Input.dispatchKeyEvent", { type:"rawKeyDown", key: d, code: "Digit" + d,
+        windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk });
+      await cdp.send("Input.dispatchKeyEvent", { type:"keyUp", key: d, code: "Digit" + d,
+        windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk });
+      await sleep(30);
+    }
+    await sleep(60);
+  };
+  /* 下拉框：一路 ArrowDown 直到真的选中了东西（占位项的 value 是空的）。 */
+  const chooseSelect = async (id) => {
+    for (let i = 0; i < 4; i++) {
+      await press("ArrowDown");
+      /* 有些环境下 ArrowDown 不改选中项，再试一次「首字母跳转」。 */
+      const v = await cdp.ev(`(()=>{const e=document.getElementById(${JSON.stringify(id)});
+        return e?e.value:null;})()`);
+      if (v) return v;
+    }
+    return null;
+  };
+  const rpcLog = async () => (await cdp.ev(`(window.__rpc || [])`)) || [];
+  const rpcOf = async (n) => (await rpcLog()).filter(r => r.name === n);
   const active = async () => cdp.ev(`(()=>{const a=document.activeElement;
     if(!a || a===document.body) return { tag:"BODY" };
     return { tag:a.tagName, id:a.id||"", type:a.type||"", step:a.dataset?a.dataset.step||"":"",
              req:a.dataset?a.dataset.req||"":"", gofield:a.dataset?a.dataset.gofield||"":"",
              attrs:[...a.attributes].map(x=>x.name).filter(n=>/^data-/.test(n)).join(","),
+             inRows: !!a.closest('[data-f="education"], [data-f="experience"]'),
              text:(a.textContent||"").replace(/\s+/g," ").trim().slice(0,24),
              visible: !!(a.offsetWidth||a.offsetHeight||a.getClientRects().length) };})()`);
   /* 一直 Tab，直到落在满足条件的元素上（或到上限）。返回走过的步数。 */
@@ -356,6 +398,160 @@ try {
   await sleep(1500);
   const k5e = await active();
   ok("K5e 重读之后焦点没被丢回页首", k5e.tag !== "BODY", JSON.stringify(k5e));
+
+  console.log("\n=== F 纯按键把六步表单从空白填完并提交 ===");
+  /* 上一包的 K2 只走到一个字段、Tab 往返了一下 —— **没有真的填**。
+     这一段从**空白草稿**开始，全程只用 Tab / 字符键 / Space / ArrowDown，
+     不用 element.focus()、不用 .click()、不直接给 value 赋值。 */
+  const FILL = {                                   // 字段 id → 要敲进去的东西
+    "fd-name_zh": "键盘填的申请人", "fd-nationality": "中国",
+    "fd-birth_ym": "011990", "fd-address": "某市某路 1 号", "fd-phone": "13800000000",
+    "fd-church_name": "键盘测试教会", "fd-church_role": "同工", "fd-conversion_date": "012010",
+    "fd-calling": "用键盘写的蒙召陈述", "fd-testimony": "用键盘写的见证正文",
+  };
+  /* 在当前这一步里一直 Tab，落到认识的控件就敲进去；
+     select / radio / checkbox 用 ArrowDown / Space。 */
+  const fillCurrentStep = async (maxTabs, skip) => {
+    const done = [], typed = [];
+    for (let i = 0; i < (maxTabs || 40); i++) {
+      await press("Tab");
+      const a = await active();
+      if (a.tag === "BODY") continue;
+      if (a.inRows) { done.push("(rows)"); continue; }   // 动态行：本环境未驱动，见报告 §边界
+      if (skip && skip.includes(a.id)) { done.push("(skip)" + a.id); continue; }
+      if (a.id && FILL[a.id] && !done.includes(a.id)) {
+        if (a.type === "month") await typeDigits(FILL[a.id]); else await typeText(FILL[a.id]);
+        /* **当场读回**：这一刻那个控件还在 DOM 里。
+           （上一版跑到第 6 步才去读第 4/5 步的字段，读到的当然是 null ——
+             那是判据错，不是产品错。） */
+        const back = await cdp.ev(`(()=>{const e=document.getElementById(${JSON.stringify(a.id)});
+          return e?e.value:null;})()`);
+        typed.push({ id: a.id, back }); done.push(a.id); continue;
+      }
+      if (a.tag === "SELECT" && !done.includes(a.id)) { await chooseSelect(a.id); done.push(a.id); continue; }
+      /* 学历那几行是动态加出来的，没有固定 id —— 落到就按类型敲个合理值。 */
+      if (a.tag === "INPUT" && !done.includes(a.id || i) && (a.type === "text" || a.type === "tel" || a.type === "month")) {
+        if (a.type === "month") await typeDigits("012010"); else await typeText("键盘填写");
+        done.push(a.id || ("row" + i)); continue;
+      }
+      if (a.tag === "INPUT" && (a.type === "checkbox" || a.type === "radio")
+          && !done.includes(a.id || a.text)) { await press("Space"); done.push(a.id || a.text); continue; }
+      /* 「+ 添加一行」这条路本轮不按：动态行与 select/month 一样，
+         在本环境下没能用合成按键稳定驱动（按下之后行里的控件读不到），
+         列为 NOT_RUN，不在这里假装走通。 */
+    }
+    return { done, typed };
+  };
+  const stepOn = async () => cdp.ev(`(()=>{const b=document.querySelector('.steps button.on');
+    return b ? +b.dataset.step : -1;})()`);
+  const nextStep = async () => {
+    const r = await tabUntil(a => a.id === "btnNext", 40);
+    if (!r.hit) return false;
+    await press("Enter"); await sleep(400); return true;
+  };
+  /* **环境限制，如实写在这里**：`<select>`（性别 / 申请项目）与
+     `<input type="month">`（出生年月 / 初信日期）在 headless Chrome 里
+     **不响应 CDP 合成按键** —— ArrowDown、首字母跳转、分段数字键都试过，
+     value 一直是空的（本轮实测）。这是量具/环境的限制，不是产品缺陷，
+     也不能用 JS 赋值来「补」—— 那样就不是键盘测试了。
+     所以这两类控件**由夹具预置**，其余全部由真实按键敲进去；
+     它们的键盘可用性记为 NOT_RUN，放进真机清单（见 checklist §4）。 */
+  const PRESET = { gender:"male", birth_ym:"1990-01", conversion_date:"2010-01",
+    programs:["bth"], education:[{ school:"某大学", start_ym:"2008-09", end_ym:"2012-06", degree:"本科" }] };
+  const BLANK = { write: OKW, tables: { ...TABLES, application_requirements: { data: [] } },
+    rpc: { my_application: { data:[{ ...DRAFT, pathway:"undecided", form_data: { ...PRESET } }] },
+           submit_application: { data:{ ok:true } } } };
+  const walkSixSteps = async (skip) => {
+    const typed = [];
+    for (let st = 0; st < 6; st++) {
+      const r = await fillCurrentStep(40, skip);
+      typed.push(...r.typed);
+      if (st < 5) await nextStep();
+    }
+    return typed;
+  };
+
+  // —— A：从空白一路填完，用键盘交上去
+  await open(BLANK);
+  ok("F0 前提：要靠键盘填的那些字段现在是空的",
+     (await cdp.ev(`(()=>{const e=document.getElementById("fd-name_zh"); return e?e.value:null;})()`)) === "");
+  console.log("    · 环境限制：<select> 与 <input type=month> 不响应合成按键，由夹具预置；" +
+              "其余字段全部由真实按键敲入（见报告 §边界）");
+  /* 先只看一眼：夹具里预置的那一行学历，载入之后渲染出来了吗？
+     （不打字、不按任何东西 —— 排除是我这一路 Tab 把它弄没了。） */
+  {
+    const r = await tabUntil(a => a.step === "2", 40);
+    if (r.hit) { await press("Enter"); await sleep(500); }
+    const edu = await cdp.ev(`(()=>{const box=document.querySelector('[data-f="education"]');
+      return box ? [...box.querySelectorAll("input")].map(e=>e.value) : null;})()`);
+    ok("F0b 草稿里已有的学历行，载入之后原样渲染出来（不是空的）",
+       Array.isArray(edu) && edu.includes("某大学"), JSON.stringify(edu));
+    const back = await tabUntil(a => a.step === "0", 40);
+    if (back.hit) { await press("Enter"); await sleep(400); }
+  }
+  const typedA = await walkSixSteps();
+  ok("F1 六步都走到了（用键盘按「下一步」）", (await stepOn()) === 5, "停在第 " + ((await stepOn()) + 1) + " 步");
+  const typedT = typedA.filter(t => !/birth_ym|conversion_date/.test(t.id));   // 那两个是 month，环境限制
+  const bad = typedT.filter(t => t.back !== FILL[t.id]);
+  ok("F2 敲进去的字**当场读回来都对**（不是赋值，是真打的）",
+     typedT.length >= 6 && bad.length === 0,
+     "键盘填了 " + typedT.length + " 个；不符 " + JSON.stringify(bad.slice(0, 3)));
+  const subA0 = (await rpcOf("submit_application")).length;
+  const f3 = await tabUntil(a => a.id === "btnSubmit", 40);
+  ok("F3 Tab 走得到提交", f3.hit, JSON.stringify(f3.at));
+  await press("Enter");
+  await sleep(1500);
+  ok("F4 六步填完之后，键盘按提交**真的交出去了**",
+     (await rpcOf("submit_application")).length - subA0 === 1,
+     "submit_application " + subA0 + " → " + (await rpcOf("submit_application")).length +
+     "；subErr=" + JSON.stringify(await cdp.ev(`(()=>{const e=document.getElementById("subErr");
+        return e?(e.textContent||"").slice(0,90):"";})()`)));
+
+  // —— B：故意漏一个必填，走「校验失败 → 定位 → 当场改 → 再交」
+  await open(BLANK);
+  await walkSixSteps(["fd-phone"]);                 // 手机号故意不填
+  const subB0 = (await rpcOf("submit_application")).length;
+  await (await tabUntil(a => a.id === "btnSubmit", 40), press("Enter"));
+  await sleep(1200);
+  const errB = await cdp.ev(`(()=>{const e=document.getElementById("subErr");
+    return e?(e.textContent||"").replace(/\s+/g," ").trim():"";})()`);
+  ok("F5 漏填时没有交出去，并且说得出缺的是「手机」",
+     (await rpcOf("submit_application")).length === subB0 && /手机/.test(errB), JSON.stringify(errB.slice(0, 120)));
+  const f6 = await tabUntil(a => a.attrs.indexOf("data-gofix") > -1, 20);
+  ok("F6 Tab 走得到「去补填」", f6.hit, JSON.stringify(f6.at));
+  await press("Enter");
+  await sleep(500);
+  const atB = await active();
+  ok("F7 焦点**正好落在缺的那个字段**上（手机）", atB.id === "fd-phone", JSON.stringify(atB));
+  await typeText(FILL["fd-phone"]);
+  const backB = await cdp.ev(`(()=>{const e=document.getElementById("fd-phone"); return e?e.value:null;})()`);
+  ok("F8 当场用键盘补上了", backB === FILL["fd-phone"], JSON.stringify(backB));
+  await (await tabUntil(a => a.id === "btnSubmit", 40), press("Enter"));
+  await sleep(1500);
+  ok("F9 补完再交，这一次交出去了",
+     (await rpcOf("submit_application")).length - subB0 === 1,
+     "submit_application " + subB0 + " → " + (await rpcOf("submit_application")).length);
+
+  console.log("\n=== Rq 勾「已补」：Space 到底发没发那个 RPC ===");
+  /* 上一包的 K4b 判的是「application_requirements 读取次数 >= 1」——
+     那个数在**页面一载入**就满足了，等于没判。这一次数的是 resolve_requirement
+     这个 RPC 本身：操作前后的差值、带的 p_req 是哪一条、以及有没有重复发。 */
+  await open({ write: OKW, tables: { ...TABLES, application_requirements: { data: REQS } },
+    rpc: { my_application: { data:[NEEDS] }, submit_application: { data:{ ok:true } } } });
+  const rq0 = (await rpcOf("resolve_requirement")).length;
+  ok("Rq0 前提：还没动手之前，一次都没发过", rq0 === 0, String(rq0));
+  const rq1 = await tabUntil(a => a.req === "rq-1", 40);
+  ok("Rq1 Tab 走得到第一条补件的勾选框", rq1.hit && rq1.at.req === "rq-1", JSON.stringify(rq1.at));
+  await press("Space");
+  await sleep(1200);
+  const after = await rpcOf("resolve_requirement");
+  ok("Rq2 一次 Space 正好发出一次 resolve_requirement",
+     after.length - rq0 === 1, "前 " + rq0 + " → 后 " + after.length);
+  ok("Rq3 带的正是他刚勾的那一条（p_req = rq-1）",
+     !!after[0] && after[0].args && after[0].args.p_req === "rq-1", JSON.stringify(after[0] && after[0].args));
+  await sleep(1200);
+  ok("Rq4 等一会儿也没有重复发出去", (await rpcOf("resolve_requirement")).length === after.length,
+     String((await rpcOf("resolve_requirement")).length));
 
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
