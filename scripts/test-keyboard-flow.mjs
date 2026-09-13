@@ -642,13 +642,16 @@ try {
   }
 
   /* ── select / month 的键盘证据：本轮**未能在此环境取得** ──────────────
-     做过的事：写了一个**不含任何产品代码**的对照页
-     （scripts/fixtures/native-controls.html，随本包一并交付），
+     做过的事：写了一个**不含任何产品代码**的对照页。它**不在本仓**，
+     在 mac-runtime-logs/takeover-20260912/manual/native-controls.html
+     （人工用，刻意不进仓库、不进 HTML 缓存戳扫描集）。
      并对 ArrowDown 与数字键试了四种 CDP 编码
      （rawKeyDown / keyDown / keyDown+text / keyDown+char）。
      结果：在这套 headless + CDP 组合下，**换页之后再发按键会把渲染进程卡住**
      （Input.dispatchKeyEvent 与随后的 Runtime.evaluate 双双超时），
      对照数据没能稳定采到 —— 所以**既不能说产品有问题，也不能说没问题**。
+     注意：就算原生对照页上也按不动，那也只说明**这一串按键没能建立起有效对照**，
+     **推不出「与产品无关」**。
 
      按监督口径记为 **INCOMPLETE（本轮未取得证据）**，不声称「环境不支持」，
      也不用 JS 赋值假装键盘完成。需要人工的具体步骤写在
