@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>学籍管理 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609132214">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609132234">
 <style>
 .tabs{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap}
 .tabs button{min-height:40px;padding:0 16px;border:1.5px solid var(--line);border-radius:999px;background:#fff;
@@ -32,11 +32,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609132214"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609132214"></script>
-<script src="../../../assets/js/portal/api.js?v=202609132214"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609132214"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609132214"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609132234"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609132234"></script>
+<script src="../../../assets/js/portal/api.js?v=202609132234"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609132234"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609132234"></script>
 <script>
 /* PORTAL-2 学籍管理（教务侧）
    闭环：录取 → 记录总校审核确认 → 建档(pre_enrolled) → 正式注册(active)；学号可经专用通道更正。
@@ -512,8 +512,26 @@
       const missing = fields.filter(f => f.required && !v[f.id]);
       if (missing.length) { alert("请填写：" + missing.map(f => f.label).join("、")); return; }
       b.disabled = true;
-      close();
-      await actions[+b.dataset.act].run(v);
+      /* 原来是**先 close() 再 run()** —— 服务端一拒绝（学号被占用、缺总校确认…），
+         他刚打进去的学号就随对话框一起没了，只能重开、重打一遍；
+         而错误提示还在对话框**后面**的页面上（本轮实测 Ce6/Ce7）。
+         改成：先发，成功才关；失败就留在框里、把服务端那句话搬进来、
+         焦点送回第一格，让他当场改。 */
+      const res = await actions[+b.dataset.act].run(v);
+      if (res) { close(); return; }
+      b.disabled = false;
+      const acts2 = wrap.querySelector(".pm-acts");
+      let ebox = wrap.querySelector(".pm-err");
+      if (!ebox) {
+        ebox = document.createElement("div");
+        ebox.className = "msg err show pm-err";
+        ebox.setAttribute("role", "alert");
+        ebox.style.margin = "10px 0";
+        acts2.parentNode.insertBefore(ebox, acts2);
+      }
+      ebox.textContent = (errBox.textContent || "").trim() ||
+        "这一次没有成功。你填的内容还在，请修改后再试。";
+      wrap.querySelector("input")?.focus();
     }));
   }
 })();

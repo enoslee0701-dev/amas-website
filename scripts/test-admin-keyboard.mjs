@@ -97,6 +97,7 @@ let pass = 0, fail = 0, loginHits = 0, externalHits = 0;
    现在：OPTIONS 回 204 + CORS 头且**不计数**；POST 回 200 + CORS 头并**记下
    method / url / body**。只有 POST 才算写入。全程 fulfill，不外发。 */
 let edgeCalls = [];
+let edgeReject = false;   // 让某一次 Edge 写入明确失败，用来看失败之后的界面行为
 let nativeDialogs = [];   // 浏览器原生 alert/confirm（阻塞式，键盘用户无处可去）
 const CORS = [
   { name: "Access-Control-Allow-Origin", value: "*" },
@@ -198,9 +199,12 @@ try {
         let body = null;
         try { body = ev.request.postData || null; } catch (e) {}
         edgeCalls.push({ method, url: u, body });    // 只有真正的 POST 才记账
-        await cdp.send("Fetch.fulfillRequest", { requestId: ev.requestId, responseCode: 200,
+        await cdp.send("Fetch.fulfillRequest", { requestId: ev.requestId,
+          responseCode: edgeReject ? 409 : 200,
           responseHeaders: CORS.concat([{ name:"Content-Type", value:"application/json" }]),
-          body: b64(JSON.stringify({ ok: true })) });
+          body: b64(JSON.stringify(edgeReject
+            ? { ok: false, error: "number_taken", message: "这个学号已被占用。" }
+            : { ok: true })) });
         return;
       }
       if (u.indexOf("supabase.co") > -1 || u.indexOf("supabase.in") > -1) externalHits++;
@@ -738,8 +742,10 @@ try {
      JSON.stringify(after) === JSON.stringify(before), JSON.stringify(after));
   const mMsg = await cdp.ev(`(()=>{const c=document.querySelector(".portal-modal .pm-card");
     return c ? (c.textContent||"").replace(/\s+/g," ") : "";})()`);
-  ok("Rm9 说得出问题在哪一条（不是原生 alert）",
-     /第\s*2\s*条|需要补充什么|写明/.test(mMsg) && nativeDialogs.length === 0,
+  /* 判据按监督收紧：必须**点名第 2 条**。原来那种或写法，只要框里出现
+     「需要补充什么」就能过 —— 而那几个字本来就印在占位符上，等于没判。 */
+  ok("Rm9 说得出问题在**第 2 条**（不是原生 alert）",
+     /第\s*2\s*条/.test(mMsg) && nativeDialogs.length === 0,
      "原生对话框 " + nativeDialogs.length + " 次；" + JSON.stringify(mMsg.slice(-100)));
   const at = await active();
   const atRow2 = await cdp.ev(`(()=>{const a=document.activeElement;
@@ -756,6 +762,12 @@ try {
   if (d1.hit) await typeText("最高学历证书");
   const add2 = await tabUntil(a => /添加一条/.test(a.text || ""), 15);
   if (add2.hit) { await press("Enter"); await sleep(400); }   // 加一条**完全空白**的
+  /* 按监督收紧：正向对照必须**真的存在那一行空白** —— 否则「照常发出去」
+     可能只是因为压根没加出第二行，又是一个白给的绿。 */
+  const rows2 = await rowVals();
+  ok("Rm12-0 前提：确实有两行，且第 2 行完全空白",
+     rows2.length === 2 && rows2[0].label === "最高学历证书" &&
+     rows2[1].label === "" && rows2[1].detail === "", JSON.stringify(rows2));
   const send2 = await tabUntil(a => /发送要求/.test(a.text || ""), 20);
   ok("Rm12 前提：走得到「发送要求」", send2.hit);
   await press("Enter");
@@ -768,6 +780,58 @@ try {
   ok("Rm14 发出去的只有那一条真填了的（空白行不混进去）",
      !!sentBody && Array.isArray(sentBody.requirements) && sentBody.requirements.length === 1 &&
      sentBody.requirements[0].label === "最高学历证书", JSON.stringify(sentBody && sentBody.requirements));
+
+  console.log("\n=== Ce 建档对话框：学号本来就可留空；服务端拒绝时他填的还在不在 ===");
+  /* **先读契约再动手**：这个对话框只有一个字段「学号（可留空）」，
+     desc 写明「暂时没有学号可以留空，但正式注册前必须补齐」
+     （portal/admin/students/index.html:349-351）。
+     所以这里**没有必填字段可定位** —— 不凭空把学号改成必填。
+     要看的是另外两件：只打空格会不会被当成学号发出去；
+     服务端拒绝时他填的还在不在、错误看不看得见、焦点回不回得到那一格。 */
+  const openCreate = async () => {
+    const e = await tabUntil(a => (a.attrs || "").indexOf("data-create") > -1, 60);
+    if (!e.hit) return false;
+    await press("Enter"); await sleep(700);
+    return (await modalUp()) === true;
+  };
+  const numVal = async () => cdp.ev(`(()=>{const i=document.querySelector('.portal-modal [data-f="num"]');
+    return i ? i.value : null;})()`);
+  const bodyOfLastPost = () => { const p2 = lastPost(); try { return p2 && p2.body ? JSON.parse(p2.body) : null; } catch (e) { return null; } };
+
+  // ① 只打空格：按契约等于「留空」，不能把空格当学号发出去
+  await openAdmin("/portal/admin/students/");
+  ok("Ce0 前提：建档对话框开着", (await openCreate()) === true);
+  const nf = await tabUntil(a => (a.attrs || "").indexOf("data-f") > -1, 10);
+  ok("Ce1 前提：焦点在学号那一格", nf.hit, JSON.stringify(nf.at));
+  await typeText("   ");
+  const okBtn2 = await tabUntil(a => /建立学籍/.test(a.text || ""), 10);
+  ok("Ce2 前提：Tab 走得到「建立学籍」", okBtn2.hit);
+  await press("Enter");
+  await sleep(1300);
+  const b1 = bodyOfLastPost();
+  ok("Ce3 只打空格 = 留空，发出去的是 null（不是一串空格）",
+     !!b1 && b1.action === "create_student_record" && b1.student_number === null, JSON.stringify(b1));
+
+  // ② 服务端拒绝：他填的学号还在不在
+  await openAdmin("/portal/admin/students/");
+  edgeReject = true;
+  const cBase2 = await fnCalls();
+  ok("Ce4 前提：建档对话框开着", (await openCreate()) === true);
+  const nf2 = await tabUntil(a => (a.attrs || "").indexOf("data-f") > -1, 10);
+  if (nf2.hit) await typeText("B26-0001");
+  await tabUntil(a => /建立学籍/.test(a.text || ""), 10);
+  await press("Enter");
+  await sleep(1500);
+  ok("Ce5 请求确实发出去了（这一次服务端拒绝）", (await fnCalls()) === cBase2 + 1,
+     "POST 写入 " + cBase2 + " → " + (await fnCalls()));
+  ok("Ce6 被拒之后他填的学号还在（不用重打一遍）",
+     (await numVal()) === "B26-0001", JSON.stringify(await numVal()));
+  const seen = await cdp.ev(`(()=>{const m=document.querySelector(".portal-modal .pm-card");
+    return { modal: !!m, inDialog: !!m && /已被占用|学号|没能|失败/.test(m.textContent||"") };})()`);
+  ok("Ce7 错误就在对话框里看得见（不是被遮罩盖在后面）", seen.inDialog === true, JSON.stringify(seen));
+  const at2 = await active();
+  ok("Ce8 焦点回到学号那一格，能当场改", (at2.attrs || "").indexOf("data-f") > -1, JSON.stringify(at2));
+  edgeReject = false;
 
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
