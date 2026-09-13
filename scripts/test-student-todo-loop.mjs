@@ -201,13 +201,18 @@ const RUN = (g) => !ONLY.length || ONLY.indexOf(g) > -1;
                以及**另一条独立的 browser 级连接**(Browser.getVersion)、
                Target.getTargets、Input.dispatchKeyEvent、handleJavaScriptDialog
                —— 全部 TIMEOUT，一直到 90s 都没回来。
-   两条结论是硬的：
-     (1) 卡住的不只是渲染进程或这个 page target，**整个浏览器进程的 DevTools 都不应答了**；
+   能确定的两条：
+     (1) 范围比原先写的大：不只是渲染进程或这个 page target，
+         **DevTools 这条通道整体停止应答**（另一条独立的 browser 级连接同时死）。
+         到此为止 —— 只量了 DevTools 这一条通道，
+         浏览器其他功能没有独立量具，**不能说「整个浏览器卡死」**。
      (2) 「有个没应答的对话框挡着」被排除 —— 那次对话框早在 12 秒前就应答关闭了，
          而且第 124 包的最小夹具显示对话框开着时 Browser.getVersion 照常 OK(1ms)。
-   到底是什么把浏览器进程卡住，**仍未证实**。所以隔离照旧：
+   触发条件与根因**都仍未证实**。所以隔离照旧：
    在定位清楚之前宁可**拒跑**，也不给一个含糊的结果，更不去调长超时。
-   （产品侧这三组各自分开跑都是绿的，本次组合里跑到的 25 条也全绿。） */
+   （三组各自分开跑都是绿的，本次组合里跑到的 25 条也全绿；但这只说明
+     **跑到的那一段**没有断言失败，排除不了挂起点之后的产品代码或
+     产品与浏览器交互参与触发 —— 不得读成「挂起与产品无关」。） */
 const DIRTY_GROUPS = ["Sf", "Se", "Sp"];
 const dirtySelected = ONLY.length ? DIRTY_GROUPS.filter((g) => ONLY.indexOf(g) > -1) : DIRTY_GROUPS;
 if (dirtySelected.length > 1) {
