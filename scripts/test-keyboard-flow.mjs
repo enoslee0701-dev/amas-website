@@ -641,6 +641,20 @@ try {
     ok("Rw11 打字不会把行弄没", ed.r.rows === 1, JSON.stringify(ed.r));
   }
 
+  /* ── select / month 的键盘证据：本轮**未能在此环境取得** ──────────────
+     做过的事：写了一个**不含任何产品代码**的对照页
+     （scripts/fixtures/native-controls.html，随本包一并交付），
+     并对 ArrowDown 与数字键试了四种 CDP 编码
+     （rawKeyDown / keyDown / keyDown+text / keyDown+char）。
+     结果：在这套 headless + CDP 组合下，**换页之后再发按键会把渲染进程卡住**
+     （Input.dispatchKeyEvent 与随后的 Runtime.evaluate 双双超时），
+     对照数据没能稳定采到 —— 所以**既不能说产品有问题，也不能说没问题**。
+
+     按监督口径记为 **INCOMPLETE（本轮未取得证据）**，不声称「环境不支持」，
+     也不用 JS 赋值假装键盘完成。需要人工的具体步骤写在
+     web-round80.md §「要谁做什么」，对照页就是给那一步用的。
+     未覆盖的动态行 month 同样保持 INCOMPLETE。 */
+
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
   ok("G2 全程没有页面异常", pageErrors.length === 0, JSON.stringify(pageErrors.slice(0, 2)));
