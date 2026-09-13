@@ -203,6 +203,11 @@ try {
        教务没列条目  → 按留言补（缺，不能谎称「都已完成」） */
   const btnText = async () => cdp.ev(`(()=>{const a=document.querySelector("#main a.btn");
     return a ? (a.textContent||"").trim() : null;})()`);
+  /* 只看状态卡那一张卡里的提示块，别把整页（含底部帮助中心入口）都算进来。 */
+  const cardNote = async () => cdp.ev(`(()=>{const c=document.querySelector("#main .card");
+    if(!c) return null; return [...c.querySelectorAll(".msg")].map(n=>(n.textContent||"").replace(/\s+/g," ").trim()).join(" | ");})()`);
+  const cardHelpLink = async () => cdp.ev(`(()=>{const c=document.querySelector("#main .card");
+    return !!(c && c.querySelector('a[href$="help/"]'));})()`);
 
   await open({ tables: Object.assign({}, CAT, { application_requirements: {
       data:[{ id:"r1", resolved:true }, { id:"r2", resolved:true }] } }),
@@ -224,6 +229,45 @@ try {
      !/都已标记|都已完成|全部标记完成/.test(r3), r3.slice(0, 300));
   ok("R4 而是说清楚没有具体条目、按留言补充",
      /没有列出|未列出|没有具体条目/.test(r3), r3.slice(0, 300));
+
+  /* 上一包新加的「没有条目」那一支无条件说「请按上面的留言补充」，
+     而 notice 只有 applicant_visible_message 有内容时才渲染 ——
+     没有留言却这么说，等于把他指向一段**不存在**的说明。
+     这一支能不能出现？读了契约：
+       · 我们自己的招生页要求至少一条补件（admissions/index.html:716 `if (!items.length)`），
+         留言也 .trim() || null（:717），所以空白留言进不来；
+       · Edge review-application 明确拒绝空 requirements
+         （functions/review-application/validate.mjs:59-61 → requirements_required）；
+       · 但 DB 函数 review_application 本身两个参数都可选
+         （0008_applications.sql `if p_action = 'needs_information' and p_requirements is not null`，
+         message 走 coalesce 且不 trim），而它 grant 给 service_role；Edge 目前**未部署**。
+     所以这是**防御性分支**，不是常规路径 —— 但既然它会显示给人看，就不能指错路。 */
+  await open({ tables: Object.assign({}, CAT, { application_requirements: { data:[] } }),
+    rpc: { my_application: { data:[ appOf("needs_information", { applicant_visible_message: null }) ] } } });
+  const b1 = await vis();
+  ok("B1 没有条目**也没有留言**时，不把他指向不存在的「上面的留言」",
+     !/上面的留言/.test(b1), b1.slice(0, 320));
+  ok("B1b 而是说清楚现在无法确认要补什么",
+     /无法确认|不能确认/.test(b1), b1.slice(0, 320));
+  /* 不能拿整页文本判 —— 底部「💬帮助中心 常见问题与联系招生同工」本来就在，
+     那条断言在修前就是绿的。要的是**状态卡里**那条下一步给出的联系入口。 */
+  ok("B1c 并在状态卡里给出联系招生同工的入口",
+     (await cardHelpLink()) === true, JSON.stringify(await cardNote()));
+  ok("B1d 不自行推断已补完，也不叫他直接重新提交",
+     !/都已标记为完成/.test(b1) && (await btnText()) !== "去重新提交",
+     JSON.stringify([await btnText(), b1.slice(0, 200)]));
+
+  await open({ tables: Object.assign({}, CAT, { application_requirements: { data:[] } }),
+    rpc: { my_application: { data:[ appOf("needs_information", { applicant_visible_message: "   " }) ] } } });
+  const b2 = await vis();
+  ok("B2 留言是全空白时同样不指向它", !/上面的留言/.test(b2) && /无法确认|不能确认/.test(b2), b2.slice(0, 320));
+  ok("B2b 也不渲染一个空的「招生同工留言：」", !/招生同工留言/.test(b2), b2.slice(0, 320));
+
+  await open({ tables: Object.assign({}, CAT, { application_requirements: { data:[] } }),
+    rpc: { my_application: { data:[ appOf("needs_information", { applicant_visible_message: MSG }) ] } } });
+  const b3 = await vis();
+  ok("B3 对照：确实有留言时，仍然让他按留言补充",
+     /上面的留言/.test(b3) && b3.indexOf(MSG) > -1, b3.slice(0, 320));
 
   // 对照：还有没标完的时候，原来的说法和入口一个字都不变
   await open({ tables: Object.assign({}, CAT, { application_requirements: {

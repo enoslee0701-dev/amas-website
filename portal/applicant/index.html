@@ -6,15 +6,15 @@
 <meta name="robots" content="noindex">
 <title>申请者中心 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609131351">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609131403">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609131351"></script>
-<script src="../../assets/js/portal/auth.js?v=202609131351"></script>
-<script src="../../assets/js/portal/api.js?v=202609131351"></script>
-<script src="../../assets/js/portal/ui.js?v=202609131351"></script>
-<script src="../../assets/js/portal/shell.js?v=202609131351"></script>
+<script src="../../assets/js/supabase-config.js?v=202609131403"></script>
+<script src="../../assets/js/portal/auth.js?v=202609131403"></script>
+<script src="../../assets/js/portal/api.js?v=202609131403"></script>
+<script src="../../assets/js/portal/ui.js?v=202609131403"></script>
+<script src="../../assets/js/portal/shell.js?v=202609131403"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell;
@@ -69,8 +69,13 @@
      得再点一层才知道对方说了什么。
      这里用的是**已经取回来的同一份数据**，不额外发请求。
      留言是服务端来的文本，一律走 UI.esc，不当 HTML 解析。 */
-  const notice = app && app.applicant_visible_message
-    ? `<div class="msg info show" style="margin-top:10px"><b>招生同工留言：</b>${UI.esc(app.applicant_visible_message)}</div>`
+  /* 留言**是不是真的有一句话**要按 —— 空串、全空白都不算。
+     下面「没有列条目」那一支会让他「按上面的留言」补，而这一块只有有内容时才渲染；
+     两处必须用同一个判断，否则会把他指向一段不存在的说明。
+     全空白还会渲染出一个「招生同工留言：」后面什么都没有的空块。 */
+  const noticeText = app ? String(app.applicant_visible_message || "").trim() : "";
+  const notice = noticeText
+    ? `<div class="msg info show" style="margin-top:10px"><b>招生同工留言：</b>${UI.esc(noticeText)}</div>`
     : "";
 
   /* 「需补充资料」底下其实有三种**不同**的下一步，此前都压成同一句
@@ -95,8 +100,18 @@
     } else if (reqTotal) {
       nextNote = info("需要补充的资料<b>都已标记为完成</b> —— 回到申请页重新提交。");
       actionLabel = "去重新提交";
-    } else {
+    } else if (noticeText) {
       nextNote = info("教务这次<b>没有列出</b>具体的补充条目，请按上面的留言补充后重新提交。");
+    } else {
+      /* 既没有条目、也没有留言 —— 我们这边**没有任何信息**说明要补什么。
+         这一支按契约不该出现（招生页至少要填一条：admissions/index.html:716；
+         Edge review-application 也直接拒空 requirements：validate.mjs:59-61）。
+         但 DB 的 review_application 两个参数都可选、且 grant 给 service_role，
+         Edge 目前又未部署，所以真发生时页面得说人话：不猜、不催他提交。 */
+      nextNote = info("这次<b>没有列出</b>需要补充的条目，也没有留下说明 —— " +
+        "<b>现在无法确认要补什么</b>。请先<a class=\"link\" href=\"" + A.ROOT + "help/\">联系招生同工</a>" +
+        "问清楚，不要凭猜测直接重新提交。");
+      actionLabel = "查看申请";
     }
   }
 
