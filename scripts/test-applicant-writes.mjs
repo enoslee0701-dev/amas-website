@@ -1896,6 +1896,84 @@ try {
      (await casLog()).every(e => e.hit) && /已保存/.test((await saveStateText()) || ""),
      JSON.stringify([await casLog(), await saveStateText()]));
 
+  // ════════ Ex 登录过期之后，他还有没有路可走（blueprint P1-16）════════
+  console.log("\n=== Ex 登录过期：明确提示 + 跳登录 + 别把他填的弄丢 ===");
+  /* 蓝图验收矩阵 P1-16：「session 过期后操作 → 明确提示并跳登录（非静默失败）」。
+     现状只做到「说了一句失效」：Api.normalize 把 401 归成 unauthenticated，
+     save() 于是写「保存失败：登录状态已失效，请重新登录。」，submit() 写
+     「…请稍后重试或修正后再提交」——
+       · 稍后重试是错的，登录没恢复之前重试多少次都一样；
+       · 页面上没有任何一条能走的出路（登录入口）；
+       · 更要命的是他填的那一段**没有被暂存**：这一页上的就是唯一一份，
+         他一离开去登录就全没了。而暂存/恢复这套机制页面里早就有
+         （stashDraft / offerRestore，第十九包之后），只是这条路上没接。 */
+  const stashNow = async () => cdp.ev(`(()=>{try{return sessionStorage.getItem("amas.draft.application");}catch(e){return null;}})()`);
+  const loginWay = async () => cdp.ev(`(()=>{const a=[...document.querySelectorAll("a,button")]
+    .filter(n=>/重新登录/.test(n.textContent||""))
+    .filter(n=>!n.closest("#amas-nav,header,footer"))[0];
+    return a ? { tag:a.tagName, href:a.getAttribute("href")||"" } : null;})()`);
+  /* 前面的小节会往同一个键里写暂存（那一份的 uid 是别人的）。
+     不先清掉，Ex4 就会判在上一节的数据上 —— 判据必须只认这一节写进去的。 */
+  await cdp.ev(`(()=>{try{sessionStorage.removeItem("amas.draft.application");}catch(e){} return true;})()`).catch(()=>{});
+  const EXPIRED = { data:null, error:{ message:"JWT expired" }, status:401 };
+  const EXP = { tables: { ...BASE_TABLES },
+    rpc: { my_application: { data: [{ ...DRAFT }] }, submit_application: { data:{ ok:true } } },
+    writes: { applications: EXPIRED } };
+
+  await open(EXP);
+  await goStep(3);
+  ok("Ex0 前提：改得动", (await typeCalling("会话过期前写的一段")) === true);
+  await sleep(1300);                                 // 防抖 → 保存 → 401
+  const ex1 = await vis("#saveState");
+  ok("Ex1 说的是登录过期、这一次没有保存",
+     /登录|失效|过期/.test(ex1 || "") && /没有保存|保存失败/.test(ex1 || ""), JSON.stringify(ex1));
+  const way = await loginWay();
+  ok("Ex2 页面上给得出一条真能走的出路（重新登录入口）", !!way, JSON.stringify(way));
+  ok("Ex3 那条出路指向登录页，并带 ?next= 回到这一页",
+     !!way && /login\//.test(way.href) && /next=/.test(way.href), JSON.stringify(way));
+  const st1 = await stashNow();
+  ok("Ex4 他填的那一段已经暂存下来（离开这一页也不会白填）",
+     !!st1 && st1.indexOf("会话过期前写的一段") > -1, JSON.stringify(st1 && st1.slice(0, 120)));
+  ok("Ex5 页面没有自动跳走，内容还在屏幕上",
+     (await cdp.ev(`(()=>{const el=document.getElementById("fd-calling"); return el?el.value:null;})()`)) === "会话过期前写的一段");
+
+  await clickSubmitRaw();
+  await sleep(1200);
+  const ex6 = await subErr();
+  ok("Ex6 提交那一路也说登录过期、这次没有提交",
+     /登录|过期/.test(ex6 || "") && /没有提交|没提交/.test(ex6 || ""), JSON.stringify(ex6));
+  ok("Ex7 并且不再劝他「稍后重试」（重试解决不了登录过期）",
+     !/稍后重试/.test(ex6 || ""), JSON.stringify(ex6));
+  const ex8 = await calls();
+  ok("Ex8 登录过期时没有把 submit_application 发出去",
+     !(ex8["rpc:submit_application"] > 0), JSON.stringify(ex8));
+
+  /* 保存成功、偏偏提交那一下 401：同样要给出路，而不是一句干巴巴的错误。 */
+  await open({ tables: { ...BASE_TABLES },
+    rpc: { my_application: { data: [{ ...DRAFT }] }, submit_application: EXPIRED },
+    writes: { applications: { data:[{ id:"app-fixture-1", updated_at:"2026-09-10T00:00:01Z" }] } } });
+  await goStep(3);
+  await typeCalling("保存得上但交不上去");
+  await sleep(1300);
+  await clickSubmitRaw();
+  await sleep(1400);
+  const ex9 = await subErr();
+  ok("Ex9 提交本身 401 时也说登录过期、这次没有提交",
+     /登录|过期/.test(ex9 || "") && /没有提交|没提交/.test(ex9 || ""), JSON.stringify(ex9));
+  ok("Ex10 并给出重新登录的入口", !!(await loginWay()), JSON.stringify(await loginWay()));
+
+  /* 对照：明确被拒但**不是**登录过期时，原来的说法不变，也不冒出「重新登录」。 */
+  await open({ tables: { ...BASE_TABLES },
+    rpc: { my_application: { data: [{ ...DRAFT }] }, submit_application: { data:{ ok:true } } },
+    writes: { applications: { data:null, error:{ message:"permission denied" }, status:403 } } });
+  await goStep(3);
+  await typeCalling("被权限拒掉");
+  await sleep(1300);
+  const ex11 = await vis("#saveState");
+  ok("Ex11 对照：403 仍然是「保存失败」，没有被当成登录过期",
+     /保存失败/.test(ex11 || "") && !/过期/.test(ex11 || ""), JSON.stringify(ex11));
+  ok("Ex12 对照：这时候不冒出「重新登录」入口", (await loginWay()) === null, JSON.stringify(await loginWay()));
+
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
