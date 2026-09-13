@@ -331,77 +331,151 @@ try {
   };
 
   // ════════ Qd 队列 → 详情 → 回到原来的队列（同页侧栏）════════
-  console.log("\n=== Qd 队列 → 详情 → 回到原来的队列（详情是同页侧栏，不是另一页）===");
-  await openAdmin();
-  ok("Qd0 前提：队列出来了，三份申请都在",
-     JSON.stringify(await rowsShown()) === JSON.stringify(["app-1","app-2","app-3"]),
-     JSON.stringify(await rowsShown()));
-  /* 先用键盘把队列筛到只剩目标那一份 —— 这就是「原来的队列上下文」。
-     筛选里的 <select> 在 headless 里驱动不了（一贯记为 INCOMPLETE），
-     所以这里用**搜索框**：它是文本输入，键盘真打得进去。 */
-  const sq = await tabTo((w) => w.id === "fQ", 30);
-  ok("Qd1 前提：Tab 走得到搜索框", sq.hit === true, JSON.stringify(sq.at));
-  await typeText(U2);
-  const filtered = await rowsShown();
-  ok("Qd2 前提：键盘打字真的把队列筛成了一份（上下文建立）",
-     JSON.stringify(filtered) === JSON.stringify(["app-2"]), JSON.stringify(filtered));
-  const before = probeLog.length;
-  const vw = await tabTo((w) => w.open === "app-2", 30);
-  ok("Qd3 Tab 走得到那一行的「查看」", vw.hit === true, JSON.stringify(vw.at));
-  await press("Enter");
-  ok("Qd4 Enter 打开了详情侧栏", await until(async () => detailOpen(), 8000));
-  ok("Qd5 打开的确实是**同一份**（详情里是它的唯一标识）",
-     (await detailText()).indexOf(U2) > -1 &&
-     (await detailText()).indexOf(U1) < 0 && (await detailText()).indexOf(U3) < 0,
-     JSON.stringify((await detailText()).slice(0, 60)));
-  const corr = probeLog.slice(before).filter(r => r.kind === "table" && r.eq && r.eq.application_id === "app-2");
-  ok("Qd6 请求关联：这一次打开发出的读取带的就是它的 id",
-     corr.length >= 1, JSON.stringify(probeLog.slice(before).filter(r => r.kind === "table")
-       .map(r => ({ n:r.name, eq:r.eq }))));
-  const afterOpen = await where();
-  ok("Qd7 打开之后焦点进了详情面板（否则他不知道这一下开出了什么）",
-     afterOpen.inDetail === true, JSON.stringify(afterOpen));
-  const cl = await tabTo((w) => w.id === "dClose", 40);
-  ok("Qd8 Tab 走得到详情里的关闭按钮", cl.hit === true, JSON.stringify(cl.at));
-  await press("Enter");
-  ok("Qd9 Enter 真的把详情收起来了", (await detailOpen()) === false);
-  const afterClose = await where();
-  ok("Qd10 关掉之后焦点没有掉到 <body>（应当回到他刚才按的那个「查看」）",
-     afterClose.tag !== "BODY", JSON.stringify(afterClose));
-  ok("Qd11 回到队列之后，**筛选上下文还在**（搜索框里的字还在）",
-     (await searchVal()) === U2, JSON.stringify(await searchVal()));
-  ok("Qd12 列表也还是筛过的那一份（没有被重置回三份）",
-     JSON.stringify(await rowsShown()) === JSON.stringify(["app-2"]),
-     JSON.stringify(await rowsShown()));
+  if (RUN("Qd")) {
+    console.log("\n=== Qd 队列 → 详情 → 回到原来的队列（详情是同页侧栏，不是另一页）===");
+    await openAdmin();
+    ok("Qd0 前提：队列出来了，三份申请都在",
+       JSON.stringify(await rowsShown()) === JSON.stringify(["app-1","app-2","app-3"]),
+       JSON.stringify(await rowsShown()));
+    /* 先用键盘把队列筛到只剩目标那一份 —— 这就是「原来的队列上下文」。
+       筛选里的 <select> 在 headless 里驱动不了（一贯记为 INCOMPLETE），
+       所以这里用**搜索框**：它是文本输入，键盘真打得进去。 */
+    const sq = await tabTo((w) => w.id === "fQ", 30);
+    ok("Qd1 前提：Tab 走得到搜索框", sq.hit === true, JSON.stringify(sq.at));
+    await typeText(U2);
+    const filtered = await rowsShown();
+    ok("Qd2 前提：键盘打字真的把队列筛成了一份（上下文建立）",
+       JSON.stringify(filtered) === JSON.stringify(["app-2"]), JSON.stringify(filtered));
+    const before = probeLog.length;
+    const vw = await tabTo((w) => w.open === "app-2", 30);
+    ok("Qd3 Tab 走得到那一行的「查看」", vw.hit === true, JSON.stringify(vw.at));
+    await press("Enter");
+    ok("Qd4 Enter 打开了详情侧栏", await until(async () => detailOpen(), 8000));
+    ok("Qd5 打开的确实是**同一份**（详情里是它的唯一标识）",
+       (await detailText()).indexOf(U2) > -1 &&
+       (await detailText()).indexOf(U1) < 0 && (await detailText()).indexOf(U3) < 0,
+       JSON.stringify((await detailText()).slice(0, 60)));
+    const corr = probeLog.slice(before).filter(r => r.kind === "table" && r.eq && r.eq.application_id === "app-2");
+    ok("Qd6 请求关联：这一次打开发出的读取带的就是它的 id",
+       corr.length >= 1, JSON.stringify(probeLog.slice(before).filter(r => r.kind === "table")
+         .map(r => ({ n:r.name, eq:r.eq }))));
+    const afterOpen = await where();
+    ok("Qd7 打开之后焦点进了详情面板（否则他不知道这一下开出了什么）",
+       afterOpen.inDetail === true, JSON.stringify(afterOpen));
+    const cl = await tabTo((w) => w.id === "dClose", 40);
+    ok("Qd8 Tab 走得到详情里的关闭按钮", cl.hit === true, JSON.stringify(cl.at));
+    await press("Enter");
+    ok("Qd9 Enter 真的把详情收起来了", (await detailOpen()) === false);
+    const afterClose = await where();
+    ok("Qd10 关掉之后焦点没有掉到 <body>（应当回到他刚才按的那个「查看」）",
+       afterClose.tag !== "BODY", JSON.stringify(afterClose));
+    ok("Qd11 回到队列之后，**筛选上下文还在**（搜索框里的字还在）",
+       (await searchVal()) === U2, JSON.stringify(await searchVal()));
+    ok("Qd12 列表也还是筛过的那一份（没有被重置回三份）",
+       JSON.stringify(await rowsShown()) === JSON.stringify(["app-2"]),
+       JSON.stringify(await rowsShown()));
 
-  // ── 量具两条通则的自检
-  console.log("\n=== A 记账口径自检（写入分类 + 终局对齐）===");
-  await sleep(700);                                  // 给异步投递一点时间
-  const cls = classify();
-  ok("A0 这一段没有任何表写入", cls.writes.length === 0, JSON.stringify(cls.writes));
-  ok("A1 出现过的 RPC **全部**在已审查的只读白名单里（有未分类就不算零写入）",
-     cls.unclassified.length === 0,
-     JSON.stringify({ 出现过: cls.rpcNames, 未分类: cls.unclassified.map(r => r.name) }));
-  ok("A2 也没有走任何 Edge Function", edgeCalls.length === 0, JSON.stringify(edgeCalls));
-  /* 终局对齐：每个 visit 的 seq 必须 1..N 连续；当前这一页的宿主计数
-     还要和页内自己数的对得上。有缺口就说明 beacon 丢了，
-     那「零写入」只是「没看见」，不能当成「没有」。 */
-  const byVisit = {};
-  probeLog.forEach((r) => { (byVisit[r.visit] = byVisit[r.visit] || []).push(r.seq); });
-  const gaps = Object.entries(byVisit).filter(([, seqs]) => {
-    const a = [...seqs].sort((x, y) => x - y);
-    return a[0] !== 1 || a.some((x, i) => x !== i + 1);
-  });
-  ok("A3 终局对齐：每一次页面载入的记录 seq 都是 1..N 连续，没有缺口",
-     gaps.length === 0, JSON.stringify(gaps.slice(0, 2)));
-  const live = await cdp.ev(`(()=>({ visit: window.__VISIT, sent: window.__sent }))()`);
-  ok("A4 当前这一页：宿主收到的条数与页内自己数的一致（不是「收到一条就算数」）",
-     !!live && Array.isArray(byVisit[live.visit]) && byVisit[live.visit].length === live.sent,
-     JSON.stringify({ live, got: (byVisit[(live||{}).visit] || []).length }));
+    // ── 量具两条通则的自检
+  }
+  if (RUN("Rr")) {
+    console.log("\n=== Rr 详情开着时队列重绘：原来那一行没了，关掉之后焦点去哪 ===");
+    /* 上一包的兜底是「找不到那一行就不 focus」，报告还写了一句
+       「至少不把他扔回页首」—— **那句话没有依据**：× 就在被收起的面板里，
+       不 focus 的结果仍然是掉到 <body>（监督点名）。
+       这里先按**真实可达的控件路径**复现：详情开着时他还能不能碰到搜索框。
+       不强行改 DOM 造缺陷 —— 走不到就如实记「找不到可达触发」。 */
+    await openAdmin();
+    const v2 = await tabTo((w) => w.open === "app-2", 40);
+    ok("Rr0 前提：Tab 走得到 app-2 那一行的「查看」", v2.hit === true, JSON.stringify(v2.at));
+    await press("Enter");
+    ok("Rr1 前提：详情开着", await until(async () => detailOpen(), 8000));
+    let reach = await tabTo((w) => w.id === "fQ", 45);
+    if (!reach.hit) {
+      for (let i = 1; i <= 45 && !reach.hit; i++) {
+        await press("Tab", true);
+        const w = await where();
+        if (w.id === "fQ") reach = { hit: true, steps: -i, at: w };
+      }
+    }
+    ok("Rr2 前提：详情开着时，键盘**确实走得到**搜索框（走不到就没有这个触发）",
+       reach.hit === true, JSON.stringify(reach));
+    if (reach.hit) {
+      await typeText(U1);
+      const left = await rowsShown();
+      ok("Rr3 前提：队列重绘了，原来那一行已经不在列表里",
+         left.indexOf("app-2") < 0 && left.length >= 1, JSON.stringify(left));
+      ok("Rr4 前提：详情**还开着**（筛选没有顺手把它关掉）", (await detailOpen()) === true);
+      const cl2 = await tabTo((w) => w.id === "dClose", 45);
+      ok("Rr5 前提：Tab 走得回详情里的关闭按钮", cl2.hit === true, JSON.stringify(cl2.at));
+      await press("Enter");
+      ok("Rr6 前提：详情收起来了", (await detailOpen()) === false);
+      const land = await where();
+      ok("Rr7 关掉之后焦点**没有掉到 <body>**，而且落在看得见的队列锚点上",
+         land.tag !== "BODY" && land.inDetail === false, JSON.stringify(land));
+      ok("Rr8 筛选上下文仍在（搜索框里的字没被清掉）", (await searchVal()) === U1,
+         JSON.stringify(await searchVal()));
+      ok("Rr9 列表也还是筛过的样子（没被重置回三份）",
+         (await rowsShown()).indexOf("app-2") < 0, JSON.stringify(await rowsShown()));
+    }
 
-  console.log("\n=== G 外发 ===");
-  ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
-  ok("G2 全程没有页面异常", pageErrors.length === 0, JSON.stringify(pageErrors.slice(0, 2)));
+    await openAdmin();
+    const v3 = await tabTo((w) => w.open === "app-3", 40);
+    ok("Rr10 前提：Tab 走得到 app-3 那一行的「查看」", v3.hit === true, JSON.stringify(v3.at));
+    await press("Enter");
+    await until(async () => detailOpen(), 8000);
+    await cdp.ev(`(()=>{const b=document.querySelector('[data-open="app-3"]');
+      if(b) b.dataset.probeMark="old"; return !!b;})()`);
+    const reach2 = await tabTo((w) => w.id === "fQ", 45);
+    ok("Rr11 前提：又走到搜索框", reach2.hit === true, JSON.stringify(reach2.at));
+    await typeText(U3);
+    ok("Rr12 前提：重绘之后那一行**仍然可见**",
+       JSON.stringify(await rowsShown()) === JSON.stringify(["app-3"]),
+       JSON.stringify(await rowsShown()));
+    const oldGone = await cdp.ev(`(()=>{const b=document.querySelector('[data-open="app-3"]');
+      return { markedStill: !!(b && b.dataset && b.dataset.probeMark),
+               count: document.querySelectorAll('[data-open="app-3"]').length };})()`);
+    ok("Rr13 现在页面上的是**新**节点（旧的那个已经不在文档里了）",
+       oldGone.markedStill === false && oldGone.count === 1, JSON.stringify(oldGone));
+    const cl3 = await tabTo((w) => w.id === "dClose", 45);
+    if (cl3.hit) await press("Enter");
+    const land2 = await cdp.ev(`(()=>{const a=document.activeElement;
+      if(!a || a===document.body) return { tag:"BODY" };
+      return { tag:a.tagName, open:(a.dataset&&a.dataset.open)||"",
+               marked: !!(a.dataset && a.dataset.probeMark) };})()`);
+    ok("Rr14 关掉之后焦点回到**那一行的新节点**（不是旧的、也不是 body）",
+       land2.open === "app-3" && land2.marked === false, JSON.stringify(land2));
+  }
+
+  if (RUN("A")) {
+    console.log("\n=== A 记账口径自检（写入分类 + 终局对齐）===");
+    await sleep(700);                                  // 给异步投递一点时间
+    const cls = classify();
+    ok("A0 这一段没有任何表写入", cls.writes.length === 0, JSON.stringify(cls.writes));
+    ok("A1 出现过的 RPC **全部**在已审查的只读白名单里（有未分类就不算零写入）",
+       cls.unclassified.length === 0,
+       JSON.stringify({ 出现过: cls.rpcNames, 未分类: cls.unclassified.map(r => r.name) }));
+    ok("A2 也没有走任何 Edge Function", edgeCalls.length === 0, JSON.stringify(edgeCalls));
+    /* 终局对齐：每个 visit 的 seq 必须 1..N 连续；当前这一页的宿主计数
+       还要和页内自己数的对得上。有缺口就说明 beacon 丢了，
+       那「零写入」只是「没看见」，不能当成「没有」。 */
+    const byVisit = {};
+    probeLog.forEach((r) => { (byVisit[r.visit] = byVisit[r.visit] || []).push(r.seq); });
+    const gaps = Object.entries(byVisit).filter(([, seqs]) => {
+      const a = [...seqs].sort((x, y) => x - y);
+      return a[0] !== 1 || a.some((x, i) => x !== i + 1);
+    });
+    ok("A3 终局对齐：每一次页面载入的记录 seq 都是 1..N 连续，没有缺口",
+       gaps.length === 0, JSON.stringify(gaps.slice(0, 2)));
+    const live = await cdp.ev(`(()=>({ visit: window.__VISIT, sent: window.__sent }))()`);
+    ok("A4 当前这一页：宿主收到的条数与页内自己数的一致（不是「收到一条就算数」）",
+       !!live && Array.isArray(byVisit[live.visit]) && byVisit[live.visit].length === live.sent,
+       JSON.stringify({ live, got: (byVisit[(live||{}).visit] || []).length }));
+  }
+  if (RUN("G")) {
+    console.log("\n=== G 外发 ===");
+    ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
+    ok("G2 全程没有页面异常", pageErrors.length === 0, JSON.stringify(pageErrors.slice(0, 2)));
+  }
   cdp.ws.close();
 } finally {
   chrome.kill(); server.close();

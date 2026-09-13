@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>招生审核 | AMAS 管理后台</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140202">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140208">
 <style>
 .qtable{width:100%;border-collapse:collapse;font-size:13px}
 .qtable th,.qtable td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:top}
@@ -34,12 +34,12 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609140202"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609140202"></script>
-<script src="../../../assets/js/portal/api.js?v=202609140202"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609140202"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609140202"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609140202"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609140208"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609140208"></script>
+<script src="../../../assets/js/portal/api.js?v=202609140208"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609140208"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609140208"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609140208"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -432,12 +432,19 @@
 
     document.getElementById("dClose").addEventListener("click", () => {
       box.classList.remove("open");
-      /* 那一行可能已经被重新渲染过（换页、改筛选）——
-         按 id 现找一次，找不到就不硬塞焦点，至少不把他扔回页首。 */
-      const back = (detailOpener && detailOpener.isConnected)
-        ? detailOpener
-        : document.querySelector('[data-open="' + CSS.escape(current ? current.id : "") + '"]');
-      back?.focus?.();
+      /* 焦点必须落到**看得见的东西**上：× 就在刚被收起的这块面板里，
+         什么都不做的话焦点当场掉到 <body>，他被扔回页首
+         （上一包写的「至少不把他扔回页首」**没有依据**，本轮实测 Rr7 就是 BODY）。
+         按这个顺序找一个看得见的落点：
+           ① 他刚才按的那个「查看」（还在文档里的话）；
+           ② 那一行可能已被重绘（换页 / 改筛选）—— 按 id 现找一次**新**节点
+              （本轮 Rr13/Rr14 验过：确实落到新节点，旧节点已脱离文档）；
+           ③ 那一行已经不在当前筛选结果里 —— 回到队列的稳定锚点：搜索框。
+              它一直看得见，而且正好是他刚才改筛选的地方，上下文不断。 */
+      const byId = document.querySelector('[data-open="' + CSS.escape(current ? current.id : "") + '"]');
+      const anchor = (detailOpener && detailOpener.isConnected) ? detailOpener
+                   : (byId || document.getElementById("fQ"));
+      anchor?.focus?.();
     });
     document.getElementById("asSave")?.addEventListener("click", saveAssign);
     box.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => act(b.dataset.a)));
