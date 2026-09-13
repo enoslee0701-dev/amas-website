@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>学籍管理 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609132101">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609132113">
 <style>
 .tabs{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap}
 .tabs button{min-height:40px;padding:0 16px;border:1.5px solid var(--line);border-radius:999px;background:#fff;
@@ -32,11 +32,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609132101"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609132101"></script>
-<script src="../../../assets/js/portal/api.js?v=202609132101"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609132101"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609132101"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609132113"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609132113"></script>
+<script src="../../../assets/js/portal/api.js?v=202609132113"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609132113"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609132113"></script>
 <script>
 /* PORTAL-2 学籍管理（教务侧）
    闭环：录取 → 记录总校审核确认 → 建档(pre_enrolled) → 正式注册(active)；学号可经专用通道更正。
@@ -481,7 +481,10 @@
           UI.esc(a.label) + '</button>').join("") + '</div></div>';
     document.body.appendChild(wrap);
 
-    const close = () => { wrap.remove(); document.removeEventListener("keydown", onKey); };
+    /* 关掉之后要把焦点还给打开它的那个按钮 —— 否则取消一次就掉到 <body>，
+       键盘用户得从表格头部重新 Tab 一遍（本轮实测 St6）。 */
+    const prev = document.activeElement;
+    const close = () => { wrap.remove(); document.removeEventListener("keydown", onKey); prev?.focus?.(); };
     const onKey = (e) => { if (e.key === "Escape") close(); };
     document.addEventListener("keydown", onKey);
     wrap.querySelector("#m-cancel").addEventListener("click", close);
