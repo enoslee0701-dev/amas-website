@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131159">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131229">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609131159"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609131159"></script>
-<script src="../../../assets/js/portal/api.js?v=202609131159"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609131159"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609131159"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609131159"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609131229"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609131229"></script>
+<script src="../../../assets/js/portal/api.js?v=202609131229"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609131229"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609131229"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609131229"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -44,6 +44,8 @@
      app.updated_at，版本就**倒退**了 —— 下一次保存会被乐观并发判成「别处改过」。
      给每次保存一个递增序号，只有**最新发出**的那一次才有资格改版本和清 dirty。 */
   let saveSeq = 0;
+  /* 串行化保存用的两个把手：在途/排队的那一次，以及「排队里已经有一次了」。 */
+  let saveTail = null, saveQueued = false;
 
   /* 这一页有四条写入：创建草稿、自动保存、标记补件完成、提交申请。
      判据与 portal/admin/*（第六包）同一套：
@@ -833,7 +835,30 @@
       页面先显示「保存失败：…」，紧接着又发出 submit_application 并弹
       「申请已提交」—— **提交的是服务端上那份旧的表单**，用户刚填的内容
       从来没存进去，而他以为交上去了。 */
-  async function save(){
+  /** 保存入口：**同一时刻只允许一笔写在途**，而且严格串行 —— 第二笔必须等第一笔
+      落地、接上它确认的新版本之后才发出去。
+
+      监督用有状态 CAS 夹具复现（第一笔还在路上时再存一笔）：两笔带的是**同一个**
+      updated_at，服务端的乐观并发只会让先到的那一笔命中，后到的回 0 行。
+      于是页面对着用户自己的保存喊「这份申请在别处被改过」，而且成功那一笔确认的
+      新版本还会被顶替逻辑丢掉 —— 之后每一次保存都拿着过期版本去比对，笔笔落空，
+      他除了重新载入没有别的出路，可根本没有别人改过。
+      排队的这一次在**真正开始时**才读页面内容和版本号，所以一次就覆盖排队期间的
+      所有修改，不需要排第二次。 */
+  function save(){
+    if (!saveTail) return trackSave(runSave());
+    if (saveQueued) return saveTail;               // 已经排了一次，合并进去
+    saveQueued = true;
+    const start = () => { saveQueued = false; return runSave(); };
+    return trackSave(saveTail.then(start, start));
+  }
+  function trackSave(p){
+    saveTail = p;
+    const done = () => { if (saveTail === p) { saveTail = null; saveQueued = false; } };
+    p.then(done, done);
+    return p;
+  }
+  async function runSave(){
     if (!EDITABLE.includes(app.status)) return { ok: true, unclear: false, skipped: true };
     /* PORTAL-blueprint §6 表单行为写明：「草稿本地 debounce 800ms +
        **服务端 updated_at 乐观并发**」。乐观并发这一半此前完全没做 ——
@@ -900,6 +925,11 @@
     /* 这一次已经被更晚发出的保存顶掉了：它的版本号是**旧**的，回写就会让版本倒退。
        既不改版本，也不清 dirty —— 由那一次更晚的保存去下结论。 */
     if (myGen !== saveSeq) {
+      /* 串行化之后正常路径到不了这里；留着是因为丢掉版本的后果太重。
+         **只向前接**：晚到的旧响应不会让版本倒退，但它确认过的版本也不能扔 ——
+         扔了就等于往后每一次保存都拿过期版本去比对。 */
+      const a = Date.parse(app.updated_at), b = Date.parse(nextVersion);
+      if (!isNaN(a) && !isNaN(b) && b > a) app.updated_at = nextVersion;
       return { ok: true, unclear: false, stale: true, superseded: true };
     }
     app.updated_at = nextVersion;

@@ -132,9 +132,13 @@ window.supabase = {
       sessionStorage.setItem("wSeq", JSON.stringify(q)); } catch(e){} };
     function table(name){
       var mode = "select";
+      /* 这一次调用自己的匹配条件。sessionStorage 里的 lastMatch 是**累积**的，
+         两笔写重叠时分不清哪条属于谁 —— 有状态 CAS 要判的正是「这一笔带的是哪一版」。 */
+      var matchCond = {};
       var q = {
         select:function(){ return q; },
         eq:function(k, v){
+          matchCond[k] = v;
           if (mode === "update") {
             try { var m = JSON.parse(sessionStorage.getItem("lastMatch") || "{}");
                   m[k] = v; sessionStorage.setItem("lastMatch", JSON.stringify(m)); } catch (e) {}
@@ -153,6 +157,18 @@ window.supabase = {
            「保存时到底带没带 updated_at」。 */
         then:function(res, rej){
           var sc = S();
+          /* 有状态 CAS 夹具：服务端只有**一个**当前版本，命中与否取决于
+             判定那一刻它是不是请求带来的那一版。autoVersion 那种「每次都成功」
+             验不出乐观并发真正的样子 —— 两笔写带着同一个版本出去，
+             真实服务端只会让一笔命中，另一笔回 0 行。
+             判定（apply）与回包（deliver）分开，才能分别控制「谁先命中」和「谁先回来」。 */
+          if (mode !== "select" && sc.cas && sc.cas[name]) {
+            var st = window.__cas || (window.__cas =
+              { ver: sc.casFrom || "2026-09-10T00:00:00Z", n: 0, q: [], log: [] });
+            var e = { base: matchCond.updated_at, applied:false, done:false, out:null, deliver:null };
+            st.q.push(e);
+            return new Promise(function(r){ e.deliver = function(){ r(e.out); }; }).then(res, rej);
+          }
           var t = (mode === "select")
             ? ((sc.tables && sc.tables[name]) || { data: [], error: null })
             : ((sc.writes && sc.writes[name]) || { data: [{ id: "app-fixture-1", updated_at: "2026-09-11T00:00:00Z" }], error: null });
@@ -214,7 +230,29 @@ window.supabase = {
       functions: { invoke: function(){ return reply({ data:null, error:null }); } }
     };
   }
-};`;
+};
+/* CAS 夹具的把手（测试侧显式调用）。索引不做 splice，保持稳定。 */
+window.__casApply = function(i){
+  var st = window.__cas; if (!st || !st.q[i] || st.q[i].applied) return null;
+  var e = st.q[i];
+  if (e.base === st.ver) {                       // 命中：版本推进一格
+    st.n++; st.ver = "2026-09-10T00:00:0" + st.n + "Z";
+    e.out = { data:[{ id:"app-fixture-1", updated_at: st.ver }], error:null, status:200 };
+    st.log.push({ base:e.base, hit:true, ver:st.ver });
+  } else {                                       // 没命中：0 行，这条记录已经不是那一版了
+    e.out = { data:[], error:null, status:200 };
+    st.log.push({ base:e.base, hit:false, ver:st.ver });
+  }
+  e.applied = true; return e.out;
+};
+window.__casDeliver = function(i){
+  var st = window.__cas; if (!st || !st.q[i] || st.q[i].done) return 0;
+  if (!st.q[i].applied) window.__casApply(i);
+  st.q[i].done = true; st.q[i].deliver(); return 1;
+};
+/* 别处（教务 / 另一个标签页）真的写了一笔：版本变了，但没有经过本页任何请求。 */
+window.__casBump = function(){ var st = window.__cas; if (!st) return null;
+  st.n++; st.ver = "2026-09-10T00:00:0" + st.n + "Z"; return st.ver; };`;
 
 let port;
 try { port = await ownDebugPort(); console.log("  独占调试端口（本进程自己的 Chrome）: " + port); }
@@ -1610,16 +1648,123 @@ try {
   await sleep(1000);                                 // 防抖 → 保存 A（扣住，版本 1）
   await typeCalling("B");
   await sleep(1000);                                 // 防抖 → 保存 B（扣住，版本 2）
-  ok("Se5-0 前提：两次写入都被扣住", (await held()) === 2, String(await held()));
-  await releaseIdx(1);                               // 先放行 B（新）
-  await sleep(600);
-  await releaseIdx(0);                               // 再放行 A（旧）
-  await sleep(800);
+  /* 串行化之后这里只会有**一笔**在途：第二次编辑排在队里，等第一笔落地才发。
+     两笔同版本的写入根本不再发生，版本自然也没有倒退的机会。 */
+  ok("Se5-0 前提：第一笔写入被扣住", (await held()) === 1, String(await held()));
+  ok("Se5-1 上一笔还没回来之前不会再发一笔", (await held()) === 1, String(await held()));
+  await release(1);                                  // 放行 A → 接上版本 1
+  await sleep(700);
+  ok("Se5-2 前一笔落地之后，排队的那一次才发出", (await held()) === 1, String(await held()));
+  await release(1);                                  // 放行 B → 版本 2
+  await sleep(700);
   await typeCalling("C");
   await sleep(1200);                                 // 防抖 → 保存 C
   const m5 = await lastMatchOf();
   ok("Se5 下一次保存带的是**新**版本号，旧响应没有把它倒退回去",
      !!m5 && m5.updated_at === "2026-09-10T00:00:02Z", JSON.stringify(m5));
+
+  // ════════ Cs 有状态乐观并发：服务端只有一个当前版本 ════════
+  console.log("\n=== Cs 同一版本上的两笔保存，服务端只会让一笔命中 ===");
+  /* 上一包的 autoVersion 是「每次写入都成功、每次都换个新版本号」——
+     那不是乐观并发。真实的 applications 更新带 `updated_at = eq(上次读到的那一版)`，
+     命中与否取决于**判定那一刻**服务端上的版本：两笔写带着同一个版本出去，
+     只会有一笔命中，另一笔回 0 行。
+     这里的夹具把「什么时候判定」和「什么时候把响应交回页面」分开控制，
+     所以「谁先命中」与「谁先回来」可以各自摆布。 */
+  const CAS = { tables: { ...BASE_TABLES },
+    rpc: { my_application: { data: [{ ...DRAFT, status: "needs_information",
+             locked_fields: ["name_zh","birth_ym","gender","nationality","conversion_date","programs"] }] },
+           submit_application: { data: { ok: true } } },
+    cas: { applications: true } };
+  const casLen      = async () => cdp.ev(`((window.__cas && window.__cas.q.length) || 0)`);
+  const casInflight = async () => cdp.ev(`(()=>{var st=window.__cas; if(!st) return 0; var k=0;
+    for (var i=0;i<st.q.length;i++) if(!st.q[i].done) k++; return k;})()`);
+  const casBases    = async () => cdp.ev(`(()=>{var st=window.__cas; if(!st) return []; var a=[];
+    for (var i=0;i<st.q.length;i++) if(!st.q[i].done) a.push(st.q[i].base); return a;})()`);
+  const casApply    = async (i) => cdp.ev(`(window.__casApply ? window.__casApply(${i}) : null)`);
+  const casDeliver  = async (i) => cdp.ev(`(window.__casDeliver ? window.__casDeliver(${i}) : 0)`);
+  const casLog      = async () => cdp.ev(`((window.__cas && window.__cas.log) || [])`);
+  const casVer      = async () => cdp.ev(`((window.__cas && window.__cas.ver) || null)`);
+  const casBump     = async () => cdp.ev(`(window.__casBump ? window.__casBump() : null)`);
+  /* 把还没回包的都交回去，直到没有新的写入冒出来 —— 串行化之后，
+     前一笔落地才会发下一笔，所以要多轮。 */
+  const casDrain = async () => { for (let i = 0; i < 8; i++) {
+      const n = await cdp.ev(`(()=>{var st=window.__cas; if(!st) return 0; var k=0;
+        for (var j=0;j<st.q.length;j++){ if(!st.q[j].done){ window.__casDeliver(j); k++; } } return k;})()`);
+      if (!n) break; await sleep(450); } };
+  const conflictText = async () => cdp.ev(`(()=>{const b=document.getElementById("conflictBox");
+    return b ? (b.textContent||"").replace(/\s+/g," ").trim() : null;})()`);
+  const callingVal = async () => cdp.ev(`(()=>{const el=document.getElementById("fd-calling");
+    return el ? el.value : null;})()`);
+
+  await open(CAS);
+  await goStep(3);
+  ok("Cs0 前提：改得动", (await typeCalling("第一版")) === true);
+  await sleep(1100);                                  // 防抖 → 第一笔保存发出，卡在服务端
+  ok("Cs0b 前提：第一笔保存在途", (await casInflight()) === 1, String(await casLen()));
+  await typeCalling("第二版");
+  await sleep(1100);
+  /* 上一笔还没回来时，app.updated_at 还是老那一版；这时候再发一笔，
+     两笔带的是**同一个**基准 —— 服务端必然让其中一笔落空。
+     那不是并发冲突，是我们自己造出来的假冲突。 */
+  ok("Cs1 上一笔还没落地时，不会拿同一个版本号再发一笔",
+     (await casInflight()) === 1, "在途 " + (await casInflight()) + " 笔，基准 " + JSON.stringify(await casBases()));
+
+  /* 让**先发出**的那一笔先命中（版本推进），后发出的那一笔再判定（必然落空）；
+     再让落空的那个先回到页面、成功的那个后回。 */
+  await casApply(0); await casApply(1);
+  await casDeliver(1); await sleep(400);
+  await casDeliver(0); await sleep(900);
+  await casDrain();
+  const csLog = await casLog();
+  ok("Cs2 他自己的保存没有一笔在服务端落空",
+     csLog.length > 0 && csLog.every(e => e.hit), JSON.stringify(csLog));
+  ok("Cs3 没有冒出「在别处被改过」这种假冲突",
+     (await conflictText()) === null, JSON.stringify(await conflictText()));
+  ok("Cs4 他的第二版还在页面上", (await callingVal()) === "第二版", JSON.stringify(await callingVal()));
+
+  await typeCalling("第三版");
+  await sleep(1100);
+  const csBase = (await casBases())[0], csVer = await casVer();
+  /* 这一条是「已确认的版本被丢掉」的直接判据：成功那一笔确认的新版本如果不接住，
+     之后每一次保存都拿着过期版本去比对，会被反复判成「别处改过」——
+     用户除了重新载入没有别的出路，而其实根本没有别人改过。 */
+  ok("Cs5 下一次保存带的是服务端确认过的最新版本",
+     !!csBase && csBase === csVer, "带 " + JSON.stringify(csBase) + "，服务端 " + JSON.stringify(csVer));
+  await casDrain();
+  ok("Cs6 于是它命中了，页面说的是已保存，而不是叫他重新载入",
+     /已保存/.test((await vis("#saveState")) || ""), JSON.stringify(await vis("#saveState")));
+
+  /* 对照一：真的有别处改过时，保护不能被拆掉。 */
+  const csVerX = await casBump();
+  await typeCalling("第四版");
+  await sleep(1100);
+  await casDrain();
+  const csCf = await conflictText();
+  ok("Cs7 对照：别处真的改过时，这一次确定没有保存，并且说清楚了",
+     /在别处被改过/.test(csCf || "") && /没有保存/.test(csCf || ""), JSON.stringify(csCf));
+  ok("Cs8 对照：冲突时没有把他的编辑冲掉", (await callingVal()) === "第四版", JSON.stringify(await callingVal()));
+  ok("Cs9 对照：冲突之后没有自己再写一次（不会拿过期内容盖上去）",
+     (await casVer()) === csVerX && (await casLog()).filter(e => !e.hit).length === 1,
+     JSON.stringify([await casVer(), csVerX, await casLog()]));
+
+  /* 对照二 / 第二个缺口：迟到的**失败**不能盖掉已经确认的成功。
+     这次把判定顺序反过来 —— 后发出的那一笔先命中，先发出的那一笔后判定（落空），
+     并且让落空的那个**最后**回到页面。 */
+  await open(CAS);
+  await goStep(3);
+  await typeCalling("甲");
+  await sleep(1100);
+  await typeCalling("乙");
+  await sleep(1100);
+  await casApply(1); await casApply(0);
+  await casDeliver(1); await sleep(400);
+  await casDeliver(0); await sleep(900);
+  await casDrain();
+  ok("Cs10 迟到的旧响应没有把「已保存」改写成假冲突",
+     /已保存/.test((await vis("#saveState")) || "") && (await conflictText()) === null,
+     JSON.stringify([await vis("#saveState"), await conflictText()]));
+  ok("Cs11 内容也还是他最后改的那一版", (await callingVal()) === "乙", JSON.stringify(await callingVal()));
 
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");
