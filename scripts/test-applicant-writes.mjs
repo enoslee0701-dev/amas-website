@@ -237,8 +237,21 @@ try {
     pageErrors.push(String(p?.exceptionDetails?.exception?.description || p?.exceptionDetails?.text || ""));
   });
 
-  const DRAFT = { id:"app-fixture-1", applicant_id:"u-appl", pathway:"undecided", status:"draft",
+  /* 提交路径的夹具要像真的：一份**必填项都填好**的草稿。
+     原来是 { name_zh:"测试申请人" } —— 缺十几项必填，现实里它根本走不到提交成功，
+     而页面新增的「提交前先提示缺什么」正好会把它拦下。夹具不真实，不是产品错。
+     字段取自服务端 application_validate_form 的必填清单（0010_program_catalog.sql:71-92）。 */
+  const FULL_FORM = {
+    name_zh: "测试申请人", name_en: "Test", gender: "male", birth_ym: "1990-01",
+    nationality: "中国", languages: ["mandarin"], address: "某市某路 1 号", phone: "13800000000",
+    church_name: "测试教会", church_role: "同工", conversion_date: "2010-01",
+    education: [{ school: "某大学", start_ym: "2008-09", end_ym: "2012-06", degree: "本科" }],
+    calling: "蒙召陈述", testimony: "见证正文", declaration_accepted: true, programs: ["bth"],
+  };
+  /* 专门留一份**残缺**的，给「提交前提示」那一段用。 */
+  const DRAFT_THIN = { id:"app-fixture-1", applicant_id:"u-appl", pathway:"undecided", status:"draft",
     locked_fields:[], form_data:{ name_zh:"测试申请人" }, submitted_at:null, updated_at:"2026-09-10T00:00:00Z" };
+  const DRAFT = { ...DRAFT_THIN, pathway:"degree", form_data: { ...FULL_FORM } };
   const BASE_TABLES = {
     program_catalog: { data: [{ code:"bth", name_zh:"神学本科", short_label:"B.Th" }] },
     application_requirements: { data: [] },
@@ -317,7 +330,12 @@ try {
     submit_application:{ data:{ ok:false, error:"validation_failed", missing:["name_en"] }, error:null, status:200 } } });
   await clickSubmit();
   const s3 = await subErr();
-  ok("S3 明确拒绝时保留逐项提示（既有行为没被改坏）", /请完成以下必填项/.test(s3 || ""), JSON.stringify(s3));
+  /* 文案已按 N 段的口径改过：不再是一串光秃秃的字段名，而是按步骤分组 + 「去补填」。
+     这里验的仍是那个不变量 —— **逐项**说出缺了什么，并且能直接去补。 */
+  ok("S3 明确拒绝时仍然逐项说出缺了什么", /英文姓名/.test(s3 || ""), JSON.stringify(s3));
+  ok("S3b 并且指出在第几步、给得出去补填的入口",
+     /第 *\d+ *步/.test(s3 || "") &&
+     (await cdp.ev(`!!document.querySelector("[data-gofix]")`)) === true, JSON.stringify(s3));
   ok("S3b 明确拒绝后按钮可以再用",
      (await cdp.ev(`(()=>{const b=document.getElementById("btnSubmit"); return !!b && !b.disabled;})()`)) === true);
 
@@ -858,6 +876,96 @@ try {
 
   console.log("  NOT_RUN  「指派不写 application_status_history」是 0027 的保证：");
   console.log("           本轮没有 apply、没有真实数据库执行，这里只验了客户端不显示。");
+
+  // ════════ N 提交前的前端提示（PORTAL-blueprint §6）════════
+  console.log("\n=== N 提交之前得先告诉他缺什么、在哪一步 ===");
+  /* 蓝图 §6：「提交前校验（必填、格式、一致性）在**前端提示** + RPC 二次校验」。
+     实际只做了后一半：application-form.js 里每个字段都标了 required: true，
+     但页面只拿它画了一个红星（fieldHtml 里的那个 *），此外**一处都没用**：
+       · 「下一步」无条件前进，不看这一步填没填完；
+       · 六步的步骤条上看不出哪一步还差东西；
+       · 只有点了提交、等服务端 validation_failed 回来，才知道缺了什么，
+         而那条消息只给字段名，不说在第几步 —— 四十来个字段、六个步骤，得自己翻。
+     数据库仍然是权威（application_validate_form），所以前端只**提示**，不封死：
+     他坚持要提交，照样提交，由服务端判。 */
+  const stepsOf = async () => cdp.ev(`(()=>{
+    const S = window.AmasAppForm && window.AmasAppForm.STEPS;
+    if (!S) return null;
+    return S.map(s => ({ title: s.title,
+      req: s.fields.filter(f => f.required).map(f => ({ name: f.name, type: f.type })) }));})()`);
+
+  await open({ ...withApp, rpc: { my_application: { data: [DRAFT_THIN] } } });
+  const STEPS = await stepsOf();
+  ok("N0 前提：读得到表单定义里的必填项", Array.isArray(STEPS) && STEPS.some(s => s.req.length),
+     JSON.stringify((STEPS || []).map(s => s.req.length)));
+
+  const stepBar = async () => cdp.ev(`(()=>{const b=document.querySelector('[role="tablist"], .steps, #stepbar');
+    if (b) return (b.textContent||"").replace(/\\s+/g," ").trim();
+    const t=document.querySelectorAll('[data-step]');
+    return Array.from(t).map(x=>(x.textContent||"").trim()).join(" | ");})()`);
+  const bar0 = await stepBar();
+  ok("N1 步骤条上标得出哪几步还缺必填项",
+     /还差|未完成|缺/.test(bar0 || ""), (bar0 || "").slice(0, 200));
+
+  await clickSubmit();
+  const n2 = await subErr();
+  ok("N2 点提交时先在前端说清楚缺了什么",
+     /还没填|缺/.test(n2 || ""), JSON.stringify(n2));
+  ok("N2b 并且说出在第几步（不是只甩一串字段名）",
+     /第 *\d+ *步/.test(n2 || "") || /第[一二三四五六]步/.test(n2 || ""), JSON.stringify(n2));
+  const calls2 = await calls();
+  ok("N2c 这一次没有白跑一趟服务端（没发 submit_application）",
+     !(calls2["rpc:submit_application"] > 0), JSON.stringify(calls2));
+
+  ok("N3 给得出「去补填」的入口",
+     (await cdp.ev(`!!document.querySelector("[data-gofix]")`)) === true);
+  await cdp.ev(`(()=>{const b=document.querySelector("[data-gofix]"); if(b) b.click(); return !!b;})()`);
+  await sleep(500);
+  const onStep = await cdp.ev(`(()=>{const on=document.querySelector('[data-step].on, [data-step][aria-selected="true"]');
+    return on ? (on.textContent||"").trim() : null;})()`);
+  ok("N3b 点了之后确实跳到那一步", !!onStep && onStep.length > 0, String(onStep));
+
+  /* 数据库是权威：前端只提示，不封死。他坚持提交就得真的提交出去。 */
+  ok("N4 仍然留有「坚持提交」的出路",
+     (await cdp.ev(`!!document.querySelector("[data-submitanyway]")`)) === true);
+  await cdp.ev(`(()=>{const b=document.querySelector("[data-submitanyway]"); if(b) b.click(); return !!b;})()`);
+  await sleep(1200);
+  const calls4 = await calls();
+  ok("N4b 选了坚持提交，请求真的发出去了（由服务端判）",
+     (calls4["rpc:submit_application"] || 0) >= 1, JSON.stringify(calls4));
+
+  /* 对照：必填项都填好之后，前端不该再拦一道。表单定义取自页面自己的 AmasAppForm。 */
+  const full = {};
+  for (const st of (STEPS || [])) for (const f of st.req) {
+    if (f.name === "__pathway") continue;
+    full[f.name] = f.type === "checkboxes" ? ["x"]
+      : f.type === "rows" ? [{ school: "x" }]
+      : f.type === "month" ? "2020-01" : "x";
+  }
+  await open({ ...withApp, rpc: {
+    my_application: { data: [{ ...DRAFT, form_data: full, pathway: "degree" }] },
+    submit_application: { data: { ok: true }, error: null, status: 200 } } });
+  const barFull = await stepBar();
+  ok("N5 对照：都填好时步骤条上不再标缺项",
+     !/还差|未完成/.test(barFull || ""), (barFull || "").slice(0, 200));
+  await clickSubmit();
+  const callsFull = await calls();
+  ok("N5b 对照：都填好时直接提交，不再多问一句",
+     (callsFull["rpc:submit_application"] || 0) >= 1 &&
+     (await cdp.ev(`!document.querySelector("[data-submitanyway]")`)) === true,
+     JSON.stringify(callsFull));
+
+  /* 服务端仍可能判出前端没料到的缺项（条件必填、格式、一致性）——
+     那条消息也要说清楚在第几步。 */
+  await open({ ...withApp, rpc: {
+    my_application: { data: [{ ...DRAFT, form_data: full, pathway: "degree" }] },
+    submit_application: { data: { ok: false, error: "validation_failed", missing: ["phone"] },
+      error: null, status: 200 } } });
+  await clickSubmit();
+  const n6 = await subErr();
+  ok("N6 服务端说缺项时，也要指出在第几步",
+     /手机/.test(n6 || "") && (/第 *\d+ *步/.test(n6 || "") || /第[一二三四五六]步/.test(n6 || "")),
+     JSON.stringify(n6));
 
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");

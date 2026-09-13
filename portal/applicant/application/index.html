@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130820">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130847">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130820"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130820"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130820"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130820"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130820"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609130820"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609130847"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609130847"></script>
+<script src="../../../assets/js/portal/api.js?v=202609130847"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609130847"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609130847"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609130847"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -334,6 +334,63 @@
     </div>`;
   }
 
+  /* 蓝图 §6：「提交前校验…在**前端提示** + RPC 二次校验」。
+     此前只做了后一半 —— application-form.js 里每个字段都标了 required，
+     而页面只拿它画了一个红星，此外一处没用：「下一步」无条件前进、步骤条看不出
+     哪一步还差、只有等服务端 validation_failed 回来才知道缺什么，而那条消息
+     只给字段名不说在第几步（四十来个字段、六个步骤，得自己翻）。
+
+     这里只做**提示**，不封死：必填与格式的权威判定在
+     application_validate_form，他坚持提交就照样提交，由服务端判。 */
+  function isBlankField(f){
+    const v = f.name === "__pathway" ? app.pathway : app.form_data[f.name];
+    if (v === null || v === undefined) return true;
+    if (Array.isArray(v)) {
+      if (f.type === "rows") {
+        return !v.some(r => r && Object.values(r).some(x => String(x == null ? "" : x).trim()));
+      }
+      return v.length === 0;
+    }
+    if (typeof v === "boolean") return false;          // 勾选框：false 也是填了
+    return String(v).trim() === "";
+  }
+  function missingRequired(){
+    const out = [];
+    F.STEPS.forEach((st, i) => st.fields.forEach(f => {
+      if (f.required && isBlankField(f)) out.push({ label: f.label, step: i, stepTitle: st.title });
+    }));
+    return out;
+  }
+  /* 服务端回的是列名（pathway），表单里那一项叫 __pathway。 */
+  function stepOfField(name){
+    const n = name === "pathway" ? "__pathway" : name;
+    for (let i = 0; i < F.STEPS.length; i++) if (F.STEPS[i].fields.some(f => f.name === n)) return i;
+    return -1;
+  }
+  /** 把缺项按步骤分组显示，并给「去补填」（以及可选的「仍然提交」）。 */
+  function renderMissing(err, items, withAnyway){
+    const byStep = new Map();
+    for (const it of items) {
+      const k = it.step;
+      if (!byStep.has(k)) byStep.set(k, { title: it.stepTitle || (F.STEPS[k] && F.STEPS[k].title) || "", items: [] });
+      byStep.get(k).items.push(it.label);
+    }
+    const lines = [...byStep.entries()].map(([i, g]) => i >= 0
+      ? `<li>第 ${i + 1} 步「${UI.esc(g.title)}」：${g.items.map(UI.esc).join("、")}</li>`
+      : `<li>${g.items.map(UI.esc).join("、")}</li>`).join("");
+    err.innerHTML = `<b>这几项还没填：</b><ul style="margin:6px 0 8px 18px">${lines}</ul>` +
+      `<button class="btn" type="button" data-gofix style="width:auto;padding:0 16px;margin-right:8px">去补填</button>` +
+      (withAnyway ? `<button class="btn ghost" type="button" data-submitanyway style="width:auto;padding:0 16px">仍然提交</button>` : "") +
+      `<div class="who" style="margin-top:6px">必填与格式最终以服务端判定为准，这里只是提前提醒。</div>`;
+    err.classList.add("show");
+    const first = items.find(it => it.step >= 0);
+    err.querySelector("[data-gofix]")?.addEventListener("click", () => {
+      if (first) { step = first.step; buildSteps(); }
+      err.classList.remove("show");
+    });
+    err.querySelector("[data-submitanyway]")?.addEventListener("click", () => submit(true));
+  }
+
   function renderRequirementsUnknown(got){
     return `<div class="card" style="margin-bottom:18px;border-left:4px solid var(--gold)">
       <h2 style="font-size:16px">需要补充的资料（这一次${got ? "没读全" : "没能读到"}）</h2>
@@ -369,9 +426,13 @@
 
   // ---------- 分步编辑 ----------
   function buildSteps(){
+    /* 步骤条上直接标出哪一步还差几项 —— 不用等提交才知道。 */
+    const missByStep = {};
+    for (const m of missingRequired()) missByStep[m.step] = (missByStep[m.step] || 0) + 1;
     const bar = document.getElementById("stepBar");
     bar.innerHTML = F.STEPS.map((s, i) =>
-      `<button type="button" role="tab" data-step="${i}" class="${i === step ? "on" : ""}" aria-selected="${i === step}">${UI.esc(s.title)}</button>`).join("");
+      `<button type="button" role="tab" data-step="${i}" class="${i === step ? "on" : ""}" aria-selected="${i === step}">${
+        UI.esc(s.title)}${missByStep[i] ? `<span class="who" style="margin-left:5px">还差 ${missByStep[i]}</span>` : ""}</button>`).join("");
     bar.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { step = +b.dataset.step; buildSteps(); renderStep(); }));
     renderStep();
   }
@@ -494,7 +555,9 @@
   function bindEditor(){
     document.getElementById("btnPrev").addEventListener("click", () => { if (step > 0) { step--; buildSteps(); } });
     document.getElementById("btnNext").addEventListener("click", () => { if (step < F.STEPS.length - 1) { step++; buildSteps(); } });
-    document.getElementById("btnSubmit").addEventListener("click", submit);
+    /* 直接把 submit 当处理器会把 MouseEvent 当成第一个参数传进去 ——
+       那个对象是真值，会被当成「坚持提交」。必须包一层。 */
+    document.getElementById("btnSubmit").addEventListener("click", () => submit());
     UI.formGuard(() => dirty);
   }
 
@@ -651,9 +714,14 @@
   }
 
   // ---------- 提交 / 撤回 ----------
-  async function submit(){
+  async function submit(force){
     const err = document.getElementById("subErr"); err.classList.remove("show");
     const btn = document.getElementById("btnSubmit");
+    /* 先在前端说清楚缺什么、在第几步。不封死：给「仍然提交」这条路。 */
+    if (!force) {
+      const miss = missingRequired();
+      if (miss.length) { renderMissing(err, miss, true); return; }
+    }
     /* **先禁用，再去保存。** 原来 disabled 是在 `await save()` 之后才设的，
        而 save() 是一次网络往返 —— 那段时间里按钮还是活的，
        两次点击真的会发出两次 submit_application（实测 2 次）。 */
@@ -699,9 +767,15 @@
     btn.disabled = false; btn.textContent = "提交申请";
     if (!data.ok) {
       if (data.error === "validation_failed") {
+        /* 服务端可能判出前端没料到的缺项（条件必填、格式、一致性）。
+           同样按步骤分组说清楚，并给「去补填」—— 不要只甩一串字段名。 */
         const names = {}; F.STEPS.forEach(s => s.fields.forEach(f => names[f.name] = f.label));
         names.pathway = "学习路径";
-        err.innerHTML = "请完成以下必填项：<b>" + (data.missing || []).map(m => UI.esc(names[m] || m)).join("、") + "</b>";
+        renderMissing(err, (data.missing || []).map(m => ({
+          label: names[m] || m, step: stepOfField(m),
+          stepTitle: (F.STEPS[stepOfField(m)] || {}).title,
+        })), false);
+        return;
       } else if (data.error === "requirements_pending") {
         err.textContent = `还有 ${data.count} 项补充资料未标记完成。`;
       } else err.textContent = "提交未成功，请检查后重试。";
