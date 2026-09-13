@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>历史申请 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140413">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140430">
 <style>
 .hitem{margin-bottom:14px}
 .hhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
@@ -17,23 +17,26 @@
 .pill.withdrawn{background:#f3f4f6;border-color:#d9dee8;color:#4b5563}
 .meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:9px;font-size:12.5px;color:var(--muted)}
 .meta b{color:var(--navy);font-weight:600;font-variant-numeric:tabular-nums}
+/* 教务写的说明常是分项多行：保住换行，否则三项挤成一行读不清。 */
 .said{margin-top:10px;padding:10px 12px;border-radius:9px;background:var(--wash);
-  border-left:3px solid var(--line);font-size:13px;line-height:1.8;color:var(--navy)}
+  border-left:3px solid var(--line);font-size:13px;line-height:1.8;color:var(--navy);
+  white-space:pre-wrap}
 .tl-btn{margin-top:12px}
 .tl{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
 .tl-row{display:flex;gap:10px;padding:7px 0;font-size:13px}
 .tl-row time{flex:0 0 auto;color:var(--muted);font-variant-numeric:tabular-nums}
 .tl-row span{color:var(--navy)}
-.tl-row em{display:block;font-style:normal;color:var(--muted);font-size:12.5px;margin-top:2px}
+.tl-row em{display:block;font-style:normal;color:var(--muted);font-size:12.5px;margin-top:2px;
+  white-space:pre-wrap}
 </style>
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609140413"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609140413"></script>
-<script src="../../../assets/js/portal/api.js?v=202609140413"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609140413"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609140413"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609140430"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609140430"></script>
+<script src="../../../assets/js/portal/api.js?v=202609140430"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609140430"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609140430"></script>
 <script>
 /* 申请者历史申请页。
 

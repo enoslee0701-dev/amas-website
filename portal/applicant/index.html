@@ -6,15 +6,15 @@
 <meta name="robots" content="noindex">
 <title>申请者中心 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609140413">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609140430">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609140413"></script>
-<script src="../../assets/js/portal/auth.js?v=202609140413"></script>
-<script src="../../assets/js/portal/api.js?v=202609140413"></script>
-<script src="../../assets/js/portal/ui.js?v=202609140413"></script>
-<script src="../../assets/js/portal/shell.js?v=202609140413"></script>
+<script src="../../assets/js/supabase-config.js?v=202609140430"></script>
+<script src="../../assets/js/portal/auth.js?v=202609140430"></script>
+<script src="../../assets/js/portal/api.js?v=202609140430"></script>
+<script src="../../assets/js/portal/ui.js?v=202609140430"></script>
+<script src="../../assets/js/portal/shell.js?v=202609140430"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell;
@@ -75,7 +75,8 @@
      全空白还会渲染出一个「招生同工留言：」后面什么都没有的空块。 */
   const noticeText = app ? String(app.applicant_visible_message || "").trim() : "";
   const notice = noticeText
-    ? `<div class="msg info show" style="margin-top:10px"><b>招生同工留言：</b>${UI.esc(noticeText)}</div>`
+    /* 同一段说明的另一处展示：多行要保住，否则分项补件读不清。 */
+    ? `<div class="msg info show" style="margin-top:10px"><b>招生同工留言：</b><span style="white-space:pre-wrap">${UI.esc(noticeText)}</span></div>`
     : "";
 
   /* 「需补充资料」底下其实有三种**不同**的下一步，此前都压成同一句
