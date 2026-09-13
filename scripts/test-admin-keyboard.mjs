@@ -83,6 +83,11 @@ class Cdp {
   }
 }
 let pass = 0, fail = 0, loginHits = 0, externalHits = 0;
+/* Edge 调用**不走 SDK**：auth.js 的 callFn 是裸 fetch 打
+   SUPA.url + "/functions/v1/<name>"（auth.js:756），页面里的 stub 拦不到它。
+   所以要在**拦截层**接住：既能数「取消到底有没有发写请求」，
+   也不会让它算成一次真外发 —— 本轮第一版漏了这条，G1 当场亮红（命中 1 次）。 */
+let edgeCalls = [];
 const ok = (name, cond, detail) => { if (cond) { pass++; console.log("  PASS  " + name); }
   else { fail++; console.log("  FAIL  " + name + (detail ? "  ← " + detail : "")); } };
 const b64 = (s) => Buffer.from(s, "utf8").toString("base64");
@@ -141,7 +146,9 @@ window.supabase = { createClient: function(){
       var r = (S().rpc && S().rpc[name]) || { data:null, error:null };
       return reply({ data:r.data, error:r.error||null, status: r.status != null ? r.status : (r.error ? 500 : 200) });
     },
-    functions: { invoke: function(){ return reply({ data:null, error:null }); } }
+    functions: { invoke: function(name, opts){
+      try { (window.__rpc = window.__rpc || []).push({ name: "fn:" + name, args: (opts && opts.body) || null }); } catch(e){}
+      return reply({ data:null, error:null }); } }
   };
 } };`;
 
@@ -166,6 +173,15 @@ try {
           responseHeaders: [{ name:"Content-Type", value:"application/javascript" }, { name:"Cache-Control", value:"no-store" }],
           body: b64(CFG) }); return; }
       if (/\/login\//.test(u)) loginHits++;            // 重新载入不会请求 /login/
+      if (u.indexOf("/functions/v1/") > -1) {
+        let body = null;
+        try { body = ev.request.postData || null; } catch (e) {}
+        edgeCalls.push({ url: u, body: body });
+        await cdp.send("Fetch.fulfillRequest", { requestId: ev.requestId, responseCode: 200,
+          responseHeaders: [{ name:"Content-Type", value:"application/json" }],
+          body: b64(JSON.stringify({ ok: true })) });
+        return;
+      }
       if (u.indexOf("supabase.co") > -1 || u.indexOf("supabase.in") > -1) externalHits++;
       await cdp.send("Fetch.continueRequest", { requestId: ev.requestId });
     } catch (e) {}
@@ -478,14 +494,24 @@ try {
   await pressEsc();
   ok("Tp7 Esc 关得掉（对照，已绿项不重复展开）", (await modalUp()) === false);
   const kd1 = await docKeydown();
+  /* 判据按监督的收紧版重写：**数不出来（null）不算过**；
+     而且每一轮都要断言**真的开过、也真的关掉了** —— 否则整轮跳过也能绿。 */
+  let cycles = 0;
   for (let i = 0; i < 2; i++) {
     const again = await tabUntil(a => /要求补充/.test(a.text || ""), 60);
-    if (again.hit) { await press("Enter"); await sleep(600); await pressEsc(); }
+    if (!again.hit) break;
+    await press("Enter"); await sleep(600);
+    if ((await modalUp()) !== true) break;
+    await pressEsc();
+    if ((await modalUp()) !== false) break;
+    const kdN = await docKeydown();
+    if (kdN === null || kdN !== kd0) break;          // 每次关闭后都要回到基线
+    cycles++;
   }
   const kd2 = await docKeydown();
-  ok("Tp8 反复开关之后，document 上的 keydown 监听没有越积越多",
-     kd0 === null || (kd2 !== null && kd2 <= (kd1 === null ? kd2 : kd1)),
-     "开之前=" + kd0 + " 第一次关后=" + kd1 + " 再开关两轮后=" + kd2);
+  ok("Tp8 反复开关之后，keydown 监听每次都回到打开前的基线（数不出来不算过）",
+     kd0 !== null && kd1 !== null && kd2 !== null && kd1 === kd0 && kd2 === kd0 && cycles === 2,
+     "基线=" + kd0 + " 第一次关后=" + kd1 + " 两轮后=" + kd2 + " 完整开关轮数=" + cycles);
 
   // —— 学籍页对话框：同样三问
   await openAdmin("/portal/admin/students/");
@@ -503,14 +529,90 @@ try {
      sOutBack.length === 0, "跑出去 " + sOutBack.length + " 次，例如 " + JSON.stringify(sOutBack[0] || null));
   await pressEsc();
   const skd1 = await docKeydown();
+  let sCycles = 0;
   for (let i = 0; i < 2; i++) {
     const again = await tabUntil(a => (a.attrs || "").indexOf("data-create") > -1, 60);
-    if (again.hit) { await press("Enter"); await sleep(600); await pressEsc(); }
+    if (!again.hit) break;
+    await press("Enter"); await sleep(600);
+    if ((await modalUp()) !== true) break;
+    await pressEsc();
+    if ((await modalUp()) !== false) break;
+    const kdN = await docKeydown();
+    if (kdN === null || kdN !== skd0) break;
+    sCycles++;
   }
   const skd2 = await docKeydown();
-  ok("Tp13 学籍页：反复开关之后 keydown 监听没有越积越多",
-     skd0 === null || (skd2 !== null && skd2 <= (skd1 === null ? skd2 : skd1)),
-     "开之前=" + skd0 + " 第一次关后=" + skd1 + " 再开关两轮后=" + skd2);
+  ok("Tp13 学籍页：每次关闭后都回到打开前的基线（数不出来不算过）",
+     skd0 !== null && skd1 !== null && skd2 !== null && skd1 === skd0 && skd2 === skd0 && sCycles === 2,
+     "基线=" + skd0 + " 第一次关后=" + skd1 + " 两轮后=" + skd2 + " 完整开关轮数=" + sCycles);
+
+  console.log("\n=== Cf 录取 / 拒绝确认框：纯键盘取消，且不产生写请求 ===");
+  /* 数的是**拦截层**记到的 Edge 请求，不是页面里的 stub —— 见文件头的说明。 */
+  const fnCalls = async () => edgeCalls.length;
+  const escapedNow = async (n, shift) => {
+    let out = 0;
+    for (let i = 0; i < n; i++) { await press("Tab", shift); if (!(await inModal())) out++; }
+    return out;
+  };
+  const openDetailAndAct = async (label) => {
+    const o = await tabUntil(a => (a.attrs || "").indexOf("data-open") > -1 || /查看|详情/.test(a.text || ""), 40);
+    if (!o.hit) return null;
+    await press("Enter"); await sleep(800);
+    const b = await tabUntil(a => (a.text || "").trim() === label, 60);
+    if (!b.hit) return null;
+    await press("Enter"); await sleep(700);
+    return b.at;
+  };
+
+  for (const label of ["录取", "拒绝"]) {
+    await openAdmin("/portal/admin/admissions/");
+    const fn0 = await fnCalls();
+    const opener = await openDetailAndAct(label);
+    ok(`Cf-${label}-0 前提：键盘走到「${label}」并按下，确认框弹出来了`,
+       !!opener && (await modalUp()) === true, JSON.stringify(opener));
+    ok(`Cf-${label}-1 焦点进到确认框里`, (await inModal()) === true, JSON.stringify(await active()));
+    ok(`Cf-${label}-2 Tab 不会跑到遮罩后面`, (await escapedNow(8, false)) === 0);
+    ok(`Cf-${label}-3 Shift+Tab 也不会`, (await escapedNow(8, true)) === 0);
+
+    // Esc 取消
+    await pressEsc();
+    ok(`Cf-${label}-4 Esc 关得掉`, (await modalUp()) === false);
+    const back1 = await active();
+    ok(`Cf-${label}-5 焦点回到「${label}」那个按钮上`,
+       (back1.text || "").trim() === label, JSON.stringify(back1));
+    ok(`Cf-${label}-6 Esc 取消**没有**发出任何写请求`,
+       (await fnCalls()) === fn0, "fn 调用 " + fn0 + " → " + (await fnCalls()));
+
+    // 再开一次，用「取消」按钮
+    await press("Enter"); await sleep(700);
+    ok(`Cf-${label}-7 前提：再开一次`, (await modalUp()) === true);
+    const cancelBtn = await tabUntil(a => (a.attrs || "").indexOf("data-cancel") > -1 ||
+      /取消/.test(a.text || ""), 10);
+    ok(`Cf-${label}-8 Tab 走得到「取消」`, cancelBtn.hit, JSON.stringify(cancelBtn.at));
+    await press("Enter");
+    await sleep(500);
+    ok(`Cf-${label}-9 「取消」关得掉`, (await modalUp()) === false);
+    const back2 = await active();
+    ok(`Cf-${label}-10 焦点同样回到「${label}」按钮上`,
+       (back2.text || "").trim() === label, JSON.stringify(back2));
+    ok(`Cf-${label}-11 点「取消」也**没有**发出写请求`,
+       (await fnCalls()) === fn0, "fn 调用 " + fn0 + " → " + (await fnCalls()));
+  }
+
+  /* 正向对照：不加这一条，上面那四个「没有发出写请求」都可能只是因为
+     这个计数器根本不会动。这里**真的确认一次**（本地 stub，不碰真实服务），
+     计数必须 +1 —— 计数器会动，前面的 0 才算数。 */
+  await openAdmin("/portal/admin/admissions/");
+  const fnBase = await fnCalls();
+  const opener2 = await openDetailAndAct("录取");
+  ok("Cf-对照-0 前提：确认框又弹出来了", !!opener2 && (await modalUp()) === true);
+  const okBtn = await tabUntil(a => (a.attrs || "").indexOf("data-ok") > -1 ||
+    /确认|录取/.test(a.text || ""), 10);
+  ok("Cf-对照-1 Tab 走得到确认按钮", okBtn.hit, JSON.stringify(okBtn.at));
+  await press("Enter");
+  await sleep(1200);
+  ok("Cf-对照-2 **确认**之后写请求确实发出去了（证明前面那几个 0 不是计数器不动）",
+     (await fnCalls()) === fnBase + 1, "fn 调用 " + fnBase + " → " + (await fnCalls()));
 
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
