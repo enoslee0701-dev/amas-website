@@ -268,6 +268,15 @@ try {
     }
     return { hit: false, at: await active() };
   };
+  const tabToData_verify = async (reqId, max) => {
+    for (let i = 1; i <= (max || 140); i++) {
+      await press("Tab");
+      const v = await cdp.ev(`(()=>{const a=document.activeElement;
+        return a && a.dataset ? (a.dataset.verify || "") : "";})()`);
+      if (v === reqId) return { hit: true, steps: i };
+    }
+    return { hit: false, at: await active() };
+  };
   const confirmIt = async () => {
     if (!(await modalUp())) return false;
     const onOk = await cdp.ev(`(()=>{const a=document.activeElement;
@@ -503,6 +512,46 @@ try {
   ok("Fx9 他写给第二条的那段话也还在", (await taVal("tvr-2")) === "给乙的说明",
      JSON.stringify(await taVal("tvr-2")));
   edgeHold = false; heldEdge = []; edgeScript = [];
+
+  // ════════ Lv 未知结果被锁进「待核实」：他写的那段话与焦点去哪了 ════════
+  console.log("\n=== Lv 拿不到明确结论时：说明还在不在、焦点落在哪儿 ===");
+  /* 拿不到明确结论（500 / 非 JSON / 空响应）时，lockUnresolved 会把这一条锁住：
+     动作按钮**全部移除**、连 .rsn（那个说明框）也一并 remove（:206-208）。
+     所以他写的那段话会**从屏幕上消失**。它到底还在不在，
+     要按「刷新核实」走一趟才知道 —— 先核实现状，不预设有缺陷。 */
+  const UNK = "这一条我写了很长的说明";
+  await openPage();
+  edgeHold = false; heldEdge = []; edgeCalls = [];
+  edgeScript = [ { status:500, body:{} } ];        // 服务端回话了但没给结构化结论 = 未知
+  const lv0 = await tabToId("m-tvr-1", 140);
+  ok("Lv0 前提：走到第一条的说明框并写下一段话", lv0.hit === true);
+  await typeText(UNK);
+  ok("Lv1 前提：那段话在框里", (await taVal("tvr-1")) === UNK, JSON.stringify(await taVal("tvr-1")));
+  const lv2 = await tabToAct("tvr-1", "approve", 140);
+  ok("Lv2 前提：走到「通过」并确认", lv2.hit === true &&
+     (await (async () => { await press("Enter"); await sleep(500); return confirmIt(); })()) === true);
+  ok("Lv3 前提：这一条被锁进「待核实」（出现了刷新核实、动作按钮没了）",
+     await until(async () => cdp.ev(`(()=>{const c=document.querySelector('.rq[data-id="tvr-1"]');
+       return !!(c && c.querySelector("[data-verify]") && !c.querySelector("[data-act]"));})()`), 8000),
+     JSON.stringify(await cdp.ev(`(()=>{const c=document.querySelector('.rq[data-id="tvr-1"]');
+       return c?c.innerHTML.slice(0,120):null;})()`)));
+  ok("Lv4 现状：说明框此刻被撤掉了（所以那段话从屏幕上消失）",
+     (await taVal("tvr-1")) === null, JSON.stringify(await taVal("tvr-1")));
+  const lvFocus = await focusWhere();
+  ok("Lv5 锁住之后焦点没有掉到 <body>", lvFocus.where !== "BODY", JSON.stringify(lvFocus));
+  /* 现在按「刷新核实」：这一条重新读状态，卡片带着动作回来。 */
+  edgeScript = [];
+  const lv6 = await tabToData_verify("tvr-1", 140);
+  ok("Lv6 前提：真实 Tab 走到「刷新核实」并按下", lv6.hit === true, JSON.stringify(lv6));
+  await press("Enter"); await sleep(2000);
+  ok("Lv7 核实回来之后，这一条重新带上了动作与说明框",
+     (await taVal("tvr-1")) !== null, JSON.stringify(await taVal("tvr-1")));
+  ok("Lv8 他写的那段话没有丢（草稿撑过了这一趟）",
+     (await taVal("tvr-1")) === UNK, JSON.stringify(await taVal("tvr-1")));
+  const lvAfter = await focusWhere();
+  ok("Lv9 核实回来之后焦点也没有掉到 <body>", lvAfter.where !== "BODY", JSON.stringify(lvAfter));
+  ok("Lv10 全程只发出过那一笔（未知结果不会被自动重发）",
+     postCount() === 1, "POST " + postCount() + " 笔");
 
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
