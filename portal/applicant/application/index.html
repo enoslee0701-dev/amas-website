@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131707">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131721">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609131707"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609131707"></script>
-<script src="../../../assets/js/portal/api.js?v=202609131707"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609131707"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609131707"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609131707"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609131721"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609131721"></script>
+<script src="../../../assets/js/portal/api.js?v=202609131721"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609131721"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609131721"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609131721"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -74,6 +74,15 @@
       reloads=1、saved=false）。配额满、隐私模式、存储被禁用都会走到这里。
       写完还要读回来确认：有的浏览器 setItem 不抛错，但也没真的存下。 */
   function stashDraft(){
+    /* **退出已经开始就一个字都不许再写。**
+       auth.js 的 signOut() 会先把 sessionStorage 里所有 amas.* 清掉
+       （公用电脑上，下一个人不该翻到前一个人的姓名/教会/见证），
+       然后才跳转 —— 而跳转会触发 pagehide，离开守卫正好把它又写了回去。
+       监督实测（event335f）：退出之后 sessionStorage 里又出现了旧用户的申请草稿。
+       闸设在**唯一的写入口**上，所以离开守卫、visibilitychange、
+       以及退出途中才回来的那次保存失败（showExpired 也会暂存），一并挡住。
+       isSigningOut() 是 auth.js 既有的导出（auth.js:399/775），不改认证逻辑。 */
+    if (A.isSigningOut && A.isSigningOut()) return false;
     /* **序列化一次**，然后把读回来的字节与它精确比对。
        只判 `!!getItem(...)` 是不够的：键上可能还留着上一次的旧草稿，
        而这一次静默没写进去 —— 读回来是旧值、真值为 true，于是判成功并重载，

@@ -179,11 +179,13 @@ try {
   /* 每一场开始前清掉上一场留下的暂存。不清就会出现「救回来了」其实救的是
      上一节那一份 —— 本探针第一版的 Nr1 就是这么白拿了一个绿。 */
   const clearStashKey = async () => cdp.ev(`(()=>{try{sessionStorage.removeItem("amas.draft.application");}catch(e){} return true;})()`).catch(()=>{});
-  const open = async (scen) => {
+  const open = async (scen, opts) => {
     await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source:
       "window.__SCEN = " + JSON.stringify(Object.assign(
         { tables: TABLES, rpc: { my_application: { data:[DRAFT] } } }, scen || {})) + ";" });
-    await clearStashKey();                    // 摆场：上一节的暂存不许影响这一节
+    /* 摆场默认清键；但「带着上一个人的草稿换身份」这一场必须**留着**它，
+       否则换了账号当然看不到 —— 那个绿灯里根本没有草稿参与，等于没测。 */
+    if (!(opts && opts.keepStash)) await clearStashKey();
     await cdp.send("Page.navigate", { url: `${BASE}/portal/applicant/application/` });
     await sleep(2800);
   };
@@ -198,6 +200,12 @@ try {
     return b ? (b.textContent||"").replace(/\\s+/g," ").trim() : null;})()`);
   const callingVal = async () => cdp.ev(`(()=>{const el=document.getElementById("fd-calling");
     return el ? el.value : null;})()`);
+  const stashNow = async () => cdp.ev(`(()=>{try{return sessionStorage.getItem("amas.draft.application");}catch(e){return null;}})()`);
+  const pageText = async () => cdp.ev(`(()=>{const c=document.body.cloneNode(true);
+    c.querySelectorAll("script,style,template").forEach(n=>n.remove());
+    return (c.textContent||"").replace(/\\s+/g," ").trim();})()`);
+  const formDump = async () => cdp.ev(`(()=>[...document.querySelectorAll("input,textarea,select")]
+    .map(e=>String(e.value||"")).join(" | "))()`);
   const clickText2 = async (re) => cdp.ev(`(()=>{const n=[...document.querySelectorAll("a,button")]
     .filter(x=>${re}.test(x.textContent||""))[0]; if(!n) return false; n.click(); return true;})()`);
   const goStep = async (i) => { await cdp.ev(`(()=>{const t=document.querySelector('[data-step="${i}"]');
@@ -286,15 +294,48 @@ try {
   await sleep(2800);
   ok("Nk3 他明确丢弃之后，不该再被恢复出来", (await restoreBox()) === null, JSON.stringify(await restoreBox()));
 
-  /* 身份隔离：换一个人，绝不把上一个人的草稿翻出来。 */
+  /* 身份隔离：**带着上一个人的草稿**切换身份。 */
   await open({ write: EXPIRED });
   await goStep(3);
   await type("张三写的见证");
   await sleep(150);
   await clickNav("首页");
   await sleep(1800);
-  await open({ write: EXPIRED, uid: "u-someone-else" });
+  const zhang = await stashNow();
+  ok("Nk4-0 前提：上一个人的草稿确实躺在这个标签页里",
+     !!zhang && zhang.indexOf("张三写的见证") > -1, JSON.stringify(zhang && zhang.slice(0, 70)));
+  await open({ write: EXPIRED, uid: "u-someone-else" }, { keepStash: true });
   ok("Nk4 换一个账号不恢复", (await restoreBox()) === null, JSON.stringify(await restoreBox()));
+  await goStep(3);
+  ok("Nk4b 页面上任何地方都看不到上一个人的内容",
+     !/张三写的见证/.test(await pageText()) && !/张三写的见证/.test(await formDump()),
+     JSON.stringify((await formDump() || "").slice(0, 120)));
+  const still = await stashNow();
+  ok("Nk4c 那份草稿的身份字段仍是原主人（新身份没有把它据为己有）",
+     !!still && JSON.parse(still).uid === "u-appl", JSON.stringify(still && JSON.parse(still).uid));
+
+  console.log("\n=== Nq 主动退出：清理过的东西不许被离开守卫写回来 ===");
+  /* auth.js 的 signOut() 先清掉所有 amas.*，再跳转 —— 而跳转会触发 pagehide。 */
+  await open({ write: EXPIRED });
+  await goStep(3);
+  await type("退出前写的一段");
+  await sleep(150);                                    // 防抖还没到：只有离开守卫会写
+  ok("Nq0 前提：调得到真实前端的退出（本地 stub 的会话）",
+     (await cdp.ev(`(()=>{ if(!window.AmasAuth || !AmasAuth.signOut) return false;
+        AmasAuth.signOut(); return true; })()`)) === true);
+  await sleep(2200);
+  ok("Nq1 退出之后 sessionStorage 里没有申请草稿",
+     (await stashNow()) === null, JSON.stringify((await stashNow() || "").slice(0, 90)));
+
+  await open({ write: EXPIRED });
+  await goStep(3);
+  await type("这一笔已经暂存过了");
+  await sleep(1300);                                   // 401 → showExpired 已经暂存
+  ok("Nq2-0 前提：退出之前它确实在", !!(await stashNow()));
+  await cdp.ev(`(()=>{ AmasAuth.signOut(); return true; })()`);
+  await sleep(2200);
+  ok("Nq2 退出会把它清掉，且离开守卫不会再写回来",
+     (await stashNow()) === null, JSON.stringify((await stashNow() || "").slice(0, 90)));
 
   /* 存储被拒：救不回来就别装作救得回来。 */
   await open({ write: OKW });
