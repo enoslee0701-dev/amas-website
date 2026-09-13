@@ -51,6 +51,38 @@ const chrome = spawn(CHROME, ["--headless=new", "--remote-debugging-port=0",
   `--user-data-dir=${prof}`, "--no-first-run", "--no-default-browser-check",
   "--host-resolver-rules=MAP *.supabase.co 0.0.0.0, MAP *.supabase.in 0.0.0.0",
   "--disable-gpu", "--hide-scrollbars", "about:blank"], { stdio: "ignore" });
+/* 看门狗：挂住时**自己收摊并退出**，而不是无限等下去。
+   到点只杀**本进程 spawn 的那一个** Chrome（绝不碰用户的浏览器），
+   删掉自己的临时 profile，打印一行 INCOMPLETE 并以非 0 退出。
+   它不降低任何断言，也不把挂起算成通过 —— 只是让挂起「响一声」而不是静默挂着。
+   缘由见 failures-web.jsonl 的 eventb5c5-combined-timeout：根因仍未结。 */
+const WATCHDOG_MS = Number(process.env.WATCHDOG_MS || 600000);
+let watchdogDone = false;
+const watchdogTimer = setTimeout(() => {
+  if (watchdogDone) return;
+  console.log("\n  ⏱ INCOMPLETE：跑了 " + Math.round(WATCHDOG_MS / 1000) +
+              "s 还没结束，按看门狗约定自行退出（只杀本进程自己的 Chrome）。");
+  console.log("  这不是「通过」，也不是产品失败 —— 见 eventb5c5-combined-timeout（根因未结）。");
+  watchdogDone = true;
+  try { chrome.kill("SIGKILL"); } catch (e) {}
+  try { server.close(); } catch (e) {}
+  try { fs.rmSync(prof, { recursive: true, force: true }); } catch (e) {}
+  setTimeout(() => process.exit(3), 300);
+}, WATCHDOG_MS);
+const stopWatchdog = () => { watchdogDone = true; clearTimeout(watchdogTimer); };
+/* 被外部信号结束时也要收摊：否则 finally 根本不会跑，
+   每被 kill 一次就在系统临时目录里留下一个 profile（实测已累积数百个）。
+   同样只杀自己 spawn 的那个 Chrome。 */
+for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) {
+  process.on(sig, () => {
+    stopWatchdog();
+    try { chrome.kill("SIGKILL"); } catch (e) {}
+    try { server.close(); } catch (e) {}
+    try { fs.rmSync(prof, { recursive: true, force: true }); } catch (e) {}
+    process.exit(130);
+  });
+}
+
 async function ownDebugPort() {
   const f = path.join(prof, "DevToolsActivePort");
   for (let i = 0; i < 100; i++) {
@@ -841,6 +873,7 @@ try {
   try { fs.rmSync(prof, { recursive: true, force: true }); } catch (e) {}
 }
 
+stopWatchdog();
 console.log("\n──────────────────────────────");
 console.log(`  PASS ${pass}  FAIL ${fail}`);
 console.log("  本地 stub：无真实账号/凭据/服务，无远端写入，无外网请求。");
