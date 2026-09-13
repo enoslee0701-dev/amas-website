@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>教师验证审核 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140019">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140027">
 <style>
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .tab{min-height:44px;padding:0 15px;border:1px solid var(--line);border-radius:99px;background:#fff;
@@ -37,11 +37,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609140019"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609140019"></script>
-<script src="../../../assets/js/portal/api.js?v=202609140019"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609140019"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609140019"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609140027"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609140027"></script>
+<script src="../../../assets/js/portal/api.js?v=202609140027"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609140027"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609140027"></script>
 <script>
 /* 管理端教师验证审核台。
 
@@ -102,6 +102,14 @@
   /* 已经发出、但没拿到明确结论的审核。键是 request id。
      在人工核实之前，**不允许对同一条再执行任何审核动作**。 */
   const unresolved = new Map();
+  /* 审核说明是**对方可见**的正式答复，needs_information / reject / suspend / revoke
+     四个动作还**必须**填（本文件 :89）。可是 render() 每次把 main.innerHTML 整个换掉，
+     于是只要列表重绘一次 —— 在**别的卡**上执行完动作之后 900ms 的自动刷新、
+     或者切一下状态筛选 —— 他写到一半的那段话就没了，页面既不提示也没有出口
+     （本轮实测 Tk6/Tk12：重绘之后读回来是空字符串）。
+     所以按 request id 把草稿记住，重绘之后放回原处。
+     注意：这是**内存**里的草稿，整页刷新或离开本页仍然会丢 —— 本包没有做到那一步。 */
+  const draftMsg = new Map();
 
   async function load() {
     const epoch = ++listEpoch;
@@ -171,7 +179,25 @@
               '当前状态下没有可执行的审核动作。</p>') +
       '</div>';
     }).join("");
+
+    /* 重绘之后把他写过的说明放回去（哪一条是哪一条，按 request id 对） */
+    list.querySelectorAll(".rq").forEach((card) => {
+      const ta = card.querySelector("textarea");
+      if (!ta) return;
+      const d = draftMsg.get(card.dataset.id);
+      if (d) ta.value = d;
+    });
   }
+
+  /* 他每打一个字就记下来 —— 不能等到「提交时」才记，因为丢失恰恰发生在提交之前。 */
+  main.addEventListener("input", (e) => {
+    const ta = e.target.closest && e.target.closest("textarea");
+    if (!ta) return;
+    const card = ta.closest(".rq");
+    if (!card) return;
+    if (ta.value.trim()) draftMsg.set(card.dataset.id, ta.value);
+    else draftMsg.delete(card.dataset.id);
+  });
 
   /** 把一条锁进「待核实」：动作按钮全部撤掉，只留刷新核实。 */
   function lockUnresolved(id, text) {
@@ -282,6 +308,9 @@
        读到旧副本），审核员就什么确认都没看到。toast 挂在 document.body 上，
        不受 main 重渲染影响。两处都给：卡内提示 + toast。 */
     unlockActions();
+    /* 这一条的说明已经**随请求发出去**了：草稿要清掉，
+       否则刷新回来框里还留着那段话，看上去像「还没提交」。 */
+    draftMsg.delete(id);
     ok.textContent = "已执行。";
     ok.hidden = false;
     UI.toast("审核已执行。");

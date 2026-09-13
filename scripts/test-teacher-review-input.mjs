@@ -1,0 +1,371 @@
+// 教师验证审核页：**审核说明**在列表重绘之后还在不在。
+//
+// 这一页不是自建模态 —— 它是**页内卡片**（每条申请一张卡，卡里一个 textarea
+// 加一排动作按钮），确认用的是站内共用的 UI.confirmDialog。
+//
+// 查的这一项：审核说明是**对方可见**的正式答复，而且
+// needs_information / reject / suspend / revoke 四个动作**必须填**
+// （portal/admin/teachers/index.html:89）。可是 render() 每次都把
+// main.innerHTML 整个换掉（:128），于是只要列表重绘一次 ——
+//   ① 在别的卡上执行完动作之后 900ms 的自动刷新（:291）
+//   ② 切一下状态筛选
+// —— 他写到一半的说明就没了，页面既不提示、也不给任何出口。
+//
+// 全程真实按键（Input.dispatchKeyEvent），不用 element.click()/focus() 替用户走路；
+// 判定读**状态**（textarea 的 value、POST 的 body），不猜文案。
+// 本地合成 admin/aal2 夹具：无真实账号/凭据/服务，无远端写入，无外网请求。独占动态端口。
+import { spawn } from "node:child_process";
+import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
+import { fileURLToPath } from "node:url";
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const MIME = { ".html":"text/html; charset=utf-8", ".js":"text/javascript; charset=utf-8",
+  ".css":"text/css; charset=utf-8", ".png":"image/png", ".ico":"image/x-icon", ".woff2":"font/woff2" };
+const server = http.createServer((req, res) => {
+  let p = decodeURIComponent(req.url.split("?")[0]);
+  if (p.endsWith("/")) p += "index.html";
+  if (p.indexOf("..") > -1) { res.writeHead(400); res.end("no"); return; }
+  const abs = path.join(ROOT, p);
+  if (!abs.startsWith(ROOT) || !fs.existsSync(abs) || fs.statSync(abs).isDirectory()) {
+    res.writeHead(404); res.end("nf"); return; }
+  res.writeHead(200, { "Content-Type": MIME[path.extname(abs).toLowerCase()] || "application/octet-stream",
+                       "Cache-Control":"no-store" });
+  fs.createReadStream(abs).pipe(res);
+});
+await new Promise((r) => server.listen(0, "127.0.0.1", r));
+const BASE = `http://127.0.0.1:${server.address().port}`;
+
+const prof = fs.mkdtempSync(path.join(os.tmpdir(), "amas-tvr-"));
+const CHROME = process.env.CHROME_PATH || process.env.CHROME || "C:/Program Files/Google/Chrome/Application/chrome.exe";
+const chrome = spawn(CHROME, ["--headless=new", "--remote-debugging-port=0",
+  `--user-data-dir=${prof}`, "--no-first-run", "--no-default-browser-check",
+  "--host-resolver-rules=MAP *.supabase.co 0.0.0.0, MAP *.supabase.in 0.0.0.0",
+  "--disable-gpu", "--hide-scrollbars", "about:blank"], { stdio: "ignore" });
+async function ownDebugPort() {
+  const f = path.join(prof, "DevToolsActivePort");
+  for (let i = 0; i < 100; i++) {
+    try { const n = Number(fs.readFileSync(f, "utf8").split("\n")[0].trim());
+      if (Number.isInteger(n) && n > 0) return n; } catch (e) {}
+    if (chrome.exitCode !== null) break;
+    await sleep(100);
+  }
+  throw new Error("没能从自己的 Chrome 取得独占调试端口；本探针不附着现成 Chrome，退出。");
+}
+class Cdp {
+  constructor(ws){ this.ws = ws; this.id = 0; this.pending = new Map(); this.handlers = new Map(); }
+  on(m, f){ this.handlers.set(m, f); }
+  static async attach(port){
+    let url;
+    for (let i = 0; i < 80 && !url; i++) {
+      try { const j = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
+        url = j.find((x) => x.type === "page")?.webSocketDebuggerUrl; } catch {}
+      if (!url) await sleep(200);
+    }
+    if (!url) throw new Error("连不上自己的 Chrome 调试端口 " + port);
+    const s = await new Promise((res, rej) => { const k = new WebSocket(url); k.onopen = () => res(k); k.onerror = rej; });
+    const c = new Cdp(s);
+    s.onmessage = (e) => { const m = JSON.parse(e.data);
+      if (m.id && c.pending.has(m.id)) { const { res, rej } = c.pending.get(m.id); c.pending.delete(m.id);
+        m.error ? rej(new Error(m.error.message)) : res(m.result); }
+      else if (m.method && c.handlers.has(m.method)) c.handlers.get(m.method)(m.params); };
+    return c;
+  }
+  send(method, params = {}, ms = 30000){
+    return new Promise((res, rej) => { const i = ++this.id;
+      const t = setTimeout(() => { if (this.pending.delete(i)) rej(new Error("TIMEOUT " + method)); }, ms);
+      this.pending.set(i, { res: (v) => { clearTimeout(t); res(v); }, rej: (e) => { clearTimeout(t); rej(e); } });
+      this.ws.send(JSON.stringify({ id: i, method, params })); });
+  }
+  async ev(x){
+    const r = await this.send("Runtime.evaluate", { expression: x, returnByValue: true, awaitPromise: true });
+    if (r.exceptionDetails) throw new Error("eval 抛错: " + (r.exceptionDetails.exception?.description || ""));
+    return r.result?.value;
+  }
+}
+let pass = 0, fail = 0, externalHits = 0;
+const ok = (name, cond, detail) => { if (cond) { pass++; console.log("  PASS  " + name); }
+  else { fail++; console.log("  FAIL  " + name + (detail ? "  ← " + detail : "")); } };
+const b64 = (s) => Buffer.from(s, "utf8").toString("base64");
+const CFG = 'window.SUPA={url:"https://abcdefghijklmnopqrst.supabase.co",anonKey:"local-test-not-a-credential"};';
+const CORS = [
+  { name: "Access-Control-Allow-Origin", value: "*" },
+  { name: "Access-Control-Allow-Headers", value: "authorization,apikey,content-type,x-client-info" },
+  { name: "Access-Control-Allow-Methods", value: "POST,OPTIONS" },
+];
+/* 扣住 / 手动放行。按**到达顺序**发牌，模拟真实服务端：
+   第一笔照做，第二笔撞上 invalid_state。放行顺序另算，由测试控制。 */
+let edgeHold = false;
+let heldEdge = [];
+let edgeScript = [];                 // 按到达顺序取；取完用 fallback
+let edgeFallback = { status: 200, body: { ok: true } };
+
+const STUB = `
+window.supabase = { createClient: function(){
+  var S = function(){ return window.__SCEN || {}; };
+  var reply = function(v){ return Promise.resolve(v); };
+  function table(name){
+    var mode = "select";
+    var q = { select:function(){return q;}, eq:function(){return q;}, in:function(){return q;},
+      match:function(){return q;}, order:function(){return q;}, range:function(){return q;},
+      limit:function(){return q;}, maybeSingle:function(){return q;}, single:function(){return q;},
+      insert:function(){ mode="insert"; return q; }, update:function(){ mode="update"; return q; },
+      then:function(res, rej){
+        var sc = S();
+        var t = (mode === "select") ? ((sc.tables && sc.tables[name]) || { data:[], error:null })
+                                    : (sc.write || { data:[], error:null });
+        return Promise.resolve({ data:t.data, error:t.error||null,
+          status: t.status != null ? t.status : (t.error ? 500 : 200) }).then(res, rej);
+      } };
+    return q;
+  }
+  return {
+    auth: {
+      getSession: function(){ var u = (window.__SCEN && window.__SCEN.uid) || "u-admin";
+        return reply({ data:{ session:{ user:{ id:u }, access_token:"fixture-token" } }, error:null }); },
+      signOut: function(){ return reply({}); },
+      mfa: { getAuthenticatorAssuranceLevel: function(){
+        var l = (window.__SCEN && window.__SCEN.aal) || "aal1";
+        return reply({ data:{ currentLevel:l, nextLevel:l }, error:null }); } },
+      onAuthStateChange: function(){ return { data:{ subscription:{ unsubscribe:function(){} } } }; }
+    },
+    from: table,
+    rpc: function(name, args){
+      try { (window.__rpc = window.__rpc || []).push({ name: name, args: args || null }); } catch(e){}
+      if (name === "my_roles") return reply({ data:(window.__SCEN && window.__SCEN.roles) || [{ role:"applicant" }], error:null, status:200 });
+      if (name === "my_profile") return reply({ data:{ display_name:"测试管理员", email:"a@example.invalid" }, error:null, status:200 });
+      var r = (S().rpc && S().rpc[name]) || { data:null, error:null };
+      return reply({ data:r.data, error:r.error||null, status: r.status != null ? r.status : (r.error ? 500 : 200) });
+    },
+    functions: { invoke: function(){ return reply({ data:null, error:null }); } }
+  };
+} };`;
+
+let port;
+try { port = await ownDebugPort(); console.log("  独占调试端口（本进程自己的 Chrome）: " + port); }
+catch (e) { chrome.kill(); server.close(); console.error("  " + e.message); process.exit(1); }
+
+try {
+  const cdp = await Cdp.attach(port);
+  await cdp.send("Runtime.enable"); await cdp.send("Page.enable"); await cdp.send("Network.enable");
+  await cdp.send("Network.setCacheDisabled", { cacheDisabled: true });
+  await cdp.send("Fetch.enable", { patterns: [{ urlPattern: "*" }] });
+  let edgeCalls = [];
+  cdp.on("Fetch.requestPaused", async (ev) => {
+    const u = ev.request.url;
+    try {
+      if (u.indexOf("cdn.jsdelivr.net") > -1 && u.indexOf("supabase-js") > -1) {
+        await cdp.send("Fetch.fulfillRequest", { requestId: ev.requestId, responseCode: 200,
+          responseHeaders: [{ name:"Content-Type", value:"application/javascript" }, { name:"Cache-Control", value:"no-store" }],
+          body: b64(STUB) }); return; }
+      if (u.indexOf("supabase-config.js") > -1) {
+        await cdp.send("Fetch.fulfillRequest", { requestId: ev.requestId, responseCode: 200,
+          responseHeaders: [{ name:"Content-Type", value:"application/javascript" }, { name:"Cache-Control", value:"no-store" }],
+          body: b64(CFG) }); return; }
+      if (u.indexOf("/functions/v1/") > -1) {
+        const method = (ev.request.method || "").toUpperCase();
+        if (method === "OPTIONS") {                 // 预检：放行但**不算写入**
+          await cdp.send("Fetch.fulfillRequest", { requestId: ev.requestId, responseCode: 204,
+            responseHeaders: CORS });
+          return;
+        }
+        let body = null;
+        try { body = ev.request.postData || null; } catch (e) {}
+        const card = edgeScript.length ? edgeScript.shift() : edgeFallback;
+        edgeCalls.push({ method, url: u, body });
+        const send = async () => {
+          try {
+            await cdp.send("Fetch.fulfillRequest", { requestId: ev.requestId, responseCode: card.status,
+              responseHeaders: CORS.concat([{ name:"Content-Type", value:"application/json" }]),
+              body: b64(JSON.stringify(card.body)) });
+          } catch (e) {}
+        };
+        if (edgeHold) { heldEdge.push({ requestId: ev.requestId, url: u, body, card, send }); return; }
+        await send();
+        return;
+      }
+      if (u.indexOf("supabase.co") > -1 || u.indexOf("supabase.in") > -1) externalHits++;
+      await cdp.send("Fetch.continueRequest", { requestId: ev.requestId });
+    } catch (e) {}
+  });
+  let pageErrors = [];
+  cdp.on("Runtime.exceptionThrown", (p) => {
+    pageErrors.push(String(p?.exceptionDetails?.exception?.description || p?.exceptionDetails?.text || "").slice(0, 200));
+  });
+  let nativeDialogs = [];
+  cdp.on("Page.javascriptDialogOpening", async (p) => {
+    nativeDialogs.push({ type: (p && p.type) || "", msg: (p && p.message) || "" });
+    try { await cdp.send("Page.handleJavaScriptDialog", { accept: true }); } catch (e) {}
+  });
+
+  /* ── 真实按键 ─────────────────────────────────────────────────────── */
+  const KEYS = { Tab:{code:"Tab",key:"Tab",vk:9}, Enter:{code:"Enter",key:"Enter",vk:13} };
+  const press = async (name, shift) => {
+    const m = KEYS[name], mods = shift ? 8 : 0;
+    await cdp.send("Input.dispatchKeyEvent", { type:"rawKeyDown", modifiers:mods,
+      windowsVirtualKeyCode:m.vk, nativeVirtualKeyCode:m.vk, code:m.code, key:m.key });
+    if (name === "Enter") await cdp.send("Input.dispatchKeyEvent", { type:"char", modifiers:mods,
+      text:"\r", key:m.key, code:m.code });
+    await cdp.send("Input.dispatchKeyEvent", { type:"keyUp", modifiers:mods,
+      windowsVirtualKeyCode:m.vk, nativeVirtualKeyCode:m.vk, code:m.code, key:m.key });
+    await sleep(80);
+  };
+  /* keyDown **不能带 text** —— 带了等于连同 char 再输一遍（量具的老毛病）。 */
+  const typeText = async (text) => {
+    for (const ch of String(text)) {
+      const vk = ch.toUpperCase().charCodeAt(0);
+      await cdp.send("Input.dispatchKeyEvent", { type:"keyDown", key: ch,
+        windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk });
+      await cdp.send("Input.dispatchKeyEvent", { type:"char", text: ch, key: ch });
+      await cdp.send("Input.dispatchKeyEvent", { type:"keyUp", key: ch,
+        windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk });
+      await sleep(14);
+    }
+    await sleep(60);
+  };
+  const active = async () => cdp.ev(`(()=>{const a=document.activeElement;
+    if(!a || a===document.body) return { tag:"BODY" };
+    return { tag:a.tagName, id:a.id||"",
+             attrs:[...a.attributes].map(x=>x.name).filter(n=>/^data-/.test(n)).join(","),
+             text:(a.textContent||"").replace(/\\s+/g," ").trim().slice(0,20) };})()`);
+  const until = async (fn, ms) => {
+    const t0 = Date.now();
+    while (Date.now() - t0 < (ms || 6000)) { if (await fn()) return true; await sleep(100); }
+    return false;
+  };
+  const modalUp = async () => cdp.ev(`!!document.querySelector(".portal-modal")`);
+  /** 真实 Tab 走到某个 id 的元素上。 */
+  const tabToId = async (id, max) => {
+    for (let i = 1; i <= (max || 120); i++) {
+      await press("Tab");
+      if ((await cdp.ev(`(()=>{const a=document.activeElement; return a?(a.id||""):"";})()`)) === id)
+        return { hit: true, steps: i };
+    }
+    return { hit: false, at: await active() };
+  };
+  /** 真实 Tab 走到「某一张卡上的某个动作按钮」。 */
+  const tabToAct = async (reqId, act, max) => {
+    for (let i = 1; i <= (max || 140); i++) {
+      await press("Tab");
+      const v = await cdp.ev(`(()=>{const a=document.activeElement;
+        if(!a || !a.dataset || !a.dataset.act) return "";
+        const c=a.closest(".rq"); return (c?c.dataset.id:"") + "/" + a.dataset.act;})()`);
+      if (v === reqId + "/" + act) return { hit: true, steps: i };
+    }
+    return { hit: false, at: await active() };
+  };
+  /** 真实 Tab 走到某个筛选标签并按下。 */
+  const tabToFilter = async (f, max) => {
+    for (let i = 1; i <= (max || 60); i++) {
+      await press("Tab");
+      const v = await cdp.ev(`(()=>{const a=document.activeElement;
+        return a && a.dataset ? (a.dataset.f || "") : "";})()`);
+      if (v === f) { await press("Enter"); await sleep(1200); return { hit: true, steps: i }; }
+    }
+    return { hit: false, at: await active() };
+  };
+  const confirmIt = async () => {
+    if (!(await modalUp())) return false;
+    const onOk = await cdp.ev(`(()=>{const a=document.activeElement;
+      return !!(a && a.hasAttribute && a.hasAttribute("data-ok"));})()`);
+    if (!onOk) return false;
+    await press("Enter"); await sleep(400);
+    return (await modalUp()) === false;
+  };
+  const taVal = async (reqId) => cdp.ev(`(()=>{const c=document.querySelector('.rq[data-id="${reqId}"]');
+    const t=c?c.querySelector("textarea"):null; return t?t.value:null;})()`);
+  const cardIds = async () => cdp.ev(`(()=>[...document.querySelectorAll(".rq")].map(c=>c.dataset.id))()`);
+  const lastPostBody = () => { const p = edgeCalls.filter(c => c.method === "POST").slice(-1)[0];
+    if (!p || !p.body) return null; try { return JSON.parse(p.body); } catch (e) { return null; } };
+  const postCount = () => edgeCalls.filter(c => c.method === "POST").length;
+
+  /* ── 本地合成夹具（admin + aal2，两条待审核申请）───────────────────── */
+  const mkScen = () => ({
+    uid:"u-admin", aal:"aal2", roles:[{ role:"registrar" }],
+    tables: {
+      teacher_verification_requests: { data:[
+        { id:"tvr-1", user_id:"u-t1", status:"submitted",
+          submitted_data:{ name:"教师甲", org:"某神学院", areas:"旧约", country:"马来西亚", phone:"0120000001" },
+          submitted_at:"2026-09-10T00:00:00Z", reviewed_at:null,
+          applicant_visible_message:null, created_at:"2026-09-01T00:00:00Z" },
+        { id:"tvr-2", user_id:"u-t2", status:"submitted",
+          submitted_data:{ name:"教师乙", org:"某教会", areas:"新约", country:"新加坡", phone:"0120000002" },
+          submitted_at:"2026-09-09T00:00:00Z", reviewed_at:null,
+          applicant_visible_message:null, created_at:"2026-09-02T00:00:00Z" } ] },
+      user_roles: { data:[{ user_id:"u-admin", role:"registrar" }] },
+      profiles: { data:[] },
+    },
+    rpc: {},
+    write: { data:[], error:null },
+  });
+  const openPage = async () => {
+    await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: "window.__SCEN = " + JSON.stringify(mkScen()) + ";" });
+    await cdp.send("Page.navigate", { url: `${BASE}/portal/admin/teachers/` });
+    await sleep(3000);
+  };
+
+  const REASON = "资料不全，请补交按立时间的授课证明";      // 他写了一段正经答复
+
+  // ════════ Tk 审核说明在列表重绘之后还在不在 ════════
+  console.log("\n=== Tk 审核说明：别的卡执行完动作之后，我写到一半的那段话还在吗 ===");
+  await openPage();
+  edgeScript = [ { status:200, body:{ ok:true, status:"approved" } } ];
+  ok("Tk0 前提：两条申请都在，卡里有审核说明框",
+     JSON.stringify(await cardIds()) === JSON.stringify(["tvr-1","tvr-2"]) &&
+     (await taVal("tvr-2")) === "", JSON.stringify(await cardIds()));
+  const t2 = await tabToId("m-tvr-2", 140);
+  ok("Tk1 前提：真实 Tab 走到第二条的审核说明框", t2.hit === true, JSON.stringify(t2));
+  await typeText(REASON);
+  ok("Tk2 前提：那段话确实打进去了", (await taVal("tvr-2")) === REASON, JSON.stringify(await taVal("tvr-2")));
+  const a1 = await tabToAct("tvr-1", "approve", 140);
+  ok("Tk3 前提：真实 Tab 走到**第一条**的「通过」", a1.hit === true, JSON.stringify(a1));
+  await press("Enter"); await sleep(500);
+  ok("Tk4 前提：确认框开着并按下确认", (await confirmIt()) === true);
+  ok("Tk5 前提：第一条的审核确实发出去了（而且带的是第一条的 id）",
+     await until(async () => postCount() >= 1, 8000) &&
+     (lastPostBody() || {}).request_id === "tvr-1" && (lastPostBody() || {}).action === "approve",
+     JSON.stringify(lastPostBody()));
+  /* 执行成功之后 900ms 自动刷新（:291）。等到列表真的重绘完再看。 */
+  await sleep(2500);
+  ok("Tk6 自动刷新之后，第二条里他写的那段说明还在",
+     (await taVal("tvr-2")) === REASON, JSON.stringify(await taVal("tvr-2")));
+  ok("Tk7 而第一条自己的说明框应当是空的（那段话如果有，也已经发出去了）",
+     (await taVal("tvr-1")) === "" || (await taVal("tvr-1")) === null,
+     JSON.stringify(await taVal("tvr-1")));
+  const focusAfter = await active();
+  console.log("      · 自动刷新之后焦点落在：" + JSON.stringify(focusAfter));
+
+  // ── 第二个触发点：切一下筛选
+  console.log("\n=== Tk' 同一个缺口的另一个触发点：切一下状态筛选 ===");
+  await openPage();
+  edgeScript = []; edgeCalls = [];        // 计数清零：Tk13 数的是**这一段**有没有多发请求
+  const t2b = await tabToId("m-tvr-2", 140);
+  ok("Tk8 前提：又走到第二条的审核说明框", t2b.hit === true, JSON.stringify(t2b));
+  await typeText(REASON);
+  ok("Tk9 前提：那段话确实打进去了", (await taVal("tvr-2")) === REASON, JSON.stringify(await taVal("tvr-2")));
+  const f1 = await tabToFilter("all", 80);
+  ok("Tk10 前提：真实按键切到了「全部」", f1.hit === true, JSON.stringify(f1));
+  const f2 = await tabToFilter("submitted", 80);
+  ok("Tk11 前提：又切回「待审核」", f2.hit === true, JSON.stringify(f2));
+  ok("Tk12 切筛选来回一趟，他写的那段说明也还在",
+     (await taVal("tvr-2")) === REASON, JSON.stringify(await taVal("tvr-2")));
+  ok("Tk13 全程没有多发出任何一笔审核请求（切筛选不是写入）",
+     postCount() === 0, "POST " + postCount() + " 笔");
+
+  console.log("\n=== G 外发 ===");
+  ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
+  ok("G2 全程没有页面异常", pageErrors.length === 0, JSON.stringify(pageErrors.slice(0, 2)));
+  ok("G3 全程没有弹出浏览器原生对话框", nativeDialogs.length === 0, JSON.stringify(nativeDialogs.slice(0, 2)));
+  cdp.ws.close();
+} finally {
+  chrome.kill(); server.close();
+  try { fs.rmSync(prof, { recursive: true, force: true }); } catch (e) {}
+}
+
+console.log("\n──────────────────────────────");
+console.log(`  PASS ${pass}  FAIL ${fail}`);
+console.log("  本地 stub：无真实账号/凭据/服务，无远端写入，无外网请求。");
+process.exit(fail ? 1 : 0);
