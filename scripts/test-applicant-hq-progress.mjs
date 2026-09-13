@@ -516,6 +516,82 @@ try {
        stay.where !== "BODY" && stay.inHq === true, JSON.stringify(stay));
   }
 
+  if (RUN("N")) {
+    console.log("\n=== N 已读状态也要给得出手动更新的入口（不做自动轮询）===");
+    /* 原来只有「未知」那一支有按钮：他在「处理中」或「还没查到记录」时，
+       想知道教务那边有没有新进展，只能整页刷新 —— 而整页刷新会把
+       这一页上没保存的东西一起带走。这里补的是**手动**入口，不加轮询。 */
+    const tabToReload2 = async () => {
+      for (let i = 1; i <= 60; i++) {
+        await press("Tab");
+        const on = await cdp.ev(`(()=>{const a=document.activeElement;
+          return !!(a && a.hasAttribute && a.hasAttribute("data-hqreload"));})()`);
+        if (on) return true;
+      }
+      return false;
+    };
+    const btnLabel = async () => cdp.ev(`(()=>{const b=document.querySelector("[data-hqreload]");
+      return b ? (b.textContent||"").trim() : null;})()`);
+
+    // ── pending → approved
+    await openWith({ data:[row("pending")] });
+    ok("N0 前提：处理中这一状态也给得出入口", (await btnLabel()) === "更新进度",
+       JSON.stringify(await btnLabel()));
+    await cdp.ev(`(()=>{ window.__stayProbe = 1;
+      window.__holdSelect = "application_hq_approvals";
+      window.__SCEN.tables.application_hq_approvals = { data:[ ${JSON.stringify(row("approved"))} ] };
+      return true; })()`);
+    const n1 = await hqQueries();
+    ok("N1 前提：真实 Tab 走到「更新进度」", (await tabToReload2()) === true);
+    await press("Enter");
+    ok("N2 前提：这次读取被扣住了", await until(async () => cdp.ev(`(()=>!!window.__heldSelect)()`), 6000));
+    await press("Enter"); await press("Enter");        // 在途期间再按两下
+    await sleep(600);
+    ok("N3 连按也只发出**一笔**读取（在途锁挡住了后面的）",
+       (await hqQueries()).length === n1.length + 1,
+       "读取 " + n1.length + " → " + (await hqQueries()).length);
+    await cdp.ev(`(()=>{ if(window.__releaseSelect) window.__releaseSelect(); return true; })()`);
+    ok("N4 放行之后显示的是新进展：处理中 → 已通过",
+       await until(async () => /总校确认已通过/.test(await hqText() || ""), 8000),
+       JSON.stringify(await hqText()));
+    ok("N5 而且没有整页刷新（页面上那个记号还在）",
+       (await cdp.ev(`(typeof window.__stayProbe !== "undefined")`)) === true);
+    ok("N6 全程没有任何写入", (await writes()).length === 0, JSON.stringify(await writes()));
+
+    // ── 空记录 → pending
+    await openWith({ data: [] });
+    ok("N7 前提：「当前未查询到记录」这一状态也给得出入口",
+       (await btnLabel()) === "更新进度" &&
+       /当前未查询到总校确认记录/.test(await hqText() || ""), JSON.stringify(await hqText()));
+    await cdp.ev(`(()=>{ window.__SCEN.tables.application_hq_approvals =
+      { data:[ ${JSON.stringify(row("pending"))} ] }; return true; })()`);
+    ok("N8 前提：走到入口并按下", (await tabToReload2()) === true);
+    await press("Enter");
+    ok("N9 空记录 → 处理中，更新得出来",
+       await until(async () => /总校确认处理中/.test(await hqText() || ""), 8000),
+       JSON.stringify(await hqText()));
+
+    // ── 更新时读失败：诚实说未知，而且还能再试
+    await openWith({ data:[row("pending")] });
+    await cdp.ev(`(()=>{ window.__SCEN.tables.application_hq_approvals =
+      { data:null, error:{ message:"boom" }, status:500 }; return true; })()`);
+    ok("N10 前提：走到入口并按下", (await tabToReload2()) === true);
+    await press("Enter");
+    ok("N11 这一次读失败 → 诚实说「暂时无法获取总校确认进度」，不留在旧结论上",
+       await until(async () => /暂时无法获取总校确认进度/.test(await hqText() || ""), 8000) &&
+       !/处理中|已通过|未通过/.test(await hqText() || ""), JSON.stringify(await hqText()));
+    ok("N12 而且还给得出下一次的入口", (await btnLabel()) === "重新读取",
+       JSON.stringify(await btnLabel()));
+    await cdp.ev(`(()=>{ window.__SCEN.tables.application_hq_approvals =
+      { data:[ ${JSON.stringify(row("rejected"))} ] }; return true; })()`);
+    ok("N13 前提：再走到入口按下", (await tabToReload2()) === true);
+    await press("Enter");
+    ok("N14 再试一次就读到了（失败不是死路）",
+       await until(async () => /总校确认未通过/.test(await hqText() || ""), 8000),
+       JSON.stringify(await hqText()));
+    ok("N15 到这里为止仍然零写入", (await writes()).length === 0, JSON.stringify(await writes()));
+  }
+
   if (RUN("G")) {
     console.log("\n=== G 外发 ===");
     ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");

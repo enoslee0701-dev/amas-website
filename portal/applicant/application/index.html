@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140131">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140137">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609140131"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609140131"></script>
-<script src="../../../assets/js/portal/api.js?v=202609140131"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609140131"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609140131"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609140131"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609140137"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609140137"></script>
+<script src="../../../assets/js/portal/api.js?v=202609140137"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609140137"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609140137"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609140137"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -298,7 +298,7 @@
     if (hqBusy) return;
     hqBusy = true;
     const btn = document.querySelector("[data-hqreload]");
-    if (btn) { btn.disabled = true; btn.textContent = "正在重新读取…"; }
+    if (btn) { btn.disabled = true; btn.textContent = "正在读取…"; }   // 两个入口共用这一条路
     try { await loadHq(); } finally { hqBusy = false; }
     hqFocusBack = true;                                 // 重画之后把焦点还给他
     render();
@@ -309,24 +309,30 @@
     if (!app || app.status !== "accepted" || hqState === "idle") return "";
     const head = '<div class="card" id="hqBox" style="margin-top:14px" tabindex="-1" data-hq>' +
       '<h2 style="font-size:15px;margin:0 0 8px">总校确认进度</h2>';
+    /* 每一种**已经读到**的状态都要给得出手动更新的入口 ——
+       原来只有「未知」那一支有按钮，于是他在「处理中」或「还没查到记录」时
+       只能整页刷新才能看到教务那边的新进展（整页刷新会把没保存的东西一起带走）。
+       这里不做自动轮询：什么时候更新由他自己决定。 */
+    const btn = (label) => '<div style="margin-top:10px">' +
+      '<button class="btn ghost" type="button" data-hqreload style="width:auto;padding:0 18px">' +
+      label + '</button></div>';
     const tail = '<div class="who" style="margin-top:8px">' +
       '这一段只反映总校确认的进度；录取状态见上方，学籍由教务另行建档。</div></div>';
     if (hqState === "unknown") {
       return head +
         '<div class="msg warn show" role="status">暂时无法获取总校确认进度。' +
-        '<div style="margin-top:10px"><button class="btn ghost" type="button" data-hqreload ' +
-        'style="width:auto;padding:0 18px">重新读取</button></div></div>' + tail;
+        btn("重新读取") + '</div>' + tail;
     }
     if (hqState === "empty") {
       /* 措辞只说**我们这一次查到了什么**，不替服务端断言「从未有人记录过」：
          真实 RLS 还没有验证过（B3 未解除），空结果也可能是别的原因。 */
-      return head + '<div class="msg info show" role="status">当前未查询到总校确认记录。</div>' + tail;
+      return head + '<div class="msg info show" role="status">当前未查询到总校确认记录。</div>' +
+        btn("更新进度") + tail;
     }
     const label = hqLabel(hq && hq.status);
     if (!label) {                                       // 契约之外的值：不编，也不当成任何一种
       return head + '<div class="msg warn show" role="status">暂时无法获取总校确认进度。' +
-        '<div style="margin-top:10px"><button class="btn ghost" type="button" data-hqreload ' +
-        'style="width:auto;padding:0 18px">重新读取</button></div></div>' + tail;
+        btn("重新读取") + '</div>' + tail;
     }
     const ts = hq.confirmed_at ? Date.parse(hq.confirmed_at) : NaN;
     const when = Number.isFinite(ts)                    // 读不成时间就不显示，不写出 Invalid Date
@@ -336,7 +342,7 @@
     const note = hqNoteText()
       ? '<div class="msg info show" style="margin-top:10px"><b>总校说明：</b>' +
         '<span data-hqnote></span></div>' : "";
-    return head + '<div><b>' + UI.esc(label) + '</b></div>' + when + note + tail;
+    return head + '<div><b>' + UI.esc(label) + '</b></div>' + when + note + btn("更新进度") + tail;
   }
 
   async function loadRequirements(){
