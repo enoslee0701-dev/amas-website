@@ -110,7 +110,7 @@ class Cdp {
   }
 }
 
-let pass = 0, fail = 0;
+let pass = 0, fail = 0, loginHits = 0;
 const ok = (name, cond, detail) => {
   if (cond) { pass++; console.log("  PASS  " + name); }
   else { fail++; console.log("  FAIL  " + name + (detail ? "  ← " + detail : "")); }
@@ -295,6 +295,7 @@ try {
           responseHeaders: [{ name:"Content-Type", value:"application/javascript" },
                             { name:"Cache-Control", value:"no-store" }], body: b64(CFG) }); return;
       }
+      if (/\/login\//.test(u)) loginHits++;   // 区分回调：重新载入不会请求 /login/
       if (u.indexOf("supabase.co") > -1 || u.indexOf("supabase.in") > -1) externalHits++;
       await cdp.send("Fetch.continueRequest", { requestId: ev.requestId });
     } catch (e) {}
@@ -2074,6 +2075,77 @@ try {
   ok("Rl14 复制完之后仍然给得出「我已复制，去重新登录」这条路",
      (await cdp.ev(`(()=>{return [...document.querySelectorAll("#stashFailBox button")]
         .some(b=>/我已复制/.test(b.textContent||"")&&/重新登录/.test(b.textContent||""));})()`)) === true);
+
+  // ════════ Sf 存储一直存不下时，复制出口必须是**当前**这一份 ════════
+  console.log("\n=== Sf 复制出口：每次都得是最新内容 + 正确的动作 ===");
+  /* showStashFailed 一发现框已经在，就 select() 然后 return ——
+     框里还是**上一次**的内容，按钮也还连着上一次的动作。
+     于是：存储一直被拒 → 他对着框继续改 → 再点「去重新登录」→ 人是留下了，
+     可框里导出的还是旧的；他照着复制、点「我已复制」一走，
+     后面改的那几笔谁也不知道去哪了。
+     另外从「冲突 → 重新载入」那条出口切到「过期 → 去重新登录」时，
+     按钮的文字与回调也停在旧的那一套。 */
+  const taText = async () => cdp.ev(`(()=>{const t=document.querySelector("#stashFailBox textarea");
+    return t ? t.value : null;})()`);
+  const proceedBtn = async () => cdp.ev(`(()=>{const b=[...document.querySelectorAll("#stashFailBox button")]
+    .filter(x=>/我已复制/.test(x.textContent||""))[0];
+    return b ? (b.textContent||"").trim() : null;})()`);
+  const denyStorage = async () => cdp.ev(`(()=>{ Storage.prototype.setItem = function(){ throw new Error("denied"); }; return true;})()`);
+
+  await clearStashKey();
+  await open(EXP);                                   // 写入一律 401
+  await goStep(3);
+  await denyStorage();
+  await typeCalling("存不下的时候写的");
+  await sleep(1300);                                 // 401 → 暂存失败 → 复制框
+  ok("Sf0 前提：复制出口出来了，装的是这一版",
+     (await taText() || "").indexOf("存不下的时候写的") > -1, JSON.stringify((await taText() || "").slice(0, 80)));
+
+  await typeCalling("存储仍拒绝时追加的最新内容");
+  await sleep(150);                                  // **不等防抖**，立刻再点一次
+  await probeSet();
+  ok("Sf1 前提：点到了「去重新登录」", (await clickBy("/去重新登录/")) === true);
+  await sleep(900);
+  ok("Sf2 仍然留在这一页（存不下就不能走）", (await probeGone()) === false);
+  ok("Sf3 复制出口里装的是**最新**那一份，不是上一次的",
+     (await taText() || "").indexOf("存储仍拒绝时追加的最新内容") > -1,
+     JSON.stringify((await taText() || "").slice(0, 160)));
+  ok("Sf4 出口按钮说的是这条路真正的动作",
+     (await proceedBtn()) === "我已复制，去重新登录", JSON.stringify(await proceedBtn()));
+  const lh0 = loginHits;
+  await cdp.ev(`(()=>{const b=[...document.querySelectorAll("#stashFailBox button")]
+    .filter(x=>/我已复制/.test(x.textContent||""))[0]; if(b) b.click(); return !!b;})()`);
+  await sleep(1200);
+  ok("Sf5 点「我已复制」之后走的是登录那条路（不是重新载入）",
+     loginHits > lh0, "loginHits " + lh0 + " → " + loginHits);
+
+  /* 从「冲突 → 重新载入」的出口切到「过期 → 去重新登录」：文字与回调都要跟着换。 */
+  await clearStashKey();
+  await open({ tables: { ...BASE_TABLES },
+    rpc: { my_application: { data: [{ ...DRAFT }] }, submit_application: { data:{ ok:true } } },
+    writes: { applications: { data: [] } } });       // 0 行 → 冲突
+  await goStep(3);
+  await denyStorage();
+  await typeCalling("冲突那条路");
+  await sleep(1300);                                 // → showConflict
+  ok("Sf6-0 前提：冲突提示出来了", /在别处被改过/.test((await conflictText()) || ""));
+  await clickBy("/保留我的编辑并重新载入/");         // 暂存失败 → 复制框（重新载入那一套）
+  await sleep(600);
+  ok("Sf6 冲突那条路上，出口按钮是「我已复制，重新载入」",
+     (await proceedBtn()) === "我已复制，重新载入", JSON.stringify(await proceedBtn()));
+  await cdp.ev(`(()=>{ window.__SCEN.writes.applications =
+    { data:null, error:{ message:"JWT expired" }, status:401 }; return true;})()`);
+  await typeCalling("改成过期那条路");
+  await sleep(1300);                                 // 401 → 过期 → 暂存失败 → 复制框刷新
+  ok("Sf7 切到过期那条路之后，按钮文字跟着换成「去重新登录」",
+     (await proceedBtn()) === "我已复制，去重新登录", JSON.stringify(await proceedBtn()));
+  ok("Sf7b 框里也换成了最新内容",
+     (await taText() || "").indexOf("改成过期那条路") > -1, JSON.stringify((await taText() || "").slice(0, 120)));
+  const lh1 = loginHits;
+  await cdp.ev(`(()=>{const b=[...document.querySelectorAll("#stashFailBox button")]
+    .filter(x=>/我已复制/.test(x.textContent||""))[0]; if(b) b.click(); return !!b;})()`);
+  await sleep(1200);
+  ok("Sf8 回调也换了：走的是登录，不是重新载入", loginHits > lh1, "loginHits " + lh1 + " → " + loginHits);
 
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");

@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131545">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131624">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609131545"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609131545"></script>
-<script src="../../../assets/js/portal/api.js?v=202609131545"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609131545"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609131545"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609131545"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609131624"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609131624"></script>
+<script src="../../../assets/js/portal/api.js?v=202609131624"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609131624"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609131624"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609131624"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -982,15 +982,28 @@
   /** 暂存失败时的出口：不重载、不隐藏，把他填的内容原样摊出来，
       并把光标放进去全选好，直接 Ctrl/Cmd+C 就能带走。
       不依赖剪贴板权限（navigator.clipboard 在很多环境下会被拒）。 */
-  function showStashFailed(actionLabel, onProceed){
+  function showStashFailed(actionLabel, onProceed, focus){
     const act = actionLabel || "重新载入";
+    const proceed = onProceed || (() => location.reload());
     let box = document.getElementById("stashFailBox");
-    if (box) { box.querySelector("textarea").select(); return; }
-    box = document.createElement("div");
-    box.id = "stashFailBox";
-    box.className = "msg err show";
-    box.setAttribute("role", "alert");
-    box.style.margin = "12px 0";
+    const first = !box;
+    if (first) {
+      box = document.createElement("div");
+      box.id = "stashFailBox";
+      box.className = "msg err show";
+      box.setAttribute("role", "alert");
+      box.style.margin = "12px 0";
+      const host = document.getElementById("appForm") || main;
+      (host.parentNode || main).insertBefore(box, host);
+    }
+    /* **每次都重画**，内容和动作都可能已经不是上一次那一套了。
+       原来这里是「发现框已经在就 select() 然后 return」——
+       监督实测（eventde1b）：存储一直被拒时他对着这个框继续改、再点一次
+       「去重新登录」，人是留下了，可框里导出的还是上一版；
+       他照着复制、点「我已复制」一走，后面改的那几笔谁也不知道去哪了。
+       动作同理：从「冲突 → 重新载入」切到「过期 → 去重新登录」时，
+       按钮的文字与回调都停在旧的那一套（点下去是重新载入，不是去登录）。
+       textContent 一赋值就会把旧的 textarea 与旧按钮（连同旧回调）一起清掉。 */
     box.textContent = "这个浏览器现在存不下草稿（可能是隐私模式、存储被禁用或空间已满），" +
       "所以**没有**" + act + " —— 页面上这一份是唯一的副本。" +
       "请先把下面的内容复制保存，再决定要不要" + act + "。 ";
@@ -1006,12 +1019,12 @@
     box.appendChild(ta);
     const later = document.createElement("button");
     later.type = "button"; later.className = "link"; later.textContent = "我已复制，" + act;
-    later.addEventListener("click", onProceed || (() => location.reload()));
+    later.addEventListener("click", proceed);
     box.appendChild(document.createElement("br"));
     box.appendChild(later);
-    const host = document.getElementById("appForm") || main;
-    (host.parentNode || main).insertBefore(box, host);
-    ta.select();
+    /* 只有**他自己触发**的那一次才抢焦点。自动保存每 800ms 失败一次就选中一遍，
+       会把正在打字的人从输入框里拽出来。 */
+    if (first || focus) ta.select();
   }
 
   /** 冲突提示：**不自动重新载入** —— 那会把用户正在编辑的内容冲掉。
@@ -1071,7 +1084,7 @@
     const leave = (e) => {
       if (e) e.preventDefault();
       if (stashDraft()) { location.href = loginHref; return; }
-      showStashFailed("去重新登录", () => { location.href = loginHref; });
+      showStashFailed("去重新登录", () => { location.href = loginHref; }, true);
     };
     const stashed = stashDraft();
     let box = document.getElementById("expiredBox");
