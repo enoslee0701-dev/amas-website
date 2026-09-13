@@ -750,6 +750,34 @@ try {
        Array.isArray(outsPlain) && outsPlain.length === 0, JSON.stringify(outsPlain));
   }
 
+  if (RUN("Cn")) {
+    console.log("\n=== Cn 站外那条待办：动作旁边说不说得清「这一页做得到什么」 ===");
+    /* 服务端的标题与状态原样不动（my_action_items 的契约不改）；
+       只在**这一个已知的站外参考目标**旁边补一句说明。
+       门户内的待办不受影响 —— 不按「非 portal 就算参考」一刀切。 */
+    await goStudentHome();
+    const cpCard = await cdp.ev(`(()=>{const d=[...document.querySelectorAll(".act")]
+      .find(x=>/建立你的信仰成长档案/.test(x.textContent||""));
+      return d ? (d.textContent||"").replace(/\s+/g," ").trim() : null;})()`);
+    ok("Cn0 前提：服务端给的标题**原样**还在（没有被前端改写）",
+       !!cpCard && cpCard.indexOf("建立你的信仰成长档案") > -1, JSON.stringify(cpCard));
+    ok("Cn1 这条待办旁边说清楚了「这一页只作快速探索、不会完成这条待办」",
+       !!cpCard && /仅作快速探索/.test(cpCard) && /不会建立档案或完成此待办/.test(cpCard),
+       JSON.stringify(cpCard));
+    ok("Cn2 也指明了正式评估在哪里做（不编造安装链接）",
+       !!cpCard && /App 中进行/.test(cpCard) &&
+       (await cdp.ev(`(()=>[...document.querySelectorAll("a")]
+          .some(a=>/apps\.apple|play\.google|download/i.test(a.getAttribute("href")||"")))()`)) === false,
+       JSON.stringify(cpCard));
+    const phCard = await cdp.ev(`(()=>{const d=[...document.querySelectorAll(".act")]
+      .find(x=>/完善联系方式/.test(x.textContent||""));
+      return d ? (d.textContent||"").replace(/\s+/g," ").trim() : null;})()`);
+    ok("Cn3 门户内那条「完善联系方式」**没有**被误加这句说明",
+       !!phCard && !/仅作快速探索|不会建立档案/.test(phCard), JSON.stringify(phCard));
+    ok("Cn4 而且它的动作仍然是「去处理」（没有被泛化成不能处理）",
+       !!phCard && /去处理/.test(phCard), JSON.stringify(phCard));
+  }
+
   if (RUN("A")) {
     console.log("\n=== A 记账口径自检 ===");
     await sleep(600);

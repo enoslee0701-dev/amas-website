@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>学员中心 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609140353">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609140358">
 <style>
 .idcard{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);color:#fff;border-radius:16px;padding:20px 22px;margin-bottom:18px}
 .idcard h2{margin:0;font-size:19px;color:#fff}
@@ -31,11 +31,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609140353"></script>
-<script src="../../assets/js/portal/auth.js?v=202609140353"></script>
-<script src="../../assets/js/portal/api.js?v=202609140353"></script>
-<script src="../../assets/js/portal/ui.js?v=202609140353"></script>
-<script src="../../assets/js/portal/shell.js?v=202609140353"></script>
+<script src="../../assets/js/supabase-config.js?v=202609140358"></script>
+<script src="../../assets/js/portal/auth.js?v=202609140358"></script>
+<script src="../../assets/js/portal/api.js?v=202609140358"></script>
+<script src="../../assets/js/portal/ui.js?v=202609140358"></script>
+<script src="../../assets/js/portal/shell.js?v=202609140358"></script>
 <script>
 /* PORTAL-2 学员中心（V1）
    原则：状态机与 DB 是权威源，UI 不模拟业务状态；没有真实数据就显示真实空态，绝不填充假数据。
@@ -102,18 +102,20 @@
   }
   const actionItems = ["learning", "practice", "feedback"].map(k => picked[k]).filter(Boolean);
   const STATUS = { open: "待处理", waiting: "等待教务" };
-  /* 待办里有**站外**的目标（my_action_items 的 christian_profile 那条指向 discover.html）。
-     点过去之后那一页是公开站点，原本**一条回门户的路都没有** ——
-     做完 3 分钟探索就卡在官网上，只能按浏览器后退（本轮实测 Cp4）。
-     所以门户这边给站外入口加一个回程标记；那一页只在**带着标记**时才多出
-     「回到学员中心」，普通访客看到的仍是原样（反控 Cp6）。
-     判据只看「是不是门户内的路径」，不写死某一个页面。 */
-  /* 适用范围（如实记，不泛化）：这是**字符串拼接**，只对「没有 #fragment 的站外目标」成立。
-     目标里若带 #fragment，参数会被拼到 hash 后面而失效 ——
-     现有的站外目标只有 discover.html（无 fragment），所以本包不为此另做通用处理，
-     也**不宣称**它对所有站外目标都对。 */
+  /* 待办里可能有站外目标（如 christian_profile 指向 discover.html）。
+     门户侧给它加回程标记；那一页只在带标记时才显示「回到学员中心」，
+     公开访客看到的页面不变。 */
+  /* 站外目标加回程标记。**仅适用于不带 #fragment 的目标**（字符串拼接）。 */
   const withBack = (u) => String(u || "").indexOf("portal/") === 0
     ? u : (u + (String(u).indexOf("?") > -1 ? "&" : "?") + "from=portal");
+  /* 已知的「站外参考目标」——点过去只能看，处理不了这条待办。
+     只按目标逐个登记，不按「非 portal 就算参考」一刀切：
+     将来若出现真能在站外完成的目标，默认仍走「去处理」。 */
+  const REFERENCE_ONLY = {
+    "discover.html": "此处仅作快速探索，不会建立档案或完成此待办；" +
+      "正式评估请在「AMAS 神学院」App 中进行。",
+  };
+  const refNote = (u) => REFERENCE_ONLY[String(u || "").split("?")[0]] || "";
   const todo = actionItems.length
     ? actionItems.map(a =>
         '<div class="act">' +
@@ -121,10 +123,13 @@
           '<span class="badge">' + UI.esc(STATUS[a.status] || a.status) + '</span>' +
           '<div class="none">' + UI.esc(a.reason) + '</div>' +
           (a.status === "waiting" ? "" :
+            /* 服务端给的标题与状态原样保留；这里只补一句「在这一页能做到什么」。
+               标题来自 my_action_items，前端不改写。 */
             '<a class="link" href="' + A.ROOT + UI.esc(withBack(a.target_url)) + '">' +
-            /* 站外目标只是「去看看」，那边处理不了任何事；门户内的才是「去处理」。
-               待办的**标题**来自 my_action_items（SQL），本地改不了 —— 如实记在报告里。 */
-            (String(a.target_url || "").indexOf("portal/") === 0 ? "去处理 →" : "去查看 →") + '</a>') +
+            (refNote(a.target_url) ? "去查看 →" : "去处理 →") + '</a>' +
+            (refNote(a.target_url)
+              ? '<div class="none" style="margin-top:4px">' + UI.esc(refNote(a.target_url)) + '</div>'
+              : "")) +
         '</div>').join("")
     : (actsErr || !Array.isArray(acts)
         ? '<p class="none">这一次没能读到你的待办事项（可能是网络不稳或服务端暂时不可用）。' +
@@ -177,10 +182,7 @@
         '<p class="none">你还没有建立信仰成长档案。完成评估后可以看到自己的成长画像与学习建议；' +
         '评估在「AMAS 神学院」App 中进行。</p>' +
         '<p class="none">也可以先做 3 分钟快速探索，初步了解学习起点（结果仅作参考，不构成评定）。</p>' +
-        /* 这条链接指向的是官网那个 3 分钟快速探索 —— 它**不建立也不保存**任何档案
-           （discover.html 自己反复写明「网页版只是一次快速探索」「不是完整的信仰成长档案」，
-           唯一的本地存储是跳 App 时记下的来源标记）。
-           原来写「建立你的信仰成长档案 →」是承诺了那一页做不到的事。 */
+        /* 这一页只是快速探索：不建立、也不保存档案。文案不得承诺建档。 */
         '<a class="link" href="' + A.ROOT + 'discover.html?from=portal">开始 3 分钟快速探索 →</a></div>' +
     '</div>' +
 
