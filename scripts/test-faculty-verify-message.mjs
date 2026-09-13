@@ -305,18 +305,58 @@ try {
   await sleep(3000);
 
   console.log("\n=== Fv 教师侧的审核说明：显示得和管理员写的一样吗 ===");
+  /* 读 innerText 而不是只读 textContent：后者连隐藏内容也算进去，
+     「文本在 DOM 里」不等于「他看得见」。可见性另外单独断言。 */
   const box = await cdp.ev(`(()=>{const b=[...document.querySelectorAll(".status-line")]
     .find(x=>/审核说明/.test(x.textContent||"")); if(!b) return null;
     const v=b.querySelector("b");
-    return v ? { text:v.textContent, kids:v.children.length,
-                 ws:getComputedStyle(v).whiteSpace } : null;})()`);
+    return v ? { text:v.textContent, shown:v.innerText, kids:v.children.length,
+                 ws:getComputedStyle(v).whiteSpace,
+                 visible: !!(v.offsetWidth || v.offsetHeight || v.getClientRects().length) } : null;})()`);
   ok("Fv0 前提：教师侧确实显示了这段审核说明", !!box, JSON.stringify(box));
   ok("Fv1 显示的内容与管理员写的**一字不差**（&lt; / &amp; 都还是字面量）",
      !!box && box.text === MSG, JSON.stringify(box && box.text));
   ok("Fv2 这段说明**没有**被解析成任何元素（只是文本）",
      !!box && box.kids === 0, JSON.stringify(box && box.kids));
-  ok("Fv3 中文换行看得见（不被折成一行）",
-     !!box && /pre/.test(box.ws || ""), JSON.stringify(box && box.ws));
+  ok("Fv3 中文换行**看得见**（innerText 里确实有换行，且这一块是可见的）",
+     !!box && box.visible === true && (box.shown || "").indexOf("\n") > -1 &&
+     (box.shown || "").indexOf("1. 按立证明") > -1, JSON.stringify(box && { shown: box.shown, visible: box.visible }));
+
+  // ════════ Ad 管理员侧：同一段说明，他自己读到的也该是分项的 ════════
+  console.log("\n=== Ad 管理员侧的「已告知对方」：同一段说明，换行看不看得见 ===");
+  const ADMIN = {
+    uid:"u-admin", aal:"aal2", roles:[{ role:"registrar" }],
+    tables: {
+      teacher_verification_requests: { data:[{ id:"tvr-1", user_id:"u-t1", status:"needs_information",
+        submitted_data:{ name:"教师甲", org:"某神学院", areas:"旧约", country:"马来西亚", phone:"0120000001" },
+        submitted_at:"2026-09-10T00:00:00Z", reviewed_at:"2026-09-11T00:00:00Z",
+        applicant_visible_message: MSG, created_at:"2026-09-01T00:00:00Z" }] },
+      user_roles: { data:[{ user_id:"u-admin", role:"registrar" }] },
+      profiles: { data:[] },
+    },
+    rpc: {},
+    write: { data:[], error:null },
+  };
+  await cdp.send("Page.addScriptToEvaluateOnNewDocument", {
+    source: "window.__SCEN = " + JSON.stringify(ADMIN) + "; window.__q=[]; window.__rpc=[];" });
+  await cdp.send("Page.navigate", { url: `${BASE}/portal/admin/teachers/` });
+  await sleep(3200);
+  const adBox = await cdp.ev(`(()=>{const kv=[...document.querySelectorAll(".kv")]
+    .find(x=>/已告知对方/.test(x.textContent||"")); if(!kv) return null;
+    const v=kv.querySelector("b");
+    return v ? { text:v.textContent, shown:v.innerText, kids:v.children.length,
+                 visible: !!(v.offsetWidth || v.offsetHeight || v.getClientRects().length) } : null;})()`);
+  ok("Ad0 前提：管理员侧确实显示了同一段说明", !!adBox, JSON.stringify(adBox));
+  ok("Ad1 内容与管理员写的一字不差（UI.esc 保留，&lt; / &amp; 仍是字面量）",
+     !!adBox && adBox.text === MSG, JSON.stringify(adBox && adBox.text));
+  ok("Ad2 换行**看得见**（innerText 里有换行，且这一块可见）",
+     !!adBox && adBox.visible === true && (adBox.shown || "").indexOf("\n") > -1 &&
+     (adBox.shown || "").indexOf("2. 推荐信") > -1,
+     JSON.stringify(adBox && { shown: adBox.shown, visible: adBox.visible }));
+  ok("Ad3 这一段只是看，没有产生任何审核写入",
+     (await cdp.ev(`(()=>((window.__rpc||[]).filter(r=>/review_teacher|submit-teacher/.test(r.name)).length))()`)) === 0 &&
+     (await cdp.ev(`(()=>((window.__q||[]).filter(q=>q.mode!=="select").length))()`)) === 0,
+     JSON.stringify(await cdp.ev(`(()=>((window.__rpc||[]).map(r=>r.name)))()`)));
 
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");

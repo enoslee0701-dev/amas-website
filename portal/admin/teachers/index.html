@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>教师验证审核 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140408">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140413">
 <style>
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .tab{min-height:44px;padding:0 15px;border:1px solid var(--line);border-radius:99px;background:#fff;
@@ -40,11 +40,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609140408"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609140408"></script>
-<script src="../../../assets/js/portal/api.js?v=202609140408"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609140408"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609140408"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609140413"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609140413"></script>
+<script src="../../../assets/js/portal/api.js?v=202609140413"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609140413"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609140413"></script>
 <script>
 /* 管理端教师验证审核台。
 
@@ -212,8 +212,12 @@
         '<div class="kv"><span>联系电话</span><b>' + UI.esc(sd.phone || sd.tPhone || "—") + '</b></div>' +
         '<div class="kv"><span>提交时间</span><b>' + dt(r.submitted_at) + '</b></div>' +
         (r.reviewed_at ? '<div class="kv"><span>上次审核</span><b>' + dt(r.reviewed_at) + '</b></div>' : '') +
+        /* 这段是自己写给对方的纯文本，分项补件常常是多行：
+           不加 pre-wrap 的话换行会被折掉，管理员这边看到的和教师那边读到的不是同一段。
+           转义仍走 UI.esc，只改换行呈现。 */
         (r.applicant_visible_message
-          ? '<div class="kv"><span>已告知对方</span><b>' + UI.esc(r.applicant_visible_message) + '</b></div>' : '') +
+          ? '<div class="kv"><span>已告知对方</span><b style="white-space:pre-wrap">' +
+            UI.esc(r.applicant_visible_message) + '</b></div>' : '') +
         (unresolved.has(r.id)
           ? '<div class="msg warn show" role="alert" style="margin-top:12px">' +
               UI.esc(unresolved.get(r.id)) +
