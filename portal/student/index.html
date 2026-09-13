@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>学员中心 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609140358">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609140401">
 <style>
 .idcard{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);color:#fff;border-radius:16px;padding:20px 22px;margin-bottom:18px}
 .idcard h2{margin:0;font-size:19px;color:#fff}
@@ -31,11 +31,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609140358"></script>
-<script src="../../assets/js/portal/auth.js?v=202609140358"></script>
-<script src="../../assets/js/portal/api.js?v=202609140358"></script>
-<script src="../../assets/js/portal/ui.js?v=202609140358"></script>
-<script src="../../assets/js/portal/shell.js?v=202609140358"></script>
+<script src="../../assets/js/supabase-config.js?v=202609140401"></script>
+<script src="../../assets/js/portal/auth.js?v=202609140401"></script>
+<script src="../../assets/js/portal/api.js?v=202609140401"></script>
+<script src="../../assets/js/portal/ui.js?v=202609140401"></script>
+<script src="../../assets/js/portal/shell.js?v=202609140401"></script>
 <script>
 /* PORTAL-2 学员中心（V1）
    原则：状态机与 DB 是权威源，UI 不模拟业务状态；没有真实数据就显示真实空态，绝不填充假数据。
@@ -111,11 +111,13 @@
   /* 已知的「站外参考目标」——点过去只能看，处理不了这条待办。
      只按目标逐个登记，不按「非 portal 就算参考」一刀切：
      将来若出现真能在站外完成的目标，默认仍走「去处理」。 */
-  const REFERENCE_ONLY = {
-    "discover.html": "此处仅作快速探索，不会建立档案或完成此待办；" +
-      "正式评估请在「AMAS 神学院」App 中进行。",
-  };
-  const refNote = (u) => REFERENCE_ONLY[String(u || "").split("?")[0]] || "";
+  /* 用 Map：普通对象的 constructor / toString 等继承属性都是真值，
+     拿它做登记表会把未登记的目标当成已登记，与「未知默认去处理」相反。 */
+  const REFERENCE_ONLY = new Map([
+    ["discover.html", "此处仅作快速探索，不会建立档案或完成此待办；" +
+      "正式评估请在「AMAS 神学院」App 中进行。"],
+  ]);
+  const refNote = (u) => REFERENCE_ONLY.get(String(u || "").split("?")[0]) || "";
   const todo = actionItems.length
     ? actionItems.map(a =>
         '<div class="act">' +

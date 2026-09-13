@@ -776,6 +776,35 @@ try {
        !!phCard && !/仅作快速探索|不会建立档案/.test(phCard), JSON.stringify(phCard));
     ok("Cn4 而且它的动作仍然是「去处理」（没有被泛化成不能处理）",
        !!phCard && /去处理/.test(phCard), JSON.stringify(phCard));
+
+    /* 最小对照：登记表必须只认**自己登记过**的那一条。
+       普通对象的 constructor / toString 等继承属性都是真值 ——
+       拿它做索引会把未登记目标当成已登记。只测这一对照，不铺畸形输入大套件。 */
+    const extraId = await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source:
+      `(function(){ try { var t = setInterval(function(){
+         if (!window.__SCEN || !window.__SCEN.rpc) return;
+         clearInterval(t);
+         window.__SCEN.rpc.my_action_items = { data: [
+           { source_type:"christian_profile", source_id:"x", title:"未登记的站外目标",
+             reason:"对照用", target_url:"constructor", status:"open", priority:10 },
+           { source_type:"profile", source_id:"y", title:"另一个未登记目标",
+             reason:"对照用", target_url:"help/", status:"open", priority:20 } ] };
+       }, 0); } catch(e){} })();` });
+    await cdp.send("Page.navigate", { url: `${BASE}/portal/student/` });
+    await sleep(2800);
+    const cards = await cdp.ev(`(()=>[...document.querySelectorAll(".act")]
+      .map(x=>(x.textContent||"").replace(/\s+/g," ").trim()))()`);
+    ok("Cn5 前提：两条**未登记**的目标都渲染出来了", Array.isArray(cards) && cards.length === 2,
+       JSON.stringify(cards));
+    ok("Cn6 target_url=\"constructor\" 不算已登记：没有那句说明，动作仍是「去处理」",
+       Array.isArray(cards) && cards.some(c => /未登记的站外目标/.test(c) &&
+         !/仅作快速探索/.test(c) && /去处理/.test(c)), JSON.stringify(cards));
+    ok("Cn7 另一个未登记目标同样默认「去处理」",
+       Array.isArray(cards) && cards.some(c => /另一个未登记目标/.test(c) &&
+         !/仅作快速探索/.test(c) && /去处理/.test(c)), JSON.stringify(cards));
+    if (extraId && extraId.identifier) {
+      try { await cdp.send("Page.removeScriptToEvaluateOnNewDocument", { identifier: extraId.identifier }); } catch (e) {}
+    }
   }
 
   if (RUN("A")) {
