@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131940">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609132008">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609131940"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609131940"></script>
-<script src="../../../assets/js/portal/api.js?v=202609131940"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609131940"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609131940"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609131940"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609132008"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609132008"></script>
+<script src="../../../assets/js/portal/api.js?v=202609132008"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609132008"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609132008"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609132008"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -918,14 +918,22 @@
       app.form_data[fname][+idx][key] = el.value;
       touch();
     }));
+    /* renderStep() 把整个表单重画了 —— 他刚按下的那个按钮已经不在，
+       焦点会掉到 <body>：键盘用户加/删一行就被扔回页首，得重新 Tab 一遍
+       （本轮实测 Rw6 / Rw9）。加完送到新那一行的第一个格子（他下一步就是往里填），
+       删完落回这一组的「+ 添加一行」（这一组里最稳的落点）。 */
     form.querySelectorAll("[data-addrow]").forEach(b => b.addEventListener("click", () => {
       const n = b.dataset.addrow;
       app.form_data[n] = (app.form_data[n] || []).concat([{}]);
       touch(); renderStep();
+      const idx = app.form_data[n].length - 1;
+      const cell = document.querySelector('[data-row^="' + n + ':' + idx + ':"]');
+      (cell || document.querySelector('[data-addrow="' + n + '"]'))?.focus();
     }));
     form.querySelectorAll("[data-delrow]").forEach(b => b.addEventListener("click", () => {
       const [n, i] = b.dataset.delrow.split(":");
       app.form_data[n].splice(+i, 1); touch(); renderStep();
+      document.querySelector('[data-addrow="' + n + '"]')?.focus();
     }));
   }
 

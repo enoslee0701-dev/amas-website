@@ -310,6 +310,7 @@ try {
              req:a.dataset?a.dataset.req||"":"", gofield:a.dataset?a.dataset.gofield||"":"",
              attrs:[...a.attributes].map(x=>x.name).filter(n=>/^data-/.test(n)).join(","),
              inRows: !!a.closest('[data-f="education"], [data-f="experience"]'),
+             addrow: (a.dataset && a.dataset.addrow) || "", row: (a.dataset && a.dataset.row) || "",
              text:(a.textContent||"").replace(/\s+/g," ").trim().slice(0,24),
              visible: !!(a.offsetWidth||a.offsetHeight||a.getClientRects().length) };})()`);
   /* 一直 Tab，直到落在满足条件的元素上（或到上限）。返回走过的步数。 */
@@ -372,10 +373,16 @@ try {
     rpc: { my_application: { data:[NEEDS] }, submit_application: { data:{ ok:true } } } });
   const k4 = await tabUntil(a => a.req === "rq-1", 40);
   ok("K4a Tab 能走到补件条目的勾选框", k4.hit, JSON.stringify(k4.at));
+  /* 旧判据是「application_requirements 读取次数 >= 1」—— 页面一载入就满足，
+     等于没判。换成 resolve_requirement 的**真实增量**（Rq 组另有完整版）。
+     计数要在按下之**前**读：上一版把原来的 press("Space") 留在了这里，
+     等于先按了一次，自己把增量吃掉了。 */
+  const k4n = (await cdp.ev(`((window.__rpc||[]).filter(r=>r.name==="resolve_requirement").length)`)) || 0;
   await press("Space");
-  await sleep(900);
-  ok("K4b Space 能勾上（发出了标记请求）",
-     (await cdp.ev(`((window.__sel && window.__sel["application_requirements"]) || 0) >= 1`)) === true);
+  await sleep(1000);
+  ok("K4b 一次 Space 真的发出一次 resolve_requirement（前后差值）",
+     ((await cdp.ev(`((window.__rpc||[]).filter(r=>r.name==="resolve_requirement").length)`)) || 0) - k4n === 1,
+     "前 " + k4n);
 
   console.log("\n=== K5 提交被挡回来：键盘走到「去看这几项」与「重新读取」 ===");
   await open({ write: OKW, tables: { ...TABLES, application_requirements: { data: REQS } },
@@ -399,7 +406,7 @@ try {
   const k5e = await active();
   ok("K5e 重读之后焦点没被丢回页首", k5e.tag !== "BODY", JSON.stringify(k5e));
 
-  console.log("\n=== F 纯按键把六步表单从空白填完并提交 ===");
+  console.log("\n=== F 部分控件预置的六步键盘路径（select/month/动态行为预置，见报告）===");
   /* 上一包的 K2 只走到一个字段、Tab 往返了一下 —— **没有真的填**。
      这一段从**空白草稿**开始，全程只用 Tab / 字符键 / Space / ArrowDown，
      不用 element.focus()、不用 .click()、不直接给 value 赋值。 */
@@ -552,6 +559,87 @@ try {
   await sleep(1200);
   ok("Rq4 等一会儿也没有重复发出去", (await rpcOf("resolve_requirement")).length === after.length,
      String((await rpcOf("resolve_requirement")).length));
+
+  console.log("\n=== Rw 学历动态行：一个键一个键地看它到底怎么没的 ===");
+  /* 上一包只用「载入时渲染对了」（F0b）就说产品没问题 —— 那不能排除
+     真实键盘下的删除/新增/编辑有毛病。这一段**只碰学历这一组**，
+     每按一个键就记下：焦点是谁、还有几行、行里的值是什么。 */
+  const rowsState = async () => cdp.ev(`(()=>{
+    const box = document.querySelector('[data-f="education"]');
+    if (!box) return { box:false };
+    return { box:true,
+      rows: box.querySelectorAll("[data-delrow]").length,
+      vals: [...box.querySelectorAll("input")].map(e=>e.value),
+      add: !!box.querySelector("[data-addrow]") || !!document.querySelector('[data-addrow="education"]') };})()`);
+  const snap = async (label) => {
+    const a = await active(), r = await rowsState();
+    const line = label + " | 焦点=" + (a.tag + (a.id ? "#" + a.id : "") +
+      (a.attrs ? "[" + a.attrs + "]" : "") + (a.text ? " «" + a.text + "»" : "")) +
+      " | 行数=" + r.rows + " | 值=" + JSON.stringify(r.vals);
+    console.log("    · " + line);
+    return { a, r };
+  };
+  const ONE_ROW = { write: OKW, tables: { ...TABLES, application_requirements: { data: [] } },
+    rpc: { my_application: { data:[{ ...DRAFT, form_data: { ...PRESET } }] },
+           submit_application: { data:{ ok:true } } } };
+  const toStep3 = async () => {
+    const r = await tabUntil(a => a.step === "2", 40);
+    if (r.hit) { await press("Enter"); await sleep(450); }
+    return r.hit;
+  };
+
+  await open(ONE_ROW);
+  ok("Rw0 前提：走到第 3 步", (await toStep3()) === true);
+  const rw0 = await snap("载入后");
+  ok("Rw1 载入时就有一行，且值在", rw0.r.rows === 1 && rw0.r.vals.includes("某大学"), JSON.stringify(rw0.r));
+
+  /* 逐键走过这一组，**只记录不操作** —— 先看清 Tab 序里都有谁。 */
+  const seen = [];
+  for (let i = 1; i <= 10; i++) {
+    await press("Tab");
+    const st = await snap("Tab#" + i);
+    seen.push({ tag: st.a.tag, attrs: st.a.attrs, text: st.a.text, rows: st.r.rows });
+    if (st.r.rows !== 1) break;                 // 行数变了就停下，现场留住
+  }
+  const changedDuringTab = seen.find(x => x.rows !== 1);
+  ok("Rw2 **只按 Tab**（不按 Enter/Space）不会让行消失",
+     !changedDuringTab, JSON.stringify(changedDuringTab || seen.slice(0, 3)));
+  const delInTab = seen.find(x => (x.attrs || "").indexOf("data-delrow") > -1);
+  ok("Rw3 「删除」按钮确实在 Tab 序里（键盘够得到，这是应该的）",
+     !!delInTab, JSON.stringify(seen.map(x => x.text).slice(0, 8)));
+
+  // 删除：键盘按下去应当**真的**删掉一行（正常行为，不是缺陷）
+  await open(ONE_ROW);
+  await toStep3();
+  const dh = await tabUntil(a => (a.attrs || "").indexOf("data-delrow") > -1, 20);
+  ok("Rw4 Tab 走得到「删除」", dh.hit, JSON.stringify(dh.at));
+  await press("Enter");
+  await sleep(500);
+  const afterDel = await snap("删除后");
+  ok("Rw5 Enter 删掉了那一行（键盘可用，且是用户自己按的）", afterDel.r.rows === 0, JSON.stringify(afterDel.r));
+  ok("Rw6 删完之后焦点没被丢回页首", (await active()).tag !== "BODY", JSON.stringify(await active()));
+
+  // 新增：键盘按「+ 添加一行」应当加出一行，并且能直接打字
+  /* 必须指名道姓找**学历**那一组的按钮：删除之后焦点已经停在它上面，
+     再 Tab 一下就跑到「经历」那一组去了 —— 上一版就是这么把行加错了组的。 */
+  const ah = await tabUntil(a => a.addrow === "education", 30);
+  ok("Rw7 Tab 走得到学历那一组的「+ 添加一行」", ah.hit, JSON.stringify(ah.at));
+  await press("Enter");
+  await sleep(500);
+  const afterAdd = await snap("新增后");
+  ok("Rw8 Enter 加出了一行", afterAdd.r.rows === 1, JSON.stringify(afterAdd.r));
+  ok("Rw9 新增之后焦点没被丢回页首", (await active()).tag !== "BODY", JSON.stringify(await active()));
+
+  // 编辑：键盘打字要落到这一行里
+  const ih = await tabUntil(a => a.tag === "INPUT" && /^education:/.test(a.row) && a.type === "text", 20);
+  if (!ih.hit) {
+    console.log("    · INCOMPLETE：这一轮没能用按键把焦点送进新增行的文本框，未作断言");
+  } else {
+    await typeText("键盘学校");
+    const ed = await snap("打字后");
+    ok("Rw10 打进去的字落在这一行里", ed.r.vals.some(v => v.indexOf("键盘学校") > -1), JSON.stringify(ed.r.vals));
+    ok("Rw11 打字不会把行弄没", ed.r.rows === 1, JSON.stringify(ed.r));
+  }
 
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
