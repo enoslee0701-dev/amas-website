@@ -112,9 +112,19 @@ window.supabase = { createClient: function(){
       in:function(){return q;}, match:function(){return q;},
       order:function(){return q;}, range:function(){return q;}, limit:function(){return q;},
       maybeSingle:function(){return q;}, single:function(){return q;},
-      insert:function(){ mode="insert"; return q; }, update:function(){ mode="update"; return q; },
+      insert:function(){ mode="insert"; return q; },
+      update:function(patch){ mode="update"; try { window.__lastPatch = patch; } catch(e){} return q; },
       then:function(res, rej){
         var sc = S();
+        /* 草稿保存要**真的落下去**，否则「刷新后继续」只是换了一份夹具。
+           同源 localStorage 当共享状态，update 写进去、my_application 读回来。 */
+        if (mode === "update" && name === "applications") {
+          try {
+            var cur = JSON.parse(localStorage.getItem("__draft") || "null") || {};
+            var merged = Object.assign({}, cur, (window.__lastPatch || {}));
+            localStorage.setItem("__draft", JSON.stringify(merged));
+          } catch(e){}
+        }
         /* 每一次查询都留痕：表、模式、列投影、eq 条件 —— 断言就读这里。 */
         try { (window.__q = window.__q || []).push({ name:name, mode:mode, cols:cols, eq:eqs }); } catch(e){}
         var t = (mode === "select") ? ((sc.tables && sc.tables[name]) || { data:[], error:null })
@@ -149,6 +159,15 @@ window.supabase = { createClient: function(){
     },
     from: table,
     rpc: function(name, args){
+      if (name === "my_application") {
+        var st = null;
+        try { st = JSON.parse(localStorage.getItem("__draft") || "null"); } catch(e){}
+        var base = (S().rpc && S().rpc.my_application && S().rpc.my_application.data) || [];
+        var row = base[0] ? JSON.parse(JSON.stringify(base[0])) : null;
+        if (row && st && st.form_data) row.form_data = st.form_data;
+        try { (window.__rpc = window.__rpc || []).push({ name:name, args:args||null }); } catch(e){}
+        return reply({ data: row ? [row] : [], error:null, status:200 });
+      }
       try { (window.__rpc = window.__rpc || []).push({ name:name, args:args||null }); } catch(e){}
       if (name === "my_roles") return reply({ data:[{ role:"applicant" }], error:null, status:200 });
       if (name === "my_profile") return reply({ data:{ display_name:"申请人甲", email:"a@example.invalid" }, error:null, status:200 });
@@ -185,6 +204,11 @@ try {
       if (u.indexOf("supabase.co") > -1 || u.indexOf("supabase.in") > -1) externalHits++;
       await cdp.send("Fetch.continueRequest", { requestId: ev.requestId });
     } catch (e) {}
+  });
+  /* 改过没保存的那一版会触发 UI.formGuard 的 beforeunload；
+     探针要接住原生对话框，否则下一次 Page.navigate 会一直卡到超时。 */
+  cdp.on("Page.javascriptDialogOpening", async () => {
+    try { await cdp.send("Page.handleJavaScriptDialog", { accept: true }); } catch (e) {}
   });
   let pageErrors = [];
   cdp.on("Runtime.exceptionThrown", (p) => {
@@ -269,11 +293,86 @@ try {
   const t1 = await nodeOf(".tl-row em", "请补以下三项");
   ok("Ms8 前提：时间线展开后也有这一段", !!t1, JSON.stringify(t1 && t1.shown));
   okNode("Ms9 历史页时间线：三项分行看得见", t1);
-  ok("Ms10 四处读到的是**同一段**（互相一致）",
+  /* 说清楚范围：历史页那条是**另一份已结束的申请**（app-old），
+     与当前这份（app-1）不是同一申请；这里比的是**同一段文本**在四处的呈现是否一致。
+     比的也是**全文**，不再只挑第一/第三项。 */
+  ok("Ms10 四处呈现的是**同一段全文**（历史页那条属另一份申请，只比文本）",
      !!a1 && !!h1 && !!s1 && !!t1 &&
-     [a1, h1, s1, t1].every(n => n.text.indexOf("1. 受洗证明扫描件") > -1 &&
-                                 n.text.indexOf("3. 最高学历证书") > -1), "");
-  ok("Ms11 全程没有提交或审核写入", (await wrote()) === 0);
+     [a1, h1, s1, t1].every(n => n.text.indexOf(MSG) > -1), "");
+  /* 导航会把页内的 __q/__rpc 清零，所以这一条只能说**历史页这一程**没有写入，
+     不能说「全程」。申请页那一程由 Ms3 单独断言。 */
+  ok("Ms11 历史页这一程没有提交或审核写入", (await wrote()) === 0);
+
+  // ════════ Rf 收到分项补件 → 找到字段 → 存草稿 → **真刷新**后继续 ════════
+  console.log("\n=== Rf 补件→改字段→存草稿→刷新后继续 ===");
+  /* 前面几环此前已绿，不在这里重跑：
+       字段定位与「去修改」焦点落位 —— 第七十七包 K5c / F7；
+       自动保存与串行化 —— applicant-writes 287；
+       离开时的暂存/恢复 —— Ex / Rl 两组。
+     这一段只补**真刷新**这一环：服务端草稿回来之后他接着改的那一版还在不在。 */
+  const KEY = { Tab:{code:"Tab",key:"Tab",vk:9}, Enter:{code:"Enter",key:"Enter",vk:13},
+                End:{code:"End",key:"End",vk:35} };
+  const press = async (k) => {
+    const m = KEY[k];
+    await cdp.send("Input.dispatchKeyEvent", { type:"rawKeyDown",
+      windowsVirtualKeyCode:m.vk, nativeVirtualKeyCode:m.vk, code:m.code, key:m.key });
+    if (k === "Enter") await cdp.send("Input.dispatchKeyEvent", { type:"char", text:"\r", key:m.key, code:m.code });
+    await cdp.send("Input.dispatchKeyEvent", { type:"keyUp",
+      windowsVirtualKeyCode:m.vk, nativeVirtualKeyCode:m.vk, code:m.code, key:m.key });
+    await sleep(90);
+  };
+  const typeText = async (t) => {
+    for (const ch of String(t)) {
+      const vk = ch.toUpperCase().charCodeAt(0);
+      await cdp.send("Input.dispatchKeyEvent", { type:"keyDown", key:ch, windowsVirtualKeyCode:vk, nativeVirtualKeyCode:vk });
+      await cdp.send("Input.dispatchKeyEvent", { type:"char", text:ch, key:ch });
+      await cdp.send("Input.dispatchKeyEvent", { type:"keyUp", key:ch, windowsVirtualKeyCode:vk, nativeVirtualKeyCode:vk });
+      await sleep(16);
+    }
+    await sleep(120);
+  };
+  const until = async (fn, ms) => { const t0 = Date.now();
+    while (Date.now() - t0 < (ms || 9000)) { try { if (await fn()) return true; } catch(e){} await sleep(120); } return false; };
+  /* 表单字段的 id 是 fd-<name>（focusFormField 用的就是它），不是 name 属性。 */
+  const phone = async () => cdp.ev(`(()=>{const e=document.getElementById("fd-phone"); return e?e.value:null;})()`);
+
+  /* 这一份处于 needs_information，补件条目指向 phone（不在锁定表里）。 */
+  scen.tables.application_requirements = { data:[{ id:"rq-1", label:"补填联系电话",
+    detail:"教务需要能联系到你", field:"phone", resolved:false, created_at:"2026-09-02T00:00:00Z" }] };
+  scen.rpc.my_application.data[0].locked_fields = ["name_zh"];
+  scen.rpc.my_application.data[0].form_data = { name_zh:"申请人甲", programs:["bth"], phone:"" };
+  await cdp.ev(`(()=>{ try{ localStorage.removeItem("__draft"); }catch(e){} return true; })()`).catch(() => {});
+  await open("/portal/applicant/application/");
+  ok("Rf0 前提：补件条目在，并给得出「去修改」（字段未锁）",
+     (await cdp.ev(`(()=>{const b=document.querySelector('[data-gofield="phone"]');
+       return !!b && /去修改/.test(b.textContent||"");})()`)) === true);
+  const hit = await (async () => { for (let i = 1; i <= 40; i++) { await press("Tab");
+    const on = await cdp.ev(`(()=>{const a=document.activeElement;
+      return !!(a && a.dataset && a.dataset.gofield === "phone");})()`); if (on) return true; } return false; })();
+  ok("Rf1 前提：键盘走得到「去修改」", hit === true);
+  await press("Enter"); await sleep(600);
+  ok("Rf2 前提：焦点落在那个字段上（此前 K5c/F7 已绿，这里只作前提）",
+     (await cdp.ev(`(()=>{const a=document.activeElement; return a ? a.id : "";})()`)) === "fd-phone",
+     JSON.stringify(await cdp.ev(`(()=>{const a=document.activeElement; return a?{id:a.id,tag:a.tagName}:null;})()`)));
+  await press("End");
+  await typeText("0123456789");
+  ok("Rf3 草稿真的存下去了（服务端收到的那一版带着新号码）",
+     await until(async () => cdp.ev(`(()=>{ try { const d=JSON.parse(localStorage.getItem("__draft")||"null");
+       return !!(d && d.form_data && d.form_data.phone === "0123456789"); } catch(e){ return false; } })()`), 12000),
+     JSON.stringify(await cdp.ev(`(()=>localStorage.getItem("__draft"))()`)));
+  /* **真刷新**：重新载入这一页，看他接着改的那一版还在不在。 */
+  await cdp.send("Page.navigate", { url: `${BASE}/portal/applicant/application/` });
+  await sleep(3000);
+  ok("Rf4 刷新之后那一版还在（服务端草稿读回来了）", (await phone()) === "0123456789",
+     JSON.stringify(await phone()));
+  ok("Rf5 补件条目仍然列着、仍是未完成（没有被谁悄悄标成已补）",
+     (await cdp.ev(`(()=>{const m=document.getElementById("main");
+       return /未完成 1 项/.test((m&&m.textContent)||"");})()`)) === true,
+     JSON.stringify(await cdp.ev(`(()=>{const m=document.getElementById("main");
+       return ((m&&m.textContent)||"").slice(0,80);})()`)));
+  ok("Rf6 这一段只存了草稿，没有提交、也没有标记补件完成",
+     (await cdp.ev(`(()=>((window.__rpc||[]).filter(r=>/^(submit_|resolve_|review_)/.test(r.name)).length))()`)) === 0,
+     JSON.stringify(await cdp.ev(`(()=>((window.__rpc||[]).map(r=>r.name)))()`)));
 
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
