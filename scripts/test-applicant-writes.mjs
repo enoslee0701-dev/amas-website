@@ -126,7 +126,10 @@ window.supabase = {
     var S = function(){ return window.__SCEN || {}; };
     var reply = function(v){ return Promise.resolve(v); };
     var bump = function(k){ try { var o=JSON.parse(sessionStorage.getItem("wCalls")||"{}");
-      o[k]=(o[k]||0)+1; sessionStorage.setItem("wCalls", JSON.stringify(o)); } catch(e){} };
+      o[k]=(o[k]||0)+1; sessionStorage.setItem("wCalls", JSON.stringify(o));
+      /* 顺序也记下来 —— 「先保存再标记」这种事只看次数看不出来。 */
+      var q=JSON.parse(sessionStorage.getItem("wSeq")||"[]"); q.push(k);
+      sessionStorage.setItem("wSeq", JSON.stringify(q)); } catch(e){} };
     function table(name){
       var mode = "select";
       var q = {
@@ -268,7 +271,7 @@ try {
   };
   const open = async (scen, wait) => {
     await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: "window.__SCEN = " + JSON.stringify(scen) + ";" });
-    await cdp.ev(`(()=>{try{["wCalls","lastMatch","reread","lastPatch"].forEach(k=>sessionStorage.removeItem(k));}catch(e){} return true;})()`).catch(()=>{});
+    await cdp.ev(`(()=>{try{["wCalls","wSeq","lastMatch","reread","lastPatch"].forEach(k=>sessionStorage.removeItem(k));}catch(e){} return true;})()`).catch(()=>{});
     pageErrors = [];
     await cdp.send("Page.navigate", { url: `${BASE}/portal/applicant/application/` });
     await sleep(wait || 2800);
@@ -1351,6 +1354,98 @@ try {
     ok("Rs6b-" + f + " 聚焦落在这一组真正能操作的控件上（没有 fd-" + f + " 这种输入框）",
        !!got && got.inHolder === true && got.disabled === false, JSON.stringify(got));
   }
+
+  // ════════ Rc 标记「已补」之前，先把修改落地（blueprint §6 闭环）════════
+  console.log("\n=== Rc 勾「已补」不能跑在保存前面 ===");
+  /* 补件闭环是「改 → 标记已补 → 重新提交 → 看清结果」。
+     可是勾选那一下直接就发 resolve_requirement，**完全不等保存落地**：
+     自动保存有 800ms 防抖，他改完马上勾，服务端就把这一项标成已完成了，
+     而那次修改可能还没写进去、甚至根本没写成。
+     之后他看到的是「已标记完成」，刷新回来却是旧值 —— 这一勾等于替没落地的数据打包票。
+     提交那条路早就做了同样的门禁（先 save() 再决定交不交），这里漏了。 */
+  const seq = async () => (await cdp.ev(`(()=>{try{return JSON.parse(sessionStorage.getItem("wSeq")||"[]");}catch(e){return [];}})()`)) || [];
+  const REQ_ONE = [{ id:"rq1", label:"补受洗日期", detail:"", field:"baptism_date", resolved:false, created_at:"2026-09-10T00:00:00Z" }];
+  const NEEDS_ONE = { ...DRAFT, status:"needs_information",
+    locked_fields: ["name_zh","birth_ym","gender","nationality","conversion_date","programs"] };
+  const editThenTick = async () => {
+    /* 走真实闭环：先点那条要求的「去修改」跳过去（baptism_date 在第 2 步，
+       页面默认停在第 1 步 —— 不跳过去那个输入框根本不存在）。 */
+    await cdp.ev(`(()=>{const b=document.querySelector('[data-gofield="baptism_date"]');
+      if(b) b.click(); return !!b;})()`);
+    await sleep(400);
+    const typed = await cdp.ev(`(()=>{const el=document.getElementById("fd-baptism_date");
+      if(!el) return false; el.focus(); el.value="2011-05";
+      el.dispatchEvent(new Event("input",{bubbles:true})); return true;})()`);
+    if (!typed) throw new Error("前提不成立：跳过去之后还是找不到 fd-baptism_date");
+    await sleep(80);                       // 防抖还没到
+    await cdp.ev(`(()=>{const cb=document.querySelector("[data-req]"); if(!cb) return false;
+      cb.checked = true; cb.dispatchEvent(new Event("change",{bubbles:true})); return true;})()`);
+    await sleep(1600);
+  };
+
+  // Rc1 保存成功：顺序必须是「先写进去，再标记」
+  await open({ tables: { ...BASE_TABLES, application_requirements: { data: REQ_ONE } },
+    rpc: { my_application: { data: [NEEDS_ONE] }, resolve_requirement: { data: { ok: true } } } });
+  await editThenTick();
+  const rcq1 = (await seq()).filter(x => x === "update:applications" || x === "rpc:resolve_requirement");
+  ok("Rc1 有未保存的修改时，先把它写进去，再标记已补",
+     rcq1.indexOf("update:applications") > -1 &&
+     rcq1.indexOf("update:applications") < rcq1.indexOf("rpc:resolve_requirement"), JSON.stringify(rcq1));
+
+  // Rc2 保存明确失败：不能标记
+  await open({ tables: { ...BASE_TABLES, application_requirements: { data: REQ_ONE } },
+    rpc: { my_application: { data: [NEEDS_ONE] }, resolve_requirement: { data: { ok: true } } },
+    writes: { applications: { data:null, error:{ message:"duplicate key value violates unique constraint" }, status:409 } } });
+  await editThenTick();
+  const rcc2 = await calls();
+  ok("Rc2 保存明确失败时，不发标记请求", !(rcc2["rpc:resolve_requirement"] > 0), JSON.stringify(rcc2));
+  const rct2 = await cdp.ev(`(()=>{const cb=document.querySelector("[data-req]");
+    const t=document.getElementById("amas-toast");
+    return { checked: cb ? cb.checked : null, toast: t ? (t.textContent||"").trim() : null };})()`);
+  ok("Rc2b 勾回到未勾，并说清楚是因为修改没保存成功",
+     rct2.checked === false && /没保存|没有保存|保存/.test(rct2.toast || ""), JSON.stringify(rct2));
+
+  // Rc3 保存结果不明：同样不标记，并如实说不明
+  await open({ tables: { ...BASE_TABLES, application_requirements: { data: REQ_ONE } },
+    rpc: { my_application: { data: [NEEDS_ONE] }, resolve_requirement: { data: { ok: true } } },
+    writes: { applications: { data:null, error:{ message:"Failed to fetch" }, status:0 } } });
+  await editThenTick();
+  const rcc3 = await calls();
+  ok("Rc3 保存结果不明时也不标记", !(rcc3["rpc:resolve_requirement"] > 0), JSON.stringify(rcc3));
+  const rct3 = await cdp.ev(`(()=>{const t=document.getElementById("amas-toast");
+    return t ? (t.textContent||"").trim() : null;})()`);
+  ok("Rc3b 并如实说没能确认", /没能确认|无法确认/.test(rct3 || ""), JSON.stringify(rct3));
+
+  // Rc4 对照：没有未保存修改时，勾选直接标记，不多跑一次保存
+  await open({ tables: { ...BASE_TABLES, application_requirements: { data: REQ_ONE } },
+    rpc: { my_application: { data: [NEEDS_ONE] }, resolve_requirement: { data: { ok: true } } } });
+  await cdp.ev(`(()=>{const cb=document.querySelector("[data-req]"); if(!cb) return false;
+    cb.checked = true; cb.dispatchEvent(new Event("change",{bubbles:true})); return true;})()`);
+  await sleep(1200);
+  const rcc4 = await calls();
+  ok("Rc4 对照：没有未保存修改时，直接标记（不硬塞一次保存）",
+     (rcc4["rpc:resolve_requirement"] || 0) >= 1 && !(rcc4["update:applications"] > 0), JSON.stringify(rcc4));
+
+  // Rc5 委托处理器不能随 render 次数累积
+  await open({ tables: { ...BASE_TABLES, application_requirements: { data: REQ_ONE } },
+    rpc: { my_application: { data: [NEEDS_ONE] }, resolve_requirement: { data: { ok: true } } } });
+  await cdp.ev(`(()=>{ if (window.__renderProbe) return true; return true; })()`);
+  /* 勾一次会走 loadRequirements(); render()；再勾不了（已 resolved）。
+     改用真实可重复的路径：切步骤不 render，但提交失败会 render。
+     这里直接数 main 上的 click 监听器 —— CDP 能拿到真实的监听器表。 */
+  const listenerCount = async () => {
+    const r = await cdp.send("Runtime.evaluate", { expression: 'document.getElementById("main")', returnByValue: false });
+    if (!r.result || !r.result.objectId) return null;
+    const l = await cdp.send("DOMDebugger.getEventListeners", { objectId: r.result.objectId });
+    return (l.listeners || []).filter(x => x.type === "click").length;
+  };
+  const before = await listenerCount();
+  await cdp.ev(`(()=>{const cb=document.querySelector("[data-req]"); if(!cb) return false;
+    cb.checked = true; cb.dispatchEvent(new Event("change",{bubbles:true})); return true;})()`);
+  await sleep(1400);                       // 这一下会走 render()
+  const after = await listenerCount();
+  ok("Rc5 render 再跑一次，main 上的 click 监听器没有多出来",
+     before !== null && after !== null && after === before, JSON.stringify({ before, after }));
 
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");

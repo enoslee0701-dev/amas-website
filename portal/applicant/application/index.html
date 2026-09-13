@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131041">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131109">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609131041"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609131041"></script>
-<script src="../../../assets/js/portal/api.js?v=202609131041"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609131041"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609131041"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609131041"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609131109"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609131109"></script>
+<script src="../../../assets/js/portal/api.js?v=202609131109"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609131109"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609131109"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609131109"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -39,6 +39,7 @@
   const EDITABLE = ["draft","needs_information"];
 
   let app = null, programs = [], catalogFailed = false, reqs = [], reqsUnknown = false, dirty = false, saveTimer = null, step = 0;
+  let goFieldBound = false;
 
   /* 这一页有四条写入：创建草稿、自动保存、标记补件完成、提交申请。
      判据与 portal/admin/*（第六包）同一套：
@@ -326,6 +327,9 @@
        表单本来就要重绘，和「打字时别重绘」是两回事。
        用**委托**绑在 main 上，并且在处理器里再挡一道：不可编辑的状态下什么都不做。
        只靠「不渲染按钮」不够 —— 那不是防御，只是没给入口。 */
+    /* render() 会被反复调用（勾选补件、提交后重读…），而 main 这个元素是**不换**的 ——
+       每次都 addEventListener 会一路叠上去，点一次就跑 N 遍。只绑一次。 */
+    if (!goFieldBound) { goFieldBound = true;
     main.addEventListener("click", (e) => {
       const b = e.target && e.target.closest && e.target.closest("[data-gofield]");
       if (!b) return;
@@ -337,7 +341,7 @@
       step = i;
       buildSteps();
       focusFormField(name);
-    });
+    }); }
     document.getElementById("btnWithdraw")?.addEventListener("click", withdraw);
     loadTimeline();
   }
@@ -741,6 +745,21 @@
       app.form_data[n].splice(+i, 1); touch(); renderStep();
     }));
     document.querySelectorAll("[data-req]").forEach(cb => cb.addEventListener("change", async () => {
+      /* 「已补」是**对数据的断言**。自动保存有 800ms 防抖，他改完马上勾的话，
+         那次修改可能还没写进去、甚至根本没写成 —— 这一勾就等于替没落地的数据打包票，
+         刷新回来还是旧值。提交那条路早就先 save() 再决定交不交，这里也一样。 */
+      if (dirty) {
+        clearTimeout(saveTimer);
+        const saved = await save();
+        if (saved && !saved.ok) {
+          cb.checked = false;                       // 确实没标记，勾回去是事实
+          return UI.toast(saved.unclear
+            ? "没能确认你刚才的修改有没有保存成功，所以这一项没有标记为已补。请刷新核实之后再勾。"
+            : "你刚才的修改没有保存成功（" + (saved.message || "原因未知") +
+              "），所以这一项没有标记为已补。内容还在页面上，修好再勾。",
+            "err");
+        }
+      }
       const { error } = await Api.rpc("resolve_requirement", { p_req: cb.dataset.req });
       if (error) {
         if (isUnknown(error)) {
