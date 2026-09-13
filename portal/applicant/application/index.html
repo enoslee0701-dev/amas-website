@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131441">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131545">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609131441"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609131441"></script>
-<script src="../../../assets/js/portal/api.js?v=202609131441"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609131441"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609131441"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609131441"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609131545"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609131545"></script>
+<script src="../../../assets/js/portal/api.js?v=202609131545"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609131545"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609131545"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609131545"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -982,7 +982,8 @@
   /** 暂存失败时的出口：不重载、不隐藏，把他填的内容原样摊出来，
       并把光标放进去全选好，直接 Ctrl/Cmd+C 就能带走。
       不依赖剪贴板权限（navigator.clipboard 在很多环境下会被拒）。 */
-  function showStashFailed(){
+  function showStashFailed(actionLabel, onProceed){
+    const act = actionLabel || "重新载入";
     let box = document.getElementById("stashFailBox");
     if (box) { box.querySelector("textarea").select(); return; }
     box = document.createElement("div");
@@ -991,8 +992,8 @@
     box.setAttribute("role", "alert");
     box.style.margin = "12px 0";
     box.textContent = "这个浏览器现在存不下草稿（可能是隐私模式、存储被禁用或空间已满），" +
-      "所以**没有**重新载入 —— 页面上这一份是唯一的副本。" +
-      "请先把下面的内容复制保存，再决定要不要重新载入。 ";
+      "所以**没有**" + act + " —— 页面上这一份是唯一的副本。" +
+      "请先把下面的内容复制保存，再决定要不要" + act + "。 ";
     const ta = document.createElement("textarea");
     ta.readOnly = true;
     ta.style.cssText = "width:100%;min-height:160px;margin-top:8px;font:12px/1.6 Consolas,monospace";
@@ -1004,8 +1005,8 @@
     ta.value = lines.join("\n");
     box.appendChild(ta);
     const later = document.createElement("button");
-    later.type = "button"; later.className = "link"; later.textContent = "我已复制，重新载入";
-    later.addEventListener("click", () => location.reload());
+    later.type = "button"; later.className = "link"; later.textContent = "我已复制，" + act;
+    later.addEventListener("click", onProceed || (() => location.reload()));
     box.appendChild(document.createElement("br"));
     box.appendChild(later);
     const host = document.getElementById("appForm") || main;
@@ -1062,6 +1063,16 @@
            （A.withNext 自带同源校验，不自己拼）。
       **不自动跳转**：跳了他连提示都来不及看，正填着的东西也会被打断。 */
   function showExpired(what){
+    const loginHref = A.withNext("login/");
+    /** 走之前**再存一次**。错误回包那一刻存的那一份，到他点链接时可能已经旧了：
+        提示出现之后他又改了一笔，而自动保存的 800ms 防抖还没到点 ——
+        原生 <a> 一跳，最后那一笔就再也没有了。
+        存不下就**留在这一页**：把内容摊出来让他自己带走，绝不盲跳。 */
+    const leave = (e) => {
+      if (e) e.preventDefault();
+      if (stashDraft()) { location.href = loginHref; return; }
+      showStashFailed("去重新登录", () => { location.href = loginHref; });
+    };
     const stashed = stashDraft();
     let box = document.getElementById("expiredBox");
     if (!box) {
@@ -1079,12 +1090,13 @@
     if (!box.querySelector("a")) {
       const a = document.createElement("a");
       a.className = "link";
-      a.href = A.withNext("login/");
+      a.href = loginHref;                      // 保留真实地址：能看见要去哪、也能新标签页打开
       a.textContent = "去重新登录";
+      a.addEventListener("click", leave);
       box.appendChild(a);
     }
     /* 存不下就把内容摊出来让他自己带走 —— 绝不让他带着「已暂存」的错觉离开。 */
-    if (!stashed) showStashFailed();
+    if (!stashed) showStashFailed("去重新登录", () => { location.href = loginHref; });
   }
 
   // ---------- 提交 / 撤回 ----------

@@ -1974,6 +1974,107 @@ try {
      /保存失败/.test(ex11 || "") && !/过期/.test(ex11 || ""), JSON.stringify(ex11));
   ok("Ex12 对照：这时候不冒出「重新登录」入口", (await loginWay()) === null, JSON.stringify(await loginWay()));
 
+  // ════════ Rl 走之前救的是不是**最新**那一笔；回来能不能真的救回来 ════════
+  console.log("\n=== Rl 重新登录这条链（暂存 → 登录页 → 回来恢复）===");
+  /* 上一包只做到「错误回包那一刻 stash 一次 + 给一个 <a href>」。
+     那中间有个真实的窗口：提示出现之后他又改了一笔，**防抖 800ms 还没到**，
+     他直接点「去重新登录」—— 链接是原生跳转，走之前不会再存一次，
+     暂存里躺着的还是**上一版**。他登录回来「一键恢复」，恢复的是旧的，
+     最后那一笔悄悄没了。 */
+  const CUR_URL = async () => cdp.ev(`location.pathname`);
+  const clickBy = async (re) => cdp.ev(`(()=>{const n=[...document.querySelectorAll("a,button")]
+    .filter(x=>${re}.test(x.textContent||""))
+    .filter(x=>!x.closest("#amas-nav,header,footer"))[0];
+    if(!n) return false; n.click(); return true;})()`);
+  const restoreBox = async () => cdp.ev(`(()=>{const b=document.getElementById("restoreBox");
+    return b ? (b.textContent||"").replace(/\s+/g," ").trim() : null;})()`);
+  const probeSet  = async () => cdp.ev(`(()=>{window.__stayProbe="stay-"+Date.now(); return true;})()`);
+  const probeGone = async () => cdp.ev(`(typeof window.__stayProbe === "undefined")`);
+  const clearStashKey = async () => cdp.ev(`(()=>{try{sessionStorage.removeItem("amas.draft.application");}catch(e){} return true;})()`).catch(()=>{});
+
+  await clearStashKey();
+  await open(EXP);                                   // 写入一律 401
+  await goStep(3);
+  await typeCalling("第一版：过期前写的");
+  await sleep(1300);                                 // 防抖 → 401 → showExpired 暂存第一版
+  const rl0 = await stashNow();
+  ok("Rl0 前提：过期那一刻确实暂存了第一版",
+     !!rl0 && rl0.indexOf("第一版：过期前写的") > -1, JSON.stringify(rl0 && rl0.slice(0, 90)));
+  await typeCalling("第二版：提示出现之后又改的");
+  await sleep(150);                                  // **不等防抖**，立刻点「去重新登录」
+  const rlHref = await cdp.ev(`(()=>{const a=document.querySelector("#expiredBox a");
+    return a ? a.getAttribute("href") : null;})()`);
+  ok("Rl1-0 登录入口指向登录页并带 ?next= 回本页",
+     /^\/?login\/\?next=/.test(String(rlHref || "").replace(/^.*?(\/login\/)/, "$1")) ||
+     (/login\//.test(rlHref || "") && /next=/.test(rlHref || "")), JSON.stringify(rlHref));
+  /* 「有没有真的离开这一页」用**页面身份探针**判，不用 location：
+     登录页看到会话还在会按 ?next= 把人原路弹回来，pathname 一模一样，
+     但那是一次重载 —— 探针没了才算真的走过。 */
+  await probeSet();
+  ok("Rl1 前提：点到了「去重新登录」", (await clickBy("/重新登录/")) === true);
+  await sleep(2000);
+  const rl2 = await stashNow();                      // sessionStorage 同标签页跨导航还在
+  ok("Rl2 走之前救下来的是**最新**那一笔，不是上一版",
+     !!rl2 && rl2.indexOf("第二版：提示出现之后又改的") > -1,
+     JSON.stringify(rl2 && rl2.slice(0, 140)));
+  ok("Rl3 他确实离开了申请页（探针没了 = 页面真的换过）",
+     (await probeGone()) === true, JSON.stringify(await CUR_URL()));
+
+  /* 本地合成会话下，登录页看到还登着就按 ?next= 把他送回申请页 ——
+     这一趟来回不是我导航出来的，是他点出来的。 */
+  ok("Rl4 一个来回之后人回到申请页，并给出「恢复我的编辑」",
+     /application/.test(await CUR_URL()) && /恢复我的编辑/.test((await restoreBox()) || ""),
+     JSON.stringify([await CUR_URL(), await restoreBox()]));
+  await clickBy("/恢复我的编辑/");
+  await sleep(600);
+  await goStep(3);
+  ok("Rl5 恢复出来的是最新那一笔（不是旧版）",
+     (await cdp.ev(`(()=>{const el=document.getElementById("fd-calling"); return el?el.value:null;})()`))
+       === "第二版：提示出现之后又改的",
+     JSON.stringify(await cdp.ev(`(()=>{const el=document.getElementById("fd-calling"); return el?el.value:null;})()`)));
+
+  /* 绑定：换个人、换一份申请，都绝不能把上一个人的草稿翻出来。 */
+  await clearStashKey();
+  await open(EXP);
+  await goStep(3);
+  await typeCalling("张三的见证");
+  await sleep(1300);
+  ok("Rl6 前提：这一份暂存住了", !!(await stashNow()));
+  await open({ ...EXP, uid: "u-someone-else" });
+  ok("Rl7 换一个账号，绝不把上一个人的草稿恢复出来", (await restoreBox()) === null, JSON.stringify(await restoreBox()));
+  await open({ ...EXP, rpc: { ...EXP.rpc,
+    my_application: { data: [{ ...DRAFT, id: "app-fixture-OTHER" }] } } });
+  ok("Rl8 换一份申请也不恢复", (await restoreBox()) === null, JSON.stringify(await restoreBox()));
+
+  /* 存储被拒：必须留在页面、给复制出口，不能盲跳，也不能谎称已暂存。 */
+  await clearStashKey();
+  await open(EXP);
+  await goStep(3);
+  await cdp.ev(`(()=>{ Storage.prototype.setItem = function(){ throw new Error("denied"); }; return true;})()`);
+  await typeCalling("存不下的时候写的");
+  await sleep(1300);
+  const rl9 = await vis("#expiredBox");
+  ok("Rl9 存不下时不谎称已暂存",
+     !/已经暂存/.test(rl9 || "") && /存不下|复制/.test(rl9 || ""), JSON.stringify(rl9));
+  ok("Rl10 并且把内容摊出来让他自己带走",
+     (await cdp.ev(`(()=>{const t=document.querySelector("#stashFailBox textarea");
+        return t ? t.value : null;})()`) || "").indexOf("存不下的时候写的") > -1,
+     JSON.stringify(await cdp.ev(`(()=>{const t=document.querySelector("#stashFailBox textarea"); return t?t.value.slice(0,80):null;})()`)));
+  await probeSet();
+  await clickBy("/去重新登录/");
+  await sleep(1200);
+  /* 同一个探针：还在 = 页面没换过。比 pathname 可靠 ——
+     登录页原路弹回时 pathname 一模一样，可他的内容早随重载没了。 */
+  ok("Rl11 存不下时点「去重新登录」不会盲跳走（页面上这一份是唯一的副本）",
+     (await probeGone()) === false, JSON.stringify(await CUR_URL()));
+  ok("Rl12 复制出口仍然在", (await cdp.ev(`!!document.querySelector("#stashFailBox textarea")`)) === true);
+  ok("Rl13 他写的那段也还在屏幕上",
+     (await cdp.ev(`(()=>{const el=document.getElementById("fd-calling"); return el?el.value:null;})()`))
+       === "存不下的时候写的");
+  ok("Rl14 复制完之后仍然给得出「我已复制，去重新登录」这条路",
+     (await cdp.ev(`(()=>{return [...document.querySelectorAll("#stashFailBox button")]
+        .some(b=>/我已复制/.test(b.textContent||"")&&/重新登录/.test(b.textContent||""));})()`)) === true);
+
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
