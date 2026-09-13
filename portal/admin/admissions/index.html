@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>招生审核 | AMAS 管理后台</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140148">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140202">
 <style>
 .qtable{width:100%;border-collapse:collapse;font-size:13px}
 .qtable th,.qtable td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:top}
@@ -34,12 +34,12 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609140148"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609140148"></script>
-<script src="../../../assets/js/portal/api.js?v=202609140148"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609140148"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609140148"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609140148"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609140202"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609140202"></script>
+<script src="../../../assets/js/portal/api.js?v=202609140202"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609140202"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609140202"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609140202"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -338,9 +338,15 @@
       b.addEventListener("click", () => openDetail(b.dataset.open)));
   }
 
+  /* 关掉详情之后，焦点得回到他刚才按的那个「查看」上。
+     原来 #dClose 只把面板收起来（:427），而那个 × 就在被收起的面板里 ——
+     焦点当场掉到 <body>，键盘用户被扔回页首，得从表头一路 Tab 回刚才那一行
+     （本轮实测 Qd10）。记住是谁打开的，关的时候还给他。 */
+  let detailOpener = null;
   async function openDetail(id){
     current = rows.find(r => r.id === id);
     if (!current) return;
+    detailOpener = document.querySelector('[data-open="' + CSS.escape(id) + '"]');
     const box = document.getElementById("detail");
     box.classList.add("open");
     box.innerHTML = UI.skeleton(6);
@@ -424,7 +430,15 @@
         text: h.applicant_visible_message || "",
       })))}`;
 
-    document.getElementById("dClose").addEventListener("click", () => box.classList.remove("open"));
+    document.getElementById("dClose").addEventListener("click", () => {
+      box.classList.remove("open");
+      /* 那一行可能已经被重新渲染过（换页、改筛选）——
+         按 id 现找一次，找不到就不硬塞焦点，至少不把他扔回页首。 */
+      const back = (detailOpener && detailOpener.isConnected)
+        ? detailOpener
+        : document.querySelector('[data-open="' + CSS.escape(current ? current.id : "") + '"]');
+      back?.focus?.();
+    });
     document.getElementById("asSave")?.addEventListener("click", saveAssign);
     box.querySelectorAll("[data-a]").forEach(b => b.addEventListener("click", () => act(b.dataset.a)));
     /* 这一份如果上次的结果没弄清楚，重新打开时仍然锁着，并把原话再说一遍 ——
