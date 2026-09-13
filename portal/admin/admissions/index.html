@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>招生审核 | AMAS 管理后台</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609132141">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609132159">
 <style>
 .qtable{width:100%;border-collapse:collapse;font-size:13px}
 .qtable th,.qtable td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:top}
@@ -34,12 +34,12 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609132141"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609132141"></script>
-<script src="../../../assets/js/portal/api.js?v=202609132141"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609132141"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609132141"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609132141"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609132159"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609132159"></script>
+<script src="../../../assets/js/portal/api.js?v=202609132159"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609132159"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609132159"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609132159"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -749,7 +749,26 @@
           detail: r.querySelector("[data-detail]").value.trim() || undefined,
           field: (r.querySelector("[data-field]") || {}).value || undefined,
         })).filter(x => x.label);
-        if (!items.length) { alert("请至少填写一条需要补充的内容。"); return; }
+        if (!items.length) {
+          /* 原来是 alert()：一个**阻塞式的浏览器对话框**，
+             关掉之后焦点停在「发送要求」上，他既看不到问题在哪一条，
+             也得自己找回去（本轮实测 Rv-*-6 / Rv-*-7）。
+             不发写请求、不关对话框、不清他打的字这三件事原来就是对的，保留；
+             改的是**把话说在对话框里**，并把焦点送回那一格。 */
+          const acts = wrap.querySelector(".pm-acts");
+          let box = wrap.querySelector("#rqErr");
+          if (!box) {
+            box = document.createElement("div");
+            box.id = "rqErr";
+            box.className = "msg err show";
+            box.setAttribute("role", "alert");
+            box.style.margin = "10px 0";
+            acts.parentNode.insertBefore(box, acts);
+          }
+          box.textContent = "每一条都要写明「需要补充什么」—— 至少填一条（只打空格不算）。";
+          rowsBox.querySelector("[data-label]")?.focus();
+          return;
+        }
         close({ items, message: wrap.querySelector("#rqMsg").value.trim() || null, note: wrap.querySelector("#rqNote").value.trim() || null });
       });
     });

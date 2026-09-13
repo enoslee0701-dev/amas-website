@@ -85,9 +85,24 @@ class Cdp {
 let pass = 0, fail = 0, loginHits = 0, externalHits = 0;
 /* Edge 调用**不走 SDK**：auth.js 的 callFn 是裸 fetch 打
    SUPA.url + "/functions/v1/<name>"（auth.js:756），页面里的 stub 拦不到它。
-   所以要在**拦截层**接住：既能数「取消到底有没有发写请求」，
-   也不会让它算成一次真外发 —— 本轮第一版漏了这条，G1 当场亮红（命中 1 次）。 */
+   所以要在**拦截层**接住。两件事必须分清，上一版都错了：
+
+   ① 跨域 + 自定义头（apikey / Authorization）会先发 **OPTIONS 预检**。
+      上一版把**所有** /functions/v1/ 请求一律计数 —— 于是那个「确认之后 +1」
+      数到的其实是**预检**，不是写入；监督拿 body 去核对时 body 是 null，
+      直接 TypeError。**预检不算写入。**
+   ② 上一版 fulfill 时**没有回 CORS 头**，真正的 POST 会被浏览器拦下 ——
+      等于写请求根本没发出去，那个 +1 更加不作数。
+
+   现在：OPTIONS 回 204 + CORS 头且**不计数**；POST 回 200 + CORS 头并**记下
+   method / url / body**。只有 POST 才算写入。全程 fulfill，不外发。 */
 let edgeCalls = [];
+let nativeDialogs = [];   // 浏览器原生 alert/confirm（阻塞式，键盘用户无处可去）
+const CORS = [
+  { name: "Access-Control-Allow-Origin", value: "*" },
+  { name: "Access-Control-Allow-Headers", value: "authorization,apikey,content-type,x-client-info" },
+  { name: "Access-Control-Allow-Methods", value: "POST,OPTIONS" },
+];
 const ok = (name, cond, detail) => { if (cond) { pass++; console.log("  PASS  " + name); }
   else { fail++; console.log("  FAIL  " + name + (detail ? "  ← " + detail : "")); } };
 const b64 = (s) => Buffer.from(s, "utf8").toString("base64");
@@ -174,11 +189,17 @@ try {
           body: b64(CFG) }); return; }
       if (/\/login\//.test(u)) loginHits++;            // 重新载入不会请求 /login/
       if (u.indexOf("/functions/v1/") > -1) {
+        const method = (ev.request.method || "").toUpperCase();
+        if (method === "OPTIONS") {                 // 预检：放行，但**不算写入**
+          await cdp.send("Fetch.fulfillRequest", { requestId: ev.requestId, responseCode: 204,
+            responseHeaders: CORS });
+          return;
+        }
         let body = null;
         try { body = ev.request.postData || null; } catch (e) {}
-        edgeCalls.push({ url: u, body: body });
+        edgeCalls.push({ method, url: u, body });    // 只有真正的 POST 才记账
         await cdp.send("Fetch.fulfillRequest", { requestId: ev.requestId, responseCode: 200,
-          responseHeaders: [{ name:"Content-Type", value:"application/json" }],
+          responseHeaders: CORS.concat([{ name:"Content-Type", value:"application/json" }]),
           body: b64(JSON.stringify({ ok: true })) });
         return;
       }
@@ -190,7 +211,8 @@ try {
   cdp.on("Runtime.exceptionThrown", (p) => {
     pageErrors.push(String(p?.exceptionDetails?.exception?.description || p?.exceptionDetails?.text || "").slice(0, 200));
   });
-  cdp.on("Page.javascriptDialogOpening", async () => {
+  cdp.on("Page.javascriptDialogOpening", async (p) => {
+    nativeDialogs.push({ type: (p && p.type) || "", msg: (p && p.message) || "" });
     try { await cdp.send("Page.handleJavaScriptDialog", { accept: true }); } catch (e) {}
   });
 
@@ -547,8 +569,9 @@ try {
      "基线=" + skd0 + " 第一次关后=" + skd1 + " 两轮后=" + skd2 + " 完整开关轮数=" + sCycles);
 
   console.log("\n=== Cf 录取 / 拒绝确认框：纯键盘取消，且不产生写请求 ===");
-  /* 数的是**拦截层**记到的 Edge 请求，不是页面里的 stub —— 见文件头的说明。 */
-  const fnCalls = async () => edgeCalls.length;
+  /* 数的是**拦截层**记到的 **POST** 写入（预检不算）—— 见文件头的说明。 */
+  const fnCalls = async () => edgeCalls.filter(c => c.method === "POST").length;
+  const lastPost = () => edgeCalls.filter(c => c.method === "POST").slice(-1)[0] || null;
   const escapedNow = async (n, shift) => {
     let out = 0;
     for (let i = 0; i < n; i++) { await press("Tab", shift); if (!(await inModal())) out++; }
@@ -612,7 +635,56 @@ try {
   await press("Enter");
   await sleep(1200);
   ok("Cf-对照-2 **确认**之后写请求确实发出去了（证明前面那几个 0 不是计数器不动）",
-     (await fnCalls()) === fnBase + 1, "fn 调用 " + fnBase + " → " + (await fnCalls()));
+     (await fnCalls()) === fnBase + 1, "POST 写入 " + fnBase + " → " + (await fnCalls()));
+  /* 光有次数不够：要核对**发给谁、带了什么**。上一版数到的其实是预检，
+     body 是 null —— 监督拿它核对时直接 TypeError。 */
+  const post = lastPost();
+  let parsed = null;
+  try { parsed = post && post.body ? JSON.parse(post.body) : null; } catch (e) { parsed = null; }
+  ok("Cf-对照-3 那一次 POST 打的是 review-application",
+     !!post && /\/functions\/v1\/review-application(\?|$)/.test(post.url), JSON.stringify(post && post.url));
+  ok("Cf-对照-4 body 里带的是这一份申请、这一个动作（application_id=app-1 / action=accept）",
+     !!parsed && parsed.application_id === "app-1" && parsed.action === "accept",
+     JSON.stringify(parsed));
+
+  console.log("\n=== Rv 补件条目留空 / 只打了空格：该拦住，还要说清在哪 ===");
+  /* 服务端要求每条补件至少有 label；页面这边 filter(x => x.label) 之后若一条不剩，
+     就不该发出去。要证三件事：**不发写请求**、**他打的字还在**、
+     **说得清是哪一条**（并且键盘用户能当场改）。 */
+  const typeInto = async (text) => { await typeText(text); };
+  for (const [tag, input] of [["空", ""], ["只有空格", "   "]]) {
+    await openAdmin("/portal/admin/admissions/");
+    const base = await fnCalls();
+    nativeDialogs = [];
+    const o = await tabUntil(a => (a.attrs || "").indexOf("data-open") > -1 || /查看|详情/.test(a.text || ""), 40);
+    if (o.hit) { await press("Enter"); await sleep(800); }
+    const rq = await tabUntil(a => /要求补充/.test(a.text || ""), 60);
+    ok(`Rv-${tag}-0 前提：补件对话框打开了`,
+       rq.hit && (await (async () => { await press("Enter"); await sleep(700); return modalUp(); })()) === true);
+    if (input) {
+      const cell = await tabUntil(a => (a.attrs || "").indexOf("data-label") > -1, 10);
+      ok(`Rv-${tag}-1 前提：焦点在「需要补充什么」那一格`, cell.hit, JSON.stringify(cell.at));
+      await typeInto(input);
+    }
+    const send = await tabUntil(a => /发送要求/.test(a.text || ""), 15);
+    ok(`Rv-${tag}-2 前提：Tab 走得到「发送要求」`, send.hit, JSON.stringify(send.at));
+    await press("Enter");
+    await sleep(800);
+    ok(`Rv-${tag}-3 **没有**发出写请求`, (await fnCalls()) === base,
+       "POST 写入 " + base + " → " + (await fnCalls()));
+    ok(`Rv-${tag}-4 对话框还开着（没把他的东西冲掉）`, (await modalUp()) === true);
+    const kept = await cdp.ev(`(()=>{const i=document.querySelector(".portal-modal [data-label]");
+      return i ? i.value : null;})()`);
+    ok(`Rv-${tag}-5 他打进去的还在（哪怕只是空格）`, kept === input, JSON.stringify(kept));
+    const msg = await cdp.ev(`(()=>{const c=document.querySelector(".portal-modal .pm-card");
+      return c ? (c.textContent||"").replace(/\s+/g," ") : "";})()`);
+    ok(`Rv-${tag}-6 对话框里就说得出问题（不是弹一个浏览器 alert）`,
+       /至少填|不能为空|还没填|写明/.test(msg) && nativeDialogs.length === 0,
+       "原生对话框 " + nativeDialogs.length + " 次；框内文字=" + JSON.stringify(msg.slice(-90)));
+    const at = await active();
+    ok(`Rv-${tag}-7 焦点落回那一格，能当场改`,
+       (at.attrs || "").indexOf("data-label") > -1, JSON.stringify(at));
+  }
 
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
