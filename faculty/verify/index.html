@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>教师验证 | AMAS 亚洲宣教神学院</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609140401">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609140408">
 <style>
 .steps-mini{display:flex;gap:6px;margin:0 0 18px}
 .steps-mini i{flex:1;height:4px;border-radius:99px;background:var(--line)}
@@ -75,8 +75,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609140401"></script>
-<script src="../../assets/js/portal/auth.js?v=202609140401"></script>
+<script src="../../assets/js/supabase-config.js?v=202609140408"></script>
+<script src="../../assets/js/portal/auth.js?v=202609140408"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
@@ -97,11 +97,26 @@
     const rec = data && data[0];
     if (error || !rec) return false;
     const t = STATUS_TEXT[rec.status] || [rec.status, ""];
-    document.getElementById("statusBox").innerHTML =
+    const statusBox = document.getElementById("statusBox");
+    statusBox.innerHTML =
       '<div class="status-line"><span>当前状态</span><b>' + t[0] + "</b></div>" +
       '<div class="status-line"><span>提交时间</span><b>' + (rec.submitted_at ? new Date(rec.submitted_at).toLocaleString("zh-CN") : "—") + "</b></div>" +
-      '<div class="status-line"><span>审核时间</span><b>' + (rec.reviewed_at ? new Date(rec.reviewed_at).toLocaleString("zh-CN") : "—") + "</b></div>" +
-      (rec.applicant_visible_message ? '<div class="status-line"><span>审核说明</span><b style="max-width:60%;text-align:right">' + rec.applicant_visible_message.replace(/</g,"&lt;") + "</b></div>" : "");
+      '<div class="status-line"><span>审核时间</span><b>' + (rec.reviewed_at ? new Date(rec.reviewed_at).toLocaleString("zh-CN") : "—") + "</b></div>";
+    /* 审核说明是管理员写的**纯文本**，按原样显示：用 textContent，不进 innerHTML。
+       原来只把 < 换成 &lt; 再拼进 innerHTML —— & 没处理，说明里本来就有的
+       &lt; / &amp; 会被还原成 < 和 &，教师看到的和管理员写的不是同一句。
+       pre-wrap 让他写的换行看得见。 */
+    if (rec.applicant_visible_message) {
+      const row = document.createElement("div");
+      row.className = "status-line";
+      const k = document.createElement("span");
+      k.textContent = "审核说明";
+      const v = document.createElement("b");
+      v.style.cssText = "max-width:60%;text-align:right;white-space:pre-wrap";
+      v.textContent = rec.applicant_visible_message;
+      row.appendChild(k); row.appendChild(v);
+      statusBox.appendChild(row);
+    }
     document.getElementById("statusHint").textContent = t[1];
     if (rec.status === "needs_information") {
       const back = document.createElement("button");
