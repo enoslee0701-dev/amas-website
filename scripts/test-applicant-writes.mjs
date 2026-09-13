@@ -142,7 +142,10 @@ window.supabase = {
         match:function(){ return q; }, order:function(){ return q; }, range:function(){ return q; }, limit:function(){ return q; },
         maybeSingle:function(){ return q; }, single:function(){ return q; },
         insert:function(){ mode = "insert"; bump("insert:" + name); return q; },
-        update:function(){ mode = "update"; bump("update:" + name); return q; },
+        update:function(patch){ mode = "update"; bump("update:" + name);
+          /* 把真正写出去的内容记下来 —— 只看页面提示不算数，得看保存载荷。 */
+          try { sessionStorage.setItem("lastPatch", JSON.stringify(patch)); } catch (e) {}
+          return q; },
         /* 记下每次 update 用的匹配条件 —— 乐观并发要证的就是
            「保存时到底带没带 updated_at」。 */
         then:function(res, rej){
@@ -265,7 +268,7 @@ try {
   };
   const open = async (scen, wait) => {
     await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: "window.__SCEN = " + JSON.stringify(scen) + ";" });
-    await cdp.ev(`(()=>{try{["wCalls","lastMatch","reread"].forEach(k=>sessionStorage.removeItem(k));}catch(e){} return true;})()`).catch(()=>{});
+    await cdp.ev(`(()=>{try{["wCalls","lastMatch","reread","lastPatch"].forEach(k=>sessionStorage.removeItem(k));}catch(e){} return true;})()`).catch(()=>{});
     pageErrors = [];
     await cdp.send("Page.navigate", { url: `${BASE}/portal/applicant/application/` });
     await sleep(wait || 2800);
@@ -1161,6 +1164,67 @@ try {
   await sleep(400);
   ok("Pm5 对照：单个开放项目时不出现这条警告",
      !/只能对应一个/.test((await progWarn()) || ""), (await progWarn() || "").slice(0, 160));
+
+  // ════════ Mx 目录成功/失败 × 空/单/多 的小矩阵（返修 1174e62）════════
+  console.log("\n=== Mx 数量规则不该被「目录读不到」短路 ===");
+  /* programIssue() 把 catalogFailed 放在最前面 return unknown，
+     于是两条**根本不需要目录**的规则被一起跳过了：
+       · 空数组（他压根没选）—— 这还是相对上一版的退化（上一版是先判空）；
+       · 存了多个（一份申请只能对应一个）。
+     目录读不到只说明**这一个开不开放无法确认**，不该让数量异常也跟着消失。 */
+  const lastPatch = async () => cdp.ev(`(()=>{try{return JSON.parse(sessionStorage.getItem("lastPatch")||"null");}catch(e){return null;}})()`);
+  const step4 = async () => {
+    await cdp.ev(`(()=>{const t=document.querySelector('[data-step="3"]'); if(t) t.click(); return !!t;})()`);
+    await sleep(400);
+  };
+  const badge4 = async () => cdp.ev(`(()=>{const b=document.querySelector('[data-step="3"]');
+    return b ? (b.textContent||"").trim() : null;})()`);
+  const CAT_OK = BASE_TABLES;
+  const CAT_BAD = { ...BASE_TABLES, program_catalog: { data:null, error:{ message:"boom" }, status:500 } };
+  const withPrograms = (arr) => ({ ...DRAFT, form_data: { ...DRAFT.form_data, programs: arr } });
+
+  const cases = [
+    ["Mx1 目录成功 × 空",   CAT_OK,  [],              { miss: true,  multi: false, closed: false, unknown: false }],
+    ["Mx2 目录成功 × 单",   CAT_OK,  ["bth"],         { miss: false, multi: false, closed: false, unknown: false }],
+    ["Mx3 目录成功 × 多",   CAT_OK,  ["bth","cert"],  { miss: true,  multi: true,  closed: false, unknown: false }],
+    ["Mx4 目录失败 × 空",   CAT_BAD, [],              { miss: true,  multi: false, closed: false, unknown: true }],
+    ["Mx5 目录失败 × 单",   CAT_BAD, ["bth"],         { miss: false, multi: false, closed: false, unknown: true }],
+    ["Mx6 目录失败 × 多",   CAT_BAD, ["bth","cert"],  { miss: true,  multi: true,  closed: false, unknown: true }],
+  ];
+  for (const [name, tables, arr, want] of cases) {
+    await open({ tables, rpc: { my_application: { data: [withPrograms(arr)] } } });
+    await step4();
+    const b = await badge4();
+    const t = await progWarn();
+    const hasMiss = /还差 *[1-9]/.test(b || "");
+    const hasMulti = /只能对应一个/.test(t || "");
+    const hasClosed = /不开放|已停招/.test(t || "");
+    const hasUnknown = /没能读到|没读到/.test(t || "");
+    ok(name, hasMiss === want.miss && hasMulti === want.multi &&
+       hasClosed === want.closed && hasUnknown === want.unknown,
+       JSON.stringify({ badge: b, miss: hasMiss, multi: hasMulti, closed: hasClosed, unknown: hasUnknown }));
+  }
+
+  /* 载荷：光看提示不算数，要看真正写出去的是什么。 */
+  await open({ tables: CAT_BAD, rpc: { my_application: { data: [withPrograms(["bth", "cert"])] } } });
+  await step4();
+  ok("Mx7-0 前提：目录失败 × 多 时给得出纠正入口",
+     (await cdp.ev(`!!document.querySelector("[data-progfix]")`)) === true);
+  await cdp.ev(`(()=>{const b=document.querySelector("[data-progfix]"); if(b) b.click(); return !!b;})()`);
+  await sleep(1400);
+  const p7 = await lastPatch();
+  ok("Mx7 纠正之后写出去的 programs 是单元素数组",
+     !!p7 && p7.form_data && Array.isArray(p7.form_data.programs) &&
+     p7.form_data.programs.length === 1, JSON.stringify(p7 && p7.form_data && p7.form_data.programs));
+
+  await open({ tables: CAT_OK, rpc: { my_application: { data: [withPrograms(["bth", "cert"])] } } });
+  await step4();
+  await pickProgram("cert");
+  await sleep(1400);
+  const p8 = await lastPatch();
+  ok("Mx8 在下拉里改选之后，写出去的就是他选的那一个",
+     !!p8 && p8.form_data && JSON.stringify(p8.form_data.programs) === JSON.stringify(["cert"]),
+     JSON.stringify(p8 && p8.form_data && p8.form_data.programs));
 
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");

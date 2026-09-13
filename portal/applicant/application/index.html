@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609130944">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131004">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609130944"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609130944"></script>
-<script src="../../../assets/js/portal/api.js?v=202609130944"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609130944"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609130944"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609130944"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609131004"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609131004"></script>
+<script src="../../../assets/js/portal/api.js?v=202609131004"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609131004"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609131004"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609131004"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -354,9 +354,13 @@
      一个正常项目，没有任何东西能解释。 */
   function programIssue(){
     const arr = Array.isArray(app.form_data.programs) ? app.form_data.programs : [];
-    if (catalogFailed) return { kind: "unknown", codes: arr };
+    /* 顺序要紧：空、多个这两条**根本不需要目录**，不能被「目录没读到」一起短路掉。
+       （上一版把 catalogFailed 放在最前面，结果目录一失败，连「他压根没选」都不提了 ——
+        那是相对再上一版的退化。）
+       目录读不到只说明**这一个开不开放无法确认**，仅此而已。 */
     if (!arr.length) return { kind: "empty", codes: arr };
     if (arr.length > 1) return { kind: "multi", codes: arr };
+    if (catalogFailed) return { kind: "unknown", codes: arr };
     return programs.some(p => p.code === arr[0])
       ? { kind: "none", codes: arr } : { kind: "closed", codes: arr };
   }
@@ -562,7 +566,9 @@
           opts + `</select>` +
           `<div class="msg warn show" style="margin:6px 0">这一次没能读到课程目录，所以这里列不全可选项目。` +
           (cur ? `你之前选的「${UI.esc(cur)}」保留着，现在无法确认它是否仍然招生。` : "") +
-          `请刷新后再选。</div>`;
+          `请刷新后再选。</div>` +
+          /* 目录读不到不影响「存了几个」这件事 —— 数量异常照样要能解释、能纠正。 */
+          `<div data-progwarn>${programWarnHtml()}</div>`;
       } else {
         /* 之前选的那个如果已经不在开放目录里（当初开放、后来停招，或从 ?program= 带进来的），
            原来这里没有对应的 option —— 选择器会显示成空白的「请选择一个项目」，
