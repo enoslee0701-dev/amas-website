@@ -99,6 +99,18 @@ window.supabase = { createClient: function(){
       insert:function(){ mode="insert"; return q; }, update:function(){ mode="update"; return q; },
       then:function(res, rej){
         var sc = S();
+        if (mode === "select") {
+          var c = (window.__sel = window.__sel || {});
+          c[name] = (c[name] || 0) + 1;
+          var dd = (sc.selectDelay || {})[name];
+          var d = Array.isArray(dd) ? dd[c[name] - 2] : (c[name] > 1 ? dd : 0);
+          if (d) {                             // 载入那一次不拖；之后按序拖，制造乱序落地
+            var t0 = (sc.tables && sc.tables[name]) || { data:[], error:null };
+            return new Promise(function(r){ setTimeout(function(){
+              r({ data:t0.data, error:t0.error||null, status: t0.status != null ? t0.status : (t0.error ? 500 : 200) });
+            }, d); }).then(res, rej);
+          }
+        }
         /* 保存「还在途」：永不落地的写入。这是三个时点里最难靠 sleep 碰上的一个。 */
         if (mode !== "select" && sc.hold) return new Promise(function(){});
         var t = (mode === "select") ? ((sc.tables && sc.tables[name]) || { data:[], error:null })
@@ -118,6 +130,7 @@ window.supabase = { createClient: function(){
     },
     from: table,
     rpc: function(name){
+      if (name === "resolve_requirement") return reply({ data:{ ok:true }, error:null, status:200 });
       if (name === "my_roles") return reply({ data:[{ role:"applicant" }], error:null, status:200 });
       if (name === "my_profile") return reply({ data:{ display_name:"测试申请人", email:"a@example.invalid" }, error:null, status:200 });
       var r = (S().rpc && S().rpc[name]) || { data:null, error:null };
@@ -356,6 +369,90 @@ try {
   ok("R7 读失败也不许把他的编辑弄丢，页面也没重载",
      (await callingVal()) === "读取失败这一场" && (await probeGone()) === false,
      JSON.stringify(await callingVal()));
+
+  console.log("\n=== T 重读失败之后还能不能再读；等待期间的并发 ===");
+  const selCount = async (t) => cdp.ev(`((window.__sel && window.__sel[${JSON.stringify(t)}]) || 0)`);
+  const hasRetry = async () => cdp.ev(`!!document.querySelector("#subErr [data-reqreload]")`);
+
+  // 读失败 → 还得能再读一次（不提交、不整页刷新）
+  await openPending(1);
+  await goStep4();
+  await typeCalling("失败之后要重试");
+  await cdp.ev(`(()=>{ window.__SCEN.tables.application_requirements =
+    { data:null, error:{ message:"boom" }, status:500 }; return true;})()`);
+  await probeSet();
+  await clickReload();
+  await sleep(1500);
+  ok("T0 前提：这一次确实读失败了", /没能重新读到/.test((await errText()) || ""), JSON.stringify(await errText()));
+  ok("T1 失败之后仍然给得出重试入口（不用再提交一次）", (await hasRetry()) === true, JSON.stringify(await errText()));
+  const t1n = await selCount("application_requirements");
+  await cdp.ev(`(()=>{ window.__SCEN.tables.application_requirements =
+    { data:[{ id:"rq-9", label:"第二次才读到的条目", detail:null, resolved:false, created_at:"2026-09-02T00:00:00Z" }] };
+    return true;})()`);
+  await clickReload();
+  await sleep(1500);
+  ok("T2 再点一次真的又读了一次", (await selCount("application_requirements")) > t1n,
+     t1n + " → " + (await selCount("application_requirements")));
+  ok("T3 这一次读到了：换成新清单，失败提示也清掉了",
+     /第二次才读到的条目/.test((await reqCard()) || "") && !/没能重新读到/.test((await errText()) || ""),
+     JSON.stringify([await reqCard(), await errText()]));
+  ok("T4 全程没重载、编辑还在",
+     (await probeGone()) === false && (await callingVal()) === "失败之后要重试");
+
+  // 等待期间：重复点击 + 切换步骤 + 勾「已补」（勾选那条自己也会读+重画）
+  await open({ write: OKW,
+    tables: { ...TABLES, application_requirements: { data: REQS } },
+    selectDelay: { application_requirements: 1500 },      // 第一次读拖慢
+    rpc: { my_application: { data:[NEEDS] },
+           submit_application: { data: { ok:false, error:"requirements_pending", count:1 } } } });
+  await cdp.ev(`(()=>{const b=document.getElementById("btnSubmit"); if(b) b.click(); return !!b;})()`);
+  await sleep(1200);
+  await goStep4();
+  await typeCalling("等待期间接着写");
+  const t5n = await selCount("application_requirements");
+  await clickReload();
+  await sleep(200);
+  await cdp.ev(`(()=>{const t=document.querySelector('[data-step="1"]'); if(t) t.click(); return !!t;})()`);
+  await sleep(200);
+  await clickReload();                                   // 重复点击
+  await clickReload();
+  await sleep(200);
+  /* 勾「已补」那条路自己也会 loadRequirements() + render() —— 重画会把在途的按钮抹掉。 */
+  await cdp.ev(`(()=>{const cb=document.querySelector(".rqlist input[type=checkbox]:not(:disabled)");
+    if(cb){ cb.checked = true; cb.dispatchEvent(new Event("change",{bubbles:true})); } return !!cb;})()`);
+  await sleep(2600);
+  ok("T5 等待期间的重复点击没有变成多次读取",
+     (await selCount("application_requirements")) - t5n <= 2,
+     "这一段读了 " + ((await selCount("application_requirements")) - t5n) + " 次（重读 1 + 勾选那条自己 1）");
+  /* 这一场里我**故意**把他切到了第 2 步，所以判据是「停在他切过去的那一步」，
+     不是「回到第 4 步」—— 第一版写反了，那是我的判据错，不是产品错。 */
+  ok("T6 重读/重画之后，他所在的步骤没有被重置（仍停在第 2 步）",
+     (await cdp.ev(`(()=>{const b=document.querySelector('[data-step="1"]');
+        return !!(b && b.classList.contains("on"));})()`)) === true);
+  await goStep4();
+  ok("T6b 他的编辑也还在", (await callingVal()) === "等待期间接着写", JSON.stringify(await callingVal()));
+
+  /* 真正的重叠窗口：让重读那一次读得**慢**，勾「已补」触发的那一次读得**快**，
+     于是先发的重读**后**落地。晚到的旧结果不许盖掉更新的那一份。 */
+  await open({ write: OKW,
+    tables: { ...TABLES, application_requirements: { data: REQS } },
+    selectDelay: { application_requirements: [1800, 300] },   // 第2次慢、第3次快
+    rpc: { my_application: { data:[NEEDS] },
+           submit_application: { data: { ok:false, error:"requirements_pending", count:1 } } } });
+  await cdp.ev(`(()=>{const b=document.getElementById("btnSubmit"); if(b) b.click(); return !!b;})()`);
+  await sleep(1200);
+  await clickReload();                                   // 读 #2（慢）
+  await sleep(150);
+  await cdp.ev(`(()=>{ window.__SCEN.tables.application_requirements =
+    { data:[{ id:"rq-9", label:"勾选之后才有的清单", detail:null, resolved:false, created_at:"2026-09-02T00:00:00Z" }] };
+    return true;})()`);
+  await cdp.ev(`(()=>{const cb=document.querySelector(".rqlist input[type=checkbox]:not(:disabled)");
+    if(cb){ cb.checked = true; cb.dispatchEvent(new Event("change",{bubbles:true})); } return !!cb;})()`);
+  await sleep(3000);                                     // 两次都落地
+  ok("T7 先发的那次重读后落地，没有把更新的清单盖回旧的",
+     /勾选之后才有的清单/.test((await reqCard()) || ""), JSON.stringify(await reqCard()));
+
+
 
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");

@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131833">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131851">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609131833"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609131833"></script>
-<script src="../../../assets/js/portal/api.js?v=202609131833"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609131833"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609131833"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609131833"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609131851"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609131851"></script>
+<script src="../../../assets/js/portal/api.js?v=202609131851"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609131851"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609131851"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609131851"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -39,6 +39,9 @@
   const EDITABLE = ["draft","needs_information"];
 
   let app = null, programs = [], catalogFailed = false, reqs = [], reqsUnknown = false, dirty = false, saveTimer = null, step = 0;
+  /* 放在这里而不是紧挨 loadRequirements：**载入阶段就会调它**，
+     `let` 声明在下面的话会撞上暂时性死区（本轮实测：整页 ReferenceError）。 */
+  let reqLoadSeq = 0;
   let goFieldBound = false;
   /* 自动保存与手动/闸门发出的保存会重叠。旧那一次回来得晚时，如果照样回写
      app.updated_at，版本就**倒退**了 —— 下一次保存会被乐观并发判成「别处改过」。
@@ -236,6 +239,11 @@
 
   async function loadRequirements(){
     if (!app) return;
+    /* 这一页有两条路会读补件清单：「重新读取」按钮，和勾「已补」之后的重读
+       （tickRequirement 末尾）。两边重叠时，**先发的那次可能后落地**，
+       把更新的那一份盖回旧的（监督点名，实测 T7：慢的重读后到，
+       页面退回勾选前的三条）。晚到的旧结果一律不落地。 */
+    const myGen = ++reqLoadSeq;
     /* 原来只解构 data：读失败时 reqs = []，而 render() 是
        `${reqs.length ? renderRequirements() : ""}` —— **整张「需要补充的资料」
        卡片消失**。申请人看到的是状态「需补充资料 · 请按下方要求补充后重新提交」，
@@ -249,6 +257,7 @@
       columns: "id,label,detail,field,resolved,created_at", eq: { application_id: app.id },
       order: { column: "created_at", asc: true },
     });
+    if (myGen !== reqLoadSeq) return;          // 被更晚的一次读顶掉
     reqsUnknown = !!error || !Array.isArray(data);
     reqs = Array.isArray(data) ? data : [];
   }
@@ -633,7 +642,7 @@
         : "这几项还没标记："}</div><ul style="margin:2px 0 8px 18px">${lines}</ul>` : "") +
       (note ? `<div class="who" style="margin:6px 0 8px">${note}</div>` : "") +
       (lines ? `<button class="btn" type="button" data-goreq style="width:auto;padding:0 16px;margin-right:8px">去看这几项</button>` : "") +
-      (stale ? `<button class="btn ghost" type="button" data-reqreload style="width:auto;padding:0 16px">重新读取补件清单</button>` : "");
+      (stale ? reqReloadBtn() : "");
     err.classList.add("show");
     err.setAttribute("role", "alert");
     err.querySelector("[data-goreq]")?.addEventListener("click", () => {
@@ -644,7 +653,14 @@
       const cb = li.querySelector("input[type=checkbox]");
       if (cb) cb.focus();
     });
-    err.querySelector("[data-reqreload]")?.addEventListener("click", reloadRequirements);
+    bindReqReload(err);
+  }
+
+  const reqReloadBtn = (label) =>
+    `<button class="btn ghost" type="button" data-reqreload style="width:auto;padding:0 16px">${
+      label || "重新读取补件清单"}</button>`;
+  function bindReqReload(el){
+    el.querySelector("[data-reqreload]")?.addEventListener("click", reloadRequirements);
   }
 
   /** 只**重新读补件清单**，不动表单。
@@ -657,21 +673,26 @@
       重画表单用的是 app.form_data —— 他每敲一个字就已经写进去了，所以编辑原样还在；
       step 也保持在他所在的那一步。读不到就说读不到，不假称是最新的，
       更不说「已保存」（这个按钮跟保存没有关系）。 */
+  /* 在途锁挂在**模块上**，不挂在按钮上。
+     原来只靠 `btn.disabled`，而勾「已补」那条路末尾会 render() ——
+     一重画 #subErr 连同那个按钮一起没了，锁也就跟着没了。 */
+  let reqReloadBusy = false;
   async function reloadRequirements(){
+    if (reqReloadBusy) return;
+    reqReloadBusy = true;
     const btn = document.querySelector("#subErr [data-reqreload]");
-    if (btn) {
-      if (btn.disabled) return;                 // 在途期间吞掉重复点击
-      btn.disabled = true; btn.textContent = "正在重新读取…";
-    }
-    await loadRequirements();
+    if (btn) { btn.disabled = true; btn.textContent = "正在重新读取…"; }
+    try { await loadRequirements(); } finally { reqReloadBusy = false; }
     render();                                   // 按 app.form_data 重画：未保存的编辑不丢
     const err = document.getElementById("subErr");
     if (!err) return;
     const left = reqs.filter(r => !r.resolved);
     if (reqsUnknown) {
+      /* 读失败也要留一条**能再读一次**的路 —— 不然他只能靠再提交一次来触发，
+         那是一次不必要的写入（监督点名，实测 T1/T2）。 */
       err.innerHTML = `<b>这一次没能重新读到补件清单。</b>` +
-        `<div class="who" style="margin-top:6px">上面显示的还是刚才那一份，不一定是最新的。` +
-        `你填的内容都还在，请稍后再试一次。</div>`;
+        `<div class="who" style="margin:6px 0 8px">上面显示的还是刚才那一份，不一定是最新的。` +
+        `你填的内容都还在，可以再读一次。</div>` + reqReloadBtn("再读一次");
     } else if (!left.length) {
       err.innerHTML = `<b>刚刚重新读过：补件条目都已经标记为「已补」。</b>` +
         `<div class="who" style="margin-top:6px">可以再试一次提交 —— 能不能交上去由服务端判定。</div>`;
@@ -681,6 +702,7 @@
         `<div class="who">标记完成之后再提交。</div>`;
     }
     err.classList.add("show");
+    bindReqReload(err);                         // 重画之后重新接上，别只剩一句话
   }
 
   function renderRequirementsUnknown(got){
