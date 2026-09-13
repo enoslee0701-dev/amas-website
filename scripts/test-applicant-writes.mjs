@@ -156,6 +156,12 @@ window.supabase = {
           var t = (mode === "select")
             ? ((sc.tables && sc.tables[name]) || { data: [], error: null })
             : ((sc.writes && sc.writes[name]) || { data: [{ id: "app-fixture-1", updated_at: "2026-09-11T00:00:00Z" }], error: null });
+          /* 每次写入回一个**不同的版本号** —— 否则验不出「旧响应把 updated_at 回写成旧值」。
+             版本在**调用时**就定下来（out 在这里算好），与放行顺序无关。 */
+          if (mode !== "select" && t.autoVersion) {
+            window.__ver = (window.__ver || 0) + 1;
+            t = { data: [{ id: "app-fixture-1", updated_at: "2026-09-10T00:00:0" + window.__ver + "Z" }], error: null };
+          }
           var out = { data:t.data, error:t.error||null,
             status: t.status != null ? t.status : (t.error ? 500 : 200) };
           /* 可控闸门：写入被扣住，直到测试显式放行。
@@ -1534,6 +1540,86 @@ try {
   /* 不断言勾还在：夹具里那一行的 resolved 永远是 false，render() 之后必然回到未勾 ——
      那是夹具的静态性质，不是产品行为。看回执文案才是真的。 */
   ok("Rd5b 对照：如实报「已标记完成」", /已标记完成/.test(d5t || ""), JSON.stringify(d5t));
+
+  // ════════ Se 提交这一条路上的同一竞态（blueprint §6 重新提交）════════
+  console.log("\n=== Se 提交也得确认「最新那一版」===");
+  /* 上一包给 save() 加了 stale，但 submit() 只判 `saved && !saved.ok` ——
+     而 stale 那一支是 ok:true。于是同一条竞态在提交上原封不动：
+     点提交 → 保存在途 → 他又改了 → 旧保存回来 ok → **照样发 submit_application**，
+     交上去的是服务端那份旧的，新改的那一笔还没落地。
+     另外自动保存与闸门发出的保存会重叠：旧响应若回写 app.updated_at，版本会**倒退**，
+     下一次保存就会被乐观并发判成「别处改过」。 */
+  const releaseIdx = async (i) => cdp.ev(`(()=>{const q=window.__held||[];
+    if (!q.length) return 0; const f = q.splice(${i}, 1)[0]; if (f) f(); return f ? 1 : 0;})()`);
+  const lastMatchOf = async () => cdp.ev(`(()=>{try{return JSON.parse(sessionStorage.getItem("lastMatch")||"null");}catch(e){return null;}})()`);
+  const SUB_HOLD = { tables: { ...BASE_TABLES, application_requirements: { data: [] } },
+    rpc: { my_application: { data: [{ ...DRAFT, status: "needs_information",
+             locked_fields: ["name_zh","birth_ym","gender","nationality","conversion_date","programs"] }] },
+           submit_application: { data: { ok: true } } },
+    writes: { applications: { autoVersion: true } },
+    holdWrites: true };
+  const typeCalling = async (v) => cdp.ev(`(()=>{const el=document.getElementById("fd-calling");
+    if(!el) return false; el.focus(); el.value=${JSON.stringify(v)};
+    el.dispatchEvent(new Event("input",{bubbles:true})); return true;})()`);
+  const goStep = async (i) => { await cdp.ev(`(()=>{const t=document.querySelector('[data-step="${i}"]');
+    if(t) t.click(); return !!t;})()`); await sleep(350); };
+  const clickSubmitRaw = async () => cdp.ev(`(()=>{const b=document.getElementById("btnSubmit");
+    if(b) b.click(); return !!b;})()`);
+
+  await open(SUB_HOLD);
+  await goStep(3);                                   // 「异象 / 蒙召」在第 4 步
+  ok("Se0 前提：改得动", (await typeCalling("第一版蒙召")) === true);
+  await sleep(120);                                  // 不等防抖，直接提交
+  await clickSubmitRaw();
+  await sleep(300);
+  ok("Se0b 前提：提交发出的那一次保存被扣住", (await held()) === 1, String(await held()));
+  const se1 = await calls();
+  ok("Se1 保存还没回来时，submit_application 尚未发出",
+     !(se1["rpc:submit_application"] > 0), JSON.stringify(se1));
+
+  await typeCalling("第二版蒙召");                    // 在途期间又改了
+  await sleep(200);
+  await release(1);                                  // 只放行那一次旧保存
+  await sleep(1400);
+  const se2 = await calls();
+  ok("Se2 旧保存确认的不是最新那一版 —— 不能就这么交上去",
+     !(se2["rpc:submit_application"] > 0), JSON.stringify(se2));
+  const se3 = await subErr();
+  ok("Se3 并说清楚是「保存没跟上最新修改，这次没有提交」",
+     /没有提交|没提交/.test(se3 || "") && /最新|又改|还没跟上/.test(se3 || ""), JSON.stringify(se3));
+  ok("Se3b 页面上的新内容还在", (await cdp.ev(`(()=>{const el=document.getElementById("fd-calling");
+     return el ? el.value : null;})()`)) === "第二版蒙召");
+  ok("Se3c 提交按钮没有被锁死（改完还能再交）",
+     (await cdp.ev(`(()=>{const b=document.getElementById("btnSubmit"); return !!b && !b.disabled;})()`)) === true);
+
+  await open(SUB_HOLD);
+  await goStep(3);
+  await typeCalling("只改这一次");
+  await sleep(120);
+  await clickSubmitRaw();
+  await sleep(300);
+  await release(1);
+  await sleep(1400);
+  const se4 = await calls();
+  ok("Se4 对照：没有更新的修改时，放行之后照常提交",
+     (se4["rpc:submit_application"] || 0) === 1, JSON.stringify(se4));
+
+  await open(SUB_HOLD);
+  await goStep(3);
+  await typeCalling("A");
+  await sleep(1000);                                 // 防抖 → 保存 A（扣住，版本 1）
+  await typeCalling("B");
+  await sleep(1000);                                 // 防抖 → 保存 B（扣住，版本 2）
+  ok("Se5-0 前提：两次写入都被扣住", (await held()) === 2, String(await held()));
+  await releaseIdx(1);                               // 先放行 B（新）
+  await sleep(600);
+  await releaseIdx(0);                               // 再放行 A（旧）
+  await sleep(800);
+  await typeCalling("C");
+  await sleep(1200);                                 // 防抖 → 保存 C
+  const m5 = await lastMatchOf();
+  ok("Se5 下一次保存带的是**新**版本号，旧响应没有把它倒退回去",
+     !!m5 && m5.updated_at === "2026-09-10T00:00:02Z", JSON.stringify(m5));
 
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");

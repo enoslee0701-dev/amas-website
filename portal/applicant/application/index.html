@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131135">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131159">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609131135"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609131135"></script>
-<script src="../../../assets/js/portal/api.js?v=202609131135"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609131135"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609131135"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609131135"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609131159"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609131159"></script>
+<script src="../../../assets/js/portal/api.js?v=202609131159"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609131159"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609131159"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609131159"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -40,6 +40,10 @@
 
   let app = null, programs = [], catalogFailed = false, reqs = [], reqsUnknown = false, dirty = false, saveTimer = null, step = 0;
   let goFieldBound = false;
+  /* 自动保存与手动/闸门发出的保存会重叠。旧那一次回来得晚时，如果照样回写
+     app.updated_at，版本就**倒退**了 —— 下一次保存会被乐观并发判成「别处改过」。
+     给每次保存一个递增序号，只有**最新发出**的那一次才有资格改版本和清 dirty。 */
+  let saveSeq = 0;
 
   /* 这一页有四条写入：创建草稿、自动保存、标记补件完成、提交申请。
      判据与 portal/admin/*（第六包）同一套：
@@ -854,6 +858,7 @@
     /* 记下**发出去的是哪一版**。保存是一次往返，这期间他完全可能继续改；
        旧响应回来时若无条件 dirty = false，就等于拿旧版本的成功替新内容背书。 */
     const sentSnap = JSON.stringify({ form_data: app.form_data, pathway: app.pathway });
+    const myGen = ++saveSeq;
     const { data: rows, error } = await Api.update("applications",
       { id: app.id, updated_at: app.updated_at },
       { form_data: app.form_data, pathway: app.pathway });
@@ -891,6 +896,11 @@
     if (!nextVersion) {
       setSaveState("没能确认是否保存成功，请稍后再看");
       return { ok: false, unclear: true, message: "没有拿到新的版本号" };
+    }
+    /* 这一次已经被更晚发出的保存顶掉了：它的版本号是**旧**的，回写就会让版本倒退。
+       既不改版本，也不清 dirty —— 由那一次更晚的保存去下结论。 */
+    if (myGen !== saveSeq) {
+      return { ok: true, unclear: false, stale: true, superseded: true };
     }
     app.updated_at = nextVersion;
     /* 只有页面上这一刻的内容还是发出去的那一版时，才能说「都保存好了」。
@@ -1000,6 +1010,16 @@
            说清楚原因，把按钮放开让他改完再交。
          结果不明 —— 不知道存上没有。同样不能提交（提交的可能是旧版本），
            但也不能劝他一直点：给「刷新核实」，让他先看清楚当前是哪一版。 */
+    /* save() 成功 ≠ 交得上去：它确认的可能是**旧那一版**（等它回来的功夫他又改了），
+       或者已经被更晚的保存顶掉。这时候交上去的会是服务器上那份旧的。
+       不自动重存、不自动重试 —— 留着他的编辑，说清楚，让他自己再交一次。 */
+    if (saved && saved.ok && (saved.stale || saved.superseded || dirty)) {
+      btn.disabled = false; btn.textContent = "提交申请";
+      err.textContent = "你在保存过程中又改了内容，这一次没有提交 —— " +
+        "交上去的会是保存前那一版。等这一次保存完成之后再提交。";
+      err.classList.add("show");
+      return;
+    }
     if (saved && !saved.ok) {
       if (saved.unclear) {
         sayUnknown(err, "没能确认你刚才的修改有没有保存成功，所以这次没有提交 —— " +
