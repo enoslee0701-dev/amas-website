@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>学籍管理 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609132113">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609132127">
 <style>
 .tabs{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap}
 .tabs button{min-height:40px;padding:0 16px;border:1.5px solid var(--line);border-radius:999px;background:#fff;
@@ -32,11 +32,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609132113"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609132113"></script>
-<script src="../../../assets/js/portal/api.js?v=202609132113"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609132113"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609132113"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609132127"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609132127"></script>
+<script src="../../../assets/js/portal/api.js?v=202609132127"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609132127"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609132127"></script>
 <script>
 /* PORTAL-2 学籍管理（教务侧）
    闭环：录取 → 记录总校审核确认 → 建档(pre_enrolled) → 正式注册(active)；学号可经专用通道更正。
@@ -485,7 +485,22 @@
        键盘用户得从表格头部重新 Tab 一遍（本轮实测 St6）。 */
     const prev = document.activeElement;
     const close = () => { wrap.remove(); document.removeEventListener("keydown", onKey); prev?.focus?.(); };
-    const onKey = (e) => { if (e.key === "Escape") close(); };
+    /* 焦点圈住：没有这一段，Tab 会一路走到遮罩**后面**的页面上
+       （本轮实测：正向 10 次、反向 9 次跑到导航和 <body>）。
+       对话框是 aria-modal="true"，读屏会告诉他「现在在对话框里」，
+       结果键盘却能走出去 —— 说的和做的对不上。 */
+    const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),' +
+      'select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+    const trap = (e) => {
+      if (e.key !== "Tab") return;
+      const f = [...wrap.querySelectorAll(FOCUSABLE)]
+        .filter(el => el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1], cur = document.activeElement;
+      if (e.shiftKey && (cur === first || !wrap.contains(cur))) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && (cur === last || !wrap.contains(cur))) { e.preventDefault(); first.focus(); }
+    };
+    const onKey = (e) => { if (e.key === "Escape") { close(); return; } trap(e); };
     document.addEventListener("keydown", onKey);
     wrap.querySelector("#m-cancel").addEventListener("click", close);
     wrap.querySelector(".pm-backdrop").addEventListener("click", close);

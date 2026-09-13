@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>招生审核 | AMAS 管理后台</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609132113">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609132127">
 <style>
 .qtable{width:100%;border-collapse:collapse;font-size:13px}
 .qtable th,.qtable td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:top}
@@ -34,12 +34,12 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609132113"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609132113"></script>
-<script src="../../../assets/js/portal/api.js?v=202609132113"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609132113"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609132113"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609132113"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609132127"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609132127"></script>
+<script src="../../../assets/js/portal/api.js?v=202609132127"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609132127"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609132127"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609132127"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -703,14 +703,34 @@
         rowsBox.appendChild(div);
       };
       addRow();
-      wrap.querySelector("#rqAdd").addEventListener("click", addRow);
+      /* 新加的那一条在 DOM 里排在这个按钮**前面** —— 不把焦点送过去的话，
+         正向 Tab 再也走不回去（只能 Shift+Tab 倒着找，本轮实测 Tp6）。 */
+      wrap.querySelector("#rqAdd").addEventListener("click", () => {
+        addRow();
+        rowsBox.lastElementChild?.querySelector("input")?.focus();
+      });
       /* 这个对话框是本页自建的，没有走 UI.confirmDialog —— 于是三件事都漏了：
          打开时焦点不进来、Esc 关不掉、关掉之后焦点回不到打开它的那个按钮。
          键盘用户会停在对话框**后面**那一页上，按 Esc 没反应，
          取消之后还得从表格头部重新 Tab 一遍（本轮实测 Ad6/Ad7/Ad8）。
          照 assets/js/portal/ui.js:84-94 既有的做法补齐，不另发明一套。 */
       const prev = document.activeElement;
-      const onKey = (e) => { if (e.key === "Escape") close(null); };
+      /* 焦点圈住：没有这一段，Tab 会一路走到遮罩**后面**的页面上
+         （本轮实测：正向 7 次、反向 6 次跑到导航和 <body>）。
+         对话框是 aria-modal="true"，读屏会告诉他「现在在对话框里」，
+         结果键盘却能走出去 —— 说的和做的对不上。 */
+      const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),' +
+        'select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+      const trap = (e) => {
+        if (e.key !== "Tab") return;
+        const f = [...wrap.querySelectorAll(FOCUSABLE)]
+          .filter(el => el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+        if (!f.length) return;
+        const first = f[0], last = f[f.length - 1], cur = document.activeElement;
+        if (e.shiftKey && (cur === first || !wrap.contains(cur))) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && (cur === last || !wrap.contains(cur))) { e.preventDefault(); first.focus(); }
+      };
+      const onKey = (e) => { if (e.key === "Escape") { close(null); return; } trap(e); };
       const close = (v) => {
         wrap.remove();
         document.removeEventListener("keydown", onKey);

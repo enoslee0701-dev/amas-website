@@ -419,6 +419,99 @@ try {
   ok("St6 关掉之后焦点没掉回页首",
      stWasUp === true && (await active()).tag !== "BODY", JSON.stringify(await active()));
 
+  console.log("\n=== Tp 两个模态：Tab 会不会逃到遮罩后面；Esc 重开会不会留下监听 ===");
+  /* 监督点的三件事，先只测不改。 */
+  const docKeydown = async () => {
+    try {
+      const r = await cdp.send("Runtime.evaluate", { expression: "document", objectGroup: "probe" });
+      const id = r.result && r.result.objectId;
+      if (!id) return null;
+      const l = await cdp.send("DOMDebugger.getEventListeners", { objectId: id });
+      return ((l && l.listeners) || []).filter(x => x.type === "keydown").length;
+    } catch (e) { return null; }
+  };
+  const escapedModal = async (n, shift) => {          // 连按 n 次，看有没有跑到遮罩后面
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      await press("Tab", shift);
+      const a = await active();
+      const inside = await inModal();
+      if (!inside) out.push({ step: i + 1, at: a });
+    }
+    return out;
+  };
+
+  // —— 招生台补件对话框
+  await openAdmin("/portal/admin/admissions/");
+  const o1 = await tabUntil(a => (a.attrs || "").indexOf("data-open") > -1 || /查看|详情/.test(a.text || ""), 40);
+  if (o1.hit) { await press("Enter"); await sleep(800); }
+  const r1 = await tabUntil(a => /要求补充/.test(a.text || ""), 60);
+  ok("Tp0 前提：走到「要求补充资料」", r1.hit, JSON.stringify(r1.at));
+  const kd0 = await docKeydown();
+  await press("Enter");
+  await sleep(700);
+  ok("Tp1 前提：对话框开着", (await modalUp()) === true);
+  const outFwd = await escapedModal(14, false);
+  ok("Tp2 一直按 Tab 不会跑到遮罩后面的页面上",
+     outFwd.length === 0, "跑出去 " + outFwd.length + " 次，例如 " + JSON.stringify(outFwd[0] || null));
+  const outBack = await escapedModal(14, true);
+  ok("Tp3 一直按 Shift+Tab 也不会跑出去",
+     outBack.length === 0, "跑出去 " + outBack.length + " 次，例如 " + JSON.stringify(outBack[0] || null));
+
+  // 新增一条之后，焦点在哪；正向 Tab 还走不走得到新那一行
+  const addBtn = await tabUntil(a => /添加一条/.test(a.text || ""), 20);
+  ok("Tp4 前提：Tab 走得到「+ 添加一条」", addBtn.hit, JSON.stringify(addBtn.at));
+  const rowsBefore = await cdp.ev(`(document.querySelectorAll(".portal-modal .reqrow").length)`);
+  await press("Enter");
+  await sleep(300);
+  const rowsAfter = await cdp.ev(`(document.querySelectorAll(".portal-modal .reqrow").length)`);
+  ok("Tp5 Enter 真的加出了一条", rowsAfter === rowsBefore + 1, rowsBefore + " → " + rowsAfter);
+  const afterAdd = await active();
+  const inNewRow = await cdp.ev(`(()=>{const a=document.activeElement;
+    const rows=[...document.querySelectorAll(".portal-modal .reqrow")];
+    const last=rows[rows.length-1];
+    return !!(last && a && last.contains(a));})()`);
+  ok("Tp6 加完之后焦点进到**新那一条**里（否则新行在按钮前面，正向 Tab 走不回去）",
+     inNewRow === true, JSON.stringify(afterAdd));
+
+  // Esc 关掉、再开、再关：document 上的 keydown 监听不该越积越多
+  await pressEsc();
+  ok("Tp7 Esc 关得掉（对照，已绿项不重复展开）", (await modalUp()) === false);
+  const kd1 = await docKeydown();
+  for (let i = 0; i < 2; i++) {
+    const again = await tabUntil(a => /要求补充/.test(a.text || ""), 60);
+    if (again.hit) { await press("Enter"); await sleep(600); await pressEsc(); }
+  }
+  const kd2 = await docKeydown();
+  ok("Tp8 反复开关之后，document 上的 keydown 监听没有越积越多",
+     kd0 === null || (kd2 !== null && kd2 <= (kd1 === null ? kd2 : kd1)),
+     "开之前=" + kd0 + " 第一次关后=" + kd1 + " 再开关两轮后=" + kd2);
+
+  // —— 学籍页对话框：同样三问
+  await openAdmin("/portal/admin/students/");
+  const e1 = await tabUntil(a => (a.attrs || "").indexOf("data-create") > -1, 60);
+  ok("Tp9 前提：走到「建立学籍」", e1.hit, JSON.stringify(e1.at));
+  const skd0 = await docKeydown();
+  await press("Enter");
+  await sleep(700);
+  ok("Tp10 前提：对话框开着", (await modalUp()) === true);
+  const sOutFwd = await escapedModal(12, false);
+  ok("Tp11 学籍页对话框：Tab 不会跑到遮罩后面",
+     sOutFwd.length === 0, "跑出去 " + sOutFwd.length + " 次，例如 " + JSON.stringify(sOutFwd[0] || null));
+  const sOutBack = await escapedModal(12, true);
+  ok("Tp12 学籍页对话框：Shift+Tab 也不会跑出去",
+     sOutBack.length === 0, "跑出去 " + sOutBack.length + " 次，例如 " + JSON.stringify(sOutBack[0] || null));
+  await pressEsc();
+  const skd1 = await docKeydown();
+  for (let i = 0; i < 2; i++) {
+    const again = await tabUntil(a => (a.attrs || "").indexOf("data-create") > -1, 60);
+    if (again.hit) { await press("Enter"); await sleep(600); await pressEsc(); }
+  }
+  const skd2 = await docKeydown();
+  ok("Tp13 学籍页：反复开关之后 keydown 监听没有越积越多",
+     skd0 === null || (skd2 !== null && skd2 <= (skd1 === null ? skd2 : skd1)),
+     "开之前=" + skd0 + " 第一次关后=" + skd1 + " 再开关两轮后=" + skd2);
+
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
   ok("G2 全程没有页面异常", pageErrors.length === 0, JSON.stringify(pageErrors.slice(0, 2)));
