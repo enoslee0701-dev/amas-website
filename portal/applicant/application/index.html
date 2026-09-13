@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140058">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140116">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609140058"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609140058"></script>
-<script src="../../../assets/js/portal/api.js?v=202609140058"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609140058"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609140058"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609140058"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609140116"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609140116"></script>
+<script src="../../../assets/js/portal/api.js?v=202609140116"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609140116"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609140116"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609140116"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -37,8 +37,18 @@
     withdrawn:{t:"已撤回",d:"此申请已撤回。"},
   };
   const EDITABLE = ["draft","needs_information"];
+  /* 总校确认这一段（只在**已录取**之后显示）。
+     文案一律中性，只说这一段自己的结果 —— **不推导**录取或学籍状态：
+     录取状态就在上面那个徽章里，学籍由教务另行建档（ST.accepted 已经写明）。 */
+  const HQ_T = { pending: "总校确认处理中", approved: "总校确认已通过", rejected: "总校确认未通过" };
+  /* 只显式取这三列。批文编号（内部凭据）与确认人（具体哪位管理员）
+     **连请求都不发** —— 不是「取回来不显示」。 */
+  const HQ_COLS = "status,confirmed_at,applicant_visible_note";
 
   let app = null, programs = [], catalogFailed = false, reqs = [], reqsUnknown = false, dirty = false, saveTimer = null, step = 0;
+  /* hqState: idle=还没读过（什么都不显示，不假装知道） / ok / empty=读到了但没有那一行
+     / error=这一次没读到。hqSeq 是读取世代：晚到的旧结果一律不落地。 */
+  let hq = null, hqState = "idle", hqSeq = 0, hqBusy = false, hqFocusBack = false;
   /* 放在这里而不是紧挨 loadRequirements：**载入阶段就会调它**，
      `let` 声明在下面的话会撞上暂时性死区（本轮实测：整页 ReferenceError）。 */
   let reqLoadSeq = 0;
@@ -232,10 +242,77 @@
 
   if (!app) return renderStart();
   await loadRequirements();
+  await loadHq();
   render();
   // 上次没存成的草稿若还在这个标签页里，给一条提示让他自己决定要不要恢复
   offerRestore();
   bindLeaveGuard();
+
+  /* 总校确认这一行：申请人读**自己那一行**。
+     权限不是本页给的 —— 0012_student_core.sql:224-231 的 RLS 策略里写着
+     `a.applicant_id = auth.uid()`，而 :232 只 revoke 了 insert/update/delete。
+     **这只是仓库源码里的写法，不等于线上那套已经验证过**；
+     真实权限要等受控演练（B3）才谈得上验收。
+     这里不写 SQL、不改权限，只是把已经允许的读取用起来。 */
+  async function loadHq(){
+    if (!app || app.status !== "accepted") return;      // 别的状态连请求都不发
+    const seq = ++hqSeq;
+    const { data, error } = await Api.select("application_hq_approvals", {
+      columns: HQ_COLS, eq: { application_id: app.id },
+    });
+    if (seq !== hqSeq) return;                          // 过期的那一次，丢掉
+    if (error) { hqState = "error"; hq = null; return; }
+    /* 读成功但没有那一行 = 还没有人记录过总校确认：
+       application_hq_approvals 的行是 confirm_hq_approval 写进去的
+       （0012:325 insert … on conflict）—— 没有行就是还没记过，
+       **不是**「没通过」。两者必须分开说。 */
+    if (!Array.isArray(data) || !data.length) { hqState = "empty"; hq = null; return; }
+    hqState = "ok"; hq = data[0];
+  }
+
+  /** 重读这一段：只重读，不整页刷新（整页刷新会把没保存的东西一起带走）。 */
+  async function reloadHq(){
+    if (hqBusy) return;
+    hqBusy = true;
+    const btn = document.querySelector("[data-hqreload]");
+    if (btn) { btn.disabled = true; btn.textContent = "正在重新读取…"; }
+    try { await loadHq(); } finally { hqBusy = false; }
+    hqFocusBack = true;                                 // 重画之后把焦点还给他
+    render();
+  }
+
+  /** 这一段的呈现。读不到就说读不到，不猜。 */
+  function renderHq(){
+    if (!app || app.status !== "accepted" || hqState === "idle") return "";
+    const head = '<div class="card" id="hqBox" style="margin-top:14px" tabindex="-1" data-hq>' +
+      '<h2 style="font-size:15px;margin:0 0 8px">总校确认进度</h2>';
+    const tail = '<div class="who" style="margin-top:8px">' +
+      '这一段只反映总校确认的进度；录取状态见上方，学籍由教务另行建档。</div></div>';
+    if (hqState === "error") {
+      return head +
+        '<div class="msg warn show" role="status">暂时无法获取总校确认进度。' +
+        '<div style="margin-top:10px"><button class="btn ghost" type="button" data-hqreload ' +
+        'style="width:auto;padding:0 18px">重新读取</button></div></div>' + tail;
+    }
+    if (hqState === "empty") {
+      return head + '<div class="msg info show" role="status">还没有总校确认的记录。</div>' + tail;
+    }
+    const st = String(hq && hq.status || "");
+    const label = HQ_T[st];
+    if (!label) {                                       // 契约之外的值：不编，也不当成任何一种
+      return head + '<div class="msg warn show" role="status">暂时无法获取总校确认进度。' +
+        '<div style="margin-top:10px"><button class="btn ghost" type="button" data-hqreload ' +
+        'style="width:auto;padding:0 18px">重新读取</button></div></div>' + tail;
+    }
+    const when = hq.confirmed_at
+      ? '<div class="who" style="margin-top:6px">时间：' +
+        UI.esc(new Date(hq.confirmed_at).toLocaleString("zh-CN")) + '</div>' : "";
+    /* 备注**不进 innerHTML**：这里只放一个空容器，正文在渲染之后用 textContent 写进去。 */
+    const note = (hq.applicant_visible_note || "").trim()
+      ? '<div class="msg info show" style="margin-top:10px"><b>总校说明：</b>' +
+        '<span data-hqnote></span></div>' : "";
+    return head + '<div><b>' + UI.esc(label) + '</b></div>' + when + note + tail;
+  }
 
   async function loadRequirements(){
     if (!app) return;
@@ -345,6 +422,7 @@
         </div>
         ${app.applicant_visible_message ? `<div class="msg info show" style="margin-top:12px"><b>招生同工留言：</b>${UI.esc(app.applicant_visible_message)}</div>` : ""}
       </div>
+      ${renderHq()}
 
       ${reqs.length ? renderRequirements() : ""}
       ${/* 读到几项、同时又带着 error 的情况是存在的 —— 那时 reqs 非空，
@@ -375,6 +453,15 @@
 
     if (editable) { buildSteps(); bindEditor(); }
     document.getElementById("btnReqReload")?.addEventListener("click", () => location.reload());
+    /* 总校说明**不经 innerHTML**：容器是空的，正文在这里用 textContent 放进去。 */
+    const hqNote = main.querySelector("[data-hqnote]");
+    if (hqNote && hq) hqNote.textContent = (hq.applicant_visible_note || "").trim();
+    const hqBtn = main.querySelector("[data-hqreload]");
+    if (hqBtn) hqBtn.addEventListener("click", reloadHq);
+    if (hqFocusBack) {                                  // 是他按的重读：焦点别掉到 body
+      hqFocusBack = false;
+      (hqBtn || main.querySelector("#hqBox"))?.focus?.();
+    }
     /* 补件卡片是 render() 渲染的，绑定就跟着它走 —— 切步骤不该再绑一遍。 */
     bindRequirementTicks();
     /* 「去修改」：跳到那一步并把光标放进那个字段 —— 这是**有意**的导航，
@@ -986,7 +1073,7 @@
         cb.checked = false;
         return UI.toast(error.message, "err");
       }
-      await loadRequirements(); render();
+      await loadRequirements(); await loadHq(); render();
       UI.toast("已标记完成");
     }
   }
@@ -1467,7 +1554,7 @@
         "页面上显示的可能还是提交前的样子 —— 请刷新核实，不要重复提交。");
       return;
     }
-    app = rows[0]; await loadRequirements(); render();
+    app = rows[0]; await loadRequirements(); await loadHq(); render();
   }
 
   async function withdraw(){
