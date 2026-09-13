@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>学籍管理 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609132305">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609132321">
 <style>
 .tabs{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap}
 .tabs button{min-height:40px;padding:0 16px;border:1.5px solid var(--line);border-radius:999px;background:#fff;
@@ -32,11 +32,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609132305"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609132305"></script>
-<script src="../../../assets/js/portal/api.js?v=202609132305"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609132305"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609132305"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609132321"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609132321"></script>
+<script src="../../../assets/js/portal/api.js?v=202609132321"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609132321"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609132321"></script>
 <script>
 /* PORTAL-2 学籍管理（教务侧）
    闭环：录取 → 记录总校审核确认 → 建档(pre_enrolled) → 正式注册(active)；学号可经专用通道更正。
@@ -323,6 +323,7 @@
 
   function promptHq(appId){
     modal({
+      lock: appId,
       title: "记录 AMAS 总校审核确认",
       desc: "只有记录为「总校已确认」后，才能为该申请人建立学籍。批文编号可留空。",
       fields: [
@@ -345,6 +346,7 @@
 
   function promptCreate(appId){
     modal({
+      lock: appId,
       title: "建立学籍",
       desc: "学号请按 AMAS 总校实际分配结果填写；系统不自行生成编号。暂时没有学号可以留空，" +
             "但正式注册前必须补齐。学号一经使用不再回收给他人。",
@@ -465,8 +467,16 @@
     }));
   }
 
-  /** 通用表单弹窗（焦点可达、Esc 关闭） */
-  function modal({ title, desc, fields, actions }){
+  /* **在途锁按「对象」记，不按「那一个对话框」记。**
+     上一包把互斥挂在 wrap 上 —— 他按 Esc 关掉、再打开**同一份申请**的框，
+     按钮是新的、当然是活的，于是同一份申请照样发出第二笔相反的结论
+     （本轮实测 Xl5：扣住 2 笔，都是 confirm_hq_approval）。
+     关掉对话框**不等于**取消已经发出去的请求 —— 这一点要对他说清楚。
+     锁在响应回来（成功或失败）时解开；换一个对象不受影响。 */
+  const busyTargets = new Set();
+
+  /** 通用表单弹窗（焦点可达、Esc 关闭）。lock 是这次操作的**对象标识**。 */
+  function modal({ title, desc, fields, actions, lock }){
     const wrap = document.createElement("div");
     wrap.className = "portal-modal";
     wrap.innerHTML = '<div class="pm-backdrop"></div>' +
@@ -504,6 +514,23 @@
     document.addEventListener("keydown", onKey);
     wrap.querySelector("#m-cancel").addEventListener("click", close);
     wrap.querySelector(".pm-backdrop").addEventListener("click", close);
+    const sayBusy = () => {
+      const acts3 = wrap.querySelector(".pm-acts");
+      let bx = wrap.querySelector(".pm-err");
+      if (!bx) {
+        bx = document.createElement("div");
+        bx.className = "msg err show pm-err";
+        bx.setAttribute("role", "alert");
+        bx.style.margin = "10px 0";
+        acts3.parentNode.insertBefore(bx, acts3);
+      }
+      bx.textContent = "这一份的上一次提交还没有回结果 —— 先等它回来。" +
+        "（刚才关掉对话框并没有取消那一次提交。）";
+    };
+    if (lock && busyTargets.has(lock)) {
+      wrap.querySelectorAll("[data-act]").forEach((x) => { x.disabled = true; });
+      sayBusy();
+    }
     wrap.querySelector("input")?.focus();
 
     wrap.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", async () => {
@@ -517,14 +544,21 @@
          而 confirm_hq_approval 是 on conflict do update（0012_student_core.sql:331），
          谁后到谁说了算（本轮实测 Mu4：扣住 2 笔，都是 confirm_hq_approval）。
          「取消」不禁 —— 他随时可以退出去，那条路上一包已经验过是安全的。 */
+      if (lock && busyTargets.has(lock)) {      // 关掉重开也绕不过去
+        wrap.querySelectorAll("[data-act]").forEach((x) => { x.disabled = true; });
+        sayBusy();
+        return;
+      }
       const actBtns = [...wrap.querySelectorAll("[data-act]")];
       actBtns.forEach((x) => { x.disabled = true; });
+      if (lock) busyTargets.add(lock);
       /* 原来是**先 close() 再 run()** —— 服务端一拒绝（学号被占用、缺总校确认…），
          他刚打进去的学号就随对话框一起没了，只能重开、重打一遍；
          而错误提示还在对话框**后面**的页面上（本轮实测 Ce6/Ce7）。
          改成：先发，成功才关；失败就留在框里、把服务端那句话搬进来、
          焦点送回第一格，让他当场改。 */
       const res = await actions[+b.dataset.act].run(v);
+      if (lock) busyTargets.delete(lock);                // 回来了就解锁：失败也能再来
       if (res) { close(); return; }
       actBtns.forEach((x) => { x.disabled = false; });   // 失败之后两个动作都能再来
       const acts2 = wrap.querySelector(".pm-acts");

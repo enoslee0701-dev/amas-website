@@ -658,6 +658,116 @@ try {
   edgeHold = false; edgeReject = false; heldEdge = [];
   if (await modalUp()) await pressEsc();
 
+  console.log("\n=== Xl 关掉再重开：在途互斥会不会被绕过（同一份申请、相反结论）===");
+  /* 上一包的互斥是挂在**那一个 wrap** 上的。他按 Esc 关掉、再打开同一份申请的
+     确认框，按钮是新的、当然是活的 —— 于是同一份申请照样能发出第二笔相反结论。 */
+  const hqAgain = async () => {                        // 已经在「待总校确认」那一页上了
+    const h = await tabUntil(a => (a.attrs || "").indexOf("data-hq") > -1, 60);
+    if (!h.hit) return false;
+    await press("Enter"); await sleep(600);
+    return (await modalUp()) === true;
+  };
+  const clickAct = async (re) => {
+    const r = await tabUntil(a => re.test(a.text || ""), 25);
+    if (!r.hit) return false;
+    await press("Enter");
+    return true;
+  };
+
+  await openAdmin("/portal/admin/students/");
+  edgeHold = true; heldEdge = [];
+  ok("Xl0 前提：同一份申请的确认框开着", (await openHq()) === true);
+  ok("Xl1 前提：按下「记录为已确认」", (await clickAct(/记录为已确认/)) === true);
+  ok("Xl2 前提：这一笔被扣住", await until(async () => heldEdge.length === 1, 6000),
+     "扣住 " + heldEdge.length + " 笔");
+  await pressEsc();
+  ok("Xl3 前提：框关掉了（但请求还在路上，没有被取消）", (await modalUp()) === false);
+  ok("Xl4 前提：同一份申请的框又开起来了", (await hqAgain()) === true);
+  const opp = await clickAct(/记录为未通过/);
+  await sleep(800);
+  ok("Xl5 同一份申请**不该**再发出一笔相反的结论",
+     heldEdge.length === 1, "扣住 " + heldEdge.length + " 笔：" +
+     JSON.stringify(heldEdge.map(h => { try { const b = JSON.parse(h.body);
+       return b.action + "/" + (b.status || b.decision || ""); } catch (e) { return "?"; } })));
+  ok("Xl6 并且要让他知道为什么按不动（框里说得出「上一次还没回来」）",
+     await until(async () => {
+       const t = await cdp.ev(`(()=>{const c=document.querySelector(".portal-modal .pm-card");
+         return c ? (c.textContent||"") : "";})()`);
+       return /还没回来|还在处理|上一次/.test(t);
+     }, 4000),
+     JSON.stringify(await cdp.ev(`(()=>{const e=document.querySelector(".portal-modal .pm-err");
+       return e ? (e.textContent||"").trim() : null;})()`)));
+  // 放行那一笔，锁要解开，之后还能再来
+  const xt0 = await toastText();
+  await heldEdge[0].send();
+  ok("Xl7 放行之后回执被消费", await until(async () => {
+       const t = await toastText(); return t && t !== xt0; }, 8000), JSON.stringify(await toastText()));
+  edgeHold = false; heldEdge = [];
+  if (await modalUp()) await pressEsc();
+
+  /* 锁必须按对象分：另一份申请不能被误伤。 */
+  await openAdmin("/portal/admin/students/");
+  edgeHold = true; heldEdge = [];
+  await cdp.ev(`(()=>{ const mk = (id, nm) => ({ id, applicant_id:"u-"+id, pathway:"degree",
+      status:"accepted", form_data:{ name_zh:nm, programs:["bth"] }, locked_fields:[],
+      applicant_visible_message:null, submitted_at:"2026-09-01T00:00:00Z",
+      decided_at:"2026-09-06T00:00:00Z", created_at:"2026-08-20T00:00:00Z",
+      updated_at:"2026-09-06T00:00:00Z", assigned_reviewer:null });
+    window.__SCEN.tables.applications = { data: [ mk("app-1","申请人甲"), mk("app-2","申请人乙") ] };
+    window.__SCEN.tables.profiles = { data: [
+      { id:"u-app-1", display_name:"申请人甲", email:"a@example.invalid" },
+      { id:"u-app-2", display_name:"申请人乙", email:"b@example.invalid" } ] };
+    return true; })()`);
+  const tabX = await tabUntil(a => (a.attrs || "").indexOf("data-tab") > -1 &&
+    /待总校确认/.test(a.text || ""), 30);
+  if (tabX.hit) { await press("Enter"); await sleep(900); }
+  const hqButtons = await cdp.ev(`(()=>[...document.querySelectorAll("[data-hq]")].map(b => b.dataset.hq))()`);
+  ok("Xl8-0 前提：列表里确实有两份申请", Array.isArray(hqButtons) && hqButtons.length === 2,
+     JSON.stringify(hqButtons));
+  // 第一份：发出并扣住
+  const h1 = await tabUntil(a => (a.attrs || "").indexOf("data-hq") > -1, 60);
+  if (h1.hit) { await press("Enter"); await sleep(600); }
+  await clickAct(/记录为已确认/);
+  ok("Xl8-1 前提：第一份的那一笔被扣住", await until(async () => heldEdge.length === 1, 6000));
+  await pressEsc();
+  // 第二份：应当照常可用
+  const h2 = await cdp.ev(`(()=>{const bs=[...document.querySelectorAll("[data-hq]")];
+    const b=bs[1]; if(!b) return null; b.focus(); return b.dataset.hq;})()`);
+  ok("Xl8-2 前提：聚焦到第二份申请的入口", h2 === hqButtons[1], JSON.stringify([h2, hqButtons]));
+  await press("Enter"); await sleep(600);
+  ok("Xl8-3 第二份申请的框正常打开", (await modalUp()) === true);
+  const busyShown = await cdp.ev(`(()=>{const e=document.querySelector(".portal-modal .pm-err");
+    return e ? (e.textContent||"") : "";})()`);
+  ok("Xl8-4 没有被第一份的在途锁误伤（没有「还没回来」那句）",
+     !/还没回来/.test(busyShown), JSON.stringify(busyShown));
+  await clickAct(/记录为已确认/);
+  ok("Xl8-5 第二份能照常发出自己的那一笔",
+     await until(async () => heldEdge.length === 2, 6000), "扣住 " + heldEdge.length + " 笔");
+  for (const hd of heldEdge) await hd.send();
+  edgeHold = false; heldEdge = [];
+  await sleep(800);
+  if (await modalUp()) await pressEsc();
+
+  /* 失败之后同一个对象还能再来（锁在响应回来时解开，不管成败）。 */
+  await openAdmin("/portal/admin/students/");
+  edgeHold = true; edgeReject = true; heldEdge = [];
+  ok("Xl9-0 前提：框开着", (await openHq()) === true);
+  await clickAct(/记录为已确认/);
+  ok("Xl9-1 前提：扣住一笔", await until(async () => heldEdge.length === 1, 6000));
+  await heldEdge[0].send();                            // 放行 —— 这一次被拒
+  heldEdge = [];
+  const canRetry = await until(async () => cdp.ev(`(()=>{const bs=[...document.querySelectorAll(".portal-modal [data-act]")];
+      return bs.length >= 2 && bs.every(b => !b.disabled);})()`), 8000);
+  ok("Xl9-2 失败之后按钮重新解禁（锁跟着响应解开）", canRetry === true);
+  await clickAct(/记录为未通过/);
+  ok("Xl9-3 失败之后可以重试，新的那一笔发得出去",
+     await until(async () => heldEdge.length === 1, 6000), "扣住 " + heldEdge.length + " 笔");
+  edgeHold = false; edgeReject = false;
+  for (const hd of heldEdge) await hd.send();
+  heldEdge = [];
+  await sleep(600);
+  if (await modalUp()) await pressEsc();
+
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
   ok("G2 全程没有页面异常", pageErrors.length === 0, JSON.stringify(pageErrors.slice(0, 2)));
