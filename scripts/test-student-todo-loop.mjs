@@ -63,23 +63,62 @@ const MY_PROFILE = prof;
 let childExited = false;
 chrome.on("exit", () => { childExited = true; });
 const alive = (pid) => { try { process.kill(pid, 0); return true; } catch (e) { return false; } };
+
+/* 退出码一张表，四条路径共用一套语义：
+     0 全绿且**收摊也做完了**
+     1 有断言 FAIL
+     2 组隔离拒跑
+     3 看门狗到点（INCOMPLETE）
+     4 **收摊没做完**（INCOMPLETE）—— 断言可能全绿，但这一趟不算干净收场
+   4 是这次补的窟窿：以前 finally 里算出 exited/removed 就丢掉了，
+   哪怕「PID 没确认退出」或「profile 没删掉」，最后照样 exit 0 打成 PASS。 */
+const EXIT = { OK: 0, FAIL: 1, GUARD: 2, WATCHDOG: 3, CLEANUP: 4 };
+let cleanResult = null;   // 收摊结果：finally 存进来，最后一行据此定退出码
+
+/* 故障注入，**只为验证上面那张表**，默认关闭，不改变任何断言：
+     CLEANUP_FAULT=stuck   强制走「PID 未确认退出」这一支（照约定不删 profile、保留证据）
+     CLEANUP_FAULT=rmfail  强制走「profile 没删掉」这一支
+   注入的是**判定分支**，不是真的制造一个删不掉的目录 —— 检验的是退出码与措辞，
+   不是 fs 的行为；这一点在报告里也这么写。 */
+const FAULT = String(process.env.CLEANUP_FAULT || "");
+
+/* 收摊只做一次：看门狗、信号、finally 可能同时到，
+   并发进来复用同一个 promise，避免重复 kill / 重复删。 */
+let cleanupOnce = null;
+function cleanup(why){
+  if (cleanupOnce) return cleanupOnce;
+  cleanupOnce = (async () => {
+    stopWatchdog();
+    try { chrome.kill("SIGKILL"); } catch (e) {}
+    const t0 = Date.now();
+    while (!childExited && alive(CHILD_PID) && Date.now() - t0 < 5000) await sleep(100);
+    const exited = FAULT === "stuck" ? false : (childExited || !alive(CHILD_PID));
+    try { server.close(); } catch (e) {}
+    let removed = false;
+    if (exited && FAULT !== "rmfail") {   // **确认退出之后**才删，避免与重建竞态
+      try { fs.rmSync(MY_PROFILE, { recursive: true, force: true }); } catch (e) {}
+      removed = !fs.existsSync(MY_PROFILE);
+    }
+    const ok = exited && removed;
+    console.log("  清理：本次 PID=" + CHILD_PID + " 已退出=" + exited +
+                "；profile=" + MY_PROFILE + " 删除=" + removed +
+                (why ? "；原因=" + why : "") + (FAULT ? "；故障注入=" + FAULT : ""));
+    if (!ok) {
+      console.log("  ⚠ INCOMPLETE：收摊没做完 —— " +
+        (!exited ? "没能确认这个 PID 已退出，所以**不删** profile（宁可留下也不跟重建赛跑）"
+                 : "profile 没删掉") + "。");
+      console.log("    证据留在 " + MY_PROFILE + " ；只认本次这一个 PID 与这一个目录，" +
+                  "不去杀别的进程、不碰别人的目录 —— 请人工看一眼再清。");
+    }
+    return { ok, exited, removed };
+  })();
+  return cleanupOnce;
+}
 async function shutdown(code, why){
-  stopWatchdog();
-  try { chrome.kill("SIGKILL"); } catch (e) {}
-  const t0 = Date.now();
-  while (!childExited && alive(CHILD_PID) && Date.now() - t0 < 5000) await sleep(100);
-  const exited = childExited || !alive(CHILD_PID);
-  try { server.close(); } catch (e) {}
-  let removed = false;
-  if (exited) {                       // **确认退出之后**才删，避免与重建竞态
-    try { fs.rmSync(MY_PROFILE, { recursive: true, force: true }); } catch (e) {}
-    removed = !fs.existsSync(MY_PROFILE);
-  }
-  console.log("  清理：本次 PID=" + CHILD_PID + " 已退出=" + exited +
-              "；profile=" + MY_PROFILE + " 删除=" + removed +
-              (exited ? "" : "（未确认退出，**不删** profile —— 宁可留下也不跟重建赛跑）") +
-              (why ? "；原因=" + why : ""));
-  process.exit(code);
+  const r = await cleanup(why);
+  /* 本来要算成功收场的那条路，如果收摊没做完，就不许它以 0 退出。
+     已经是非 0 的（FAIL/看门狗/信号）保留各自语义，上面那两行已经把失败说清楚了。 */
+  process.exit(!r.ok && code === EXIT.OK ? EXIT.CLEANUP : code);
 }
 const WATCHDOG_MS = Number(process.env.WATCHDOG_MS || 600000);
 let watchdogDone = false;
@@ -87,7 +126,7 @@ const watchdogTimer = setTimeout(() => {
   if (watchdogDone) return;
   console.log("\n  ⏱ INCOMPLETE：跑了 " + Math.round(WATCHDOG_MS / 1000) + "s 还没结束，自行退出。");
   console.log("  这不是「通过」，也不是产品失败 —— 见 eventb5c5-combined-timeout（根因未结）。");
-  shutdown(3, "watchdog");
+  shutdown(EXIT.WATCHDOG, "watchdog");
 }, WATCHDOG_MS);
 const stopWatchdog = () => { watchdogDone = true; clearTimeout(watchdogTimer); };
 /* 被外部信号结束时也要收摊：否则 finally 不会跑，每被 kill 一次就留下一个 profile。
@@ -176,7 +215,9 @@ if (dirtySelected.length > 1) {
   console.error("  这次选了：" + dirtySelected.join(", "));
   console.error("  请分开跑：ONLY=St,A,G / ONLY=Sf,A,G / ONLY=Se,A,G / ONLY=Sp,A,G");
   console.error("  理由见 web-round111.md「组合态」一节 —— 不是把超时调长能解决的事。");
-  process.exit(2);
+  /* 拒跑也要收摊：Chrome 和 profile 在这之前就已经建好了，
+     直接 exit 会漏一个 Chrome 加一个 profile（实测基线 37→38 就是这么来的）。 */
+  await shutdown(EXIT.GUARD, "组隔离拒跑");
 }
 const ok = (name, cond, detail) => { if (cond) { pass++; console.log("  PASS  " + name); }
   else { fail++; console.log("  FAIL  " + name + (detail ? "  ← " + detail : "")); } };
@@ -333,7 +374,7 @@ window.supabase = { createClient: function(){
 
 let port;
 try { port = await ownDebugPort(); console.log("  独占调试端口（本进程自己的 Chrome）: " + port); }
-catch (e) { chrome.kill(); server.close(); console.error("  " + e.message); process.exit(1); }
+catch (e) { console.error("  " + e.message); await shutdown(EXIT.FAIL, "取不到独占调试端口"); }
 
 const READONLY_RPC = new Set([
   "my_roles", "my_profile", "my_student_record", "my_student_timeline",
@@ -898,21 +939,17 @@ try {
   }
   cdp.ws.close();
 } finally {
-  /* 正常结束也按同一条规矩：先确认这个 PID 退出，再删自己的 profile。 */
-  try { chrome.kill("SIGKILL"); } catch (e) {}
-  const t0 = Date.now();
-  while (!childExited && alive(CHILD_PID) && Date.now() - t0 < 5000) await sleep(100);
-  const exited = childExited || !alive(CHILD_PID);
-  try { server.close(); } catch (e) {}
-  let removed = false;
-  if (exited) { try { fs.rmSync(MY_PROFILE, { recursive: true, force: true }); } catch (e) {}
-                removed = !fs.existsSync(MY_PROFILE); }
-  console.log("  清理：本次 PID=" + CHILD_PID + " 已退出=" + exited +
-              "；profile 删除=" + removed + (exited ? "" : "（未确认退出，不删）"));
+  /* 正常结束走同一个 cleanup（不再另写一份），**并且把结果留下** —— 下面要用它定退出码。 */
+  cleanResult = await cleanup("正常结束");
 }
 
 stopWatchdog();
 console.log("\n──────────────────────────────");
 console.log(`  PASS ${pass}  FAIL ${fail}`);
 console.log("  本地 stub：无真实账号/凭据/服务，无远端写入，无外网请求。");
-process.exit(fail ? 1 : 0);
+/* 断言全绿**不等于**这一趟干净收场：收摊没做完就按 INCOMPLETE 退出（4），
+   不许它顶着 PASS 以 0 退出。有断言 FAIL 时仍以 1 为准（那是更要紧的事）。 */
+if (!fail && cleanResult && !cleanResult.ok) {
+  console.log("  ⚠ INCOMPLETE：断言全绿，但收摊没做完 —— 这一趟不算干净收场（exit 4）。");
+}
+process.exit(fail ? EXIT.FAIL : (cleanResult && !cleanResult.ok ? EXIT.CLEANUP : EXIT.OK));
