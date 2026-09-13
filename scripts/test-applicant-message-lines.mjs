@@ -360,6 +360,15 @@ try {
      await until(async () => cdp.ev(`(()=>{ try { const d=JSON.parse(localStorage.getItem("__draft")||"null");
        return !!(d && d.form_data && d.form_data.phone === "0123456789"); } catch(e){ return false; } })()`), 12000),
      JSON.stringify(await cdp.ev(`(()=>localStorage.getItem("__draft"))()`)));
+  /* 刷新**之前**先把这一程的账算清：这时 __rpc 还没被导航清零。 */
+  ok("Rf3b 刷新**之前**这一程也没有提交 / 标记补件（此时计数尚未被导航清零）",
+     (await cdp.ev(`(()=>((window.__rpc||[]).filter(r=>/^(submit_|resolve_|review_)/.test(r.name)).length))()`)) === 0,
+     JSON.stringify(await cdp.ev(`(()=>((window.__rpc||[]).map(r=>r.name)))()`)));
+  /* 排除另一个来源：页内暂存（sessionStorage）也能把值放回输入框。
+     先把它清掉，这样 Rf4 读回来的那一版只可能来自**服务端草稿**（本夹具里即共享状态）。 */
+  await cdp.ev(`(()=>{ try{ sessionStorage.clear(); }catch(e){} return true; })()`);
+  ok("Rf3c 前提：页内暂存已清空（排除它作为刷新后取值的来源）",
+     (await cdp.ev(`(()=>{ try{ return sessionStorage.length; }catch(e){ return -1; } })()`)) === 0);
   /* **真刷新**：重新载入这一页，看他接着改的那一版还在不在。 */
   await cdp.send("Page.navigate", { url: `${BASE}/portal/applicant/application/` });
   await sleep(3000);
@@ -370,7 +379,7 @@ try {
        return /未完成 1 项/.test((m&&m.textContent)||"");})()`)) === true,
      JSON.stringify(await cdp.ev(`(()=>{const m=document.getElementById("main");
        return ((m&&m.textContent)||"").slice(0,80);})()`)));
-  ok("Rf6 这一段只存了草稿，没有提交、也没有标记补件完成",
+  ok("Rf6 刷新**之后**这一程同样没有提交 / 标记补件（与 Rf3b 合起来才覆盖前后两程）",
      (await cdp.ev(`(()=>((window.__rpc||[]).filter(r=>/^(submit_|resolve_|review_)/.test(r.name)).length))()`)) === 0,
      JSON.stringify(await cdp.ev(`(()=>((window.__rpc||[]).map(r=>r.name)))()`)));
 
@@ -386,4 +395,6 @@ try {
 console.log("\n──────────────────────────────");
 console.log(`  PASS ${pass}  FAIL ${fail}`);
 console.log("  本地 stub：无真实账号/凭据/服务，无远端写入，无外网请求。");
+console.log("  Rf 组里的共享 localStorage 只是**模拟服务端草稿**：它证明的是页面行为，");
+console.log("  **不证明**真实 Supabase 上的草稿往返已验（那要等 B3 受控演练）。");
 process.exit(fail ? 1 : 0);
