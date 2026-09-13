@@ -686,6 +686,89 @@ try {
        (at.attrs || "").indexOf("data-label") > -1, JSON.stringify(at));
   }
 
+  console.log("\n=== Rm 补件多行：一条有效 + 一条只填了说明，不能把他的输入悄悄丢掉 ===");
+  /* 现在的代码是 `.filter(x => x.label)` —— 只填了「说明」或只选了「对应字段」、
+     标题空着的那一条会被**静默丢弃**；而对话框上写的是「需要补充什么（必填）」。
+     管理员以为两条都发出去了，申请人只收到一条。 */
+  const rowVals = async () => cdp.ev(`(()=>[...document.querySelectorAll(".portal-modal .reqrow")]
+    .map(r => ({ label:(r.querySelector("[data-label]")||{}).value || "",
+                 detail:(r.querySelector("[data-detail]")||{}).value || "" })))()`);
+  const openReqDialog = async () => {
+    const o = await tabUntil(a => (a.attrs || "").indexOf("data-open") > -1 || /查看|详情/.test(a.text || ""), 40);
+    if (o.hit) { await press("Enter"); await sleep(800); }
+    const rq = await tabUntil(a => /要求补充/.test(a.text || ""), 60);
+    if (!rq.hit) return false;
+    await press("Enter"); await sleep(700);
+    return (await modalUp()) === true;
+  };
+
+  await openAdmin("/portal/admin/admissions/");
+  const mBase = await fnCalls();
+  nativeDialogs = [];
+  ok("Rm0 前提：补件对话框开着", (await openReqDialog()) === true);
+  // 第一条：正常填
+  const c1 = await tabUntil(a => (a.attrs || "").indexOf("data-label") > -1, 10);
+  ok("Rm1 前提：焦点在第一条的标题格", c1.hit, JSON.stringify(c1.at));
+  await typeText("受洗证明");
+  // 加第二条，只填「说明」，标题留空
+  const add = await tabUntil(a => /添加一条/.test(a.text || ""), 15);
+  ok("Rm2 前提：Tab 走得到「+ 添加一条」", add.hit);
+  await press("Enter");
+  await sleep(400);
+  const inNew = await cdp.ev(`(()=>{const a=document.activeElement;
+    const rows=[...document.querySelectorAll(".portal-modal .reqrow")];
+    return !!(rows[1] && a && rows[1].contains(a));})()`);
+  ok("Rm3 前提：焦点进到新那一条（上一包修的）", inNew === true);
+  await press("Tab");                                  // 标题 → 说明
+  await typeText("教会盖章那一页");
+  const before = await rowVals();
+  ok("Rm4 前提：现在是「一条有效 + 一条只有说明」",
+     before.length === 2 && before[0].label === "受洗证明" &&
+     before[1].label === "" && before[1].detail === "教会盖章那一页", JSON.stringify(before));
+
+  const send = await tabUntil(a => /发送要求/.test(a.text || ""), 15);
+  ok("Rm5 前提：Tab 走得到「发送要求」", send.hit);
+  await press("Enter");
+  await sleep(900);
+  ok("Rm6 **没有**把只填了说明的那一条悄悄丢掉就发出去",
+     (await fnCalls()) === mBase, "POST 写入 " + mBase + " → " + (await fnCalls()));
+  ok("Rm7 对话框还开着", (await modalUp()) === true);
+  const after = await rowVals();
+  ok("Rm8 两条的内容都还在（一个字没丢）",
+     JSON.stringify(after) === JSON.stringify(before), JSON.stringify(after));
+  const mMsg = await cdp.ev(`(()=>{const c=document.querySelector(".portal-modal .pm-card");
+    return c ? (c.textContent||"").replace(/\s+/g," ") : "";})()`);
+  ok("Rm9 说得出问题在哪一条（不是原生 alert）",
+     /第\s*2\s*条|需要补充什么|写明/.test(mMsg) && nativeDialogs.length === 0,
+     "原生对话框 " + nativeDialogs.length + " 次；" + JSON.stringify(mMsg.slice(-100)));
+  const at = await active();
+  const atRow2 = await cdp.ev(`(()=>{const a=document.activeElement;
+    const rows=[...document.querySelectorAll(".portal-modal .reqrow")];
+    return !!(rows[1] && a && rows[1].contains(a) && a.hasAttribute("data-label"));})()`);
+  ok("Rm10 焦点落在**那一条**的标题格上", atRow2 === true, JSON.stringify(at));
+
+  /* 完全空白的新增行是另一回事：他按了「+ 添加一条」又没填，
+     那是常态，不该拦住他发送。 */
+  await openAdmin("/portal/admin/admissions/");
+  const mBase2 = await fnCalls();
+  ok("Rm11 前提：对话框开着", (await openReqDialog()) === true);
+  const d1 = await tabUntil(a => (a.attrs || "").indexOf("data-label") > -1, 10);
+  if (d1.hit) await typeText("最高学历证书");
+  const add2 = await tabUntil(a => /添加一条/.test(a.text || ""), 15);
+  if (add2.hit) { await press("Enter"); await sleep(400); }   // 加一条**完全空白**的
+  const send2 = await tabUntil(a => /发送要求/.test(a.text || ""), 20);
+  ok("Rm12 前提：走得到「发送要求」", send2.hit);
+  await press("Enter");
+  await sleep(1000);
+  ok("Rm13 完全空白的新增行不算问题 —— 照常发出去",
+     (await fnCalls()) === mBase2 + 1, "POST 写入 " + mBase2 + " → " + (await fnCalls()));
+  const sent = lastPost();
+  let sentBody = null;
+  try { sentBody = sent && sent.body ? JSON.parse(sent.body) : null; } catch (e) {}
+  ok("Rm14 发出去的只有那一条真填了的（空白行不混进去）",
+     !!sentBody && Array.isArray(sentBody.requirements) && sentBody.requirements.length === 1 &&
+     sentBody.requirements[0].label === "最高学历证书", JSON.stringify(sentBody && sentBody.requirements));
+
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
   ok("G2 全程没有页面异常", pageErrors.length === 0, JSON.stringify(pageErrors.slice(0, 2)));

@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>招生审核 | AMAS 管理后台</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609132159">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609132214">
 <style>
 .qtable{width:100%;border-collapse:collapse;font-size:13px}
 .qtable th,.qtable td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:top}
@@ -34,12 +34,12 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609132159"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609132159"></script>
-<script src="../../../assets/js/portal/api.js?v=202609132159"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609132159"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609132159"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609132159"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609132214"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609132214"></script>
+<script src="../../../assets/js/portal/api.js?v=202609132214"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609132214"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609132214"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609132214"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -743,30 +743,52 @@
        wrap.querySelector("#rqCancel"))?.focus();
       wrap.querySelector("#rqCancel").addEventListener("click", () => close(null));
       wrap.querySelector(".pm-backdrop").addEventListener("click", () => close(null));
+      /* 对话框里说话的地方（原来用的是阻塞式 alert：关掉之后焦点停在「发送要求」上，
+         他既看不到问题在哪一条，也得自己找回去 —— 本轮实测 Rv-*-6 / Rv-*-7）。 */
+      const sayInDialog = (text, focusEl) => {
+        const acts = wrap.querySelector(".pm-acts");
+        let box = wrap.querySelector("#rqErr");
+        if (!box) {
+          box = document.createElement("div");
+          box.id = "rqErr";
+          box.className = "msg err show";
+          box.setAttribute("role", "alert");
+          box.style.margin = "10px 0";
+          acts.parentNode.insertBefore(box, acts);
+        }
+        box.textContent = text;
+        focusEl?.focus();
+      };
       wrap.querySelector("#rqOk").addEventListener("click", () => {
-        const items = [...rowsBox.querySelectorAll(".reqrow")].map(r => ({
+        const rows = [...rowsBox.querySelectorAll(".reqrow")].map(r => ({
+          el: r,
           label: r.querySelector("[data-label]").value.trim(),
-          detail: r.querySelector("[data-detail]").value.trim() || undefined,
-          field: (r.querySelector("[data-field]") || {}).value || undefined,
-        })).filter(x => x.label);
+          detail: (r.querySelector("[data-detail]").value || "").trim(),
+          field: ((r.querySelector("[data-field]") || {}).value || ""),
+        }));
+        /* 两种「标题空着」要分开处理 —— 原来一句 `.filter(x => x.label)` 把它们
+           一视同仁地丢掉了：
+             · **整条都是空的** = 他按了「+ 添加一条」还没填。这是常态，忽略就好；
+             · **填了说明或选了字段、偏偏标题空着** = 他写了东西。
+               原来这一条会被**静默丢弃**、请求照发 —— 管理员以为发了两条，
+               申请人只收到一条，而对话框上明明写着「需要补充什么（必填）」
+               （本轮实测 Rm6：POST 照样发出去了）。
+               这种不能丢：拦住、说清是第几条、把焦点送过去，他填上或自己清空。 */
+        const touched = rows.filter(x => x.label || x.detail || x.field);
+        const badIdx = touched.findIndex(x => !x.label);
+        if (badIdx > -1) {
+          const bad = touched[badIdx];
+          const no = rows.indexOf(bad) + 1;
+          sayInDialog("第 " + no + " 条填了内容，但还没写明「需要补充什么」—— " +
+            "补上标题，或者把这一条清空再发送。", bad.el.querySelector("[data-label]"));
+          return;
+        }
+        const items = touched.map(x => ({
+          label: x.label, detail: x.detail || undefined, field: x.field || undefined,
+        }));
         if (!items.length) {
-          /* 原来是 alert()：一个**阻塞式的浏览器对话框**，
-             关掉之后焦点停在「发送要求」上，他既看不到问题在哪一条，
-             也得自己找回去（本轮实测 Rv-*-6 / Rv-*-7）。
-             不发写请求、不关对话框、不清他打的字这三件事原来就是对的，保留；
-             改的是**把话说在对话框里**，并把焦点送回那一格。 */
-          const acts = wrap.querySelector(".pm-acts");
-          let box = wrap.querySelector("#rqErr");
-          if (!box) {
-            box = document.createElement("div");
-            box.id = "rqErr";
-            box.className = "msg err show";
-            box.setAttribute("role", "alert");
-            box.style.margin = "10px 0";
-            acts.parentNode.insertBefore(box, acts);
-          }
-          box.textContent = "每一条都要写明「需要补充什么」—— 至少填一条（只打空格不算）。";
-          rowsBox.querySelector("[data-label]")?.focus();
+          sayInDialog("每一条都要写明「需要补充什么」—— 至少填一条（只打空格不算）。",
+            rowsBox.querySelector("[data-label]"));
           return;
         }
         close({ items, message: wrap.querySelector("#rqMsg").value.trim() || null, note: wrap.querySelector("#rqNote").value.trim() || null });
