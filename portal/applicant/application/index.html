@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131229">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609131333">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609131229"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609131229"></script>
-<script src="../../../assets/js/portal/api.js?v=202609131229"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609131229"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609131229"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609131229"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609131333"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609131333"></script>
+<script src="../../../assets/js/portal/api.js?v=202609131333"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609131333"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609131333"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609131333"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -849,8 +849,33 @@
     if (!saveTail) return trackSave(runSave());
     if (saveQueued) return saveTail;               // 已经排了一次，合并进去
     saveQueued = true;
-    const start = () => { saveQueued = false; return runSave(); };
-    return trackSave(saveTail.then(start, start));
+    /* **前一笔没有确定成功，排队这一笔就不发。**
+       原来是 `saveTail.then(start, start)` —— 前一笔是 {ok:false} 还是直接抛错，
+       都照样启动下一笔写入。后果实测三种都成立：
+         · 明确 0 行冲突之后又写一笔（他中间没有任何新动作）；
+         · 结果不明之后又写一笔 —— 那就是拿未知写入去重试；而那一笔要是其实已经
+           落地了，新这笔必然落空，页面于是说「这份申请在别处被改过 … 请重新载入」，
+           **改动它的正是他自己那一笔**；
+         · submit / 已补 这些等待者只拿得到后一笔的结论：前一笔真实的结论是
+           「没能确认」（该走「先刷新核实」），却被后一笔的冲突盖成
+           「没有保存成功（在别处被改过）…请稍后重试」。
+       所以失败要**传播**下去：不再写，把前一笔的结论如实交给等待者。
+       他做了新动作（再改一个字）就会重新发起保存 —— 队列不会就此卡死。 */
+    const next = (prev) => { saveQueued = false;
+      return (prev && prev.ok) ? runSave() : blockedBy(prev); };
+    const threw = (e) => { saveQueued = false;
+      return blockedBy({ ok: false, unclear: true, message: String((e && e.message) || e || "") }); };
+    return trackSave(saveTail.then(next, threw));
+  }
+  /** 排队的这一笔没有发出去：如实说明，并且把**前一笔**的结论原样带给等待者
+      （unclear 决定他们给「刷新核实」还是「改完再来」这条出路）。 */
+  function blockedBy(prev){
+    const unclear = !!(prev && prev.unclear);
+    setSaveState(unclear ? "上一次保存没能确认结果，你的修改还没保存"
+                         : "上一次保存没成功，你的修改还没保存");
+    return { ok: false, unclear: unclear, blocked: true,
+             conflict: !!(prev && prev.conflict),
+             message: (prev && prev.message) || "上一次保存没成功" };
   }
   function trackSave(p){
     saveTail = p;

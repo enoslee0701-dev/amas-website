@@ -163,8 +163,7 @@ window.supabase = {
              真实服务端只会让一笔命中，另一笔回 0 行。
              判定（apply）与回包（deliver）分开，才能分别控制「谁先命中」和「谁先回来」。 */
           if (mode !== "select" && sc.cas && sc.cas[name]) {
-            var st = window.__cas || (window.__cas =
-              { ver: sc.casFrom || "2026-09-10T00:00:00Z", n: 0, q: [], log: [] });
+            var st = window.__casState();
             var e = { base: matchCond.updated_at, applied:false, done:false, out:null, deliver:null };
             st.q.push(e);
             return new Promise(function(r){ e.deliver = function(){ r(e.out); }; }).then(res, rej);
@@ -231,7 +230,14 @@ window.supabase = {
     };
   }
 };
-/* CAS 夹具的把手（测试侧显式调用）。索引不做 splice，保持稳定。 */
+/* CAS 夹具的把手（测试侧显式调用）。索引不做 splice，保持稳定。
+   状态**按需建立且可提前建立** —— 第一笔写入之前就要能 __casBump()，
+   否则「别处先改过一笔」这种前提根本没设上，用例会假绿。 */
+window.__casState = function(){
+  var sc = window.__SCEN || {};
+  return window.__cas || (window.__cas =
+    { ver: sc.casFrom || "2026-09-10T00:00:00Z", n: 0, q: [], log: [] });
+};
 window.__casApply = function(i){
   var st = window.__cas; if (!st || !st.q[i] || st.q[i].applied) return null;
   var e = st.q[i];
@@ -245,13 +251,25 @@ window.__casApply = function(i){
   }
   e.applied = true; return e.out;
 };
+/* 让某一笔**不是**正常 0 行/命中，而是错误响应。applyFirst=true 表示
+   「服务端其实写成功了，只是响应没回来」—— 版本照推进，页面拿到的却是错误。 */
+window.__casFail = function(i, status, message, applyFirst){
+  var st = window.__cas; if (!st || !st.q[i] || st.q[i].applied) return null;
+  var e = st.q[i];
+  if (applyFirst) { window.__casApply(i); st.log.pop(); e.applied = false; }  // 一笔请求只记一行
+  e.out = { data:null, error:{ message: message || "boom" }, status: status || 500 };
+  e.applied = true;
+  st.log.push({ base:e.base, hit:false, failed:true, status:e.out.status,
+                landed:!!applyFirst, ver:st.ver });
+  return e.out;
+};
 window.__casDeliver = function(i){
   var st = window.__cas; if (!st || !st.q[i] || st.q[i].done) return 0;
   if (!st.q[i].applied) window.__casApply(i);
   st.q[i].done = true; st.q[i].deliver(); return 1;
 };
 /* 别处（教务 / 另一个标签页）真的写了一笔：版本变了，但没有经过本页任何请求。 */
-window.__casBump = function(){ var st = window.__cas; if (!st) return null;
+window.__casBump = function(){ var st = window.__casState();
   st.n++; st.ver = "2026-09-10T00:00:0" + st.n + "Z"; return st.ver; };`;
 
 let port;
@@ -1765,6 +1783,118 @@ try {
      /已保存/.test((await vis("#saveState")) || "") && (await conflictText()) === null,
      JSON.stringify([await vis("#saveState"), await conflictText()]));
   ok("Cs11 内容也还是他最后改的那一版", (await callingVal()) === "乙", JSON.stringify(await callingVal()));
+
+  // ════════ Cq 前一笔没成功时，排队的那一笔还发不发 ════════
+  console.log("\n=== Cq 上一笔没成功，队列不该自己接着写 ===");
+  /* 串行化把「排队那次」挂在前一次后面：`saveTail.then(start, start)` ——
+     前一笔是 {ok:false} 还是直接 reject，都照样启动下一笔写入。
+     于是他在 A 失败**之前**做的那次编辑，会在 A 明确失败（或结果不明）之后
+     被自动写出去，中间他没有任何新动作；而 A 的结论对 submit / 已补 这些等待者
+     完全不可见 —— 它们拿到的只有后一笔的结论。 */
+  const casFail = async (i, status, message, applyFirst) =>
+    cdp.ev(`(window.__casFail ? window.__casFail(${i}, ${status}, ${JSON.stringify(message||"boom")}, ${!!applyFirst}) : null)`);
+  const saveStateText = async () => vis("#saveState");
+
+  // —— 甲：上一笔**确定**没写进去（别处真的改过 → 0 行冲突）
+  await open(CAS);
+  await goStep(3);
+  ok("Cq0-0 前提：别处那一笔确实改掉了服务端版本",
+     (await casBump()) === "2026-09-10T00:00:01Z", JSON.stringify(await casVer()));
+  await typeCalling("甲1");
+  await sleep(1100);
+  ok("Cq0 前提：第一笔在途", (await casInflight()) === 1, String(await casLen()));
+  await typeCalling("甲2");                          // 在途期间又改 → 排队
+  await sleep(1100);
+  await casDeliver(0);                               // A 判定：落空 → 确定没保存
+  await sleep(1300);
+  ok("Cq1 上一笔确定没保存之后，队列没有在他没做新动作时又写一笔",
+     (await casLen()) === 1, "写入 " + (await casLen()) + " 笔，日志 " + JSON.stringify(await casLog()));
+  ok("Cq2 冲突的恢复指引还在", /在别处被改过/.test((await conflictText()) || ""), JSON.stringify(await conflictText()));
+  ok("Cq3 他最新的编辑还在页面上", (await callingVal()) === "甲2", JSON.stringify(await callingVal()));
+  ok("Cq4 并且说清楚这之后的修改也还没保存",
+     /还没保存|没有保存/.test((await saveStateText()) || ""), JSON.stringify(await saveStateText()));
+  await typeCalling("甲3");                          // **新的**用户动作
+  await sleep(1100);
+  ok("Cq5 对照：他再改一下，保存还会照常发出（队列没有被卡死）",
+     (await casLen()) === 2, "写入 " + (await casLen()) + " 笔");
+
+  // —— 乙：上一笔**结果不明**，而且其实已经写进去了（服务端写成功，响应没回来）
+  await open(CAS);
+  await goStep(3);
+  await typeCalling("乙1");
+  await sleep(1100);
+  await typeCalling("乙2");                          // 排队
+  await sleep(1100);
+  await casFail(0, 500, "boom", true);               // 写成功了、版本推进了，但响应是 500
+  await casDeliver(0);
+  await sleep(1300);
+  ok("Cq6 上一笔结果不明时，不自动接着写（未知写入不重试）",
+     (await casLen()) === 1, "写入 " + (await casLen()) + " 笔，日志 " + JSON.stringify(await casLog()));
+  await casDrain();                                  // 把可能发出的那一笔也放回来，看最终说法
+  ok("Cq7 页面说的是「没能确认」，而不是把责任推给「别处被改过」",
+     /没能确认/.test((await saveStateText()) || "") &&
+     !/在别处被改过/.test(((await saveStateText()) || "") + ((await conflictText()) || "")),
+     JSON.stringify([await saveStateText(), await conflictText()]));
+  ok("Cq8 他最新的编辑还在页面上", (await callingVal()) === "乙2", JSON.stringify(await callingVal()));
+
+  // —— 丙：等待者（提交）只看得到后一笔的结论
+  await open(CAS);
+  await goStep(3);
+  await typeCalling("丙1");
+  await sleep(1100);                                 // A 在途
+  await clickSubmitRaw();                            // 提交这一路的 save() 排在 A 后面
+  await sleep(400);
+  const cq9 = await calls();
+  ok("Cq9 前提：保存还没回来时 submit_application 尚未发出",
+     !(cq9["rpc:submit_application"] > 0), JSON.stringify(cq9));
+  await casFail(0, 500, "boom", true);               // A：结果不明，且其实已落地
+  await casDeliver(0);
+  await sleep(1000);
+  await casDrain();                                  // 后一笔若发出，也让它回来
+  await sleep(600);
+  ok("Cq10 前一笔结果不明之后，队列没有再写一笔",
+     (await casLen()) === 1, "写入 " + (await casLen()) + " 笔，日志 " + JSON.stringify(await casLog()));
+  const cq11 = await calls();
+  ok("Cq11 没有提交（提交的可能是服务器上那份旧的）",
+     !(cq11["rpc:submit_application"] > 0), JSON.stringify(cq11));
+  const cq12 = await subErr();
+  /* 修前这里说的是「这份申请在别处被改过」—— 那是后一笔落空的结论，
+     而改动它的正是他自己那一笔结果不明的写入。等待者要拿到的是**前一笔**的结论。 */
+  ok("Cq12 提示是「没能确认、请刷新核实」，不是把责任推给别处",
+     /没能确认/.test(cq12 || "") && !/在别处被改过/.test(cq12 || ""), JSON.stringify(cq12));
+  ok("Cq13 他填的内容还在", (await callingVal()) === "丙1", JSON.stringify(await callingVal()));
+
+  // —— 丁：上一笔**明确被拒**（权限/校验），确定没写进去
+  await open(CAS);
+  await goStep(3);
+  await typeCalling("丁1");
+  await sleep(1100);
+  await typeCalling("丁2");                          // 排队
+  await sleep(1100);
+  await casFail(0, 403, "permission denied");        // 明确拒绝：确定没写进去
+  await casDeliver(0);
+  await sleep(1300);
+  ok("Cq14 前一笔明确被拒之后，队列没有再写一笔",
+     (await casLen()) === 1, "写入 " + (await casLen()) + " 笔，日志 " + JSON.stringify(await casLog()));
+  ok("Cq15 页面说的是保存失败，且他的编辑还在",
+     /保存失败|没有保存|还没保存/.test((await saveStateText()) || "") && (await callingVal()) === "丁2",
+     JSON.stringify([await saveStateText(), await callingVal()]));
+
+  // —— 戊：对照，前一笔成功时队列照常继续（串行化本身没有被关掉）
+  await open(CAS);
+  await goStep(3);
+  await typeCalling("戊1");
+  await sleep(1100);
+  await typeCalling("戊2");
+  await sleep(1100);
+  await casDeliver(0);                               // A 命中
+  await sleep(900);
+  ok("Cq16 对照：前一笔成功时，排队那一笔照常发出",
+     (await casLen()) === 2, "写入 " + (await casLen()) + " 笔");
+  await casDrain();
+  ok("Cq17 对照：两笔都命中，页面说已保存",
+     (await casLog()).every(e => e.hit) && /已保存/.test((await saveStateText()) || ""),
+     JSON.stringify([await casLog(), await saveStateText()]));
 
   // ════════ G 外发 ════════
   console.log("\n=== G 外发 ===");
