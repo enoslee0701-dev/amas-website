@@ -97,7 +97,14 @@ let pass = 0, fail = 0, loginHits = 0, externalHits = 0;
    现在：OPTIONS 回 204 + CORS 头且**不计数**；POST 回 200 + CORS 头并**记下
    method / url / body**。只有 POST 才算写入。全程 fulfill，不外发。 */
 let edgeCalls = [];
-let edgeReject = false;   // 让某一次 Edge 写入明确失败，用来看失败之后的界面行为
+/* 按**真实契约**合成失败，不是随手编一个码：
+   0012_student_core.sql 的 create_student_record 返回
+   {ok:false, error:'student_number_taken' | 'student_already_exists' | 'hq_approval_required'}，
+   而 student-lifecycle/index.ts:149 把 RPC 的 JSON **原样透传**（HTTP 200）。
+   上一包我用的是 409 + number_taken —— 码名错、状态码也错，
+   于是走的是 Api.fn 的通用错误分支，页面只会说「操作未能完成」。 */
+let edgeReject = false;
+let edgeDelayMs = 0;      // 让这一次写入慢慢回来，用来看在途期间关掉/重开对话框会怎样
 let nativeDialogs = [];   // 浏览器原生 alert/confirm（阻塞式，键盘用户无处可去）
 const CORS = [
   { name: "Access-Control-Allow-Origin", value: "*" },
@@ -199,12 +206,15 @@ try {
         let body = null;
         try { body = ev.request.postData || null; } catch (e) {}
         edgeCalls.push({ method, url: u, body });    // 只有真正的 POST 才记账
-        await cdp.send("Fetch.fulfillRequest", { requestId: ev.requestId,
-          responseCode: edgeReject ? 409 : 200,
-          responseHeaders: CORS.concat([{ name:"Content-Type", value:"application/json" }]),
-          body: b64(JSON.stringify(edgeReject
-            ? { ok: false, error: "number_taken", message: "这个学号已被占用。" }
-            : { ok: true })) });
+        const payload = edgeReject ? { ok: false, error: "student_number_taken" } : { ok: true };
+        const send = async () => {
+          try {
+            await cdp.send("Fetch.fulfillRequest", { requestId: ev.requestId, responseCode: 200,
+              responseHeaders: CORS.concat([{ name:"Content-Type", value:"application/json" }]),
+              body: b64(JSON.stringify(payload)) });
+          } catch (e) {}
+        };
+        if (edgeDelayMs) setTimeout(send, edgeDelayMs); else await send();
         return;
       }
       if (u.indexOf("supabase.co") > -1 || u.indexOf("supabase.in") > -1) externalHits++;
@@ -377,7 +387,7 @@ try {
     uid:"u-admin", aal:"aal2", roles:[{ role:"registrar" }],
     tables: {
       program_catalog: { data:[{ code:"bth", name_zh:"神学本科", short_label:"B.Th" }] },
-      applications: { data: APPS },
+      applications: { data: APPS },   // 「待记录总校确认」那一栏也用它
       user_roles: { data:[{ user_id:"u-admin", role:"registrar" }] },
       profiles: { data:[{ id:"u-appl", display_name:"申请人甲", email:"x@example.invalid" }] },
       application_internal: { data:{ notes:"", updated_at:null } },
@@ -826,12 +836,86 @@ try {
      "POST 写入 " + cBase2 + " → " + (await fnCalls()));
   ok("Ce6 被拒之后他填的学号还在（不用重打一遍）",
      (await numVal()) === "B26-0001", JSON.stringify(await numVal()));
-  const seen = await cdp.ev(`(()=>{const m=document.querySelector(".portal-modal .pm-card");
-    return { modal: !!m, inDialog: !!m && /已被占用|学号|没能|失败/.test(m.textContent||"") };})()`);
-  ok("Ce7 错误就在对话框里看得见（不是被遮罩盖在后面）", seen.inDialog === true, JSON.stringify(seen));
+  /* 判据只读 `.pm-err` 那一块。上一版读的是整张 .pm-card，而「学号」是字段标签、
+     常驻在框里 —— 那个 `/已被占用|学号|没能|失败/` 等于恒真（监督点名的假绿）。
+     而且要认**映射之后的那条具体原因**：客户端自己的文案
+     （students/index.html 的 student_number_taken → 「该学号已被使用过…」），
+     **不是**把后端消息原样端出来。 */
+  const errText = await cdp.ev(`(()=>{const e=document.querySelector(".portal-modal .pm-err");
+    return e ? (e.textContent||"").trim() : null;})()`);
+  ok("Ce7 对话框里给出的是**映射后的具体原因**（不是一句笼统的失败）",
+     !!errText && /已被使用过|不能重复分配/.test(errText) && !/操作未能完成/.test(errText),
+     JSON.stringify(errText));
   const at2 = await active();
   ok("Ce8 焦点回到学号那一格，能当场改", (at2.attrs || "").indexOf("data-f") > -1, JSON.stringify(at2));
   edgeReject = false;
+
+  console.log("\n=== Dl 在途期间 Esc 关掉再重开：旧回执会不会来抢焦点、关掉新框 ===");
+  /* 现在是「先发、成功才关」。那么：请求还在路上时他按 Esc 关掉、又重新打开一个，
+     旧那次回来时执行的是**上一个对话框**的 close() / focus() ——
+     会不会把新框关掉、或者把焦点抢走。 */
+  await openAdmin("/portal/admin/students/");
+  edgeDelayMs = 2500; edgeReject = false;
+  ok("Dl0 前提：第一个对话框开着", (await openCreate()) === true);
+  const dn1 = await tabUntil(a => (a.attrs || "").indexOf("data-f") > -1, 10);
+  if (dn1.hit) await typeText("B26-9001");
+  await tabUntil(a => /建立学籍/.test(a.text || ""), 10);
+  await press("Enter");
+  await sleep(300);                                    // 请求在路上
+  ok("Dl1 在途期间对话框还开着（先发后关）", (await modalUp()) === true);
+  await pressEsc();
+  ok("Dl2 Esc 关得掉（在途也能退出）", (await modalUp()) === false);
+  // 立刻重开一个，填另一个学号
+  ok("Dl3 前提：又开了一个对话框", (await openCreate()) === true);
+  const dn2 = await tabUntil(a => (a.attrs || "").indexOf("data-f") > -1, 10);
+  if (dn2.hit) await typeText("B26-9002");
+  const beforeLate = await numVal();
+  ok("Dl4 前提：新框里是新学号", beforeLate === "B26-9002", JSON.stringify(beforeLate));
+  await sleep(3000);                                   // 让旧回执回来
+  ok("Dl5 旧回执没有把**新**对话框关掉", (await modalUp()) === true);
+  ok("Dl6 新框里他打的还在（没被旧回执清掉）", (await numVal()) === "B26-9002",
+     JSON.stringify(await numVal()));
+  ok("Dl7 焦点还在新框里（没被旧回执抢走）", (await inModal()) === true,
+     JSON.stringify(await active()));
+  /* 同一个 modal() 被两个**不同动作**共用：旧动作的回执会不会打扰新动作的框。 */
+  await openAdmin("/portal/admin/students/");
+  edgeDelayMs = 2500;
+  ok("Dl8 前提：建档对话框开着", (await openCreate()) === true);
+  const dn3 = await tabUntil(a => (a.attrs || "").indexOf("data-f") > -1, 10);
+  if (dn3.hit) await typeText("B26-9003");
+  await tabUntil(a => /建立学籍/.test(a.text || ""), 10);
+  await press("Enter");
+  await sleep(300);
+  await pressEsc();
+  /* 「记录总校确认」在另一个标签页（待总校确认），且要有 status=accepted 的申请。
+     运行时把夹具改掉再用键盘切过去 —— 切标签会触发 load() 重新读。 */
+  await cdp.ev(`(()=>{ window.__SCEN.tables.applications = { data: [
+      { id:"app-1", applicant_id:"u-appl", pathway:"degree", status:"accepted",
+        form_data:{ name_zh:"申请人甲", programs:["bth"] }, locked_fields:[],
+        applicant_visible_message:null, submitted_at:"2026-09-01T00:00:00Z",
+        decided_at:"2026-09-06T00:00:00Z", created_at:"2026-08-20T00:00:00Z",
+        updated_at:"2026-09-06T00:00:00Z", assigned_reviewer:null } ] };
+    return true; })()`);
+  /* active() 在焦点落到 <body> 时只返回 { tag:"BODY" } —— attrs 是 undefined。
+     所有判据都要按可能缺字段来写（这一处漏了，当场 TypeError）。 */
+  const tabA = await tabUntil(a => (a.attrs || "").indexOf("data-tab") > -1 &&
+    /待总校确认/.test(a.text || ""), 30);
+  if (tabA.hit) { await press("Enter"); await sleep(1200); }
+  const hq = await tabUntil(a => (a.attrs || "").indexOf("data-hq") > -1, 60);
+  if (!hq.hit) {
+    console.log("    · 未测：这一轮没走到「记录总校确认」入口，"
+      + "两个不同动作共用 modal 的并发**未覆盖**（如实记，不算通过）");
+  } else {
+    await press("Enter"); await sleep(700);
+    ok("Dl9 前提：换成了「记录总校确认」那个对话框", (await modalUp()) === true);
+    const f2 = await tabUntil(a => (a.attrs || "").indexOf("data-f") > -1, 10);
+    if (f2.hit) await typeText("HQ-9");
+    await sleep(3000);                                 // 让建档那次的旧回执回来
+    ok("Dl10 旧动作的回执没有把这个**新动作**的框关掉", (await modalUp()) === true);
+    ok("Dl11 焦点也没被抢走", (await inModal()) === true, JSON.stringify(await active()));
+  }
+  edgeDelayMs = 0;
+  if (await modalUp()) await pressEsc();
 
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
