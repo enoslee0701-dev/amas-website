@@ -22,8 +22,21 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const MIME = { ".html":"text/html; charset=utf-8", ".js":"text/javascript; charset=utf-8",
   ".css":"text/css; charset=utf-8", ".png":"image/png", ".ico":"image/x-icon", ".woff2":"font/woff2" };
+/* 跨页累计器。window.__q 每次导航都会被重置 —— 拿它说「全程零写入」
+   只能代表最后那一页（监督点名）。所以让页内的每一次查询/RPC 都打一条
+   到**测试宿主**这边来，导航冲不掉。仍然是本地合成，不接任何真实服务。 */
+const probeLog = [];
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split("?")[0]);
+  if (p === "/__probe") {
+    let b = "";
+    req.on("data", (c) => { b += c; });
+    req.on("end", () => {
+      try { probeLog.push(JSON.parse(b)); } catch (e) {}
+      res.writeHead(204); res.end();
+    });
+    return;
+  }
   if (p.endsWith("/")) p += "index.html";
   if (p.indexOf("..") > -1) { res.writeHead(400); res.end("no"); return; }
   const abs = path.join(ROOT, p);
@@ -106,6 +119,14 @@ let edgeScript = [];                 // 按到达顺序取；取完用 fallback
 let edgeFallback = { status: 200, body: { ok: true } };
 
 const STUB = `
+var PROBE_URL = "${BASE}/__probe";
+function beacon(rec){
+  try {
+    var s = JSON.stringify(rec);
+    if (navigator.sendBeacon) navigator.sendBeacon(PROBE_URL, new Blob([s], { type:"text/plain" }));
+    else fetch(PROBE_URL, { method:"POST", body:s, keepalive:true });
+  } catch(e){}
+}
 window.supabase = { createClient: function(){
   var S = function(){ return window.__SCEN || {}; };
   var reply = function(v){ return Promise.resolve(v); };
@@ -122,6 +143,7 @@ window.supabase = { createClient: function(){
         var sc = S();
         /* 每一次查询都留痕：表、模式、列投影、eq 条件 —— 断言就读这里。 */
         try { (window.__q = window.__q || []).push({ name:name, mode:mode, cols:cols, eq:eqs }); } catch(e){}
+        beacon({ kind:"table", name:name, mode:mode, cols:cols, eq:eqs, page:location.pathname });
         var t = (mode === "select") ? ((sc.tables && sc.tables[name]) || { data:[], error:null })
                                     : (sc.write || { data:[], error:null });
         var out = { data:t.data, error:t.error||null,
@@ -155,8 +177,10 @@ window.supabase = { createClient: function(){
     from: table,
     rpc: function(name, args){
       try { (window.__rpc = window.__rpc || []).push({ name:name, args:args||null }); } catch(e){}
+      beacon({ kind:"rpc", name:name, args:args||null, page:location.pathname });
       if (name === "my_roles") return reply({ data:[{ role:"applicant" }], error:null, status:200 });
-      if (name === "my_profile") return reply({ data:{ display_name:"申请人甲", email:"a@example.invalid" }, error:null, status:200 });
+      if (name === "my_profile" && !(S().rpc && S().rpc.my_profile))
+        return reply({ data:{ display_name:"申请人甲", email:"a@example.invalid" }, error:null, status:200 });
       var r = (S().rpc && S().rpc[name]) || { data:null, error:null };
       return reply({ data:r.data, error:r.error||null, status: r.status != null ? r.status : (r.error ? 500 : 200) });
     },
@@ -242,9 +266,13 @@ try {
     return { hit: false, at: await where() };
   };
 
+  /* 唯一标识：光看「草稿」这个徽章证明不了走到的是同一份申请
+     （监督点名）。所以给这一份配一个**只属于它**的可见特征，
+     再配上「请求里带的就是这个 id」的关联证据。 */
+  const UNIQ = "申请人甲-UNIQ-7391";
   const APP = (over) => Object.assign({
     id:"app-1", pathway:"degree", status:"draft",
-    form_data:{ name_zh:"申请人甲", programs:["bth"] }, form_version:"v1",
+    form_data:{ name_zh:UNIQ, programs:["bth"] }, form_version:"v1",
     locked_fields:[], applicant_visible_message:null,
     submitted_at:null, decided_at:null, updated_at:"2026-09-06T00:00:00Z",
   }, over || {});
@@ -256,8 +284,20 @@ try {
       application_requirements: { data: [] },
       application_status_history: { data: [] },
       application_hq_approvals: { data: [] },
+      /* 历史申请页读的是 applications 表（my_application 刻意排除了这两种状态）。 */
+      applications: { data:[
+        { id:"app-old-1", pathway:"common_learning", status:"withdrawn",
+          applicant_visible_message:"这一份由我自己撤回-UNIQ-A", submitted_at:"2025-09-01T00:00:00Z",
+          decided_at:"2025-09-20T00:00:00Z", created_at:"2025-08-01T00:00:00Z" },
+        { id:"app-old-2", pathway:"bth", status:"rejected",
+          applicant_visible_message:"这一份未通过-UNIQ-B", submitted_at:"2024-09-01T00:00:00Z",
+          decided_at:"2024-09-20T00:00:00Z", created_at:"2024-08-01T00:00:00Z" } ] },
     },
-    rpc: { my_application: { data:[APP(appOver)] }, my_application_timeline: { data: [] } },
+    rpc: { my_application: { data:[APP(appOver)] },
+           my_application_timeline: { data:[
+             { to_status:"withdrawn", created_at:"2025-09-20T00:00:00Z",
+               applicant_visible_message:"时间线里这一条-UNIQ-T" } ] },
+           my_profile: { data:{ display_name:UNIQ, email:"uniq7391@example.invalid" } } },
     write: { data:[], error:null },
   }) + "; window.__q=[]; window.__rpc=[];";
   const goHome = async (appOver) => {
@@ -275,7 +315,9 @@ try {
   /* 每一页的第一条键盘出口：跳到主要内容。不管用的话，他每翻一页
      都得把整条导航 Tab 一遍才碰得到正文。 */
   const s1 = await tabTo((w) => /skip/.test(w.cls || "") || /跳到主要内容/.test(w.text || ""), 6);
-  ok("J1 首页上第一次 Tab 就能碰到「跳到主要内容」", s1.hit === true, JSON.stringify(s1.at));
+  /* 「碰得到」不等于「第一下就碰得到」—— 必须是 steps === 1（监督点名）。 */
+  ok("J1 首页上**第一次** Tab 就落在「跳到主要内容」上",
+     s1.hit === true && s1.steps === 1, JSON.stringify(s1));
   await press("Enter");
   await sleep(400);
   ok("J2 按下之后焦点真的进了正文（不必把导航整条 Tab 一遍）",
@@ -291,12 +333,22 @@ try {
   await sleep(2200);
 
   const s2 = await tabTo((w) => /skip/.test(w.cls || "") || /跳到主要内容/.test(w.text || ""), 6);
-  ok("J5 新页面上同样第一下就碰得到「跳到主要内容」（跨页一致）", s2.hit === true,
-     JSON.stringify(s2.at));
+  ok("J5 新页面上同样是**第一下** Tab 就落在它上面（跨页一致）",
+     s2.hit === true && s2.steps === 1, JSON.stringify(s2));
   await press("Enter"); await sleep(400);
   ok("J6 按下之后焦点也进了正文", (await inMain()) === true, JSON.stringify(await where()));
-  ok("J7 而且这里确实是同一份申请（状态是草稿）", (await badge()) === "草稿",
-     JSON.stringify(await badge()));
+  /* 同一份申请要有**证据**：① 页面上出现只属于它的那个标识；
+     ② 这一页发出的请求里带的就是它的 id（application_requirements 的
+     eq.application_id，见 application/index.html:365）。徽章只说明状态。 */
+  const seenUniq = await cdp.ev(`(()=>{const m=document.getElementById("main");
+    const t=(m?m.textContent:"")||""; const v=[...document.querySelectorAll("input")]
+      .map(i=>i.value||"").join(" "); return (t+" "+v).indexOf(${JSON.stringify(UNIQ)}) > -1;})()`);
+  const corr = probeLog.filter(r => r.kind === "table" && r.name === "application_requirements" &&
+    r.page.indexOf("/application/") > -1 && r.eq && r.eq.application_id === "app-1");
+  ok("J7 走到的确实是**同一份申请**：页面上有只属于它的标识",
+     seenUniq === true, JSON.stringify({ seenUniq, badge: await badge() }));
+  ok("J7b 而且这一页发出的请求带的就是它的 id（请求关联证据）",
+     corr.length >= 1, JSON.stringify(probeLog.filter(r => r.kind === "table").slice(-3)));
 
   /* 走回首页：用导航里的「首页」链接，全程键盘。 */
   const back = await tabTo((w) => w.tag === "A" && /portal\/applicant\/$/.test(w.href || ""), 40);
@@ -327,9 +379,104 @@ try {
   ok("J12 首页的下一步**跟着状态变了**（不是还停在草稿那一套说法）",
      homeSubmitted !== homeDraft && /已提交|等待|查看申请/.test(homeSubmitted),
      JSON.stringify({ draftHead: homeDraft.slice(0, 60), nowHead: homeSubmitted.slice(0, 60) }));
-  ok("J13 这一整段全是导航与读取，没有产生任何写入",
-     (await writes()).length === 0 && edgeCalls.length === 0,
-     JSON.stringify({ writes: await writes(), edgeCalls }));
+  /* 跨页累计：window.__q 每次导航都清零，只能代表最后一页 ——
+     这里读的是**宿主**收到的全部记录（每一页都打过来了）。 */
+  const hostWrites = probeLog.filter(r => r.kind === "table" && r.mode !== "select");
+  const hostRpcWrites = probeLog.filter(r => r.kind === "rpc" &&
+    /^(update_|insert_|submit_|withdraw_|resolve_|review_|confirm_|create_|activate_|correct_|request_|approve_|reject_)/.test(r.name || ""));
+  const pagesSeen = [...new Set(probeLog.map(r => r.page))];
+  ok("J13 这一整段（**每一页都算上**）全是导航与读取，没有任何写入",
+     hostWrites.length === 0 && hostRpcWrites.length === 0 && edgeCalls.length === 0,
+     JSON.stringify({ hostWrites, hostRpcWrites, edgeCalls }));
+  ok("J13b 而且累计器确实覆盖了走过的每一页（不是只剩最后一页）",
+     pagesSeen.filter(x => /\/portal\/applicant\/$/.test(x)).length >= 1 &&
+     pagesSeen.filter(x => /\/application\/$/.test(x)).length >= 1,
+     JSON.stringify({ pagesSeen, records: probeLog.length }));
+
+  // ════════ H 历史申请：主线之外的那一页，键盘走得过去也回得来 ════════
+  console.log("\n=== H 跨页：主线 → 历史申请 → 回主线 ===");
+  const hs = await tabTo((w) => w.tag === "A" && /portal\/applicant\/history\/$/.test(w.href || ""), 40);
+  ok("H0 Tab 走得到导航里的「历史申请」", hs.hit === true, JSON.stringify(hs.at));
+  await press("Enter");
+  ok("H1 Enter 真的走过去了",
+     await until(async () => /\/portal\/applicant\/history\/$/.test(await path_()), 9000),
+     JSON.stringify(await path_()));
+  await sleep(2200);
+  const hsk = await tabTo((w) => /skip/.test(w.cls || "") || /跳到主要内容/.test(w.text || ""), 6);
+  ok("H2 这一页也是**第一下** Tab 就落在「跳到主要内容」上",
+     hsk.hit === true && hsk.steps === 1, JSON.stringify(hsk));
+  await press("Enter"); await sleep(400);
+  ok("H3 按下之后焦点进了正文", (await inMain()) === true, JSON.stringify(await where()));
+  const htext = await mainText();
+  ok("H4 列出的是**已结束**的那两份（各自的唯一标识都在）",
+     htext.indexOf("这一份由我自己撤回-UNIQ-A") > -1 && htext.indexOf("这一份未通过-UNIQ-B") > -1,
+     JSON.stringify(htext.slice(0, 120)));
+  ok("H4b 而且没有把主线上**进行中**的那一份混进来",
+     htext.indexOf(UNIQ) < 0, JSON.stringify(htext.slice(0, 120)));
+  const tl = await tabTo((w) => /查看状态变化/.test(w.text || ""), 30);
+  ok("H5 Tab 走得到「查看状态变化」", tl.hit === true, JSON.stringify(tl.at));
+  await press("Enter");
+  ok("H6 Enter 真的展开了时间线（而且是这一份自己的那条记录）",
+     await until(async () => (await mainText()).indexOf("时间线里这一条-UNIQ-T") > -1, 9000),
+     JSON.stringify((await mainText()).slice(0, 140)));
+  const afterTl = await where();
+  ok("H7 展开之后焦点没有掉回页首（还在那个按钮上）",
+     afterTl.tag === "BUTTON" && /收起状态变化|查看状态变化/.test(afterTl.text || ""),
+     JSON.stringify(afterTl));
+  ok("H8 展开时间线走的是读取，不是写入",
+     probeLog.filter(r => r.kind === "rpc" && r.name === "my_application_timeline").length >= 1 &&
+     probeLog.filter(r => r.kind === "table" && r.mode !== "select").length === 0,
+     JSON.stringify(probeLog.filter(r => r.kind === "rpc").slice(-2)));
+  const backApp = await tabTo((w) => w.tag === "A" && /portal\/applicant\/application\/$/.test(w.href || ""), 40);
+  ok("H9 从这一页用键盘回得到主线「我的申请」", backApp.hit === true &&
+     (await (async () => { await press("Enter");
+       return until(async () => /\/application\/$/.test(await path_()), 9000); })()) === true,
+     JSON.stringify(await path_()));
+  await sleep(2000);
+  const backUniq = await cdp.ev(`(()=>{const m=document.getElementById("main");
+    const t=(m?m.textContent:"")||""; const v=[...document.querySelectorAll("input")]
+      .map(i=>i.value||"").join(" "); return (t+" "+v).indexOf(${JSON.stringify(UNIQ)}) > -1;})()`);
+  ok("H10 回来的还是那一份进行中的申请（唯一标识还在）", backUniq === true);
+
+  // ════════ P 个人资料：同一个人，走得过去也回得来 ════════
+  console.log("\n=== P 跨页：主线 → 个人资料 → 回首页 ===");
+  const pf = await tabTo((w) => w.tag === "A" && /portal\/applicant\/profile\/$/.test(w.href || ""), 40);
+  ok("P0 Tab 走得到导航里的「个人资料」", pf.hit === true, JSON.stringify(pf.at));
+  await press("Enter");
+  ok("P1 Enter 真的走过去了",
+     await until(async () => /\/portal\/applicant\/profile\/$/.test(await path_()), 9000),
+     JSON.stringify(await path_()));
+  await sleep(2200);
+  const psk = await tabTo((w) => /skip/.test(w.cls || "") || /跳到主要内容/.test(w.text || ""), 6);
+  ok("P2 这一页也是**第一下** Tab 就落在「跳到主要内容」上",
+     psk.hit === true && psk.steps === 1, JSON.stringify(psk));
+  await press("Enter"); await sleep(400);
+  ok("P3 按下之后焦点进了正文", (await inMain()) === true, JSON.stringify(await where()));
+  const ptext = await cdp.ev(`(()=>{const m=document.getElementById("main");
+    const t=(m?m.textContent:"")||""; const v=[...document.querySelectorAll("input")]
+      .map(i=>i.value||"").join(" "); return t+" "+v;})()`);
+  ok("P4 显示的确实是**同一个人**（唯一标识在页面上）",
+     ptext.indexOf(UNIQ) > -1 || ptext.indexOf("uniq7391@example.invalid") > -1,
+     JSON.stringify(ptext.slice(0, 120)));
+  const home2 = await tabTo((w) => w.tag === "A" && /portal\/applicant\/$/.test(w.href || ""), 40);
+  ok("P5 从这一页用键盘回得到首页", home2.hit === true &&
+     (await (async () => { await press("Enter");
+       return until(async () => /\/portal\/applicant\/$/.test(await path_()), 9000); })()) === true,
+     JSON.stringify(await path_()));
+  await sleep(2000);
+  const wEnd = probeLog.filter(r => r.kind === "table" && r.mode !== "select");
+  const rEnd = probeLog.filter(r => r.kind === "rpc" &&
+    /^(update_|insert_|submit_|withdraw_|resolve_|review_|confirm_|create_|activate_|correct_|request_|approve_|reject_)/.test(r.name || ""));
+  ok("P6 这四页走下来（宿主累计），一次写入都没有",
+     wEnd.length === 0 && rEnd.length === 0 && edgeCalls.length === 0,
+     JSON.stringify({ wEnd, rEnd, edgeCalls }));
+  const pages = [...new Set(probeLog.map(r => r.page))];
+  ok("P7 累计器确实覆盖到四页（首页 / 我的申请 / 历史申请 / 个人资料）",
+     pages.filter(x => /\/portal\/applicant\/$/.test(x)).length >= 1 &&
+     pages.filter(x => /\/application\/$/.test(x)).length >= 1 &&
+     pages.filter(x => /\/history\/$/.test(x)).length >= 1 &&
+     pages.filter(x => /\/profile\/$/.test(x)).length >= 1,
+     JSON.stringify({ pages, records: probeLog.length }));
 
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
