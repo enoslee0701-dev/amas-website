@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>学籍管理 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609132321">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609132346">
 <style>
 .tabs{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap}
 .tabs button{min-height:40px;padding:0 16px;border:1.5px solid var(--line);border-radius:999px;background:#fff;
@@ -32,11 +32,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609132321"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609132321"></script>
-<script src="../../../assets/js/portal/api.js?v=202609132321"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609132321"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609132321"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609132346"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609132346"></script>
+<script src="../../../assets/js/portal/api.js?v=202609132346"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609132346"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609132346"></script>
 <script>
 /* PORTAL-2 学籍管理（教务侧）
    闭环：录取 → 记录总校审核确认 → 建档(pre_enrolled) → 正式注册(active)；学号可经专用通道更正。
@@ -474,6 +474,28 @@
      关掉对话框**不等于**取消已经发出去的请求 —— 这一点要对他说清楚。
      锁在响应回来（成功或失败）时解开；换一个对象不受影响。 */
   const busyTargets = new Set();
+  /* 解锁**不能只是 delete** —— 他面前那个**正开着**的框并不知道。
+     监督实测：旧那一笔放行、回执也被消费之后，重开的框仍然全禁、说明还停在
+     「还没有回结果」，他得再关一次、再开一次才能继续
+     （本轮修前 Xr8/Xr9/Xr12 成功路、Xr18/Xr19/Xr22 失败路）。
+     所以锁除了记「谁在途」，还要记「谁在等这把锁」，回结果时通知到人。 */
+  const lockWaiters = new Map();                       // 对象标识 → 正卡在它上面的框
+  function whenFreed(lock, fn){
+    let s = lockWaiters.get(lock);
+    if (!s) lockWaiters.set(lock, (s = new Set()));
+    s.add(fn);
+    return () => { const t = lockWaiters.get(lock);
+      if (!t) return; t.delete(fn); if (!t.size) lockWaiters.delete(lock); };
+  }
+  /** 这一笔回结果了：解锁，并把结果告诉还等着的那些框。ok=是否成功，why=服务端给的原因。 */
+  function freeLock(lock, ok, why){
+    if (!lock) return;
+    busyTargets.delete(lock);
+    const s = lockWaiters.get(lock);
+    if (!s) return;
+    lockWaiters.delete(lock);
+    [...s].forEach((fn) => { try { fn(ok, why); } catch (e) {} });
+  }
 
   /** 通用表单弹窗（焦点可达、Esc 关闭）。lock 是这次操作的**对象标识**。 */
   function modal({ title, desc, fields, actions, lock }){
@@ -494,7 +516,17 @@
     /* 关掉之后要把焦点还给打开它的那个按钮 —— 否则取消一次就掉到 <body>，
        键盘用户得从表格头部重新 Tab 一遍（本轮实测 St6）。 */
     const prev = document.activeElement;
-    const close = () => { wrap.remove(); document.removeEventListener("keydown", onKey); prev?.focus?.(); };
+    /* closed / unwatch 要在 close 之前声明：close 里都要用到。
+       close 做成幂等，并且**关掉之后就不再去动页面**（焦点、按钮、说明）——
+       否则一笔迟到的回执会替一个早已不在屏幕上的框把焦点抢回去，
+       而这时他面前开着的是另一个框。 */
+    let closed = false, unwatch = null;
+    const close = () => {
+      if (closed) return;
+      closed = true;
+      if (unwatch) { unwatch(); unwatch = null; }
+      wrap.remove(); document.removeEventListener("keydown", onKey); prev?.focus?.();
+    };
     /* 焦点圈住：没有这一段，Tab 会一路走到遮罩**后面**的页面上
        （本轮实测：正向 10 次、反向 9 次跑到导航和 <body>）。
        对话框是 aria-modal="true"，读屏会告诉他「现在在对话框里」，
@@ -514,23 +546,40 @@
     document.addEventListener("keydown", onKey);
     wrap.querySelector("#m-cancel").addEventListener("click", close);
     wrap.querySelector(".pm-backdrop").addEventListener("click", close);
-    const sayBusy = () => {
-      const acts3 = wrap.querySelector(".pm-acts");
+    /* 框里只有一块说明，按状态改写。role="alert" 让读屏用户也听得到状态变了。 */
+    const noteBox = (tone) => {
       let bx = wrap.querySelector(".pm-err");
       if (!bx) {
         bx = document.createElement("div");
-        bx.className = "msg err show pm-err";
         bx.setAttribute("role", "alert");
         bx.style.margin = "10px 0";
+        const acts3 = wrap.querySelector(".pm-acts");
         acts3.parentNode.insertBefore(bx, acts3);
       }
-      bx.textContent = "这一份的上一次提交还没有回结果 —— 先等它回来。" +
-        "（刚才关掉对话框并没有取消那一次提交。）";
+      bx.className = "msg " + (tone || "err") + " show pm-err";
+      return bx;
     };
-    if (lock && busyTargets.has(lock)) {
-      wrap.querySelectorAll("[data-act]").forEach((x) => { x.disabled = true; });
-      sayBusy();
-    }
+    const setActs = (on) => wrap.querySelectorAll("[data-act]").forEach((x) => { x.disabled = !on; });
+    /* 这一份正在途：禁掉动作、说清楚为什么，**并且登记等着** ——
+       那一笔一回结果，这个框自己解锁、自己把说明换掉，
+       不必关掉再开第三次。解锁时**不动焦点、不清输入**：他可能正在打字。 */
+    const waitForFree = () => {
+      setActs(false);
+      noteBox("warn").textContent = "这一份的上一次提交还没有回结果 —— 先等它回来。" +
+        "（刚才关掉对话框并没有取消那一次提交。）";
+      if (unwatch) return;                               // 已经在等了，不重复登记
+      unwatch = whenFreed(lock, (ok, why) => {
+        unwatch = null;
+        if (closed) return;
+        setActs(true);
+        noteBox(ok ? "info" : "err").textContent = ok
+          ? "刚才那一次已经回结果了：已经记下，下面的列表也重新读过了。" +
+            "如果还要改，请先核对最新状态再提交。"
+          : "刚才那一次已经回结果了：没有成功" + (why ? "——" + why : "") +
+            "。你填的内容都还在，可以直接再提交一次。";
+      });
+    };
+    if (lock && busyTargets.has(lock)) waitForFree();
     wrap.querySelector("input")?.focus();
 
     wrap.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", async () => {
@@ -545,12 +594,10 @@
          谁后到谁说了算（本轮实测 Mu4：扣住 2 笔，都是 confirm_hq_approval）。
          「取消」不禁 —— 他随时可以退出去，那条路上一包已经验过是安全的。 */
       if (lock && busyTargets.has(lock)) {      // 关掉重开也绕不过去
-        wrap.querySelectorAll("[data-act]").forEach((x) => { x.disabled = true; });
-        sayBusy();
+        waitForFree();
         return;
       }
-      const actBtns = [...wrap.querySelectorAll("[data-act]")];
-      actBtns.forEach((x) => { x.disabled = true; });
+      setActs(false);
       if (lock) busyTargets.add(lock);
       /* 原来是**先 close() 再 run()** —— 服务端一拒绝（学号被占用、缺总校确认…），
          他刚打进去的学号就随对话框一起没了，只能重开、重打一遍；
@@ -558,20 +605,14 @@
          改成：先发，成功才关；失败就留在框里、把服务端那句话搬进来、
          焦点送回第一格，让他当场改。 */
       const res = await actions[+b.dataset.act].run(v);
-      if (lock) busyTargets.delete(lock);                // 回来了就解锁：失败也能再来
+      const why = res ? "" : (errBox.textContent || "").trim();
+      /* 回来了就解锁 —— 失败也能再来 —— 并把结果**告诉还等着这把锁的框**。
+         先通知、再处理自己这一个：他面前那个框不该等我关完才解锁。 */
+      if (lock) freeLock(lock, !!res, why);
+      if (closed) return;                                // 这个框早就关掉了，别再动页面
       if (res) { close(); return; }
-      actBtns.forEach((x) => { x.disabled = false; });   // 失败之后两个动作都能再来
-      const acts2 = wrap.querySelector(".pm-acts");
-      let ebox = wrap.querySelector(".pm-err");
-      if (!ebox) {
-        ebox = document.createElement("div");
-        ebox.className = "msg err show pm-err";
-        ebox.setAttribute("role", "alert");
-        ebox.style.margin = "10px 0";
-        acts2.parentNode.insertBefore(ebox, acts2);
-      }
-      ebox.textContent = (errBox.textContent || "").trim() ||
-        "这一次没有成功。你填的内容还在，请修改后再试。";
+      setActs(true);                                     // 失败之后两个动作都能再来
+      noteBox("err").textContent = why || "这一次没有成功。你填的内容还在，请修改后再试。";
       wrap.querySelector("input")?.focus();
     }));
   }

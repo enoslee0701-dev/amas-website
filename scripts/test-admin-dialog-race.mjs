@@ -117,6 +117,12 @@ let edgeReject = false;
    这比「延迟 N 毫秒」确定得多 —— 放行之前它一定没回，放行之后才有可能回。 */
 let edgeHold = false;
 let heldEdge = [];
+/* 失败也要按**这个动作自己的契约**来合成。
+   confirm_hq_approval 不是 {ok:false,...}：它在 SQL 里 raise exception 'invalid_state'
+   （0012_student_core.sql:320），student-lifecycle/index.ts:145 把它转成
+   **HTTP 409 {error:"invalid_state"}**。套用建档那一套 200 {ok:false,student_number_taken}
+   等于测了一条这个动作上根本不存在的路。edgeFailAs 优先于 edgeReject。 */
+let edgeFailAs = null;                                  // { status, body }
 let nativeDialogs = [];   // 浏览器原生 alert/confirm（阻塞式，键盘用户无处可去）
 const CORS = [
   { name: "Access-Control-Allow-Origin", value: "*" },
@@ -218,10 +224,12 @@ try {
         let body = null;
         try { body = ev.request.postData || null; } catch (e) {}
         edgeCalls.push({ method, url: u, body });    // 只有真正的 POST 才记账
-        const payload = edgeReject ? { ok: false, error: "student_number_taken" } : { ok: true };
+        const status = edgeFailAs ? edgeFailAs.status : 200;
+        const payload = edgeFailAs ? edgeFailAs.body
+                      : (edgeReject ? { ok: false, error: "student_number_taken" } : { ok: true });
         const send = async () => {
           try {
-            await cdp.send("Fetch.fulfillRequest", { requestId: ev.requestId, responseCode: 200,
+            await cdp.send("Fetch.fulfillRequest", { requestId: ev.requestId, responseCode: status,
               responseHeaders: CORS.concat([{ name:"Content-Type", value:"application/json" }]),
               body: b64(JSON.stringify(payload)) });
           } catch (e) {}
@@ -673,6 +681,29 @@ try {
     await press("Enter");
     return true;
   };
+  /* 判「锁住 / 解开」一律读**状态与结构**，不去猜文案怎么写：
+     上一版 Xl8-4 匹配的是「还没回来」，而产品里那句其实是「还没有回结果」——
+     这种断言就算产品真把说明写错了也照样绿。 */
+  const actsState = async () => cdp.ev(`(()=>[...document.querySelectorAll(".portal-modal [data-act]")]
+    .map(b => ({ t:(b.textContent||"").trim(), d:!!b.disabled })))()`);
+  const actsAllOn = async () => { const a = await actsState(); return a.length >= 2 && a.every(b => !b.d); };
+  const actsAllOff = async () => { const a = await actsState(); return a.length >= 2 && a.every(b => b.d); };
+  const noteText = async () => cdp.ev(`(()=>{const e=document.querySelector(".portal-modal .pm-err");
+    return e ? (e.textContent||"").trim() : null;})()`);
+  const refVal = async () => cdp.ev(`(()=>{const i=document.querySelector('.portal-modal [data-f="ref"]');
+    return i ? i.value : null;})()`);
+  const pageErrText = async () => cdp.ev(`(()=>{const e=document.getElementById("err");
+    return e && e.classList.contains("show") ? (e.textContent||"").trim() : "";})()`);
+  /* 真实 Tab 走到指定的那一个入口（attrs 只给属性**名**，值要单独读）。 */
+  const hqFocused = async () => cdp.ev(`(()=>{const a=document.activeElement;
+    return a && a.dataset ? (a.dataset.hq || "") : "";})()`);
+  const tabToHq = async (want, max) => {
+    for (let i = 1; i <= (max || 80); i++) {
+      await press("Tab");
+      if ((await hqFocused()) === want) return { hit: true, steps: i };
+    }
+    return { hit: false, steps: max || 80, at: await active() };
+  };
 
   await openAdmin("/portal/admin/students/");
   edgeHold = true; heldEdge = [];
@@ -731,15 +762,18 @@ try {
   ok("Xl8-1 前提：第一份的那一笔被扣住", await until(async () => heldEdge.length === 1, 6000));
   await pressEsc();
   // 第二份：应当照常可用
-  const h2 = await cdp.ev(`(()=>{const bs=[...document.querySelectorAll("[data-hq]")];
-    const b=bs[1]; if(!b) return null; b.focus(); return b.dataset.hq;})()`);
-  ok("Xl8-2 前提：聚焦到第二份申请的入口", h2 === hqButtons[1], JSON.stringify([h2, hqButtons]));
+  /* 上一版这里是 b.focus() —— 那是拿 JS 替键盘用户走了一步，
+     整组就不能再说「全程真实按键」。Esc 之后焦点回到第一份的入口，
+     从那里**真的按 Tab**走到第二份。 */
+  const h2 = await tabToHq(hqButtons[1], 80);
+  ok("Xl8-2 前提：真实 Tab 走得到第二份申请的入口", h2.hit === true, JSON.stringify(h2));
   await press("Enter"); await sleep(600);
   ok("Xl8-3 第二份申请的框正常打开", (await modalUp()) === true);
-  const busyShown = await cdp.ev(`(()=>{const e=document.querySelector(".portal-modal .pm-err");
-    return e ? (e.textContent||"") : "";})()`);
-  ok("Xl8-4 没有被第一份的在途锁误伤（没有「还没回来」那句）",
-     !/还没回来/.test(busyShown), JSON.stringify(busyShown));
+  const busyShown = await noteText();
+  const st8 = await actsState();
+  ok("Xl8-4 没有被第一份的在途锁误伤（按状态判：没有那段说明、动作都还能按）",
+     busyShown === null && st8.length >= 2 && st8.every(b => !b.d),
+     JSON.stringify({ busyShown, st8 }));
   await clickAct(/记录为已确认/);
   ok("Xl8-5 第二份能照常发出自己的那一笔",
      await until(async () => heldEdge.length === 2, 6000), "扣住 " + heldEdge.length + " 笔");
@@ -750,7 +784,7 @@ try {
 
   /* 失败之后同一个对象还能再来（锁在响应回来时解开，不管成败）。 */
   await openAdmin("/portal/admin/students/");
-  edgeHold = true; edgeReject = true; heldEdge = [];
+  edgeHold = true; edgeFailAs = { status: 409, body: { error: "invalid_state" } }; heldEdge = [];
   ok("Xl9-0 前提：框开着", (await openHq()) === true);
   await clickAct(/记录为已确认/);
   ok("Xl9-1 前提：扣住一笔", await until(async () => heldEdge.length === 1, 6000));
@@ -762,7 +796,101 @@ try {
   await clickAct(/记录为未通过/);
   ok("Xl9-3 失败之后可以重试，新的那一笔发得出去",
      await until(async () => heldEdge.length === 1, 6000), "扣住 " + heldEdge.length + " 笔");
-  edgeHold = false; edgeReject = false;
+  edgeHold = false; edgeFailAs = null;
+  for (const hd of heldEdge) await hd.send();
+  heldEdge = [];
+  await sleep(600);
+  if (await modalUp()) await pressEsc();
+
+  console.log("\n=== Xr 重开的框正卡着：旧那一笔回来之后，它自己能不能继续 ===");
+  /* 上一包只做到「关掉重开也按不动」。可是锁是模块里的一个 Set，
+     解锁只是 busyTargets.delete —— **他面前那个还开着的框并不知道**。
+     旧那一笔回来之后，框还是全禁、说明还停在「还没有回结果」，
+     他得再关一次、再开一次才能继续（监督实测：SUP reopened dialog unlocks… FAIL）。
+     上一版 Xl7 放行之后立刻按了 Esc，正好把这一段盖住了。
+     成功、失败两条路各扣住/放行一次；断言只读**状态**（disabled / 说明变没变 /
+     输入还在不在 / activeElement 动没动），不猜文案。 */
+
+  // ── 甲：旧那一笔**成功**回来 ─────────────────────────────────────────
+  await openAdmin("/portal/admin/students/");
+  edgeHold = true; heldEdge = [];
+  ok("Xr0 前提：同一份申请的确认框开着", (await openHq()) === true);
+  ok("Xr1 前提：按下「记录为已确认」", (await clickAct(/记录为已确认/)) === true);
+  ok("Xr2 前提：这一笔被扣住（还没回结果）",
+     await until(async () => heldEdge.length === 1, 6000), "扣住 " + heldEdge.length + " 笔");
+  await pressEsc();
+  ok("Xr3 前提：框关掉了，但请求没有被取消", (await modalUp()) === false);
+  ok("Xr4 前提：同一份申请的框又开起来了", (await hqAgain()) === true);
+  await markDialog("reopen-ok");
+  const lockedNote = await noteText();
+  ok("Xr5 前提：重开的这个框此刻确实是锁住的（动作全禁 + 给了说明）",
+     (await actsAllOff()) === true && !!lockedNote,
+     JSON.stringify({ acts: await actsState(), lockedNote }));
+  await typeText("REF-77");                      // 焦点开框时就在第一格，直接打
+  ok("Xr6 前提：他已经在这个还开着的框里打了字", (await refVal()) === "REF-77",
+     JSON.stringify(await refVal()));
+  const focusBeforeA = JSON.stringify(await active());
+  const toastA = await toastText();
+  await heldEdge[0].send();                      // 放行旧那一笔：这一次成功
+  ok("Xr7 前提：旧那一笔的回执被前端消费了",
+     await until(async () => { const t = await toastText(); return t && t !== toastA; }, 8000),
+     JSON.stringify(await toastText()));
+  const freedA = await until(async () => actsAllOn(), 6000);
+  ok("Xr8 旧的回来之后，**还开着的那个框**自己解锁了（不必再关一次重开）",
+     freedA === true && (await dialogMark()) === "reopen-ok",
+     JSON.stringify({ acts: await actsState(), mark: await dialogMark() }));
+  const noteA = await noteText();
+  ok("Xr9 说明跟着那一笔的结果更新了，没有停在「还没有回结果」上",
+     !!noteA && noteA !== lockedNote, JSON.stringify({ lockedNote, noteA }));
+  ok("Xr10 他刚打的内容还在", (await refVal()) === "REF-77", JSON.stringify(await refVal()));
+  ok("Xr11 焦点没有被抢走", JSON.stringify(await active()) === focusBeforeA,
+     JSON.stringify({ before: focusBeforeA, now: await active() }));
+  heldEdge = [];
+  const sentA = (await clickAct(/记录为未通过/)) === true &&
+                await until(async () => heldEdge.length === 1, 6000);
+  ok("Xr12 解锁之后按下去，这一笔真的发得出去（同一个框，没有第三次开关）",
+     sentA === true, "扣住 " + heldEdge.length + " 笔");
+  for (const hd of heldEdge) await hd.send();
+  edgeHold = false; heldEdge = [];
+  await sleep(800);
+  if (await modalUp()) await pressEsc();
+
+  // ── 乙：旧那一笔**失败**回来（按 confirm_hq_approval 的真实契约：409 invalid_state）─
+  await openAdmin("/portal/admin/students/");
+  edgeHold = true; edgeFailAs = { status: 409, body: { error: "invalid_state" } }; heldEdge = [];
+  ok("Xr13 前提：同一份申请的确认框开着", (await openHq()) === true);
+  ok("Xr14 前提：按下并被扣住",
+     (await clickAct(/记录为已确认/)) === true &&
+     await until(async () => heldEdge.length === 1, 6000), "扣住 " + heldEdge.length + " 笔");
+  await pressEsc();
+  ok("Xr15 前提：重开同一份申请的框，此刻是锁住的", (await hqAgain()) === true);
+  await markDialog("reopen-fail");
+  const lockedNoteB = await noteText();
+  ok("Xr16 前提：确实锁着（动作全禁 + 给了说明）",
+     (await actsAllOff()) === true && !!lockedNoteB,
+     JSON.stringify({ acts: await actsState(), lockedNoteB }));
+  await typeText("REF-88");
+  const focusBeforeB = JSON.stringify(await active());
+  await heldEdge[0].send();                      // 放行：这一次被服务端拒绝
+  ok("Xr17 前提：这条失败回执被前端消费了（页面上给出了原因）",
+     await until(async () => (await pageErrText()).length > 0, 8000),
+     JSON.stringify(await pageErrText()));
+  const freedB = await until(async () => actsAllOn(), 6000);
+  ok("Xr18 失败的那一笔回来之后，还开着的框也解锁了",
+     freedB === true && (await dialogMark()) === "reopen-fail",
+     JSON.stringify({ acts: await actsState(), mark: await dialogMark() }));
+  const noteB = await noteText();
+  ok("Xr19 说明换成了「那一笔的结果」，既不是等待那句、也不是成功那句",
+     !!noteB && noteB !== lockedNoteB && noteB !== noteA,
+     JSON.stringify({ lockedNoteB, noteB, noteA }));
+  ok("Xr20 他刚打的内容还在", (await refVal()) === "REF-88", JSON.stringify(await refVal()));
+  ok("Xr21 焦点没有被抢走", JSON.stringify(await active()) === focusBeforeB,
+     JSON.stringify({ before: focusBeforeB, now: await active() }));
+  heldEdge = [];
+  const sentB = (await clickAct(/记录为未通过/)) === true &&
+                await until(async () => heldEdge.length === 1, 6000);
+  ok("Xr22 失败之后，这个框按下去发得出新的一笔", sentB === true, "扣住 " + heldEdge.length + " 笔");
+  edgeHold = false; edgeFailAs = null;
   for (const hd of heldEdge) await hd.send();
   heldEdge = [];
   await sleep(600);
