@@ -151,11 +151,24 @@ const ONLY = String(process.env.ONLY || "").split(",").map((x) => x.trim()).filt
 const RUN = (g) => !ONLY.length || ONLY.indexOf(g) > -1;
 /* **组隔离**（监督口径：不许靠加长 timeout 赌绿）。
    Sf / Se / Sp 这三组都会把页面留在「改过没保存」的状态再离开，
-   各自会触发一次 beforeunload 原生对话框。实测：一个浏览器会话里连着跑
-   第二个这样的组之后，CDP 的 Input / Runtime / Page.handleJavaScriptDialog
-   会**一起**不再响应 —— 连每步都设了 2.5s 上限的诊断都返回不了。
-   这是探针/会话层面的问题；**产品侧这三组各自分开跑都是绿的**。
-   在定位清楚之前宁可**拒跑**，也不给一个含糊的结果，更不去调长超时。 */
+   各自会触发一次 beforeunload 原生对话框；连着跑第二个之后整个会话就不再应答。
+
+   第 125 包在看门狗下把原组合当诊断跑了一次（90s 期限，只此一次），
+   分层读数把**范围订正了**——原先这里写「探针/会话层面」说小了：
+     · 0–20s   St 19/19、Sf 6/6 全绿，三层读数 0–2ms，未决请求恒为 0；
+     · 19.7s   beforeunload 弹出并**被应答**（closed result=true）；
+     · 31.6s   进 Se 后**同时**断掉：renderer(Runtime.evaluate)、
+               page 的 browser 侧(Page.getNavigationHistory)、
+               以及**另一条独立的 browser 级连接**(Browser.getVersion)、
+               Target.getTargets、Input.dispatchKeyEvent、handleJavaScriptDialog
+               —— 全部 TIMEOUT，一直到 90s 都没回来。
+   两条结论是硬的：
+     (1) 卡住的不只是渲染进程或这个 page target，**整个浏览器进程的 DevTools 都不应答了**；
+     (2) 「有个没应答的对话框挡着」被排除 —— 那次对话框早在 12 秒前就应答关闭了，
+         而且第 124 包的最小夹具显示对话框开着时 Browser.getVersion 照常 OK(1ms)。
+   到底是什么把浏览器进程卡住，**仍未证实**。所以隔离照旧：
+   在定位清楚之前宁可**拒跑**，也不给一个含糊的结果，更不去调长超时。
+   （产品侧这三组各自分开跑都是绿的，本次组合里跑到的 25 条也全绿。） */
 const DIRTY_GROUPS = ["Sf", "Se", "Sp"];
 const dirtySelected = ONLY.length ? DIRTY_GROUPS.filter((g) => ONLY.indexOf(g) > -1) : DIRTY_GROUPS;
 if (dirtySelected.length > 1) {
