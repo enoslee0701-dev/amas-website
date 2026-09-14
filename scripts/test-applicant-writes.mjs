@@ -983,6 +983,67 @@ try {
   ok("Wd5 结果回来之后如实说「申请已撤回」",
      /已撤回/.test((wdToast && wdToast.text) || ""), JSON.stringify(wdToast));
 
+  /* ——— 监督 4aa318 点名：上一包只验到「在途期间封住」，
+         没验过**结果回来之后**那两条分支到底是解锁还是保持禁用。补上。——— */
+
+  // (a) 服务端给了**明确错误码** → 能确定这一笔没生效 → 解锁，让他重来
+  await open({ ...withApp, rpc: { my_application:{ data:[DRAFT] },
+    withdraw_application:{ data:null, error:{ code:"invalid_state", message:"invalid_state" }, status:409 } } });
+  await cdp.clickReal("#btnWithdraw");
+  await sleep(400);
+  await cdp.ev(`(()=>{const b=document.querySelector(".portal-modal [data-ok]"); if(b) b.click(); return !!b;})()`);
+  await sleep(1200);
+  const wdKnown = await cdp.ev(`(()=>{const b=document.getElementById("btnWithdraw");
+    return b ? { present:true, disabled:!!b.disabled } : { present:false };})()`);
+  ok("Wd6 服务端给了明确错误码时，撤回入口**重新可用**（能确定没生效，让他重来）",
+     wdKnown.present === true && wdKnown.disabled === false, JSON.stringify(wdKnown));
+  const beforeRetry = (await calls())["rpc:withdraw_application"] || 0;
+  await cdp.clickReal("#btnWithdraw");
+  await sleep(400);
+  await cdp.ev(`(()=>{const b=document.querySelector(".portal-modal [data-ok]"); if(b) b.click(); return !!b;})()`);
+  await sleep(1200);
+  ok("Wd6b 而且解锁不是摆样子 —— 再走一遍确实发得出去",
+     ((await calls())["rpc:withdraw_application"] || 0) === beforeRetry + 1,
+     JSON.stringify(await calls()));
+
+  // (b) 结果不明（error 没有 code）→ 保持禁用，别让他再发一笔
+  await open({ ...withApp, rpc: { my_application:{ data:[DRAFT] },
+    withdraw_application:{ data:null, error:{ message:"boom" }, status:500 } } });
+  await cdp.clickReal("#btnWithdraw");
+  await sleep(400);
+  await cdp.ev(`(()=>{const b=document.querySelector(".portal-modal [data-ok]"); if(b) b.click(); return !!b;})()`);
+  await sleep(1200);
+  const wdUnk = await cdp.ev(`(()=>{const b=document.getElementById("btnWithdraw");
+    return b ? { present:true, disabled:!!b.disabled } : { present:false };})()`);
+  ok("Wd7 结果不明时撤回入口**保持禁用**（这一笔可能已经生效）",
+     wdUnk.present === false || wdUnk.disabled === true, JSON.stringify(wdUnk));
+  const unkBefore = (await calls())["rpc:withdraw_application"] || 0;
+  await cdp.ev(`(()=>{const b=document.getElementById("btnWithdraw"); if(b) b.click(); return !!b;})()`);
+  await sleep(400);
+  await cdp.ev(`(()=>{const b=document.querySelector(".portal-modal [data-ok]"); if(b) b.click(); return !!b;})()`);
+  await sleep(1200);
+  ok("Wd7b 再点也发不出第二笔",
+     ((await calls())["rpc:withdraw_application"] || 0) === unkBefore, JSON.stringify(await calls()));
+  const unkToast = await toastNow();
+  ok("Wd7c 而且明说「不要重复撤回」、给的是刷新核实而不是重试",
+     /不要重复撤回/.test((unkToast && unkToast.text) || "") &&
+     /刷新/.test((unkToast && unkToast.text) || ""), JSON.stringify(unkToast));
+
+  // (c) {data:null, error:null}：没有可读结论 —— 同样保持禁用
+  await open({ ...withApp, rpc: { my_application:{ data:[DRAFT] },
+    withdraw_application:{ data:null, error:null, status:200 } } });
+  await cdp.clickReal("#btnWithdraw");
+  await sleep(400);
+  await cdp.ev(`(()=>{const b=document.querySelector(".portal-modal [data-ok]"); if(b) b.click(); return !!b;})()`);
+  await sleep(1200);
+  const wdNo = await cdp.ev(`(()=>{const b=document.getElementById("btnWithdraw");
+    return b ? { present:true, disabled:!!b.disabled } : { present:false };})()`);
+  ok("Wd8 没有可读结论时同样保持禁用（不是只有报错那一支才锁）",
+     wdNo.present === false || wdNo.disabled === true, JSON.stringify(wdNo));
+  const noToast = await toastNow();
+  ok("Wd8b 文案同样是「没能确认…不要重复撤回」",
+     /不要重复撤回/.test((noToast && noToast.text) || ""), JSON.stringify(noToast));
+
   // ════════ Lr 首屏/刷新后读不到申请时，不能说成「没有申请」════════
   console.log("\n=== Lr 刷新后没读到申请：不许当成「还没有申请」===");
 

@@ -265,6 +265,48 @@ try {
   ok("Hn5 时间线确实是空数组时，照常说「没有可显示的状态变化记录」",
      /没有可显示的状态变化记录/.test(await vis()));
 
+  // ════════ Ht 终态划分：两页加契约，三处必须说同一件事 ════════
+  console.log("\n=== Ht 终态划分：「我的申请」排除的，正好是「历史申请」列出的 ===");
+
+  /* 这一组是**源码/契约一致性检查**，不是浏览器行为检查 —— 如实标明。
+     理由：stub 不执行 .in() 过滤，喂什么列什么，所以「只列终态」这件事
+     在本机 stub 里量不出来；能量的是三处定义有没有说同一件事。
+     一旦它们分了岔，就会有某个状态**两页都不显示** —— 申请人那份申请凭空消失。 */
+  const SRC = (rel) => fs.readFileSync(path.join(ROOT, rel), "utf8");
+  const sql  = SRC("supabase/migrations/0008_applications.sql");
+  const appP = SRC("portal/applicant/application/index.html");
+  const hisP = SRC("portal/applicant/history/index.html");
+
+  const enumStates = (sql.match(/create type application_status as enum\s*\(([^)]*)\)/) || [])[1] || "";
+  const ENUM = [...enumStates.matchAll(/'([a-z_]+)'/g)].map(m => m[1]);
+  ok("Ht0 前提：契约里的状态枚举读得到（7 个）", ENUM.length === 7, JSON.stringify(ENUM));
+
+  const excluded = [...(sql.match(/status not in \('rejected','withdrawn'\)/g) || [])];
+  ok("Ht1 契约两处（唯一活动索引 :43、my_application :205）用的是同一条界线",
+     excluded.length >= 2, "命中 " + excluded.length + " 处");
+
+  const hisIn = (hisP.match(/in:\s*\{\s*status:\s*\[([^\]]*)\]/) || [])[1] || "";
+  const HIS = [...hisIn.matchAll(/"([a-z_]+)"/g)].map(m => m[1]).sort();
+  ok("Ht2 历史页查的正好是被排除的那两个",
+     JSON.stringify(HIS) === JSON.stringify(["rejected", "withdrawn"]), JSON.stringify(HIS));
+
+  const active = ENUM.filter(x => HIS.indexOf(x) < 0).sort();
+  ok("Ht3 不重不漏：活动集 ∪ 终态集 = 全部枚举，且交集为空",
+     active.length + HIS.length === ENUM.length &&
+     active.every(x => HIS.indexOf(x) < 0), JSON.stringify({ active, HIS }));
+
+  /* 同一个状态在两页必须叫同一个名字 —— 他在「我的申请」上看到「已撤回」，
+     到了「历史申请」就不该变成别的说法。 */
+  const labelOf = (src, key) => {
+    const m = src.match(new RegExp(key + "\\s*:\\s*\\{\\s*t\\s*:\\s*\"([^\"]+)\""));
+    return m ? m[1] : null;
+  };
+  for (const k of HIS) {
+    ok("Ht4 「" + k + "」在两页叫同一个名字",
+       labelOf(appP, k) !== null && labelOf(appP, k) === labelOf(hisP, k),
+       JSON.stringify({ 申请页: labelOf(appP, k), 历史页: labelOf(hisP, k) }));
+  }
+
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
   cdp.ws.close();
