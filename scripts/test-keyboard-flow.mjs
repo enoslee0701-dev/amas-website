@@ -250,7 +250,10 @@ try {
 
   /* ── 真实按键 ───────────────────────────────────────────────────────── */
   const KEYS = { Tab:{code:"Tab",key:"Tab",vk:9}, Enter:{code:"Enter",key:"Enter",vk:13},
-                 Space:{code:"Space",key:" ",vk:32}, ArrowDown:{code:"ArrowDown",key:"ArrowDown",vk:40} };
+                 Space:{code:"Space",key:" ",vk:32}, ArrowDown:{code:"ArrowDown",key:"ArrowDown",vk:40},
+                 ArrowRight:{code:"ArrowRight",key:"ArrowRight",vk:39},
+                 ArrowLeft:{code:"ArrowLeft",key:"ArrowLeft",vk:37},
+                 Home:{code:"Home",key:"Home",vk:36}, End:{code:"End",key:"End",vk:35} };
   const press = async (name, shift) => {
     const m = KEYS[name];
     const mods = shift ? 8 : 0;
@@ -340,6 +343,58 @@ try {
         return !!(b && b.classList.contains("on"));})()`)) === true);
   const k1d = await active();
   ok("K1d 换步之后焦点没被丢回页首", k1d.tag !== "BODY", JSON.stringify(k1d));
+
+  // ════════ Kt 步骤条声明成 tablist，就得能用方向键 ════════
+  console.log("\n=== Kt 步骤条：role=tab 说了话，方向键就得算数 ===");
+
+  /* 验收清单 4.3「全程只用键盘走完申请并提交」一直记 🟡：
+     单页 a11y 有覆盖，整条主线没专门验过。这里查的是其中一处**真实**缺口。
+
+     步骤条声明的是 ARIA 的 tabs 模式（index.html:488 role="tablist"、
+     :913 role="tab" + aria-selected）。按这套约定，键盘用户在标签之间是用
+     ←/→ 移动、Home/End 到首尾的 —— 这正是读屏用户看到 role="tab" 之后会做的事。
+     修前：按方向键**毫无反应**，只能一个个 Tab 过去。
+     声明了 role 却不给配套键盘行为，等于对辅助技术说了句做不到的话。 */
+  const stepNow = async () => cdp.ev(`(()=>{const b=document.querySelector('[data-step].on');
+    return b ? b.dataset.step : null;})()`);
+  const focusStep = async () => cdp.ev(`(()=>{const a=document.activeElement;
+    return a && a.dataset ? (a.dataset.step ?? null) : null;})()`);
+
+  await open({ write: OKW, tables: { ...TABLES, application_requirements: { data: REQS } },
+    rpc: { my_application: { data:[NEEDS] } } });
+  const kt0 = await tabUntil(a => a.step === "0", 40);
+  ok("Kt0 前提：Tab 落在第 1 步那个标签上", kt0.hit === true, JSON.stringify(kt0.at));
+  ok("Kt0b 前提：它确实声明了 tabs 模式（tablist + tab + aria-selected）",
+     (await cdp.ev(`(()=>{const t=document.getElementById("stepBar");
+        const b=t && t.querySelector('[data-step="0"]');
+        return !!(t && t.getAttribute("role")==="tablist" && b &&
+                  b.getAttribute("role")==="tab" && b.hasAttribute("aria-selected"));})()`)) === true);
+
+  await press("ArrowRight");
+  ok("Kt1 按 → 焦点移到下一步的标签上",
+     (await focusStep()) === "1", JSON.stringify(await active()));
+  ok("Kt1b 而且那一步真的被选中了（aria-selected 跟着走）",
+     (await stepNow()) === "1" &&
+     (await cdp.ev(`document.querySelector('[data-step="1"]').getAttribute("aria-selected")`)) === "true");
+
+  await press("ArrowLeft");
+  ok("Kt2 按 ← 退回上一步", (await focusStep()) === "0" && (await stepNow()) === "0",
+     JSON.stringify(await active()));
+
+  await press("End");
+  const last = await cdp.ev(`String(document.querySelectorAll("[data-step]").length - 1)`);
+  ok("Kt3 End 到最后一步", (await focusStep()) === last && (await stepNow()) === last, last);
+
+  await press("Home");
+  ok("Kt4 Home 回到第一步", (await focusStep()) === "0" && (await stepNow()) === "0");
+
+  await press("ArrowLeft");
+  ok("Kt5 在第一步按 ← 绕到最后一步（tabs 模式是环形的）",
+     (await focusStep()) === last, JSON.stringify(await active()));
+
+  await press("ArrowRight");
+  ok("Kt6 方向键换步之后焦点没有掉回页首",
+     (await active()).tag !== "BODY", JSON.stringify(await active()));
 
   console.log("\n=== K2 六步表单：Tab 能走进字段、Shift+Tab 能退回 ===");
   const k2 = await tabUntil(a => a.tag === "INPUT" || a.tag === "TEXTAREA" || a.tag === "SELECT", 40);

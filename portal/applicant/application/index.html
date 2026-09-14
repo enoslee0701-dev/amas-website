@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609141041">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609141104">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609141041"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609141041"></script>
-<script src="../../../assets/js/portal/api.js?v=202609141041"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609141041"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609141041"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609141041"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609141104"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609141104"></script>
+<script src="../../../assets/js/portal/api.js?v=202609141104"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609141104"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609141104"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609141104"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -919,6 +919,28 @@
          重新指到**当前这一步**的标签上：鼠标用户点的本来就是它，无感。 */
       document.querySelector(`[data-step="${step}"]`)?.focus();
     }));
+    /* 这条步骤条声明的是 ARIA 的 tabs 模式（容器 role="tablist"，每个按钮
+       role="tab" + aria-selected）。认这套约定的人 —— 尤其是读屏用户 ——
+       到了标签上就会按 ←/→ 走，Home/End 到首尾。修前按了**毫无反应**，
+       只能一个一个 Tab 过去。声明了 role 却不给配套的键盘行为，
+       等于对辅助技术说了一句自己做不到的话。
+       监听挂在容器上（按钮每次 buildSteps 都会被换掉），只挂一次。 */
+    if (!bar.dataset.kbd) {
+      bar.dataset.kbd = "1";
+      bar.addEventListener("keydown", (e) => {
+        if (e.altKey || e.ctrlKey || e.metaKey) return;
+        const n = F.STEPS.length;
+        let to = null;
+        if (e.key === "ArrowRight") to = (step + 1) % n;          // tabs 模式是环形的
+        else if (e.key === "ArrowLeft") to = (step - 1 + n) % n;
+        else if (e.key === "Home") to = 0;
+        else if (e.key === "End") to = n - 1;
+        else return;
+        e.preventDefault();                                       // 别让 Home/End 去滚页面
+        step = to; buildSteps(); renderStep();
+        document.querySelector(`[data-step="${step}"]`)?.focus();
+      });
+    }
     refreshStepBadges();
     renderStep();
   }
