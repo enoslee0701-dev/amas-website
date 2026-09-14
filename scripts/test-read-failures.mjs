@@ -98,6 +98,9 @@ window.supabase = {
     var S = function(){ return window.__SCEN || {}; };
     var reply = function(v){ return Promise.resolve(v); };
     var fail = function(name){ return (S().failRpc || []).indexOf(name) > -1; };
+    /* 「无结论」和「报错」是两种不同的返回，页面对它们的反应也该不同：
+       nullRpc 里的名字返回 error 为空、data 不是可用数组 —— 服务端没给出可读结论。 */
+    var noConc = function(name){ return (S().nullRpc || []).indexOf(name) > -1; };
     function table(name){
       var q = { select:function(){return q;}, eq:function(){return q;}, in:function(){return q;},
         order:function(){return q;}, range:function(){return q;}, limit:function(){return q;}, maybeSingle:function(){return q;},
@@ -118,6 +121,7 @@ window.supabase = {
       rpc: function(name){
         var sc = S();
         if (fail(name)) return reply({ data:null, error:{ message:"boom" }, status:500 });
+        if (noConc(name)) return reply({ data:(sc.nullShape !== undefined ? sc.nullShape : null), error:null, status:200 });
         if (name === "my_roles") return reply({ data:(sc.roles||["student"]).map(function(r){return {role:r};}), error:null, status:200 });
         if (name === "my_profile") return reply({ data:{ display_name:"测试学员", email:"a@example.invalid" }, error:null, status:200 });
         if (name === "my_student_record") return reply({ data:[{ student_number:"S-FX", status:"active", program_code:"bth", enrolled_at:"2026-01-01" }], error:null, status:200 });
@@ -205,6 +209,61 @@ try {
   const h2 = await vis();
   ok("H2 时间线读失败时同样说得出具体原因",
      !/操作未能完成/.test(h2), h2.slice(0, 240));
+
+  // ════════ Hn 历史页：没读到 ≠ 没有 ════════
+  console.log("\n=== Hn 历史申请：读不到时不许说成「没有」===");
+
+  /* 已有的 H1/H2 覆盖的是 **error 有值** 那一支（原因要说得具体）。
+     没覆盖的是「无结论」：error 为空、data 却不是可用数组。
+     列表那一处是 `const list = rows || []; if (!list.length) → 「还没有历史记录 /
+     你目前没有已结束的申请」`；这是在替服务端下判断，和申请页首屏那处是同一族。 */
+  await open("portal/applicant/history/", { roles:["applicant"],
+    tables:{ applications:{ data:null, error:null } } });
+  const hn1 = await vis();
+  /* 判据要对准**空态那句原文**。写成 /没有已结束的申请/ 会连新文案里
+     「无法确认你有没有已结束的申请」一起命中 —— 那是我自己的措辞，不是缺陷。 */
+  ok("Hn1 列表没读到时，不咬定「你目前没有已结束的申请」",
+     !/你目前没有已结束的申请|还没有历史记录/.test(hn1), hn1.slice(0, 240));
+  ok("Hn1b 而是如实说这一次没读到，并给刷新",
+     /没能读到|没读到|暂时读不到/.test(hn1) && /刷新/.test(hn1), hn1.slice(0, 280));
+
+  await open("portal/applicant/history/", { roles:["applicant"],
+    tables:{ applications:{ data:{}, error:null } } });
+  const hn2 = await vis();
+  ok("Hn2 返回的不是数组时，同样不当成「没有历史」",
+     !/你目前没有已结束的申请|还没有历史记录/.test(hn2), hn2.slice(0, 240));
+
+  /* 时间线那一处：`const items = tl || []; items.length ? … : 「这份申请没有可显示的状态变化记录。」`
+     按契约这句话**不可达** —— 撤回（0008:278）与退回/拒绝（0008:332）都会写一行
+     application_status_history，而历史页只列 rejected/withdrawn 两种。
+     所以它一旦显示出来，说的就是假话。 */
+  const ONE_REJ = { applications:{ data:[{ id:"a1", pathway:"degree", status:"rejected",
+    applicant_visible_message:"很遗憾", submitted_at:"2026-08-01T00:00:00Z",
+    decided_at:"2026-08-10T00:00:00Z", created_at:"2026-07-01T00:00:00Z" }] } };
+  await open("portal/applicant/history/", { roles:["applicant"], tables:ONE_REJ,
+    nullRpc:["my_application_timeline"] });
+  await cdp.ev(`(()=>{const b=document.querySelector("[data-tl]"); if(b) b.click(); return !!b;})()`);
+  await sleep(1500);
+  const hn3 = await vis();
+  ok("Hn3 时间线没读到时，不说成「这份申请没有可显示的状态变化记录」",
+     !/没有可显示的状态变化记录/.test(hn3), hn3.slice(0, 300));
+  ok("Hn3b 而是如实说这一次没读到",
+     /没能读到|没读到/.test(hn3), hn3.slice(0, 300));
+  ok("Hn3c 而且没被标成已加载 —— 下次点还能再试",
+     (await cdp.ev(`(()=>{const b=document.querySelector("[data-tl]"); return !b || b.dataset.loaded !== "1";})()`)) === true);
+
+  /* 反面：真的没有历史 / 时间线真的为空时，原来的说法照旧，不能为修这个把正常话堵掉。 */
+  await open("portal/applicant/history/", { roles:["applicant"],
+    tables:{ applications:{ data:[], error:null } } });
+  ok("Hn4 真的没有历史时（data: []），照常说「还没有历史记录」",
+     /还没有历史记录/.test(await vis()));
+
+  await open("portal/applicant/history/", { roles:["applicant"], tables:ONE_REJ,
+    nullRpc:["my_application_timeline"], nullShape:[] });
+  await cdp.ev(`(()=>{const b=document.querySelector("[data-tl]"); if(b) b.click(); return !!b;})()`);
+  await sleep(1500);
+  ok("Hn5 时间线确实是空数组时，照常说「没有可显示的状态变化记录」",
+     /没有可显示的状态变化记录/.test(await vis()));
 
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");

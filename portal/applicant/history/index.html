@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>历史申请 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609141027">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609141041">
 <style>
 .hitem{margin-bottom:14px}
 .hhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
@@ -32,11 +32,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609141027"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609141027"></script>
-<script src="../../../assets/js/portal/api.js?v=202609141027"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609141027"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609141027"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609141041"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609141041"></script>
+<script src="../../../assets/js/portal/api.js?v=202609141041"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609141041"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609141041"></script>
 <script>
 /* 申请者历史申请页。
 
@@ -84,7 +84,22 @@
   if (error) return UI.error(main, { message: error.message || Api.msg(error.code),
                                      onRetry: () => location.reload() });
 
-  const list = rows || [];
+  /* 「没读到」和「确实没有」是两件事。原来这里是 `const list = rows || [];`，
+     服务端给出无结论（error 为空、data 却是 null 或非数组）时，list 变成空，
+     页面就说「你目前没有已结束的申请」—— 那是在替服务端下判断。
+     与申请页首屏（78a8a4b）是同一族，那边已按 !Array.isArray 守住，这边补上。 */
+  if (!Array.isArray(rows)) {
+    main.innerHTML =
+      '<h1>历史申请</h1>' +
+      '<p class="lead">这里保存你已经结束的申请记录（未通过或已撤回）。</p>' +
+      UI.box("🔄", "这一次没读到你的历史申请",
+        "服务端没有给出可读的结果，所以现在无法确认你有没有已结束的申请。请刷新页面再看一次。") +
+      '<button class="btn" type="button" id="btnHistReload" style="width:auto;padding:0 22px;margin-top:12px">刷新页面</button>';
+    document.getElementById("btnHistReload")?.addEventListener("click", () => location.reload());
+    return;
+  }
+
+  const list = rows;
   if (!list.length) {
     main.innerHTML =
       '<h1>历史申请</h1>' +
@@ -154,7 +169,18 @@
       btn.setAttribute("aria-expanded", "true");
       return;                                // 失败不改 loaded，下次点还会重试
     }
-    const items = tl || [];
+    /* 同一条规矩：没读到不能说成「没有」。
+       按契约这句「没有可显示的状态变化记录」本就不该出现 —— 撤回（0008:278）
+       与退回/拒绝（0008:332）都会写一行 application_status_history，
+       而本页只列 rejected / withdrawn 两种。所以它一旦显示出来，说的就是假话。 */
+    if (!Array.isArray(tl)) {
+      box.hidden = false;
+      box.innerHTML = '<p class="msg err show" role="alert">' +
+        '这一次没能读到状态变化，请稍后再点一次。</p>';
+      btn.setAttribute("aria-expanded", "true");
+      return;                                // 不改 loaded，下次点还会重试
+    }
+    const items = tl;
     box.innerHTML = items.length
       ? items.map((h) => '<div class="tl-row"><time>' + dt(h.created_at) + '</time><span>' +
           UI.esc((ST[h.to_status] && ST[h.to_status].t) || h.to_status) +
