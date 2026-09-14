@@ -6,15 +6,15 @@
 <meta name="robots" content="noindex">
 <title>申请者中心 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609141232">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609141245">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609141232"></script>
-<script src="../../assets/js/portal/auth.js?v=202609141232"></script>
-<script src="../../assets/js/portal/api.js?v=202609141232"></script>
-<script src="../../assets/js/portal/ui.js?v=202609141232"></script>
-<script src="../../assets/js/portal/shell.js?v=202609141232"></script>
+<script src="../../assets/js/supabase-config.js?v=202609141245"></script>
+<script src="../../assets/js/portal/auth.js?v=202609141245"></script>
+<script src="../../assets/js/portal/api.js?v=202609141245"></script>
+<script src="../../assets/js/portal/ui.js?v=202609141245"></script>
+<script src="../../assets/js/portal/shell.js?v=202609141245"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell;
@@ -40,8 +40,24 @@
     Api.select("program_catalog", { columns: "code,name_zh,short_label", order: { column: "sort_order", asc: true } }),
   ]);
   if (error) return UI.error(main, { message: error.message, onRetry: () => location.reload() });
-  const app = rows && rows[0];
-  const pcMap = Object.fromEntries((pc || []).map(p => [p.code, p]));
+  /* 「没读到」和「确实没有」是两件事。原来是 `const app = rows && rows[0];`：
+     服务端给出无结论（{data:null,error:null}）或非数组真值时 error 是空的，
+     app 落空，页面就渲染成「开始你的入学申请 / 开始填写申请」——
+     他可能已经有一份申请，这里却当着他的面说没有。
+     申请页首屏（78a8a4b）已按 !Array.isArray 守住，首页这一处漏着。 */
+  if (!Array.isArray(rows)) {
+    main.innerHTML = UI.box("🔄", "这一次没读到你的申请状态",
+      "服务端没有给出可读的结果，所以现在无法确认你有没有在办的申请。" +
+      "请刷新页面核实 —— 在确认之前先不要新建申请。") +
+      '<button class="btn" type="button" id="btnHomeReload" style="width:auto;padding:0 22px;margin-top:12px">刷新页面</button>';
+    document.getElementById("btnHomeReload")?.addEventListener("click", () => location.reload());
+    return;
+  }
+  const app = rows[0];
+  /* 判据写对了、执行不到等于没写：pc 是 {} 这类**非数组真值**时，
+     `(pc || []).map` 直接抛 —— 整页当场炸掉，连骨架屏都下不去（本轮实测 A3/A3b）。
+     申请页早就是 `Array.isArray(pcRows) ? … : []`，首页这一处一直是旧写法。 */
+  const pcMap = Object.fromEntries((Array.isArray(pc) ? pc : []).map(p => [p.code, p]));
 
   /* 待补充项数：读不到 ≠ 没有。原来只解构 data，读失败时 rq 是 null，
      pending 就成了 0，那条「有 N 项资料需要补充」的横幅**直接消失** ——

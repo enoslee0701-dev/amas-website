@@ -43,6 +43,7 @@ const { chrome, port } = await launchOwnChrome({
 });
 
 let externalHits = 0;
+let pageErrors = [];
 class Cdp {
   constructor(ws) { this.ws = ws; this.id = 0; this.pending = new Map(); this.handlers = new Map(); }
   on(m, f) { this.handlers.set(m, f); }
@@ -118,6 +119,11 @@ window.supabase = {
 try {
   const cdp = await Cdp.attach(port);
   await cdp.send("Runtime.enable"); await cdp.send("Page.enable"); await cdp.send("Network.enable");
+  /* 页面异常要接住：不采集就没法证明「目录返回坏形状时页面没被炸掉」。 */
+  cdp.on("Runtime.exceptionThrown", (p) => {
+    pageErrors.push(String(p?.exceptionDetails?.exception?.description ||
+                           p?.exceptionDetails?.text || "").slice(0, 200));
+  });
   await cdp.send("Network.setCacheDisabled", { cacheDisabled: true });
   await cdp.send("Emulation.setDeviceMetricsOverride", { width: 900, height: 900, deviceScaleFactor: 1, mobile: false });
   await cdp.send("Fetch.enable", { patterns: [{ urlPattern: "*" }] });
@@ -286,6 +292,51 @@ try {
   const t6 = await vis();
   ok("S2 已录取时保留「录取不等于学籍建立」的既有说明（没改坏）",
      /录取不等于学籍建立/.test(t6), t6.slice(0, 200));
+
+  // ════════ A 首页的读取点：读不到 ≠ 没有 ════════
+  console.log("\n=== A 首页读取点：读不到 ≠ 没有 ===");
+
+  /* 这一页有三个读取点：my_application、program_catalog、application_requirements。
+     第三个早就按「读不到 ≠ 没有」处理了（pendingUnknown，见 P 组）。
+     前两个还没有 —— 而同样的两处在申请页上都已经修过：
+       · 无结论当成「没有申请」→ 78a8a4b 在申请页首屏修的就是这个；
+       · (pc || []).map —— 申请页写的是 Array.isArray(pcRows) ? … : []，
+         并留了注释「判据写对了、执行不到等于没写：pcRows 是 {} 这类非数组真值时直接抛」。
+     首页两处都还是旧写法。 */
+
+  // A1/A2：my_application 没给出可读结论
+  await open({ tables: CAT, rpc: { my_application: { data:null, error:null, status:200 } } });
+  const a1 = await vis();
+  ok("A1 读不到申请时，不说成「开始你的入学申请」（他可能已经有一份）",
+     !/开始你的入学申请|开始填写申请/.test(a1 || ""), (a1 || "").slice(0, 220));
+  ok("A1b 而是如实说这一次没读到",
+     /没能读到|没读到|暂时读不到/.test(a1 || ""), (a1 || "").slice(0, 260));
+
+  await open({ tables: CAT, rpc: { my_application: { data:{}, error:null, status:200 } } });
+  const a2 = await vis();
+  ok("A2 返回的不是数组时，同样不当成「没有申请」",
+     !/开始你的入学申请|开始填写申请/.test(a2 || ""), (a2 || "").slice(0, 220));
+
+  // A3：program_catalog 返回非数组真值 —— 不能把整页炸掉
+  pageErrors = [];
+  await open({ tables: { program_catalog: { data:{}, error:null } },
+    rpc: { my_application: { data:[ appOf("submitted") ] } } });
+  ok("A3 课程目录返回非数组真值时，页面不抛异常",
+     !pageErrors.some(e => /TypeError|is not a function/.test(e)),
+     JSON.stringify(pageErrors.slice(0, 2)));
+  const a3 = await vis();
+  ok("A3b 而且页面照样渲染得出来（不是停在骨架屏）",
+     /当前申请|欢迎/.test(a3 || ""), (a3 || "").slice(0, 200));
+
+  // 反面：真的没有申请、以及目录读不到但他填过代码 —— 原有说法不能被这次改动堵掉
+  await open({ tables: CAT, rpc: { my_application: { data:[], error:null } } });
+  ok("A4 真的没有申请时（data: []），照常给「开始填写申请」",
+     /开始你的入学申请|开始填写申请/.test(await vis() || ""));
+
+  await open({ tables: { program_catalog: { data:null, error:{ message:"boom" } } },
+    rpc: { my_application: { data:[ appOf("submitted") ] } } });
+  ok("A5 目录读不到但他填过项目代码时，那一行仍显示代码（不让它凭空消失）",
+     /申请项目/.test(await vis() || ""), (await vis() || "").slice(0, 240));
 
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
