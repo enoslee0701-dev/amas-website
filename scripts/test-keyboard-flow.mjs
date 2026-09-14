@@ -396,6 +396,134 @@ try {
   ok("Kt6 方向键换步之后焦点没有掉回页首",
      (await active()).tag !== "BODY", JSON.stringify(await active()));
 
+  // ════════ Ks 切步之后：填过的还在不在、焦点看不看得见 ════════
+  console.log("\n=== Ks 切步之后：输入保留与焦点可见 ===");
+
+  /* 验收清单 4.3 的实际键盘用户流程：他在第 1 步填了东西，用键盘换到别的步再换回来 ——
+     填过的必须还在，焦点也必须看得见。这两件事此前**没有一条断言覆盖**：
+     K1c/K1d/Kt6 只看「哪一步被选中」和「焦点没掉回 body」，没看过输入值，
+     也没在切步之后量过焦点指示。 */
+  await open({ write: OKW, tables: { ...TABLES, application_requirements: { data: REQS } },
+    rpc: { my_application: { data:[NEEDS] } } });
+
+  const ksFocusVis = async () => cdp.ev(`(()=>{const a=document.activeElement;
+    if(!a || a===document.body) return null;
+    const s=getComputedStyle(a);
+    const hasOutline = s.outlineStyle !== "none" && parseFloat(s.outlineWidth||"0") > 0;
+    const hasShadow  = !!s.boxShadow && s.boxShadow !== "none";
+    return { tag:a.tagName, id:a.id||"", outline:s.outlineStyle+" "+s.outlineWidth,
+             shadow:(s.boxShadow||"none").slice(0,46), visible: hasOutline || hasShadow };})()`);
+
+  // 走进第 1 步的第一个文本字段，真键盘打一段进去
+  const ks0 = await tabUntil(a => a.tag === "INPUT" && a.type === "text", 40);
+  ok("Ks0 前提：第 1 步里 Tab 走得到一个文本字段", ks0.hit === true, JSON.stringify(ks0.at));
+  const ksField = (await active()).id;
+  /* 前提写成「这一格是空的」是错的 —— NEEDS 夹具本来就预填了它。
+     真正要守住的前提是「打进去的那一段和原值不同」，否则后面的
+     Ks7「还在」就是空过（原值不动也会绿）。 */
+  const ksWas = await cdp.ev(`(document.getElementById(${JSON.stringify(ksField)})||{}).value`);
+  ok("Ks0b 前提：这一格的原值与待会儿要打的那一段不同（否则 Ks7 是空过）",
+     ksWas !== "键盘填的这一段", JSON.stringify(ksWas));
+  await typeText("键盘填的这一段");
+  ok("Ks1 打进去了",
+     (await cdp.ev(`(document.getElementById(${JSON.stringify(ksField)})||{}).value`)) === "键盘填的这一段");
+
+  ok("Ks2 焦点在输入框里时，看得见焦点指示（outline 或 box-shadow 之一）",
+     (await ksFocusVis())?.visible === true, JSON.stringify(await ksFocusVis()));
+
+  /* 光标在输入框里按 ←/→ 必须只移动光标 —— 不能被步骤条的方向键抢走。 */
+  const stepBefore = await cdp.ev(`(()=>{const b=document.querySelector('[data-step].on');
+    return b?b.dataset.step:null;})()`);
+  await press("ArrowLeft"); await press("ArrowRight");
+  ok("Ks3 光标在输入框里时，←/→ 不会把步切走（方向键不抢用户的光标）",
+     (await cdp.ev(`(()=>{const b=document.querySelector('[data-step].on');
+        return b?b.dataset.step:null;})()`)) === stepBefore,
+     "before=" + stepBefore);
+  ok("Ks3b 而且输入内容没被这两下弄没",
+     (await cdp.ev(`(document.getElementById(${JSON.stringify(ksField)})||{}).value`)) === "键盘填的这一段");
+
+  // 用键盘换到第 2 步，再换回来
+  const ksTab = await tabUntil(a => a.step === "0", 40);
+  ok("Ks4 前提：Tab 回得到步骤条", ksTab.hit === true, JSON.stringify(ksTab.at));
+  await press("ArrowRight");
+  ok("Ks5 换到了第 2 步", (await cdp.ev(`(()=>{const b=document.querySelector('[data-step].on');
+     return b?b.dataset.step:null;})()`)) === "1");
+  ok("Ks5b 换步之后焦点看得见（不是只把焦点丢过去就算数）",
+     (await ksFocusVis())?.visible === true, JSON.stringify(await ksFocusVis()));
+  await press("ArrowLeft");
+  ok("Ks6 换回第 1 步", (await cdp.ev(`(()=>{const b=document.querySelector('[data-step].on');
+     return b?b.dataset.step:null;})()`)) === "0");
+  ok("Ks7 **刚才填的那一段还在**（切步没把没保存的输入弄丢）",
+     (await cdp.ev(`(document.getElementById(${JSON.stringify(ksField)})||{}).value`)) === "键盘填的这一段",
+     JSON.stringify(await cdp.ev(`(document.getElementById(${JSON.stringify(ksField)})||{}).value`)));
+
+  // ════════ Kb 「上一步 / 下一步」在首尾两步是死的，却看不出来 ════════
+  console.log("\n=== Kb 上一步/下一步：到头了要说出来，不能装作能按 ===");
+
+  /* 4.3 里此前没覆盖的一个入口：#btnPrev / #btnNext（index.html:492-493）。
+     实现（:1172-1173）是 `if (step > 0)` / `if (step < STEPS.length-1)` ——
+     到头之后**什么都不做**，但按钮既不 disabled 也不 aria-disabled，
+     Tab 照样走得到、读屏照样念成可用。
+     键盘用户在第 1 步按「← 上一步」，按下去毫无反应、毫无解释。 */
+  await open({ write: OKW, tables: { ...TABLES, application_requirements: { data: REQS } },
+    rpc: { my_application: { data:[NEEDS] } } });
+
+  const stepOf = async () => cdp.ev(`(()=>{const b=document.querySelector('[data-step].on');
+    return b?b.dataset.step:null;})()`);
+  const inert = async (id) => cdp.ev(`(()=>{const b=document.getElementById(${JSON.stringify(id)});
+    if(!b) return { missing:true };
+    return { disabled: !!b.disabled, ariaDisabled: b.getAttribute("aria-disabled"),
+             tabbable: b.tabIndex >= 0 && !b.disabled };})()`);
+
+  ok("Kb0 前提：现在在第 1 步", (await stepOf()) === "0");
+  const kb1 = await inert("btnPrev");
+  ok("Kb1 第 1 步上「← 上一步」已经到头了，不能还摆成可按的样子",
+     kb1.disabled === true || kb1.ariaDisabled === "true", JSON.stringify(kb1));
+
+  const lastIdx = await cdp.ev(`String(document.querySelectorAll("[data-step]").length - 1)`);
+  const kbTab = await tabUntil(a => a.step === "0", 40);
+  ok("Kb2 前提：Tab 回得到步骤条", kbTab.hit === true, JSON.stringify(kbTab.at));
+  await press("End");
+  ok("Kb2b 走到了最后一步", (await stepOf()) === lastIdx, lastIdx);
+  const kb3 = await inert("btnNext");
+  ok("Kb3 最后一步上「下一步 →」同样不能摆成可按的样子",
+     kb3.disabled === true || kb3.ariaDisabled === "true", JSON.stringify(kb3));
+
+  await press("Home");
+  ok("Kb4 回到第 1 步后，「下一步 →」是可用的（别把正常的也一起关掉）",
+     (await inert("btnNext")).disabled === false, JSON.stringify(await inert("btnNext")));
+  await press("ArrowRight");
+  ok("Kb4b 到了第 2 步，「← 上一步」也重新可用",
+     (await inert("btnPrev")).disabled === false, JSON.stringify(await inert("btnPrev")));
+
+  /* 用「下一步 →」这条路径换步：焦点该留在他按的那个按钮上，步骤条也要跟着走。 */
+  const kb5 = await tabUntil(a => a.id === "btnNext", 60);
+  ok("Kb5 前提：Tab 走得到「下一步 →」", kb5.hit === true, JSON.stringify(kb5.at));
+  const stepBeforeNext = await stepOf();
+  await press("Enter");
+  ok("Kb6 Enter 真的前进了一步", (await stepOf()) === String(+stepBeforeNext + 1),
+     "before=" + stepBeforeNext + " after=" + (await stepOf()));
+  ok("Kb6b 换步之后焦点还在他按的那个按钮上（没被扔回页首）",
+     (await active()).id === "btnNext", JSON.stringify(await active()));
+  ok("Kb6c 步骤条的 aria-selected 跟着这条路径走（和点标签那条路径一致）",
+     (await cdp.ev(`(()=>{const b=document.querySelector('[data-step].on');
+        return b && b.getAttribute("aria-selected");})()`)) === "true");
+
+  /* 禁用一个**正被聚焦**的按钮会让焦点掉回 <body>。他在倒数第二步按「下一步 →」
+     走到最后一步，这个按钮随即被禁用 —— 不接住的话就把他扔回页首了。 */
+  const kb7 = await tabUntil(a => a.step === "0", 40);
+  ok("Kb7 前提：Tab 回得到步骤条", kb7.hit === true, JSON.stringify(kb7.at));
+  await press("End"); await press("ArrowLeft");          // 走到倒数第二步
+  ok("Kb7b 前提：现在在倒数第二步", (await stepOf()) === String(+lastIdx - 1), lastIdx);
+  const kb7c = await tabUntil(a => a.id === "btnNext", 60);
+  ok("Kb7c 前提：Tab 走得到「下一步 →」", kb7c.hit === true, JSON.stringify(kb7c.at));
+  await press("Enter");
+  ok("Kb8 走到最后一步了", (await stepOf()) === lastIdx);
+  ok("Kb8b 「下一步 →」随即被禁用（到头了）",
+     (await inert("btnNext")).disabled === true, JSON.stringify(await inert("btnNext")));
+  ok("Kb8c 而且焦点**没有**因为按钮被禁用而掉回页首",
+     (await active()).tag !== "BODY", JSON.stringify(await active()));
+
   console.log("\n=== K2 六步表单：Tab 能走进字段、Shift+Tab 能退回 ===");
   const k2 = await tabUntil(a => a.tag === "INPUT" || a.tag === "TEXTAREA" || a.tag === "SELECT", 40);
   ok("K2a Tab 从步骤条走得进表单字段", k2.hit, JSON.stringify(k2.at));

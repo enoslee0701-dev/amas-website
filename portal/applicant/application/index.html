@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609141104">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609141132">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609141104"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609141104"></script>
-<script src="../../../assets/js/portal/api.js?v=202609141104"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609141104"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609141104"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609141104"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609141132"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609141132"></script>
+<script src="../../../assets/js/portal/api.js?v=202609141132"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609141132"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609141132"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609141132"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -943,6 +943,32 @@
     }
     refreshStepBadges();
     renderStep();
+    syncStepNav();
+  }
+
+  /* 「← 上一步」「下一步 →」到头之后是**什么都不做**的（:1172-1173 的 if 守卫），
+     但它们既不 disabled 也不 aria-disabled —— Tab 照样走得到、读屏照样念成可用。
+     键盘用户在第 1 步按「← 上一步」，按下去毫无反应也毫无解释（本轮实测 Kb1/Kb3）。
+     到头就如实禁用。
+
+     有个坑得一起接住：**禁用一个正被聚焦的元素会让焦点掉回 <body>**。
+     他在倒数第二步按「下一步 →」走到最后一步，这个按钮随即被禁用 ——
+     不管的话他就被扔回页首，从头 Tab 一遍。所以先把焦点交给旁边那个还能用的，
+     实在没有就交给当前这一步的标签（与点击路径同一套收尾）。 */
+  function syncStepNav(){
+    const prev = document.getElementById("btnPrev");
+    const next = document.getElementById("btnNext");
+    if (!prev || !next) return;                 // 只读页没有这两个键
+    const want = { prev: step === 0, next: step === F.STEPS.length - 1 };
+    for (const [el, off, other] of [[prev, want.prev, next], [next, want.next, prev]]) {
+      if (!off || el.disabled) { el.disabled = off; continue; }
+      const hadFocus = document.activeElement === el;
+      el.disabled = true;
+      if (hadFocus) {
+        if (!other.disabled) other.focus();
+        else document.querySelector(`[data-step="${step}"]`)?.focus();
+      }
+    }
   }
 
   /* 项目那条警告也要跟着选择走：他换成开放项目之后，不能还挂着「会被退回」。
