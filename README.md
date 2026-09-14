@@ -23,7 +23,7 @@
 
 ```
 index.html        首页（全部版块）
-discover.html     定制化神学 · 4 分钟快速测评（十题九维 · 十二大成长角色）
+discover.html     定制化神学 · 3 分钟快速测评（十题九维 · 十二大成长角色）
 giving.html       与我们同工（奉献，一对一联系）
 login.html        登录
 admin.html        管理后台（Supabase）

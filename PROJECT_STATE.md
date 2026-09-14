@@ -19,7 +19,13 @@ Enos 本轮的直接指令覆盖 CLAUDE.md 两处：提交用明确文件清单�
   验收命令：`node scripts/check-probe-syntax.mjs` → 71 个、0 错、退出码 0。
   负向对照：喂一个真有语法错的文件 → 退出码 1（已实测）。
 - 2026-09-14 | T-005/T-006 | [ ] | 未开工：依赖 T-003 的首轮验证结果（T-003 仍 BLOCKED）
-- 2026-09-14 | T-007/T-008 | [ ] | 未开工
+- 2026-09-14 | T-007 | [x] | README:26 写 `discover.html 定制化神学 · **4 分钟**快速测评`，
+  与 README 自己第 5 行「三分钟」及三个产品页面的「3 分钟」口径不一致（discover.html 5 处、
+  index.html 2 处、portal/applicant/index.html 1 处，全部是 3 分钟）。已改为 3 分钟。
+  验收命令（单条，退出码即判据）：
+    node -e 'const s=require("fs").readFileSync("README.md","utf8");const m=[...s.matchAll(/([0-9]+|[一二三四五六七八九十]+)\s*分钟/g)].map(x=>x[1].replace(/^三$/,"3"));const u=[...new Set(m)].sort();console.log(u);process.exit(u.length===1&&u[0]==="3"?0:1)'
+  修前退出码 1（README 里同时出现 3 与 4），修后退出码 0（只剩 3）。
+- 2026-09-14 | T-008 | [ ] | 未开工
 
 ## 关于验证门槛
 CLAUDE.md 要求「verify.sh 通过后才提交」。verify.sh 被安全拦截、无法执行（T-003，见 BLOCKED.md），
