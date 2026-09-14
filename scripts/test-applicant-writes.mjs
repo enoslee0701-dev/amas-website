@@ -934,6 +934,55 @@ try {
   ok("V2b 那一下没有再建出第二份申请",
      (v2calls["insert:applications"] || 0) === 1, JSON.stringify(v2calls));
 
+  // ════════ Wd 撤回是不可逆的：确认之后到结果回来之前，入口必须封住 ════════
+  console.log("\n=== Wd 撤回：在途期间不能再点一次 ===");
+
+  /* 验收清单 1.9「撤回申请」——「撤回不可逆有确认」。
+     已有覆盖只到**结果诚实**那一层（U3 不咬定已撤回、U4/U4b 重读失败时如实说），
+     没有一条量过**在途那段窗口**。
+     createDraft() 是有闸的（creating 互斥 + insert 之前就 disable 入口），
+     可**不可逆**的撤回反而没有：确认框关掉之后、withdraw_application 回来之前，
+     #btnWithdraw 还在、还能点 —— 再点一次就是第二笔。
+     按契约第二笔会被 0008 的 `status in ('accepted','rejected','withdrawn') → invalid_state`
+     挡掉，于是他刚撤回成功，页面转脸弹一句服务端原文的错。 */
+  await open({ ...withApp, rpc: { my_application:{ data:[DRAFT] },
+    withdraw_application:{ data:{ ok:true }, error:null, status:200, delay:2400 } } }, 4200);
+  ok("Wd0 前提：草稿页有撤回入口",
+     (await cdp.ev(`!!document.getElementById("btnWithdraw")`)) === true);
+
+  // 反面先做：取消就真的什么都不发
+  await cdp.clickReal("#btnWithdraw");
+  await sleep(500);
+  const hasDlg = await cdp.ev(`!!document.querySelector(".portal-modal [data-ok]")`);
+  ok("Wd1 不可逆动作先出确认框", hasDlg === true);
+  await cdp.ev(`(()=>{const b=document.querySelector(".portal-modal [data-cancel],.portal-modal [data-no]");
+    if(b){b.click();return true;} const e=document.querySelector(".portal-modal"); return !!e;})()`);
+  await cdp.ev(`(()=>{const d=document.querySelector(".portal-modal"); if(d && d.parentNode) return false; return true;})()`);
+  await sleep(400);
+  const wdC0 = await calls();
+  ok("Wd2 取消之后没有发出撤回请求",
+     (wdC0["rpc:withdraw_application"] || 0) === 0, JSON.stringify(wdC0));
+
+  // 正面：确认之后到结果回来之前，入口要封住
+  await cdp.clickReal("#btnWithdraw");
+  await sleep(400);
+  await cdp.ev(`(()=>{const b=document.querySelector(".portal-modal [data-ok]"); if(b) b.click(); return !!b;})()`);
+  await sleep(900);                               // 此刻请求在途（delay 2400ms）
+  const mid = await cdp.ev(`(()=>{const b=document.getElementById("btnWithdraw");
+    return b ? { present:true, disabled:!!b.disabled } : { present:false };})()`);
+  ok("Wd3 在途期间撤回入口已经封住（不在了，或已禁用）",
+     mid.present === false || mid.disabled === true, JSON.stringify(mid));
+  await cdp.ev(`(()=>{const b=document.getElementById("btnWithdraw"); if(b) b.click(); return !!b;})()`);
+  await sleep(500);
+  await cdp.ev(`(()=>{const b=document.querySelector(".portal-modal [data-ok]"); if(b) b.click(); return !!b;})()`);
+  await sleep(2600);
+  const wdC1 = await calls();
+  ok("Wd4 那一下没有发出第二笔撤回",
+     (wdC1["rpc:withdraw_application"] || 0) === 1, JSON.stringify(wdC1));
+  const wdToast = await toastNow();
+  ok("Wd5 结果回来之后如实说「申请已撤回」",
+     /已撤回/.test((wdToast && wdToast.text) || ""), JSON.stringify(wdToast));
+
   // ════════ Lr 首屏/刷新后读不到申请时，不能说成「没有申请」════════
   console.log("\n=== Lr 刷新后没读到申请：不许当成「还没有申请」===");
 
