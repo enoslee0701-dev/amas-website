@@ -96,6 +96,8 @@ const b64 = (s) => Buffer.from(s, "utf8").toString("base64");
 const CFG = 'window.SUPA={url:"https://abcdefghijklmnopqrst.supabase.co",anonKey:"local-test-not-a-credential"};';
 
 const STUB = `
+window.__pgErr = [];
+window.addEventListener("error", function(e){ window.__pgErr.push(String(e && e.message || e)); });
 window.supabase = {
   createClient: function(){
     var S = function(){ return window.__SCEN || {}; };
@@ -123,9 +125,15 @@ window.supabase = {
       rpc: function(name){
         var sc = S();
         if (name === "my_roles") return reply({ data:(sc.roles||["applicant"]).map(function(r){return {role:r};}), error:null, status:200 });
-        if (name === "my_profile") return reply({ data:PROF, error:null, status:200 });
+        if (name === "my_profile") {
+          var pv = S().prof;                       // 场景可覆盖：用来量「读不到 ≠ 没有」
+          if (pv !== undefined) return reply({ data:pv.data, error:pv.error||null, status:pv.status!=null?pv.status:200 });
+          return reply({ data:PROF, error:null, status:200 });
+        }
         if (name === "my_student_profile") return reply({ data:{ profile:PROF, student:{ student_number:"S-FX", status:"active", program_code:"bth" } }, error:null, status:200 });
         if (name === "update_my_contact") {
+          try { var k="wCalls"; var m=JSON.parse(sessionStorage.getItem(k)||"{}");
+                m[name]=(m[name]||0)+1; sessionStorage.setItem(k, JSON.stringify(m)); } catch(e){}
           var w = sc.write || { data:{ ok:true }, error:null, status:200 };
           var out = { data:w.data, error:w.error||null, status:w.status!=null?w.status:(w.error?500:200) };
           if (w.delay) return new Promise(function(r){ setTimeout(function(){ r(out); }, w.delay); });
@@ -279,6 +287,91 @@ try {
     ok("Z2 " + label + "：更新的那一版仍受未保存守卫保护",
        d.some(t => /beforeunload/i.test(t)), JSON.stringify(d));
   }
+
+  // ════════ Ap 申请人资料页：读分支、只读字段、原型键、在途重复提交 ════════
+  console.log("\n=== Ap 申请人资料页的其余分支 ===");
+  const AP = "portal/applicant/profile/";
+  const APB = { roles:["applicant"], aal:"aal1" };
+  const calls = async () => (await cdp.ev(`(()=>{try{return JSON.parse(sessionStorage.getItem("wCalls")||"{}");}catch(e){return{};}})()`)) || {};
+  const bodyVis = async () => cdp.ev(`(()=>{const c=document.body.cloneNode(true);
+    c.querySelectorAll("script,style,template,[hidden]").forEach(n=>n.remove());
+    return (c.textContent||"").replace(/\s+/g," ").trim();})()`);
+
+  /* Ap1：读分支。my_profile 是 returns public.profiles（单个复合行），
+     没有行时 data 就是 null —— 页面必须说「没读到」，而不是渲染出一张
+     空表单让他以为自己的资料本来就是空的。 */
+  await open(AP, { ...APB, prof: { data:null, error:null } });
+  const ap1 = await bodyVis();
+  ok("Ap1 读不到档案时，不渲染出一张空表单当作「资料是空的」",
+     (await cdp.ev(`!!document.getElementById("ph")`)) === false, (ap1 || "").slice(0, 200));
+  ok("Ap1b 而是如实说没读到，并给重试出口",
+     /没有读到|没读到/.test(ap1 || "") && /重试|刷新/.test(ap1 || ""), (ap1 || "").slice(0, 240));
+
+  /* Ap2：只读字段。account_status / email / timezone / created_at 由系统维护，
+     update_my_contact 的函数签名本身就是白名单（0017:32-36，只有三个参数），
+     页面上这一区也不该给出任何可编辑控件。 */
+  await open(AP, APB);
+  const roEditable = await cdp.ev(`(()=>{const cards=[...document.querySelectorAll(".card.sec")];
+    const acc = cards.find(c => /账号信息/.test(c.textContent||""));
+    if(!acc) return { missing:true };
+    return { inputs: acc.querySelectorAll("input,select,textarea,[contenteditable]").length };})()`);
+  ok("Ap2 账号信息那一区一个可编辑控件都没有（邮箱/状态/时区/注册时间只读）",
+     roEditable.missing !== true && roEditable.inputs === 0, JSON.stringify(roEditable));
+
+  /* Ap3：原型键。ACC 是对象字面量，ACC["constructor"] 是真值 ——
+     和已经修过的 HQ_T 是同一个坑（见 applicant/application 的 HQ_KEYS 注释）。
+     account_status 在契约里是枚举列，这里量的是「万一拿到别的字符串」时
+     页面会不会把函数源码写给用户看。 */
+  await open(AP, { ...APB, prof: { data: { id:"u-fx", display_name:"测试用户",
+    email:"a@example.invalid", phone:"0800000000", contact_note:"微信 fixture",
+    account_status:"constructor" }, error:null } });
+  /* 等页面**真的渲染完**再取：初版取早了，拿到的只是外壳，
+     误判成「整页没渲染出来」。不是产品的事，是我抓早了。 */
+  for (let i = 0; i < 40 && !(await cdp.ev(`!!document.getElementById("ph")`)); i++) await sleep(100);
+  await sleep(200);
+  const ap3 = await bodyVis();
+  const ap3err = await cdp.ev(`(window.__pgErr||[]).slice(0,2)`);
+  /* 判据要对准**那一格**，不是整页文本：整页文本这里抓不全（外壳先渲染，
+     .ro 行在另一张卡里），拿它当判据会把「抓不全」误判成「页面炸了」。 */
+  const accCell = await cdp.ev(`(()=>{const rows=[...document.querySelectorAll(".ro")];
+    const r = rows.find(x => /账号状态/.test(x.textContent||""));
+    return r ? (r.textContent||"").replace(/\s+/g," ").trim() : null;})()`);
+  console.log("      · Ap3 现场：账号状态那一格=" + JSON.stringify(accCell) +
+              " 异常=" + JSON.stringify(ap3err));
+  ok("Ap3 账号状态拿到原型上的名字时，那一格不出现函数源码",
+     accCell !== null && !/native code|function Object/.test(accCell),
+     JSON.stringify(accCell));
+
+  /* Ap4：在途期间重复提交不能发出第二笔。 */
+  await open(AP, { ...APB, write: { data:{ ok:true }, error:null, status:200, delay:2200 } });
+  /* 计数器在同源 sessionStorage 里会**跨场景累加**，所以只能看差值。
+     （初版写成「等于 1」，实测拿到 16 —— 那是我判据写错，不是产品发了 16 笔。） */
+  const apBefore = (await calls())["update_my_contact"] || 0;
+  await cdp.ev(`(()=>{const i=document.getElementById("ph"); if(i) i.value="0866666666";
+    const f=document.querySelector("form"); if(f) f.requestSubmit(); return !!f;})()`);
+  await sleep(700);                                  // 此刻在途
+  ok("Ap4 在途期间保存键已禁用",
+     (await cdp.ev(`(()=>{const b=document.getElementById("save"); return !!(b && b.disabled);})()`)) === true);
+  await cdp.ev(`(()=>{const f=document.querySelector("form"); if(f) f.requestSubmit(); return !!f;})()`);
+  await sleep(2400);
+  ok("Ap4b 那一下没有发出第二笔 update_my_contact（按差值算）",
+     ((await calls())["update_my_contact"] || 0) - apBefore === 1,
+     JSON.stringify({ before: apBefore, after: (await calls())["update_my_contact"] || 0 }));
+
+  /* Ap5/Ap6：账号状态的词表要和契约枚举对齐。
+     **源码/契约一致性检查**，不是浏览器行为检查 —— 如实标明。
+     对不上的后果很具体：契约里有、页面词表里没有的那些状态，
+     会把英文原文直接显示给申请人（实测原来少了 locked 与 disabled）。 */
+  const sqlIdent = fs.readFileSync(path.join(ROOT, "supabase/migrations/0002_identity.sql"), "utf8");
+  const profSrc  = fs.readFileSync(path.join(ROOT, "portal/applicant/profile/index.html"), "utf8");
+  const accEnum = ((sqlIdent.match(/create type account_status as enum \(([^)]*)\)/) || [])[1] || "");
+  const ACCSQL = [...accEnum.matchAll(/'([a-z_]+)'/g)].map(m => m[1]).sort();
+  const accFe = ((profSrc.match(/const ACC_KEYS = \[([^\]]*)\]/) || [])[1] || "");
+  const ACCFE = [...accFe.matchAll(/"([a-z_]+)"/g)].map(m => m[1]).sort();
+  ok("Ap5 前提：两边的账号状态集都读得到（非空过）",
+     ACCSQL.length === 5 && ACCFE.length === 5, JSON.stringify({ ACCSQL, ACCFE }));
+  ok("Ap6 页面词表与契约 account_status 枚举一字不差",
+     JSON.stringify(ACCSQL) === JSON.stringify(ACCFE), JSON.stringify({ ACCSQL, ACCFE }));
 
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");

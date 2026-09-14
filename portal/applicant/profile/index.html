@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>个人资料 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609141245">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609141313">
 <style>
 .sec{margin-bottom:18px}
 .sec h2{font-size:16px;color:var(--navy);margin:0 0 4px}
@@ -27,11 +27,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609141245"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609141245"></script>
-<script src="../../../assets/js/portal/api.js?v=202609141245"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609141245"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609141245"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609141313"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609141313"></script>
+<script src="../../../assets/js/portal/api.js?v=202609141313"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609141313"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609141313"></script>
 <script>
 /* 申请者个人资料页。
 
@@ -50,12 +50,27 @@
   if (!mounted) return;
   const { main } = mounted;
 
+  /* 两处一起修（本轮实测 Ap3 / Ap6）：
+
+     一、白名单必须是**明确的字符串枚举**，不能拿 `ACC[x]` 的真值当判据 ——
+         对象字面量的原型上挂着 constructor / toString / hasOwnProperty…，
+         它们全是真值。实测 account_status = "constructor" 时，那一格渲染成
+         「账号状态function Object() { [native code] }」。
+         与申请页 HQ_KEYS 是同一个坑、同一种修法。
+
+     二、键集原来与契约**对不上**：0002_identity.sql:9 的 account_status 枚举是
+         ('pending_email','active','locked','suspended','disabled') ——
+         这里少了 locked 与 disabled（账号真处于这两种状态时，
+         页面把英文原文直接显示给申请人），还多了一个契约里根本没有的 closed。 */
   const ACC = {
     pending_email: "待邮箱验证",
     active: "正常",
+    locked: "已锁定",
     suspended: "已暂停",
-    closed: "已关闭",
+    disabled: "已停用",
   };
+  const ACC_KEYS = ["pending_email", "active", "locked", "suspended", "disabled"];
+  const accLabel = (v) => (typeof v === "string" && ACC_KEYS.indexOf(v) > -1) ? ACC[v] : null;
 
   UI.loading(main, 3);
   const { data: prof, error } = await Api.rpc("my_profile");
@@ -93,7 +108,9 @@
       '<h2>账号信息<span class="lock">🔒 由系统维护</span></h2>' +
       '<p class="note">登录邮箱与账号状态不能在这里修改。需要更换邮箱请联系招生同工。</p>' +
       ro("登录邮箱", prof.email) +
-      ro("账号状态", ACC[prof.account_status] || prof.account_status) +
+      /* 认不出来就按原样显示（字符串才显示），绝不走对象取值那条路。 */
+      ro("账号状态", accLabel(prof.account_status) ||
+                     (typeof prof.account_status === "string" ? prof.account_status : "—")) +
       ro("时区", prof.timezone) +
       ro("注册时间", d(prof.created_at)) +
     '</div>';
