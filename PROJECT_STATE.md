@@ -32,3 +32,15 @@ CLAUDE.md 要求「verify.sh 通过后才提交」。verify.sh 被安全拦截�
 该门槛**未达成**。本次提交是在监督明确指示「T-003 保持 BLOCKED、继续下一个有界任务、
 完成后按固定 SHA 交报告」之下进行的，不代表 verify.sh 已通过。
 T-004 的验收改用它自己的独立命令：`node scripts/check-probe-syntax.mjs`（退出码 0）。
+
+## 2026-09-14 第二轮（Enos 在真实对话轮直接指示：按根目录 CLAUDE.md 工作循环从队列取第一条未完成任务执行）
+- 2026-09-14 | T-003 | [!]→记录 | 本轮 `./scripts/verify.sh` **可以执行**（未再被拦截）。首轮结果：退出码 **1**，
+  唯一失败 `语法错误: index.html` —— index.html:27、:51 两段 `<script type="application/ld+json">` 被当 JS 塞进
+  new Function，合法 JSON 必然误报。队列里 T-003 保持 `[!]`（规则只允许 `[ ]` 改状态），由 Luna 决定是否改判。
+- 2026-09-14 | T-005 | [x] | [YELLOW：改了验证门槛 scripts/verify.sh] 修 verify.sh 第 2 步误报。
+  第 2 步抽成 `scripts/check-inline-scripts.mjs`：按 script type 分流（JS→new Function；ld+json/json/importmap→JSON.parse；
+  其他 type→直接报错，不静默跳过）。顺带修同一段里的漏检：原 `/src=/` 会命中 `data-src=`，带 data-src 的内联脚本整段不查。
+  复现测试（先写后修）：`node scripts/test-inline-script-check.mjs`（临时 git 仓库里跑 verify.sh 真实副本，8 个正/负用例）
+    修前：不符合预期 3 个（JSON-LD 误报 ×2、data-src 漏检 ×1），退出码 1
+    修后：不符合预期 0 个，退出码 0
+  `./scripts/verify.sh`：修前退出码 1 → 修后退出码 0（31 个 HTML、30 段内联 script、0 错）。未删、未跳过任何检查。

@@ -11,13 +11,8 @@ if [ -f pom.xml ] || ls */pom.xml >/dev/null 2>&1; then
 fi
 
 echo "== 2/3 单文件 HTML 语法 =="
-for f in $(git ls-files '*.html'); do
-  node -e "
-    const fs=require('fs');const s=fs.readFileSync('$f','utf8');
-    const m=[...s.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)];
-    for(const x of m){ if(/src=/.test(x[0].split('>')[0])) continue; new Function(x[1]); }
-  " || { echo "语法错误: $f"; exit 1; }
-done
+# 按 script type 分流：JS 查语法、JSON-LD 等查 JSON、未知 type 报错（详见脚本头注释）
+node scripts/check-inline-scripts.mjs
 
 echo "== 3/3 回归脚本（如存在） =="
 [ -x scripts/regress.sh ] && scripts/regress.sh
