@@ -934,6 +934,47 @@ try {
   ok("V2b 那一下没有再建出第二份申请",
      (v2calls["insert:applications"] || 0) === 1, JSON.stringify(v2calls));
 
+  // ════════ Lr 首屏/刷新后读不到申请时，不能说成「没有申请」════════
+  console.log("\n=== Lr 刷新后没读到申请：不许当成「还没有申请」===");
+
+  /* 积压项 8df50aa / b915a5e 把「重读失败」这一类修了三处：
+       createDraft 之后的重读、withdraw 之后的重读、补件清单读失败。
+     **首屏加载那一处没修**：
+         if (appErr) return UI.error(...);
+         app = (appRows && appRows[0]) || null;
+         if (!app) return renderStart();
+     服务端给出「无结论」（{data:null,error:null}）或非数组真值时，appErr 为空、
+     app 被置成 null，页面直接落到 renderStart()「还没有正式申请 / 开始填写正式申请」。
+     这正是刷新之后那一幕：他明明已经有一份申请，页面却告诉他没有，还递给他创建入口 ——
+     点下去就是第二份。 */
+  await open({ tables: BASE_TABLES,
+    rpc: { my_application: { data: null, error: null, status: 200 } } });
+  const lr = await bodyVis();
+  ok("Lr1 读不到申请时，**不**把创建入口递给他（那会建出第二份）",
+     (await cdp.ev(`!!document.querySelector('[data-act="new"]')`)) === false, (lr || "").slice(0, 200));
+  ok("Lr2 也不说成「还没有正式申请」—— 那是在替服务端下判断",
+     !/还没有正式申请/.test(lr || ""), (lr || "").slice(0, 240));
+  ok("Lr3 而是如实说这一次没读到，请刷新核实、不要重复创建",
+     /没能读到|没读到/.test(lr || "") && /刷新/.test(lr || ""), (lr || "").slice(0, 300));
+  ok("Lr3b 并且明说重复创建会多出一份申请",
+     /重复创建|第二份|多出一份/.test(lr || ""), (lr || "").slice(0, 300));
+
+  /* Lr4：非数组真值（{}）同样不能当成「没有申请」—— 和 Mx 那一类是同一个坑。 */
+  await open({ tables: BASE_TABLES,
+    rpc: { my_application: { data: {}, error: null, status: 200 } } });
+  const lr4 = await bodyVis();
+  ok("Lr4 返回的不是数组时，同样不当成「没有申请」",
+     (await cdp.ev(`!!document.querySelector('[data-act="new"]')`)) === false &&
+     !/还没有正式申请/.test(lr4 || ""), (lr4 || "").slice(0, 240));
+
+  /* Lr5：反面 —— **真的**没有申请时（data: []）创建入口必须照常在。
+          修这个缺口不能把正常开局一起堵死。 */
+  await open({ ...noApp });
+  ok("Lr5 真的没有申请时（data: []），创建入口照常给",
+     (await cdp.ev(`!!document.querySelector('[data-act="new"]')`)) === true);
+  ok("Lr5b 而且这时说的就是「还没有正式申请」，不含糊",
+     /还没有正式申请/.test((await bodyVis()) || ""));
+
   // ════════ A1 指派对申请人必须完全不可见（G1）════════
   console.log("\n=== A1 申请人看不到任何内部人员安排 ===");
   /* 服务端那一侧的保证是：assign_application_reviewer **只写 audit_logs**，

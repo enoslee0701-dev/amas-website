@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>我的申请 | AMAS 申请者中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609140528">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609141027">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609140528"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609140528"></script>
-<script src="../../../assets/js/portal/api.js?v=202609140528"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609140528"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609140528"></script>
-<script src="../../../assets/js/portal/application-form.js?v=202609140528"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609141027"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609141027"></script>
+<script src="../../../assets/js/portal/api.js?v=202609141027"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609141027"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609141027"></script>
+<script src="../../../assets/js/portal/application-form.js?v=202609141027"></script>
 <script>
 (async function(){
   const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, F = window.AmasAppForm;
@@ -253,7 +253,16 @@
   /* 判据写对了、执行不到等于没写：pcRows 是 {} 这类非数组真值时，
      (pcRows || []).filter 直接抛 —— 整页空白，连那句「没读到」都渲染不出来。 */
   programs = Array.isArray(pcRows) ? pcRows.filter(p => p.is_open_for_application) : [];
-  app = (appRows && appRows[0]) || null;
+  /* 「没读到」和「确实没有」是两件事，不能合成一件。
+     原来这里是 `app = (appRows && appRows[0]) || null; if (!app) return renderStart();`：
+     服务端给出无结论（{data:null,error:null}）或非数组真值时，appErr 是空的，
+     app 被置成 null，页面于是落到 renderStart()「还没有正式申请 / 开始填写正式申请」。
+     那是在替服务端下判断 —— 他刷新之后看到的是「你没有申请」，还被递上创建入口，
+     点下去就建出第二份。createDraft 与撤回后的重读早就按这条规矩修过了
+     （`!Array.isArray(rows)` 就当没读到），首屏这一处一直漏着。 */
+  if (!Array.isArray(appRows)) return renderAppUnknown();
+
+  app = appRows[0] || null;
 
   if (!app) return renderStart();
   await loadRequirements();
@@ -368,6 +377,16 @@
     if (myGen !== reqLoadSeq) return;          // 被更晚的一次读顶掉
     reqsUnknown = !!error || !Array.isArray(data);
     reqs = Array.isArray(data) ? data : [];
+  }
+
+  /* 读不到申请状态时的落点：如实说没读到，只给「刷新」这一条出路。
+     **不给创建入口** —— 这里最不该做的事就是让他再建一份。 */
+  function renderAppUnknown(){
+    main.innerHTML = UI.box("🔄", "这一次没读到你的申请状态",
+      "服务端没有给出可读的结果，所以现在无法确认你是否已经有一份申请。" +
+      "请刷新页面核实 —— 不要重复创建，重复创建会多出一份申请。") +
+      '<button class="btn" type="button" id="btnAppReload" style="width:auto;padding:0 22px;margin-top:12px">刷新页面</button>';
+    document.getElementById("btnAppReload")?.addEventListener("click", () => location.reload());
   }
 
   // ---------- 尚无申请 ----------
