@@ -592,6 +592,44 @@ try {
     ok("N15 到这里为止仍然零写入", (await writes()).length === 0, JSON.stringify(await writes()));
   }
 
+  if (RUN("Dc")) {
+    // ════════ Dc 把验收清单 3.4 的依据钉到源码上，免得文档再悄悄漂移 ════════
+    console.log("\n=== Dc 3.4 的依据：契约与前端说的是不是同一件事 ===");
+    /* 这一组是**源码/契约一致性检查**，不是浏览器行为检查 —— 如实标明。
+       起因：event7d09-web-acceptance-checklist.md 的 3.4 长期写着
+       「🔴 未实现：application_hq_approvals 只有管理员可读，申请人侧没有可读来源；
+         要做必须新增服务端读取路径并 apply（同 U7）」。
+       按当前源码，这三句话都不成立。把依据钉成断言，下次谁改了哪一边都会当场红。 */
+    const SRC = (rel) => fs.readFileSync(path.join(ROOT, rel), "utf8");
+    const sql12 = SRC("supabase/migrations/0012_student_core.sql");
+    const appSrc = SRC("portal/applicant/application/index.html");
+
+    ok("Dc1 RLS 明确让申请人读**自己那一行**（不是「只有管理员可读」）",
+       /create policy hq_appr_select[\s\S]{0,400}?a\.applicant_id = auth\.uid\(\)/.test(sql12));
+    ok("Dc2 被 revoke 的只有写（insert/update/delete），select 没被收走",
+       /revoke insert, update, delete on public\.application_hq_approvals/.test(sql12) &&
+       !/revoke[^\n]*select[^\n]*application_hq_approvals/.test(sql12));
+    ok("Dc3 内部备注在**另一张表**，申请人无可读路径",
+       /create table if not exists public\.hq_approval_internal/.test(sql12) &&
+       /create policy hq_internal_select on public\.hq_approval_internal/.test(sql12));
+    ok("Dc4 前端**已经**有读取与渲染（不是「未实现」）",
+       /async function loadHq\(/.test(appSrc) && /function renderHq\(/.test(appSrc));
+
+    const sqlEnum = ((sql12.match(/create type hq_approval_status as enum \(([^)]*)\)/) || [])[1] || "");
+    const SQLK = [...sqlEnum.matchAll(/'([a-z_]+)'/g)].map(m => m[1]).sort();
+    const feKeys = ((appSrc.match(/const HQ_KEYS = \[([^\]]*)\]/) || [])[1] || "");
+    const FEK = [...feKeys.matchAll(/"([a-z_]+)"/g)].map(m => m[1]).sort();
+    ok("Dc5 前提：两边的状态集都读得到（非空过）",
+       SQLK.length === 3 && FEK.length === 3, JSON.stringify({ SQLK, FEK }));
+    ok("Dc6 前端白名单与契约枚举**一字不差**",
+       JSON.stringify(SQLK) === JSON.stringify(FEK), JSON.stringify({ SQLK, FEK }));
+
+    /* 这一条守的是**边界**，不是功能：源码这么写 ≠ 线上授权已验证。
+       报告与清单都不得据此写成「已验收」。 */
+    ok("Dc7 探针自己也把这条边界打在结果里（B3 未解除）",
+       /不等于线上授权已验证/.test(SRC("scripts/test-applicant-hq-progress.mjs")));
+  }
+
   if (RUN("G")) {
     console.log("\n=== G 外发 ===");
     ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
