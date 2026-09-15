@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>我的资料 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609151832">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609151841">
 <style>
 .sec{margin-bottom:18px}
 .sec h2{font-size:16px;color:var(--navy);margin:0 0 4px}
@@ -27,11 +27,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609151832"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609151832"></script>
-<script src="../../../assets/js/portal/api.js?v=202609151832"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609151832"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609151832"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609151841"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609151841"></script>
+<script src="../../../assets/js/portal/api.js?v=202609151841"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609151841"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609151841"></script>
 <script>
 /* PORTAL-2B 学生资料页（2B-1）
    Single Person Model：人物主数据在 profiles，学籍数据在 student_records，
@@ -179,8 +179,12 @@
 
   document.getElementById("f").addEventListener("submit", async (e) => {
     e.preventDefault();
-    err.classList.remove("show");
     const btn = document.getElementById("save");
+    /* 在途期间吞掉重复提交。只把按钮设成 disabled 挡得住点击和回车，
+       挡不住不经过按钮的提交（form.requestSubmit()）—— 本地 stub 实测会发出第二笔。
+       申请人 / 教师资料页早有这一行。回归：test-profile-writes.mjs D 段。 */
+    if (btn.disabled) return;
+    err.classList.remove("show");
     btn.disabled = true;
     /* 提交的是**这一刻**的这三个值。RPC 在途期间用户可能继续打字，
        所以把提交版本先拍下来 —— 成功只对这一版成立。 */

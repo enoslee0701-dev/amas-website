@@ -373,6 +373,42 @@ try {
   ok("Ap6 页面词表与契约 account_status 枚举一字不差",
      JSON.stringify(ACCSQL) === JSON.stringify(ACCFE), JSON.stringify({ ACCSQL, ACCFE }));
 
+  // ════════ D 三个资料页：保存在途时的重复提交（T-011）════════
+  console.log("\n=== D 保存在途：三页的重复提交防护 ===");
+  /* Ap4/Ap4b 只量了申请人页，且只用 requestSubmit 一种来路。三页写的是同一个
+     update_my_contact，这里三页都量，并把「再提交一次」拆成三种来路分别算差值：
+       真实鼠标再点保存键 / 在电话框里按回车（隐式提交）/ 脚本 requestSubmit（不经过按钮禁用态）
+     每种来路单独开一次在途窗口；**第一下也用同一种来路发**，
+     再用「在途时保存键已禁用」证明第一下确实发出去了 —— 否则第一下没发、第二下发了，
+     差值同样是 1，会假绿。 */
+  const pressEnterIn = async (sel) => {
+    await cdp.clickReal(sel);
+    for (const type of ["keyDown", "keyUp"])
+      await cdp.send("Input.dispatchKeyEvent", { type, key: "Enter", code: "Enter",
+        windowsVirtualKeyCode: 13, nativeVirtualKeyCode: 13, ...(type === "keyDown" ? { text: "\r" } : {}) });
+  };
+  const VECTORS = [
+    ["再点保存键", () => cdp.clickReal("#save")],
+    ["电话框里按回车", () => pressEnterIn("#ph")],
+    ["脚本 requestSubmit", () => cdp.ev(`(()=>{const f=document.querySelector("form"); if(f) f.requestSubmit(); return !!f;})()`)],
+  ];
+  for (const [label, page, base] of PAGES) {
+    for (const [vname, fire] of VECTORS) {
+      await open(page, { ...base, write: { data:{ ok:true }, error:null, status:200, delay:2200 } });
+      for (let i = 0; i < 40 && !(await cdp.ev(`!!document.getElementById("save")`)); i++) await sleep(100);
+      const before = (await calls())["update_my_contact"] || 0;
+      await fire();
+      await sleep(500);                                // 此刻在途
+      const inflight = await cdp.ev(`(()=>{const b=document.getElementById("save"); return !!(b && b.disabled);})()`);
+      ok("D1 " + label + "·" + vname + "：第一下发出后、在途期间保存键已禁用", inflight === true);
+      await fire();
+      await sleep(2600);                               // 等在途那一笔回来
+      const after = (await calls())["update_my_contact"] || 0;
+      ok("D2 " + label + "·" + vname + "：在途再提交一次，update_my_contact 增量为 1",
+         after - before === 1, JSON.stringify({ before, after }));
+    }
+  }
+
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
   cdp.ws.close();

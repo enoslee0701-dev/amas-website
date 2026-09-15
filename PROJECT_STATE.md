@@ -64,3 +64,9 @@ T-004 的验收改用它自己的独立命令：`node scripts/check-probe-syntax
   补足旧 Ap5/Ap6（在 test-profile-writes.mjs 里，需要 Chrome）的漏洞：只读 0002、不比 ACC 键、写死 5 个。
   用例：`node scripts/test-account-status-vocab.mjs` 13/13（11 个临时目录用例，含后续迁移加值没跟上 → 失败、
   注释里的 add value 不算；1 个用真实页面删掉 locked 的负向对照；1 个真实仓库正向）。现状一致，页面未改。
+- 2026-09-15 | T-011 | [x] | 保存按钮在途禁用与重复提交审核（三个资料页，均写 update_my_contact）。
+  `scripts/test-profile-writes.mjs` 新增 D 段：每页 × 三种来路（真实再点保存键 / 电话框回车 / 脚本 requestSubmit），
+  第一下同来路发出并以「在途保存键已禁用」证明确实发出，再提交一次，按本地 stub 计数器差值判增量 = 1。
+  修前：学员页·requestSubmit 增量 2（before 21 → after 23），其余 8 组增量 1；PASS 59 FAIL 1，退出码 1。
+  原因：学员页只设 btn.disabled，处理函数没有 `if (btn.disabled) return;`（申请人/教师页有）。点击与回车被浏览器按禁用态拦住，
+  不经过按钮的提交拦不住。已补守卫。修后 PASS 60 FAIL 0，退出码 0；`./scripts/verify.sh` 退出码 0。
