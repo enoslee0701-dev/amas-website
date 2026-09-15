@@ -58,3 +58,9 @@ T-004 的验收改用它自己的独立命令：`node scripts/check-probe-syntax
   检查：`node scripts/test-applicant-profile-read-boundary.mjs`（node:vm 桩运行页面脚本，7 情形：读失败×2、null、undefined、{}、全 null、正常行；
   读不到类同时验重试入口会 reload、且不渲染保存按钮）修前 2 个不符 → 退出码 1；修后 0 个 → 退出码 0。
   回归：`node scripts/test-profile-writes.mjs` PASS 42 FAIL 0；`./scripts/verify.sh` 退出码 0。
+- 2026-09-15 | T-010 | [x] | 账号状态词表契约一致性检查（不开浏览器）：`node scripts/check-account-status-vocab.mjs` 退出码 0。
+  按文件名重放 supabase/migrations 里对 account_status 的 create / add value / rename value / drop，
+  得出最终枚举，与页面 `ACC` 的键、`ACC_KEYS` 三者比集合（另查重复；任一集合取不到 → 退出码 2）。
+  补足旧 Ap5/Ap6（在 test-profile-writes.mjs 里，需要 Chrome）的漏洞：只读 0002、不比 ACC 键、写死 5 个。
+  用例：`node scripts/test-account-status-vocab.mjs` 13/13（11 个临时目录用例，含后续迁移加值没跟上 → 失败、
+  注释里的 add value 不算；1 个用真实页面删掉 locked 的负向对照；1 个真实仓库正向）。现状一致，页面未改。
