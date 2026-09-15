@@ -14,6 +14,11 @@
 #   U5  嵌套 git 仓库（如主检出里的 worktrees/*）里的页面
 #   U6  未跟踪、但没有引用本地 assets 的页面（不是打戳候选）
 #   U7  主检出目录里挂着的 linked worktree（本项目 amas-web/worktrees/* 就是这种布局）
+#   ── 路径带空格 / 非 ASCII（T-026）──
+#   U8  带空格目录里的未跟踪页面 → 拒；拒绝信息给出完整路径
+#   U9  **已跟踪**、路径带空格的页面有未暂存私稿 → 拒；私稿与文件一个字节都不动；信息给出完整路径
+#   P1  **已跟踪**、目录与文件名都带空格的页面 → 照常打戳，且被**准确**暂存进提交（HEAD 里是新戳，工作区与 HEAD 一致）
+#   P2  **已跟踪**、非 ASCII + 空格的文件名 → 同 P1
 #
 # 运行：python3 scripts/test-bump-untracked-guard.py
 # 退出码：0 全过；1 有用例未达预期。
@@ -71,8 +76,10 @@ def scenario(cid, title, setup, expect_refused, path_in_message=None):
     # linked worktree 的 .git 目录里会有 git 事后写入的文件，清理时可能撞上；清不干净不影响判定。
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
         repo = pathlib.Path(td)
-        base = build(repo)
+        build(repo)
         rel = setup(repo)
+        # base 在 setup 之后取：已跟踪类用例的 setup 自己会先提交一次，让页面成为「已跟踪」
+        base = git(repo, "rev-parse", "HEAD").stdout.strip()
         user = repo / rel
         before = user.read_bytes()
         (repo / "note.txt").write_text("intended change\n", encoding="utf-8")
@@ -81,11 +88,14 @@ def scenario(cid, title, setup, expect_refused, path_in_message=None):
         c = git(repo, "commit", "-m", "fixture: " + cid)
         out = c.stdout + c.stderr
         head = git(repo, "rev-parse", "HEAD").stdout.strip()
-        tree = git(repo, "-c", "core.quotepath=false", "ls-tree", "-r", "--name-only", "HEAD").stdout.splitlines()
+        # 「没进 HEAD」对未跟踪与已跟踪一视同仁地判：HEAD 里这个路径的内容 ≠ 用户手上这一版
+        in_head = subprocess.run(["git", "show", "HEAD:" + rel], cwd=str(repo), capture_output=True)
+        committed = in_head.returncode == 0 and in_head.stdout == before
         after = user.read_bytes() if user.exists() else None
 
         print("\n  %s %s" % (cid, title))
-        rec(cid + "a", "用户文件没有进入 HEAD", rel not in tree, "HEAD 里有它=%s" % (rel in tree))
+        rec(cid + "a", "用户文件当前这一版没有进入 HEAD", not committed,
+            "HEAD 里有这个路径=%s，且内容就是用户这一版=%s" % (in_head.returncode == 0, committed))
         rec(cid + "b", "用户文件一个字节都没被改（没被打戳）", after == before,
             "内容一致=%s" % (after == before))
         if expect_refused:
@@ -147,6 +157,58 @@ def u6(repo):
     return "plain.html"
 
 
+def u8(repo):
+    d = repo / "drafts 2026"
+    d.mkdir()
+    (d / "new page.html").write_text(PAGE % ('<script src="../assets/js/a.js?v=%s"></script>' % GOOD, "U8"), encoding="utf-8")
+    return "drafts 2026/new page.html"
+
+
+STALE = "202001010000"
+
+
+def tracked_page(repo, rel, depth):
+    """在 baseline 之后新增并提交一个已跟踪页面（带过时戳），返回相对路径。"""
+    f = repo / rel
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(PAGE % ('<script src="%sassets/js/a.js?v=%s"></script>' % ("../" * depth, STALE), "tracked"), encoding="utf-8")
+    git(repo, "add", "--", rel, check=True)
+    git(repo, "commit", "-q", "--no-verify", "-m", "fixture: tracked " + rel, check=True)
+    return rel
+
+
+def u9(repo):
+    rel = tracked_page(repo, "my pages/about us.html", 1)
+    f = repo / rel
+    f.write_text(f.read_text(encoding="utf-8").replace("tracked", "PRIVATE UNSTAGED DRAFT"), encoding="utf-8")
+    return rel
+
+
+def positive(cid, title, rel, depth):
+    """已跟踪、路径带空格 / 非 ASCII 的页面：应被打戳并准确暂存。"""
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
+        repo = pathlib.Path(td)
+        build(repo)
+        tracked_page(repo, rel, depth)
+        base = git(repo, "rev-parse", "HEAD").stdout.strip()
+        (repo / "note.txt").write_text("intended change\n", encoding="utf-8")
+        git(repo, "add", "note.txt", check=True)
+        c = git(repo, "commit", "-m", "fixture: " + cid)
+        head = git(repo, "rev-parse", "HEAD").stdout.strip()
+        blob = git(repo, "show", "HEAD:" + rel)
+        wt = (repo / rel).read_text(encoding="utf-8")
+        status = git(repo, "-c", "core.quotepath=false", "status", "--porcelain", "--", rel).stdout.strip()
+        print("\n  %s %s" % (cid, title))
+        rec(cid + "a", "提交成功", c.returncode == 0 and head != base, "exit=%d" % c.returncode)
+        rec(cid + "b", "HEAD 里的这一页已换成新戳（被打戳并暂存进提交）",
+            blob.returncode == 0 and ("?v=" + STALE) not in blob.stdout and "?v=" in blob.stdout,
+            "HEAD 含旧戳=%s" % (("?v=" + STALE) in blob.stdout))
+        rec(cid + "c", "工作区与 HEAD 一致（没有暂存漏掉、也没有残留改动）", status == "" and wt == blob.stdout,
+            "status=%r" % status)
+        if c.returncode != 0:
+            print("        | " + "\n        | ".join((c.stdout + c.stderr).strip().splitlines()[-8:]))
+
+
 print("── 缓存戳脚本：用户文件保护（一次性 fixture 仓库，真跑 git commit）─────────")
 scenario("U1", "子目录里的未跟踪页面", u1, expect_refused=True, path_in_message="portal/draft/index.html")
 scenario("U2", "非 ASCII 文件名的未跟踪页面", u2, expect_refused=True)
@@ -155,6 +217,10 @@ scenario("U4", "被 .gitignore 忽略的本地页面", u4, expect_refused=False)
 scenario("U5", "嵌套 git 仓库（worktree）里的页面", u5, expect_refused=False)
 scenario("U6", "未跟踪、没有引用本地 assets 的页面", u6, expect_refused=False)
 scenario("U7", "主检出里挂着的 linked worktree（git worktree add）里的页面", u7, expect_refused=False)
+scenario("U8", "带空格目录里的未跟踪页面", u8, expect_refused=True, path_in_message="drafts 2026/new page.html")
+scenario("U9", "已跟踪、路径带空格的页面有未暂存私稿", u9, expect_refused=True, path_in_message="my pages/about us.html")
+positive("P1", "已跟踪、目录与文件名都带空格的页面照常打戳并准确暂存", "my pages/about us.html", 1)
+positive("P2", "已跟踪、非 ASCII + 空格文件名的页面照常打戳并准确暂存", "页面 目录/关于 我们.html", 1)
 
 passed = sum(1 for r in results if r)
 print("\n=== 用户文件保护: %d/%d PASSED ===" % (passed, len(results)))

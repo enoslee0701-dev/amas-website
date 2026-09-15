@@ -165,3 +165,9 @@ QUEUE_EMPTY（2026-09-15）：队列无 `[ ]` 任务。剩余 `[!]`：T-003（�
   网络失败（error.code=network）两页原本就走 UI.error + 重试，已加断言钉住；教师页教职档案「读失败 ≠ 还没有档案」也已钉住。
   夹具修正：test-profile-writes.mjs 的 my_student_profile 桩原为 `{profile, student}`，与 0017 契约不符，改为契约形状（未改任何断言）。
   回归：regress-profile-pages 8/8（profile-writes PASS 69、portal-pages 112/112、todo-loop 四组）、test-role-guard 退出码 0、`./scripts/verify.sh` 退出码 0。
+- 2026-09-16 | T-026 | [x] | 缓存戳生成对路径空格与未跟踪文件的处理。T-020 已覆盖未跟踪（含空格 / 非 ASCII / 忽略 / 嵌套）；本条补**已跟踪**路径与带空格目录：
+  `python3 scripts/test-bump-untracked-guard.py` 新增 U8（带空格目录里的未跟踪页 → 拒，完整路径）、U9（已跟踪带空格页有未暂存私稿 → 拒，文件不动，私稿不进 HEAD，完整路径）、
+  P1 / P2（已跟踪、目录与文件名带空格 / 非 ASCII+空格 → 照常打戳并被准确暂存，HEAD 为新戳、工作区与 HEAD 一致）。
+  判据通用化：「没进 HEAD」改判 HEAD 中该路径内容 ≠ 用户手上这一版（未跟踪 / 已跟踪一视同仁）；base 在 setup 之后取。
+  当前 bump.py：37/37，退出码 0。负向对照：临时换回 T-020 前的 bump.py（f4d27b7）→ 30/37，U8d / U9d（路径被空格切断）及 U3d/U4/U5/U7 不符，退出码 1；已还原。
+  bump.py 本身未改（T-020 的修复已满足）。回归：test-hook-gate 16/16；`./scripts/verify.sh` 退出码 0。
