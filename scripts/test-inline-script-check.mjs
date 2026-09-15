@@ -86,6 +86,27 @@ const CASES = [
     expect: 1,
     stdout: /index\.html/,
   },
+  /* 下面两条钉住「本测试确实在 verify.sh 里执行」：放一个必失败的替身在本测试的位置。
+     非嵌套运行时 verify.sh 必须调用它并因此失败；嵌套运行（本测试自己调 verify.sh）时必须跳过，
+     否则会无限递归。若有人把回归步骤从 verify.sh 里删掉，第一条会立刻报出来。 */
+  {
+    name: "非嵌套运行：verify.sh 必须执行本回归测试（替身必失败 → verify.sh 失败）",
+    files: {
+      "index.html": page("<script>var ok = 1;</script>"),
+      "scripts/test-inline-script-check.mjs": 'console.log("REGRESSION-STUB-RAN"); process.exit(1);\n',
+    },
+    nested: false,
+    expect: 1,
+    stdout: /REGRESSION-STUB-RAN/,
+  },
+  {
+    name: "嵌套运行：verify.sh 跳过本回归测试（替身不执行 → 通过）",
+    files: {
+      "index.html": page("<script>var ok = 1;</script>"),
+      "scripts/test-inline-script-check.mjs": 'console.log("REGRESSION-STUB-RAN"); process.exit(1);\n',
+    },
+    expect: 0,
+  },
 ];
 
 function runCase(c) {
@@ -108,7 +129,9 @@ function runCase(c) {
       cwd: dir,
       encoding: "utf8",
       /* 嵌套运行标记：verify.sh 见到它就不再跑回归脚本，避免本测试递归调用自己。 */
-      env: { ...process.env, CSC_VERIFY_NESTED: "1" },
+      env: c.nested === false
+        ? Object.fromEntries(Object.entries(process.env).filter(([k]) => k !== "CSC_VERIFY_NESTED"))
+        : { ...process.env, CSC_VERIFY_NESTED: "1" },
     });
     const out = (r.stdout || "") + (r.stderr || "");
     const problems = [];

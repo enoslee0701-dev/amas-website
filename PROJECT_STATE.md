@@ -44,3 +44,8 @@ T-004 的验收改用它自己的独立命令：`node scripts/check-probe-syntax
     修前：不符合预期 3 个（JSON-LD 误报 ×2、data-src 漏检 ×1），退出码 1
     修后：不符合预期 0 个，退出码 0
   `./scripts/verify.sh`：修前退出码 1 → 修后退出码 0（31 个 HTML、30 段内联 script、0 错）。未删、未跳过任何检查。
+- 2026-09-14 | T-006 | [x] | [YELLOW：改了验证门槛 scripts/verify.sh] T-005 的回归测试接入 verify.sh 第 3 步
+  （`CSC_VERIFY_NESTED` 非空时跳过，防止测试在临时仓库里调 verify.sh 时递归）。
+  新增 2 个用例钉住接线：非嵌套时放一个必失败的替身 → verify.sh 必须失败；嵌套时必须跳过替身。
+    接线前：10 个用例里 1 个不符（verify.sh 没跑回归），退出码 1
+    接线后：10/10，连跑 3 次退出码均 0；`./scripts/verify.sh` 退出码 0，输出里有这 10 个用例
