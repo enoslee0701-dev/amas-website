@@ -171,3 +171,10 @@ QUEUE_EMPTY（2026-09-15）：队列无 `[ ]` 任务。剩余 `[!]`：T-003（�
   判据通用化：「没进 HEAD」改判 HEAD 中该路径内容 ≠ 用户手上这一版（未跟踪 / 已跟踪一视同仁）；base 在 setup 之后取。
   当前 bump.py：37/37，退出码 0。负向对照：临时换回 T-020 前的 bump.py（f4d27b7）→ 30/37，U8d / U9d（路径被空格切断）及 U3d/U4/U5/U7 不符，退出码 1；已还原。
   bump.py 本身未改（T-020 的修复已满足）。回归：test-hook-gate 16/16；`./scripts/verify.sh` 退出码 0。
+- 2026-09-16 | T-027 | [x] | 申请记录分页边界静态检查。范围说明：仓库里唯一分页的列表是招生审核队列 portal/admin/admissions/（PAGE=300，range 翻页，含已结束的历史申请）；
+  申请人「历史申请」页一次取全、不分页（其空态已由 T-012 覆盖）。新增 `node scripts/test-admissions-paging-boundary.mjs`（node:vm 桩运行真实页面脚本，9 情形，逐项核对 range）：
+  B1 首页空 / B2 首页短页 / B3 首页取满 / B4 尾页短页 / B5 恰为整页倍数后翻到空页 / B6 首页读失败重试仍取第 0 页 /
+  B7 后续页读失败保留已读、说不代表全部、重试同一区间 / B8 后续页非数组 / B9 翻页重叠去重。9/9，退出码 0（未发现产品缺陷，页面未改）。
+  变异对照（临时改页面、跑完 git checkout 还原）：M1 `>=` 改 `>`（差一）→ 6 个不符；M2 去掉 id 去重 → B9 不符；均退出码 1。
+  补足 test-admin-writes Pg1~Pg6（需 Chrome）未量的：首页空、恰整页倍数的空尾页、后续页失败 / 无结论、各页 range。
+  test-paging-model 仍通过；`./scripts/verify.sh` 退出码 0。
