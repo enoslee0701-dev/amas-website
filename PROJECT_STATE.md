@@ -213,3 +213,8 @@ Enos：「GPT 没有额度了，你能按照你的工作计划和方向自动化
   认证页（login / register / forgot-password）属 RED 只测不修：K1/K2 均 1；R1/R2 均 2 → 写入 BLOCKED.md T-030-RED。
   回归：test-application-flow 33/33、test-contact-footer 12/12、test-probe-network-guard 19/19（新增自身例外条目）、`./scripts/verify.sh` 0。
   未测：首页申请表（四步向导）同样无守卫，列为候选（需先写复现）。
+- 2026-09-16 | T-031 | [x] | [YELLOW] 真实后端联调前置条件盘点，报告 `docs/operations/CSC-T-031-BACKEND-INTEGRATION-PREREQUISITES.md`（只读文档与源码；未连接真实服务、未改安全设置、未碰真实数据）。
+  前置条件 E/M/F/A/S/C/D 共 22 项逐条列出文档现状与 file:line 出处（Explore 子代理抽取，关键出处我逐一抽查过）。要点：只有预发可联调、生产未建；
+  HO 的迁移状态（0021）已被 DB4L（0001–0026、0027 缺席）取代；账本写入者与 0022 执行者 UNRESOLVED；submissions 表无测试数据隔离约定；
+  TR 指示临时改已提交的 supabase-config.js 属发布风险；sec3_http.mjs 写死 Windows 路径。
+  另查明：本机 local 配置指向预发 ref（布尔比对），已补入 BLOCKED.md INCIDENT-0916。候选 GREEN 3 条。

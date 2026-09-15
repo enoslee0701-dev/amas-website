@@ -43,3 +43,5 @@
     同一轮两次 `requestSubmit`、在途再 `requestSubmit` 均发 **2 次**（signInWithPassword / signUp / resetPasswordForEmail 各被调两次）。
   · 影响：只有不经过按钮的程序化提交会触发（扩展、辅助工具、将来页面自己调用），普通点击与回车不受影响。修法与资料页 / 联系表单相同（一行守卫）。
   · 未测：auth/recovery（需要 recovery 令牌）、faculty/verify 的 tvForm（需要邀请码与会话）—— 两者同样没有这行守卫（读源码）。
+  · 更新 2026-09-16（T-031 期间）：本机 supabase-config.local.js 指向的项目 ref **与文档记录的预发项目 `amas-staging`（sdrwyebizfdwldlfjyim，HO:928）相同**
+    （进程内比对，只输出布尔值，未打印任何配置值）。文档记录生产环境 NOT ESTABLISHED（HO:929）。因此测试行若已写入，落在**预发库**的 submissions 表。
