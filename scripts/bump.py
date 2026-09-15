@@ -22,6 +22,19 @@
 # 刻意不做 stash / reset / checkout / 丢弃工作区，也不做整目录暂存 ——
 # 那些都会替作者做他没要求的决定。拒绝 + 报路径，让作者自己处置。
 #
+# ── 候选只取「git 看得见的」HTML（在版本库工作区里时）──────────────────
+# 原先用 rglob 扫整棵目录。git 看不见的 HTML 也会被当成候选并**写入戳**：
+#   · 被 .gitignore 忽略的本地页面 —— GUARD 的 `ls-files --others --exclude-standard`
+#     不会列出它，于是放行、打戳，随后 hook 暂存被 git 拒绝，整个提交中止，用户文件已被改写；
+#   · 嵌套仓库 / linked worktree 里的页面 —— 本项目主检出下就挂着 worktrees/*，
+#     主检出每提交一次，就把**别的会话**工作区里的 HTML 全部改写一遍（它们随即出现未暂存改动，
+#     下一次提交又被 GUARD 拦下）。
+# 现在：在工作区里时，候选 = `git ls-files --cached --others --exclude-standard` 列出的 HTML
+# （已跟踪 + 未跟踪且未忽略；git 不进入嵌套仓库）。忽略的、嵌套的，从头就不读不写。
+# 不在工作区里时（独立使用、fixture）仍按目录扫描。
+# GUARD 与路径输出一律用 -z，文件名里的空格与非 ASCII 字符原样保留（原先按空白切开，报出的路径是断的）。
+# 回归：python3 scripts/test-bump-untracked-guard.py
+#
 # ── 为什么运行时输出全是 ASCII ────────────────────────────────────────
 # 这条拒绝消息会流经 git 的 stderr、Windows 控制台代码页，以及外部采集脚本。
 # 非 ASCII 在 GBK 环境下会让整条流解码失败 —— 而这条消息的全部价值
@@ -48,20 +61,32 @@ SKIP_DIRS = {".git", ".claude", "node_modules", "docs"}
 
 
 def candidates():
-    """实际引用了本地 assets 的 HTML，相对仓库根、正斜杠。"""
+    """实际引用了本地 assets 的 HTML，相对仓库根、正斜杠。
+    在工作区里时只看 git 看得见的（见文件头「候选只取 git 看得见的 HTML」）。"""
+    if inside_work_tree():
+        rels = sorted(_z("ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", "*.html"))
+        paths = [(rel, ROOT / rel) for rel in rels]
+    else:
+        paths = [(p.relative_to(ROOT).as_posix(), p) for p in sorted(ROOT.rglob("*.html"))]
     out = []
-    for p in sorted(ROOT.rglob("*.html")):
-        rel = p.relative_to(ROOT)
-        if SKIP_DIRS & set(rel.parts[:-1]):
+    for rel, p in paths:
+        if SKIP_DIRS & set(pathlib.PurePosixPath(rel).parts[:-1]):
             continue
+        if not p.is_file():
+            continue  # 已从工作区删除、仍在暂存区里的条目
         if HAS_LOCAL_ASSET.search(p.read_text(encoding="utf-8", errors="replace")):
-            out.append(rel.as_posix())
+            out.append(rel)
     return out
 
 
 def _vcs(*args):
     return subprocess.run(["git", *args], cwd=str(ROOT), capture_output=True,
                           text=True, encoding="utf-8", errors="replace")
+
+
+def _z(*args):
+    """跑一条带 -z 的 git 命令，按 NUL 切分；路径原样，不转义、不按空白切。"""
+    return [x for x in _vcs(*args).stdout.split("\0") if x]
 
 
 def inside_work_tree():
@@ -73,9 +98,10 @@ def guard(paths):
     """返回 (untracked, unstaged)。两者皆空才算安全。"""
     if not paths:
         return [], []
-    untracked = _vcs("ls-files", "--others", "--exclude-standard", "--", *paths).stdout.split()
+    # --literal-pathspecs：候选是确切路径，文件名里的 * ? [ 不能被当成通配
+    untracked = _z("--literal-pathspecs", "ls-files", "-z", "--others", "--exclude-standard", "--", *paths)
     # index 与工作区之间的差异 = 未暂存改动（含「已暂存后又改」的部分暂存场景）
-    unstaged = _vcs("diff", "--name-only", "--", *paths).stdout.split()
+    unstaged = _z("--literal-pathspecs", "diff", "--name-only", "-z", "--", *paths)
     return sorted(set(untracked)), sorted(set(unstaged))
 
 

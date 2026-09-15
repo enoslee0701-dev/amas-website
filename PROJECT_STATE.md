@@ -118,3 +118,13 @@ T-004 的验收改用它自己的独立命令：`node scripts/check-probe-syntax
   负向对照：临时换回 T-011 修复前学员页（5e1b4f3 版本）→ D3 学员·requestSubmit 增量 2（31→33）、D2 同样 21→23；PASS 67 FAIL 2，退出码 1；
   双击与回车连按在修复前也是 1（浏览器按禁用态拦下）。已 `git checkout HEAD --` 还原。
   当前页面：`node scripts/test-profile-writes.mjs` PASS 69 FAIL 0，退出码 0；`./scripts/verify.sh` 退出码 0。
+- 2026-09-15 | T-020 | [x] | [YELLOW：改了提交钩子依赖的 scripts/bump.py] 缓存戳脚本对用户文件的保护。
+  新增负向夹具 `python3 scripts/test-bump-untracked-guard.py`（一次性 git 仓库真跑 commit；每种形态验：不进 HEAD、文件未被改写、提交该拒则拒该放则放）：
+  U1 子目录未跟踪 / U2 非 ASCII 文件名 / U3 文件名带空格 / U4 .gitignore 忽略 / U5 嵌套仓库 / U6 无本地 assets / U7 主检出里的 linked worktree。
+  修前 18/23：U4 被忽略的页面被写入戳，随后 hook 暂存被 git 拒、整个提交中止；U5、U7 嵌套仓库 / linked worktree 的页面被写入戳（提交照常完成）——
+  即本项目主检出每次提交都会改写 worktrees/* 里别的会话的 HTML；U3 拒绝信息里带空格的路径被切断。
+  **任何形态都没有让用户文件进入 HEAD**（原有 GUARD 对未跟踪未忽略页面拒绝有效）；问题是越界写入与误拦。
+  修复：在工作区里时，候选改为 `git ls-files -z --cached --others --exclude-standard -- '*.html'`（忽略的、嵌套的从头不读不写）；
+  GUARD 改用 -z + --literal-pathspecs。修后 23/23。回归：test-hook-gate.py 16/16、test-cache-bust-contract.py 15/15、
+  check-cache-bust 5/5、bump.py --list 仍为 25 个、`./scripts/verify.sh` 退出码 0。
+  未处理：check-cache-bust.py 工作区模式（不带 --from-index）仍用 rglob 扫描，只读不写；pre-commit 用的是 --from-index，不受影响。
