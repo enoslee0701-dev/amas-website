@@ -237,3 +237,8 @@ QUEUE_EMPTY（2026-09-16）：队列无 `[ ]` 任务；T-003、T-014 仍为 `[!]
   回车路径不适用并打印原因：第 4 步只有确认勾选框）。修前 R1/R2 实测 2（学校会收到两份一样的申请材料）→ 修后均 1。
   修复：main.js 申请表处理函数开头补在途守卫（与联系表单、giving.html 同写法）。全套 PASS 17 FAIL 0。
   回归：test-application-flow 33/33、test-contact-footer 12/12、`./scripts/verify.sh` 0。认证页 6 条 RED 发现不变（BLOCKED.md T-030-RED）。
+- 2026-09-16 | C-c | [x] | 补 `-webkit-backdrop-filter` 前缀（T-023 的 C3 / T-028 的 D7）：main.css 7 处、portal.css 2 处、discover.html 1 处，共 10 处，值与原声明相同。
+  新增 `node scripts/check-css-prefixes.mjs`（扫 git 跟踪的 css 与 HTML 的 <style> / style=""，不含 docs/；同一段声明里必须有同值前缀；零声明 → 退出码 2）→ 10 处全配齐，退出码 0。
+  用例 `node scripts/test-css-prefixes.mjs` 10/10（缺前缀 / 值不一致 / 前缀在别的规则里 / 内联 style / 注释不算 / docs 不扫 / 空转）。
+  视觉回归（Chromium）：header-layout 19/19、pages-touch 7/7、touch-targets 18/20（T0/T5 为已登记基线）、promo-tab 19/20（P-1280 既有，改动前后一致）；verify.sh 0。
+  影响说明：Safari 18 以下原本完全没有毛玻璃效果；背景本身是半透明色，可读性不受影响，属观感修复。

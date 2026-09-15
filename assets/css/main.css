@@ -53,7 +53,7 @@ img{display:block;max-width:100%}
 .announce-toggle:focus-visible{outline:2px solid #e9c46a;outline-offset:-3px}
 .announce-bar.announce-paused .announce-track{animation-play-state:paused}
 
-.site-header{height:78px;position:sticky;top:0;z-index:50;background:var(--header-bg);backdrop-filter:blur(16px);transition:background-color var(--theme-ease),border-color var(--theme-ease);border-bottom:1px solid rgba(40,35,26,.06)}
+.site-header{height:78px;position:sticky;top:0;z-index:50;background:var(--header-bg);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);transition:background-color var(--theme-ease),border-color var(--theme-ease);border-bottom:1px solid rgba(40,35,26,.06)}
 /* 两侧按内容自适应、中间导航吃掉剩余空间。
    原本第三列写死 270px，正好等于三个按钮的总宽，没有任何余量，
    换个字体就会把按钮压窄导致文字折行。 */
@@ -134,7 +134,7 @@ linear-gradient(180deg,rgba(255,253,247,.93) 0%,rgba(255,253,247,.86) 45%,rgba(2
 .hero-verse-ref{margin-top:4px;font-size:14px;color:#5d5748;letter-spacing:.08em}
 .hero-actions{display:flex;gap:16px;margin-top:34px;justify-content:center}
 /* Hero 关键信息条（项目 / 开学 / 学习方式） */
-.hero-meta{display:flex;margin-top:30px;border:1px solid rgba(88,68,40,.22);border-radius:10px;background:rgba(255,253,247,.82);backdrop-filter:blur(6px);overflow:hidden}
+.hero-meta{display:flex;margin-top:30px;border:1px solid rgba(88,68,40,.22);border-radius:10px;background:rgba(255,253,247,.82);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);overflow:hidden}
 .hero-meta-item{padding:14px 26px;border-right:1px solid rgba(88,68,40,.16);text-align:left}
 .hero-meta-item:last-child{border-right:0}
 .hero-meta-item span{display:block;font-size:11px;letter-spacing:.12em;color:#8a8172;margin-bottom:5px}
@@ -395,7 +395,7 @@ html[data-theme="night"] .upload-box input{background:rgba(255,255,255,.06)}
 .faq-section::before{content:"";position:absolute;inset:0;z-index:-2;background:url("../img/course-the201.webp") center/cover no-repeat}
 .faq-section::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(100deg,rgba(250,246,236,.97) 0%,rgba(250,246,236,.94) 55%,rgba(250,246,236,.88) 100%)}
 html[data-theme="night"] .faq-section::after{background:linear-gradient(100deg,rgba(10,12,16,.97) 0%,rgba(10,12,16,.94) 55%,rgba(10,12,16,.89) 100%)}
-.faq-ask{margin-top:46px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;padding:26px 30px;border:1px solid rgba(183,138,53,.35);border-radius:14px;background:rgba(255,252,245,.82);backdrop-filter:blur(8px);box-shadow:0 16px 44px rgba(60,48,20,.10)}
+.faq-ask{margin-top:46px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;padding:26px 30px;border:1px solid rgba(183,138,53,.35);border-radius:14px;background:rgba(255,252,245,.82);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 16px 44px rgba(60,48,20,.10)}
 html[data-theme="night"] .faq-ask{background:rgba(14,17,14,.72);border-color:rgba(233,196,106,.3)}
 .faq-ask-text b{display:block;font-family:"Noto Serif SC","Songti SC",serif;font-size:20px;color:var(--ink)}
 .faq-ask-text span{display:block;margin-top:6px;font-size:13.5px;color:var(--muted);max-width:520px;line-height:1.7}
@@ -548,7 +548,7 @@ html[data-theme="night"] .icon-chip{background:rgba(255,255,255,.06)}
 .icon-btn,.modal-close{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;border:0;background:transparent;font-size:28px;cursor:pointer}.drawer-panel nav{display:flex;flex-direction:column;margin:35px 0}.drawer-panel nav a{padding:15px 2px;border-bottom:1px solid var(--line);font-size:20px}.drawer-apply{width:100%}
 
 /* Modal */
-.modal{position:fixed;inset:0;z-index:100;display:none}.modal.open{display:block}.modal-backdrop{position:absolute;inset:0;background:rgba(15,15,12,.72);backdrop-filter:blur(6px)}.modal-card{position:relative;margin:5vh auto;max-height:90vh;overflow:auto;width:min(900px,calc(100% - 32px));background:var(--paper);border-radius:16px;box-shadow:0 30px 100px rgba(0,0,0,.35);padding:34px}.modal-close{position:absolute;right:20px;top:16px;z-index:2}.video-card{width:min(960px,calc(100% - 32px));padding:0;overflow:hidden}.video-placeholder{min-height:520px;background:#111;color:#eee;display:grid;place-items:center;text-align:center;padding:50px}.video-placeholder h3{font-size:30px;margin:12px 0}.video-placeholder p{max-width:580px;color:#aaa;line-height:1.7}.video-play{width:72px;height:72px;border:1px solid #817a47;border-radius:50%;display:grid;place-items:center;color:#c9bd70;font-size:24px}
+.modal{position:fixed;inset:0;z-index:100;display:none}.modal.open{display:block}.modal-backdrop{position:absolute;inset:0;background:rgba(15,15,12,.72);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}.modal-card{position:relative;margin:5vh auto;max-height:90vh;overflow:auto;width:min(900px,calc(100% - 32px));background:var(--paper);border-radius:16px;box-shadow:0 30px 100px rgba(0,0,0,.35);padding:34px}.modal-close{position:absolute;right:20px;top:16px;z-index:2}.video-card{width:min(960px,calc(100% - 32px));padding:0;overflow:hidden}.video-placeholder{min-height:520px;background:#111;color:#eee;display:grid;place-items:center;text-align:center;padding:50px}.video-placeholder h3{font-size:30px;margin:12px 0}.video-placeholder p{max-width:580px;color:#aaa;line-height:1.7}.video-play{width:72px;height:72px;border:1px solid #817a47;border-radius:50%;display:grid;place-items:center;color:#c9bd70;font-size:24px}
 /* ===== AI 客服 / 留言 ===== */
 .chat-fab{position:fixed;right:22px;bottom:22px;z-index:94;width:58px;height:58px;border-radius:50%;border:0;background:linear-gradient(135deg,#10305a,#0a1d38);color:#fff;font-size:24px;cursor:pointer;box-shadow:0 10px 30px rgba(50,42,18,.28);display:grid;place-items:center;transition:transform .2s,background-color var(--theme-ease)}
 .chat-fab:hover{transform:translateY(-2px) scale(1.05)}
@@ -798,7 +798,7 @@ html[data-theme="night"] .hero-verse{color:#d6d3c6}
 html[data-theme="night"] .hero-verse-ref{color:#a39c88}
 html[data-theme="night"] .hero-cross{color:#b1a780}
 html[data-theme="night"] .hero-accred{color:#c9a54e}
-html[data-theme="night"] .btn.secondary{color:#f3f2eb;background:rgba(10,12,10,.28);border-color:rgba(255,255,255,.55);backdrop-filter:blur(9px)}
+html[data-theme="night"] .btn.secondary{color:#f3f2eb;background:rgba(10,12,10,.28);border-color:rgba(255,255,255,.55);-webkit-backdrop-filter:blur(9px);backdrop-filter:blur(9px)}
 html[data-theme="night"] .btn.primary{background:#c9a85c;color:#0a0c10}
 
 @media (prefers-reduced-motion:reduce){
@@ -1096,7 +1096,7 @@ html:not([data-theme="night"]) .faq-section::after{background:linear-gradient(10
 .giving-section .giving-verse{color:#e9dfc6}
 .giving-section .giving-verse small{color:#c9963d}
 .giving-section .section-head p{color:#b7c4bc}
-.giving-section .gdir{background:rgba(255,255,255,.05);border-color:rgba(233,196,106,.30);border-left-color:#d5b46b;backdrop-filter:blur(2px)}
+.giving-section .gdir{background:rgba(255,255,255,.05);border-color:rgba(233,196,106,.30);border-left-color:#d5b46b;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
 .giving-section .gdir b{color:#fff}
 .giving-section .gdir span{color:#a9b6ad}
 .giving-section .giving-cta .btn.primary{background:linear-gradient(135deg,#10305a,#0a1d38);color:#f4ecd8;border:1px solid rgba(213,180,107,.55)}
@@ -1123,7 +1123,7 @@ html[data-theme="night"] .digital-section::after{background:
 .digital-section .section-head p{color:#b4c2d2}
 .digital-section .sec-verse{color:#d5b46b}
 .digital-section .sec-verse small{color:#8fa0b8}
-.digital-section .digital-card{background:rgba(255,255,255,.05);border-color:rgba(140,180,220,.20);box-shadow:none;backdrop-filter:blur(2px)}
+.digital-section .digital-card{background:rgba(255,255,255,.05);border-color:rgba(140,180,220,.20);box-shadow:none;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
 .digital-section .digital-card>span{color:#8fb7dd}
 .digital-section .digital-card h3{color:#fff}
 .digital-section .digital-card p{color:#a9b6c4}
