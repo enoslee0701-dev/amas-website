@@ -229,3 +229,7 @@ QUEUE_EMPTY（2026-09-16）：队列无 `[ ]` 任务；T-003、T-014 仍为 `[!]
   C-b 首页申请表（四步向导）在途重复提交守卫（T-030 候选）
   C-c 补 -webkit-backdrop-filter 前缀 + 静态检查（T-023/T-028 的 C3 / D7）
   C-d test-promo-tab P-1280（1280 宽视口下入口 43px < 44）：先查清是产品问题还是量具问题
+- 2026-09-16 | C-a | [x] | 学员课程目录读不到时说成「共 0 门」。新增 `node scripts/test-student-courses-read-boundary.mjs`（node:vm，7 情形）。
+  修前 3 个不符：data=null / undefined → 写「AMAS 正式课程共 0 门」（学校有 67 门）；data={} → `list.filter` 抛错、卡在骨架屏。
+  修复：`!Array.isArray(rows)` 走「这一次没能读到课程目录」+ 重试；`[]` 照旧说 0 门（S5 对照仍通过）。修后 7/7，退出码 0。
+  回归：`node scripts/test-portal-pages.mjs` 112/112（S1~S6 全通过）；`./scripts/verify.sh` 退出码 0。来源：T-013 报告的候选任务。

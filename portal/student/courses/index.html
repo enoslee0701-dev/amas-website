@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>课程目录 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609160614">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609160617">
 <style>
 .filters{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
 .filters button{min-height:40px;padding:0 14px;border:1.5px solid var(--line);border-radius:999px;
@@ -27,11 +27,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609160614"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609160614"></script>
-<script src="../../../assets/js/portal/api.js?v=202609160614"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609160614"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609160614"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609160617"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609160617"></script>
+<script src="../../../assets/js/portal/api.js?v=202609160617"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609160617"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609160617"></script>
 <script>
 /* PORTAL-2B 课程目录（2B-2 / 2B-4）
    三个概念严格分离：
@@ -57,8 +57,17 @@
     Api.rpc("my_student_capabilities"),
   ]);
   if (error) return UI.error(main, { message: error.message, onRetry: () => location.reload() });
+  /* 「没读到」和「一门都没有」是两件事。原来是 `const list = rows || []`：
+       · 服务端没给出结论（error 为空、data 为 null）→ 页面写「AMAS 正式课程共 0 门」，
+         而学校有 67 门课 —— 那是一句平白的假话；
+       · data 是对象时 list.filter 直接抛错，页面一直停在骨架屏，既没提示也没出路。
+     学员首页（portal/student/）早就按 `!Array.isArray` 守住了，这一页补上。
+     真的没有课程（[]）照旧说 0 门。回归：scripts/test-student-courses-read-boundary.mjs */
+  if (!Array.isArray(rows))
+    return UI.error(main, { message: "这一次没能读到课程目录（可能是网络不稳或服务端暂时不可用）。这不表示课程目录是空的，请稍后重试。",
+                            onRetry: () => location.reload() });
 
-  const list = rows || [];
+  const list = rows;
   const open = list.filter(c => c.availability === "available").length;
   const pending = list.length - open;
   let filter = "all";
