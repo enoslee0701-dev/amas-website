@@ -178,3 +178,10 @@ QUEUE_EMPTY（2026-09-15）：队列无 `[ ]` 任务。剩余 `[!]`：T-003（�
   变异对照（临时改页面、跑完 git checkout 还原）：M1 `>=` 改 `>`（差一）→ 6 个不符；M2 去掉 id 去重 → B9 不符；均退出码 1。
   补足 test-admin-writes Pg1~Pg6（需 Chrome）未量的：首页空、恰整页倍数的空尾页、后续页失败 / 无结论、各页 range。
   test-paging-model 仍通过；`./scripts/verify.sh` 退出码 0。
+- 2026-09-16 | T-028 | [x] | [YELLOW] 兼容性报告未满足依赖复核，清单 `docs/operations/CSC-T-028-COMPAT-DEPENDENCIES.md`（只列依赖与 NOT_RUN；未发布、未下载外部包、未改本机设置）。
+  依赖 D1~D8 逐项只读复核：D1 目标矩阵未满足、D2 Safari 远程自动化未确认开启（AllowRemoteAutomation 键不存在）、D3 无 Firefox、D4 无真机 / 内置浏览器、
+  D5 supabase-js UMD 无本地副本未核、D6 版本号未复核、D7 -webkit-backdrop-filter 前缀 0 处、D8 无特性下限脚本。NOT_RUN N1~N9 各自标注被哪项挡住。
+  可直接入队：C3 补前缀、C2 基线版。
+  过程记录（如实）：复核时我执行了 `/Applications/Safari.app/Contents/MacOS/Safari --version` 想读版本号，这会**启动 Safari 应用本身**，
+  命令因此挂起约 2.5 分钟；已 kill 该进程（pid 89506，由本次命令启动），无残留 Safari 进程，未打开任何页面。之后版本号改为读 Info.plist。
+  `./scripts/verify.sh` 退出码 0。
