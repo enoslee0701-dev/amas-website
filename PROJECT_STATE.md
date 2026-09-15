@@ -218,3 +218,7 @@ Enos：「GPT 没有额度了，你能按照你的工作计划和方向自动化
   HO 的迁移状态（0021）已被 DB4L（0001–0026、0027 缺席）取代；账本写入者与 0022 执行者 UNRESOLVED；submissions 表无测试数据隔离约定；
   TR 指示临时改已提交的 supabase-config.js 属发布风险；sec3_http.mjs 写死 Windows 路径。
   另查明：本机 local 配置指向预发 ref（布尔比对），已补入 BLOCKED.md INCIDENT-0916。候选 GREEN 3 条。
+- 2026-09-16 | T-032 | [x] | 阶段 checkpoint：报告 `docs/operations/CSC-T-032-CHECKPOINT-REPORT.md`，固定 SHA `27cfcdcde2ad0775fac3afd31e2d566c0d2e81d0`。
+  验收两项：`./scripts/verify.sh` 退出码 0；`python3 scripts/check-internal-links.py` 退出码 0（153 个站内引用全部有对应文件）。
+  另跑 21 项静态检查与 6 批浏览器探针（含防线生效后的 chat-timeout 39/39），全部退出码 0；缓存戳范围审核覆盖 30 个提交。
+  运行前后被跟踪文件只有 Enos 的 CLAUDE.md 改动。
