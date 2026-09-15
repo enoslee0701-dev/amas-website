@@ -89,3 +89,12 @@ T-004 的验收改用它自己的独立命令：`node scripts/check-probe-syntax
   实测命令：`node scripts/check-stamp-only-diff.mjs 4f47292 HEAD --per-commit --expect portal/applicant/profile/index.html portal/student/profile/index.html portal/applicant/history/index.html`
   → 退出码 0。10 个 csc 提交（至 bbab396）里带戳的 25 个 HTML 每次全部只改戳；有内容改动的 HTML 恰是 T-009/T-011/T-012 各自那一页；T-008 同一分钟内提交，戳未变（0 个）。
   顺带核对：check-cache-bust 的 `pages=27` 是扫描的 HTML 数（31 个跟踪文件去掉 docs/ 下 4 个），带戳的是 25 个，不矛盾。
+- 2026-09-15 | T-016 | [x] | 资料页最小本地回归。目标脚本 `node scripts/regress-profile-pages.mjs` → 退出码 0，全部通过 8/8；
+  报告 `docs/operations/CSC-T-016-PROFILE-REGRESSION-REPORT.md`（存在，由脚本生成）。
+  范围：T-009 读取边界（vm）、T-010 词表契约、test-profile-writes（PASS 60）、test-portal-pages（112/112）、
+  test-student-todo-loop 按其组隔离规则分 4 趟（St 24 / Sf 13 / Se 11 / Sp 20，均 FAIL 0）。
+  运行器用例 `node scripts/test-regress-profile-pages.mjs` 5/5。
+  过程中查明：前两次整支跑 todo-loop 在它那一段被 10 分钟工具超时切断 —— 该探针禁止 Sf/Se/Sp 同进程（设计如此），
+  且不走 lib/chrome-launcher、未设 CHROME_PATH 时默认 Windows 路径。运行器改为分组跑并传入 chromeBinary()；探针本身未改。
+  未留残留进程（一天内启动的 headless Chrome 为 0）。另见机器上有 28 个 1~2 天前的 headless Chrome，非本轮产生，未处理。
+  T-015 提交后复核：`check-stamp-only-diff.mjs HEAD^ HEAD --per-commit`（在 865dd68 上）25 个 HTML 只改戳，退出码 0。
