@@ -1158,7 +1158,8 @@ $$("[data-close-video]").forEach(x => x.addEventListener("click", () => closeLay
 /* 数据库通道：SUPA 配置后，每次成功提交同时写入 Supabase（静默失败，绝不影响邮件通道） */
 function logToDB(kind, payload){
   const S = window.SUPA || {};
-  if(!S.url || !S.anonKey) return;
+  /* 只判非空挡不住占位串：英文模板值会把表单内容 POST 到占位地址。用 supabase-config.js 的统一判据。 */
+  if(!(window.SUPA_IS_FILLED && window.SUPA_IS_FILLED())) return;
   const data = {};
   for(const k in payload){ if(!k.startsWith("_")) data[k] = payload[k]; }
   const rec = {

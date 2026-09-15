@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex,nofollow">
 <title>AMAS 招生后台</title>
 <link rel="icon" href="assets/img/favicon.png">
-<script src="assets/js/supabase-config.js?v=202609160458"></script>
+<script src="assets/js/supabase-config.js?v=202609160517"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
 <style>
 *{box-sizing:border-box}
@@ -110,7 +110,8 @@ let sb = null, rows = [];
 function esc(s){ return String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 
 async function init(){
-  if(!S.url || !S.anonKey || !window.supabase){ $("#setupHint").hidden = false; return; }
+  /* 占位串也是非空的 —— 用 supabase-config.js 的统一判据，占位配置同样按「没配置」显示设置提示 */
+  if(!(window.SUPA_IS_FILLED && window.SUPA_IS_FILLED()) || !window.supabase){ $("#setupHint").hidden = false; return; }
   sb = supabase.createClient(S.url, S.anonKey);
   const { data: { session } } = await sb.auth.getSession();
   session ? enter(session) : ($("#loginBox").hidden = false);

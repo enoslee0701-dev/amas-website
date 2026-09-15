@@ -42,3 +42,16 @@ window.SUPA = {
        静默跳过，保持上面那份空配置，门户照常走降级态。 */
   }
 })();
+
+/* ── 「填好了」的统一判据（给不走 auth.js 的公开页用）──────────────────────
+   admin.html、main.js 的 logToDB、giving.html 原来都只判「非空」。占位串是非空的：
+     · 旁路文件照抄示例模板没改 → admin.html 去建客户端、显示登录框，让人登录一个不存在的后端；
+     · 英文模板写法（https://your-project.supabase.co / your-anon-key）→ logToDB 把表单里的
+       姓名和联系方式 POST 到那个地址。若这种占位值被提交进本文件，发布站点上也一样。
+   PLACEHOLDER 必须与 assets/js/portal/auth.js **逐字一致**；
+   scripts/test-noconfig-degraded.mjs 的 W2 核对两处，不许各自漂移。 */
+(function () {
+  const PLACEHOLDER = /^(your|<|xxx+|todo|changeme|replace|placeholder|example)|[<>]|your[-_ ]?project|yourproject/i;
+  var filled = function (v) { var s = String(v == null ? "" : v).trim(); return !!s && !PLACEHOLDER.test(s); };
+  window.SUPA_IS_FILLED = function () { var S = window.SUPA || {}; return filled(S.url) && filled(S.anonKey); };
+})();

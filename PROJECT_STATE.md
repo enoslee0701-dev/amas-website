@@ -185,3 +185,12 @@ QUEUE_EMPTY（2026-09-15）：队列无 `[ ]` 任务。剩余 `[!]`：T-003（�
   过程记录（如实）：复核时我执行了 `/Applications/Safari.app/Contents/MacOS/Safari --version` 想读版本号，这会**启动 Safari 应用本身**，
   命令因此挂起约 2.5 分钟；已 kill 该进程（pid 89506，由本次命令启动），无残留 Safari 进程，未打开任何页面。之后版本号改为读 Info.plist。
   `./scripts/verify.sh` 退出码 0。
+- 2026-09-16 | T-029 | [x] | 无配置启动的降级页面与提示审核。T-022 已覆盖 21 个 auth.js 页面；本条补**不走 auth.js、但读 window.SUPA** 的三处公开页。
+  查出：admin.html、main.js 的 logToDB、giving.html 都只判「非空」—— 占位配置下 admin.html 去建客户端并显示登录框（应为设置提示）；
+  英文模板占位值（https://your-project.supabase.co / your-anon-key）下 logToDB 把表单姓名与联系方式 POST 到该地址（测试中已拦下）。
+  修复：supabase-config.js 新增 `window.SUPA_IS_FILLED()`，占位符正则与 auth.js 逐字一致；三处改用它。
+  检查：`node scripts/test-noconfig-degraded.mjs` 新增 W0~W5（absent / 示例模板 / 英文模板占位）与量具自检 N2、N3，S2 只统计自检之前。
+  修前 PASS 99 FAIL 6 → 修后 PASS 105 FAIL 0（两次运行一致）。回归：test-local-config-override 16/16、test-giving-submit 31/31、test-portal-degraded 154/154、
+  test-portal-config-check 44/44、check-portal-config 输出与 HEAD 配置逐字一致（空配置本就判 NOT READY，退出码 1）、check-site-static 0、verify.sh 0。
+  test-chat-timeout 38/39：I2 外网请求 —— 查明为本机真实 supabase-config.local.js 经旁路被加载所致，与本条改动无关，见 BLOCKED.md INCIDENT-0916。
+  **按停止条件暂停**：INCIDENT-0916 需要 Enos 决定（真实库核对 / 清理、探针加保护），剩余 T-030~T-032 暂不继续。

@@ -39,20 +39,25 @@ const LOCAL_CFG_PATH = "/assets/js/supabase-config.local.js";
 const EXAMPLE = fs.readFileSync(path.join(ROOT, "assets/js/supabase-config.local.example.js"), "utf8");
 /* 量具自检用：构造的 project ref 与字面占位串，格式像填好了，但不是任何真实凭据 */
 const FILLED = 'window.SUPA = { url: "https://abcdefghijklmnopqrst.supabase.co", anonKey: "local-test-not-a-credential" };';
+/* 英文模板写法的占位符（auth.js 注释里举的正是这一类）。示例文件里的占位符含中文，
+   fetch 设请求头时会直接抛错、碰巧发不出去；ASCII 占位符不会被这样挡住，必须靠判据挡。 */
+const PLACEHOLDER_ASCII = 'window.SUPA = { url: "https://your-project.supabase.co", anonKey: "your-anon-key" };';
 let scenario = "absent";
 let localCfgHits = 0;
+let submissionHits = 0;   // 落到本机的 /rest/v1/submissions 请求（占位 url 被当成相对路径时就会这样）
 
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split("?")[0]);
   /* 先接管旁路文件，**在读磁盘之前** —— 本机那份真文件永远不会被读到 */
   if (p === LOCAL_CFG_PATH) {
     localCfgHits++;
-    if (scenario === "placeholder" || scenario === "filled") {
+    if (scenario === "placeholder" || scenario === "filled" || scenario === "placeholder-ascii") {
       res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "no-store" });
-      res.end(scenario === "filled" ? FILLED : EXAMPLE);
+      res.end(scenario === "filled" ? FILLED : scenario === "placeholder-ascii" ? PLACEHOLDER_ASCII : EXAMPLE);
     } else { res.writeHead(404, { "Cache-Control": "no-store" }); res.end("nf"); }
     return;
   }
+  if (p.indexOf("/rest/v1/submissions") > -1) { submissionHits++; res.writeHead(404); res.end("nf"); return; }
   if (p.endsWith("/")) p += "index.html";
   if (p.indexOf("..") > -1) { res.writeHead(400); res.end("no"); return; }
   const abs = path.join(ROOT, p);
@@ -226,6 +231,60 @@ try {
     }
   }
 
+  /* ── W：不走 auth.js、但同样读 window.SUPA 的公开页（T-029）──────────────────
+     admin.html（旧后台，自己建客户端）、index.html（main.js 的 logToDB）、giving.html（奉献表单成功后写库）。
+     占位配置照样得算「没配置」：admin 显示设置提示、不建客户端；logToDB 不发任何请求 ——
+     原来三处都只判「非空」，占位串是非空的。 */
+  console.log("\n=== W 不走 auth.js 的公开页：没配置 / 占位配置 ===");
+  {
+    const { execFileSync } = await import("node:child_process");
+    const withCfg = execFileSync("git", ["grep", "-l", "supabase-config.js", "--", "*.html"], { cwd: ROOT, encoding: "utf8" }).split("\n").filter(Boolean);
+    const withAuth = new Set(execFileSync("git", ["grep", "-l", "portal/auth.js", "--", "*.html"], { cwd: ROOT, encoding: "utf8" }).split("\n").filter(Boolean));
+    const nonAuth = withCfg.filter((f) => !withAuth.has(f)).sort();
+    ok("W0 读 supabase-config.js 却不走 auth.js 的页面清单（admin.html、giving.html、index.html）",
+       JSON.stringify(nonAuth) === JSON.stringify(["admin.html", "giving.html", "index.html"]), JSON.stringify(nonAuth));
+    const SRC = (rel) => fs.readFileSync(path.join(ROOT, rel), "utf8");
+    const naive = [["admin.html", /!S\.url\s*\|\|\s*!S\.anonKey/], ["assets/js/main.js", /!S\.url\s*\|\|\s*!S\.anonKey/], ["giving.html", /S\.url\s*&&\s*S\.anonKey/]]
+      .filter(([f, re]) => re.test(SRC(f))).map(([f]) => f);
+    ok("W1 三处公开页的配置判据不再只判「非空」（占位串是非空的）", naive.length === 0, "仍只判非空：" + JSON.stringify(naive));
+    const reOf = (src) => (src.match(/const PLACEHOLDER = (\/.+\/[a-z]*);/) || [])[1] || null;
+    const authRe = reOf(SRC("assets/js/portal/auth.js")), cfgRe = reOf(SRC("assets/js/supabase-config.js"));
+    ok("W2 supabase-config.js 与 auth.js 的占位符判据逐字一致（不许两份各自漂移）",
+       !!authRe && authRe === cfgRe, JSON.stringify({ authRe, cfgRe }));
+  }
+  const adminProbe = () => cdp.ev(`(()=>{const v=(el)=>!!el&&!el.hidden&&getComputedStyle(el).display!=="none";
+    return { setup: v(document.getElementById("setupHint")), login: v(document.getElementById("loginBox")),
+             createClient: window.__createClientCalls || 0 }; })()`);
+  const tryLogToDB = async () => {
+    const has = await cdp.ev(`typeof window.logToDB === "function"`);
+    if (!has) return { has: false };
+    const subBefore = submissionHits, extBefore = externalBlocked.filter((u) => /submissions/.test(u)).length;
+    await cdp.ev(`(window.logToDB("inquiry", { fullName: "占位测试", email: "t@example.invalid" }), true)`);
+    await sleep(900);
+    return { has: true, localSubmissions: submissionHits - subBefore,
+             externalSubmissions: externalBlocked.filter((u) => /submissions/.test(u)).length - extBefore };
+  };
+  for (const sc of ["absent", "placeholder", "placeholder-ascii"]) {
+    scenario = sc;
+    exceptions = [];
+    await cdp.send("Page.navigate", { url: `${BASE}/admin.html?w=${sc}` });
+    await sleep(1500);
+    const a = await adminProbe();
+    ok(`W3 ${sc} admin.html：显示设置提示、不显示登录框、不建客户端、无异常`,
+       a.setup === true && a.login === false && a.createClient === 0 && exceptions.length === 0, JSON.stringify({ ...a, exceptions }));
+    exceptions = [];
+    await cdp.send("Page.navigate", { url: `${BASE}/index.html?w=${sc}` });
+    await sleep(2000);
+    const l = await tryLogToDB();
+    ok(`W4 ${sc} index.html：logToDB 不发任何写库请求（本机相对路径与外部都没有）、无异常`,
+       l.has === true && l.localSubmissions === 0 && l.externalSubmissions === 0 && exceptions.length === 0, JSON.stringify({ ...l, exceptions }));
+    exceptions = [];
+    await cdp.send("Page.navigate", { url: `${BASE}/giving.html?w=${sc}` });
+    await sleep(1500);
+    ok(`W5 ${sc} giving.html：载入无异常`, exceptions.length === 0, JSON.stringify(exceptions));
+  }
+  const supaBeforeSelfCheck = externalBlocked.length;
+
   /* N：量具自检。旁路文件换成「填好了」的构造值 —— 页面必须判 ready、不再说「尚未启用」。
      证明上面的绿不是因为这套判据在任何配置下都判 missing。（ready 之后桩会拒绝建客户端，页面报什么不在此量。） */
   console.log("\n=== N 量具自检：填了构造值时必须判 ready ===");
@@ -238,12 +297,23 @@ try {
        s.state === "ready" && s.source === "local-override" && s.createClient >= 1 && s.head !== "门户系统尚未启用" && s.disabledNotice !== true &&
        s.failMsg !== "门户系统尚未启用，无法处理密码重设。", JSON.stringify(s));
   }
+  /* N2：同样的构造值下，admin 应当去建客户端、logToDB 应当真的去写库（请求被本测试拦下、不放出去）——
+     证明 W3 / W4 的「不建 / 不发」是判据在起作用，不是量具瞎了。 */
+  await cdp.send("Page.navigate", { url: `${BASE}/admin.html?r=filled` });
+  await sleep(1500);
+  const na = await adminProbe();
+  ok("N2 filled admin.html：不再显示设置提示，且建了客户端", na.setup === false && na.createClient >= 1, JSON.stringify(na));
+  await cdp.send("Page.navigate", { url: `${BASE}/index.html?r=filled` });
+  await sleep(2000);
+  const nl = await tryLogToDB();
+  ok("N3 filled index.html：logToDB 确实发出了写库请求（被拦下，未放出）", nl.has === true && nl.externalSubmissions === 1, JSON.stringify(nl));
 
   console.log("\n=== 稳定性与外发 ===");
   const diff = Object.keys(signatures[1]).filter((k) => signatures[1][k] !== signatures[2][k]);
   ok("S1 两轮逐页结果逐字一致（" + Object.keys(signatures[1]).length + " 项）", diff.length === 0 && Object.keys(signatures[2]).length === Object.keys(signatures[1]).length, JSON.stringify(diff.slice(0, 3)));
-  const supaHits = externalBlocked.filter((u) => /supabase\.(co|in)/.test(u));
-  ok("S2 没有任何发往 supabase 后端的请求", supaHits.length === 0, JSON.stringify(supaHits.slice(0, 3)));
+  /* 只看 N 量具自检之前：N3 故意让 logToDB 往构造的 supabase 地址发一次（被拦下），那是自检本身 */
+  const supaHits = externalBlocked.slice(0, supaBeforeSelfCheck).filter((u) => /supabase\.(co|in)/.test(u));
+  ok("S2 没有配置 / 占位配置下，没有任何发往 supabase 后端的请求", supaHits.length === 0, JSON.stringify(supaHits.slice(0, 3)));
   const uniq = [...new Set(externalBlocked.map((u) => new URL(u).host))];
   console.log("      · 被拦下、未放出的非本机请求主机：" + (uniq.length ? uniq.join("、") : "（无）"));
   ok("S3 本机旁路文件确实被页面请求过（" + localCfgHits + " 次，全部由测试接管，未读本机真文件）", localCfgHits >= ALL.length * 4);

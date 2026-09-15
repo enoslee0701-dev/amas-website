@@ -20,3 +20,16 @@
 - [ ] QUEUE | UNCLEAR | 队列剩余未完成任务少于 2 条：T-015 完成后只剩 T-016 一条 `[ ]`（T-003、T-014 为 `[!]`） | 请 Luna 补货；T-013 报告里有一条可直接入队的有界候选（学员课程目录 my_learning 无结论边界） | 2026-09-15
 - 更正 2026-09-15（Claude 追加）：上面 `QUEUE` 那条补货请求**判断错误，撤回**。T-017~T-024 早已由 Luna 加入队列
   （随 f5013a2 / T-011 的提交一并进了仓库，我当时只 grep 了 T-014~T-016 三行，漏看了后面）。请忽略该条。
+- [ ] INCIDENT-0916 | RED | **测试探针很可能已向真实 Supabase 写入测试数据** | 需 Enos：核对并决定是否清理真实库；决定是否给相关探针加「拦截本地旁路」保护 | 2026-09-16
+  · 经过：T-029 回归时我在本机运行了 `test-chat-timeout.mjs` 与 `test-giving-submit.mjs`（仓库原有探针）。这两支直接从仓库根目录伺服页面、
+    **不替换** supabase-config.js，且对非本机请求 `Fetch.continueRequest` 放行。本机有一份真实填好的 `assets/js/supabase-config.local.js`
+    （gitignore；只读核对：url 为 `<ref>.supabase.co`，anonKey 长 208，未打印任何值），页面跑在 127.0.0.1，旁路把它加载进来 →
+    `logToDB`（main.js）/ giving.html 的写库分支按真实配置向 `https://<ref>.supabase.co/rest/v1/submissions` 发请求。
+  · 证据：放行运行中 test-chat-timeout 的 I2 记到 **2 个外网请求**；随后我用「拦截并记录」的临时副本复跑两支（副本已删除），
+    各记录到 `OPTIONS https://<ref>.supabase.co/rest/v1/submissions`（CORS 预检，已拦下）。据此判断放行那次**很可能是预检 + POST**。
+    giving 那支没有外网计数，且浏览器会缓存预检，**写入条数无法从本地确定**。
+  · 可能写入的内容（探针夹具，非真实个人信息）：留言 type=chat，姓名「张三」、联系方式 `zhangsan@example.invalid`、正文「这是留言正文」；
+    奉献 type=giving，姓名「测试访客」、联系方式 `local@example.invalid`。时间约 2026-09-16 05:0x（本机时间）。
+  · 与 T-029 改动无关：配置真实填好时，新判据 SUPA_IS_FILLED() 与旧的「非空」判断结果相同，都会写库；这是探针 + 本地旁路的既有问题。
+  · 我已停止运行这类探针。同类风险的探针（不替换配置且放行外网）：test-chat-timeout、test-giving-submit、test-upload-flow。
+  · 我**没有**、也不会自行连接真实库去查询或删除（需要凭据与授权）。
