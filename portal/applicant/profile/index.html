@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>个人资料 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609151824">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609151830">
 <style>
 .sec{margin-bottom:18px}
 .sec h2{font-size:16px;color:var(--navy);margin:0 0 4px}
@@ -27,11 +27,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609151824"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609151824"></script>
-<script src="../../../assets/js/portal/api.js?v=202609151824"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609151824"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609151824"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609151830"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609151830"></script>
+<script src="../../../assets/js/portal/api.js?v=202609151830"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609151830"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609151830"></script>
 <script>
 /* 申请者个人资料页。
 
@@ -75,8 +75,14 @@
   UI.loading(main, 3);
   const { data: prof, error } = await Api.rpc("my_profile");
   if (error) return UI.error(main, { message: error.message, onRetry: () => location.reload() });
-  if (!prof) return UI.error(main, { message: "没有读到你的档案，请稍后重试或联系招生同工。",
-                                     onRetry: () => location.reload() });
+  /* 「读到了」要按契约判：my_profile 返回 profiles 一整行。只判 `!prof` 挡不住
+     {} 和各字段全为 null 的对象（profiles 行没建时 SQL 函数返回 NULL 复合值，
+     经 PostgREST 可能序列化成这样）—— 那会画出一张空表单，把「读不到」说成「资料是空的」。
+     未连库实测，属防御性边界；回归：scripts/test-applicant-profile-read-boundary.mjs */
+  const gotRow = !!prof && typeof prof === "object" && !Array.isArray(prof) &&
+                 Object.keys(prof).some((k) => prof[k] != null);
+  if (!gotRow) return UI.error(main, { message: "没有读到你的档案，请稍后重试或联系招生同工。",
+                                       onRetry: () => location.reload() });
 
   const d = (v) => v ? new Date(v).toLocaleDateString("zh-CN") : "—";
   const ro = (k, v) => '<div class="ro"><span>' + UI.esc(k) + '</span><b>' + UI.esc(v || "—") + '</b></div>';

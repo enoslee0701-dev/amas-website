@@ -51,3 +51,10 @@ T-004 的验收改用它自己的独立命令：`node scripts/check-probe-syntax
     接线后：10/10，连跑 3 次退出码均 0；`./scripts/verify.sh` 退出码 0，输出里有这 10 个用例
 - 2026-09-14 | T-008 | [x] | 阶段 checkpoint：报告 `docs/operations/CSC-T-008-CHECKPOINT-REPORT.md`（T-001~T-008 结果、实测验证、待复核项）。
   提交前 `./scripts/verify.sh` 退出码 0。
+- 2026-09-15 | T-009 | [x] | 申请人资料页读取边界。原守卫 `if (error)` / `if (!prof)` 挡不住 `{}` 和全 null 行
+  （profiles 行没建时 my_profile 返回 NULL 复合值，经 PostgREST 可能成全 null 对象；未连库实测，按契约防御），
+  会画出空表单、账号信息全「—」。改为「对象、非数组、至少一个非 null 字段」才算读到；否则报「没有读到你的档案」+ 重试。
+  判据刻意不要求 id：20+ 支探针的 my_profile 桩只给 display_name/email。
+  检查：`node scripts/test-applicant-profile-read-boundary.mjs`（node:vm 桩运行页面脚本，7 情形：读失败×2、null、undefined、{}、全 null、正常行；
+  读不到类同时验重试入口会 reload、且不渲染保存按钮）修前 2 个不符 → 退出码 1；修后 0 个 → 退出码 0。
+  回归：`node scripts/test-profile-writes.mjs` PASS 42 FAIL 0；`./scripts/verify.sh` 退出码 0。
