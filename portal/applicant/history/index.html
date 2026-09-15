@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>历史申请 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609151841">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609151844">
 <style>
 .hitem{margin-bottom:14px}
 .hhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
@@ -32,11 +32,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609151841"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609151841"></script>
-<script src="../../../assets/js/portal/api.js?v=202609151841"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609151841"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609151841"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609151844"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609151844"></script>
+<script src="../../../assets/js/portal/api.js?v=202609151844"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609151844"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609151844"></script>
 <script>
 /* 申请者历史申请页。
 
@@ -146,7 +146,10 @@
     if (!btn) return;
     const card = btn.closest(".hitem");
     const box = card.querySelector(".tl");
-    if (!box.hidden) {                       // 再点一次收起
+    /* 再点一次收起 —— 只对**已经读到**的那份成立。原来只看 box 有没有展开：
+       读不到时 box 里展示的是那句「请稍后再点一次」，于是他照做再点，
+       得到的却是把提示收起来，并没有重新去读；要再点第二下才真的重试。 */
+    if (!box.hidden && btn.dataset.loaded === "1") {
       box.hidden = true;
       btn.setAttribute("aria-expanded", "false");
       btn.textContent = "查看状态变化";

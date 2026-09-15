@@ -70,3 +70,9 @@ T-004 的验收改用它自己的独立命令：`node scripts/check-probe-syntax
   修前：学员页·requestSubmit 增量 2（before 21 → after 23），其余 8 组增量 1；PASS 59 FAIL 1，退出码 1。
   原因：学员页只设 btn.disabled，处理函数没有 `if (btn.disabled) return;`（申请人/教师页有）。点击与回车被浏览器按禁用态拦住，
   不经过按钮的提交拦不住。已补守卫。修后 PASS 60 FAIL 0，退出码 0；`./scripts/verify.sh` 退出码 0。
+- 2026-09-15 | T-012 | [x] | 申请人历史页「读不到 / 无记录」区分。新增 `node scripts/test-applicant-history-read-boundary.mjs`
+  （node:vm 桩运行页面脚本，11 情形，**双向**判据：读不到不许出现「没有」、无记录不许出现「没读到」，并验证重试会重新请求）。
+  列表 6 情形（error / null / {} / undefined / [] / 有记录）现状全对。
+  时间线查出缺陷：读不到（error / null / {}）后提示「请稍后再点一次」，照做再点却只是把提示收起、不重新请求，要点第二下才重试。
+  修复：只有已读到（loaded=1）的时间线再点才收起。修前 3 个不符 → 退出码 1；修后 0 个 → 退出码 0。
+  回归：`node scripts/test-read-failures.mjs` PASS 22 FAIL 0；`./scripts/verify.sh` 退出码 0。
