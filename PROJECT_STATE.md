@@ -251,3 +251,8 @@ QUEUE_EMPTY（2026-09-16）：队列无 `[ ]` 任务；T-003、T-014 仍为 `[!]
      处理：把固定等待改成轮询等卡片关上（上限 3 秒），**断言本身不变**。
   结果：带 min-width + 轮询连跑 3 次均 20/20，退出码 0。回归：touch-targets 18/20（T0/T5 仍为已登记基线）、header-layout 19/19、
   check-css-prefixes 0、`./scripts/verify.sh` 0。建议 Luna：P-1280 此前未登记为基线失败，现已修复，不需要再登记。
+- 2026-09-16 | C-e | [x] | 学员中心首页三处「读不到说成没有」（T-013 盘点里列出的其余入口）。新增 `node scripts/test-student-home-read-boundary.mjs`（node:vm，10 情形）。
+  修前 5 个不符：学籍记录无结论（null / {}）→ 写「尚未查到你的学籍记录」；最近活动 error / 无结论 → 显示「暂无记录」；项目目录读失败 → 修读项目写「待确认」。
+  修复：学籍记录 `!Array.isArray` 走整页「没能读到你的学籍记录…这不表示你没有学籍」+ 重试；最近活动接住自己的 error 并另说；
+  项目目录读不到且学籍里有 program_code 时显示「这一次没读到项目名称」。真的没有（[] / 没有 program_code）时说法照旧。修后 10/10。
+  回归：test-read-failures 23/23（S1/S2 仍绿）、test-portal-pages 112/112、test-role-guard 61/61、todo-loop 四组 24/13/11/20、`./scripts/verify.sh` 0。

@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>学员中心 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609160650">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609160656">
 <style>
 .idcard{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);color:#fff;border-radius:16px;padding:20px 22px;margin-bottom:18px}
 .idcard h2{margin:0;font-size:19px;color:#fff}
@@ -31,11 +31,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609160650"></script>
-<script src="../../assets/js/portal/auth.js?v=202609160650"></script>
-<script src="../../assets/js/portal/api.js?v=202609160650"></script>
-<script src="../../assets/js/portal/ui.js?v=202609160650"></script>
-<script src="../../assets/js/portal/shell.js?v=202609160650"></script>
+<script src="../../assets/js/supabase-config.js?v=202609160656"></script>
+<script src="../../assets/js/portal/auth.js?v=202609160656"></script>
+<script src="../../assets/js/portal/api.js?v=202609160656"></script>
+<script src="../../assets/js/portal/ui.js?v=202609160656"></script>
+<script src="../../assets/js/portal/shell.js?v=202609160656"></script>
 <script>
 /* PORTAL-2 学员中心（V1）
    原则：状态机与 DB 是权威源，UI 不模拟业务状态；没有真实数据就显示真实空态，绝不填充假数据。
@@ -58,7 +58,7 @@
      后果很具体：my_action_items 挂掉时页面写「目前没有需要你处理的事项。」，
      一个正被教务要求补件的学员会以为没事要做；my_learning 挂掉时写
      「AMAS 正式课程共 0 门」，而学校有 67 门。 */
-  const [{ data: recRows, error }, { data: tl }, { data: pc }, { data: acts, error: actsErr },
+  const [{ data: recRows, error }, { data: tl, error: tlErr }, { data: pc, error: pcErr }, { data: acts, error: actsErr },
          { data: cap }, { data: learn, error: learnErr }] =
     await Promise.all([
       Api.rpc("my_student_record"),
@@ -69,10 +69,19 @@
       Api.rpc("my_learning"),
     ]);
   if (error) return UI.error(main, { message: error.message, onRetry: () => location.reload() });
+  /* 「没读到」和「学校还没给你建档」是两件事。my_student_record returns table，正常是数组；
+     原来 `recRows && recRows[0]` 在无结论（error 为空、data 不是数组）时也得到空，
+     页面于是写「尚未查到你的学籍记录」—— 把读不到说成了没建档。真的没有（[]）照旧那样说。
+     回归：scripts/test-student-home-read-boundary.mjs */
+  if (!Array.isArray(recRows))
+    return UI.error(main, { message: "这一次没能读到你的学籍记录（可能是网络不稳或服务端暂时不可用）。这不表示你没有学籍，请稍后重试。",
+                            onRetry: () => location.reload() });
 
   const rec = recRows && recRows[0];
   const name = (profile && (profile.display_name || profile.email)) || "";
-  const pcMap = Object.fromEntries((pc || []).map(p => [p.code, p]));
+  /* 项目目录读不到时，「修读项目」不能显示成「待确认」—— 那是「教务还没定」的说法。 */
+  const catalogUnknown = !!pcErr || !Array.isArray(pc);
+  const pcMap = Object.fromEntries((catalogUnknown ? [] : pc).map(p => [p.code, p]));
   const prog = rec && rec.program_code ? pcMap[rec.program_code] : null;
 
   // 有 student 角色但查不到学籍记录：这是数据异常，如实说明并给出求助路径，不臆造状态
@@ -149,7 +158,9 @@
       '<div class="badge">' + UI.esc(s.t) + '</div>' +
       '<div class="idrow">' +
         '<div><span>学号</span><b>' + (rec.student_number ? UI.esc(rec.student_number) : "待教务录入") + '</b></div>' +
-        '<div><span>修读项目</span><b>' + (prog ? UI.esc(prog.name_zh) : "待确认") + '</b></div>' +
+        '<div><span>修读项目</span><b>' +
+          (prog ? UI.esc(prog.name_zh)
+                : (rec.program_code && catalogUnknown ? "这一次没读到项目名称" : "待确认")) + '</b></div>' +
         '<div><span>学籍建立</span><b>' + new Date(rec.created_at).toLocaleDateString("zh-CN") + '</b></div>' +
         (rec.activated_at ? '<div><span>正式注册</span><b>' + new Date(rec.activated_at).toLocaleDateString("zh-CN") + '</b></div>' : "") +
       '</div>' +
@@ -193,12 +204,18 @@
       '<div id="tl"></div></div>';
 
   const box = document.getElementById("tl");
+  /* 最近活动读不到时不能显示「暂无记录」—— 那等于替服务端断言「你没有任何状态变更」。 */
+  if (tlErr || !Array.isArray(tl)) {
+    box.innerHTML = UI.box("🔄", "这一次没能读到最近活动",
+      "可能是网络不稳或服务端暂时不可用。这不表示没有记录，刷新页面可以再试一次。");
+  } else {
   const items = (tl || []).slice().reverse().map(h => ({
     title: (ST[h.to_status] && ST[h.to_status].t) || h.to_status,
     text: h.student_visible_message || "",
     time: new Date(h.created_at).toLocaleString("zh-CN"),
   }));
   box.innerHTML = UI.timeline(items);
+  }
 })();
 </script>
 </body>
