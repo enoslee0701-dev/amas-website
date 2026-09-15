@@ -409,6 +409,45 @@ try {
     }
   }
 
+  /* D3：不等待，连着触发两次（T-019）。D1/D2 隔 500ms 在途时再触发，量的是「在途守卫」；
+     这里量的是「按钮还没来得及禁用的那一瞬间」有没有竞态：真实双击、回车连按、
+     同一轮事件循环里两次 requestSubmit。判据只看增量恰为 1 ——
+     0 说明一下都没发出去，2 说明两下都发了，两种都不算过。 */
+  const doubleClick = async (sel) => {
+    const pt = await cdp.ev(`(()=>{const el=document.querySelector(${JSON.stringify(sel)});
+      if(!el) return null; el.scrollIntoView({block:'center'});
+      const r=el.getBoundingClientRect(); return {x:r.left+r.width/2,y:r.top+r.height/2};})()`);
+    if (!pt) throw new Error("点不到 " + sel);
+    for (const clickCount of [1, 2])
+      for (const type of ["mousePressed", "mouseReleased"])
+        await cdp.send("Input.dispatchMouseEvent", { type, x: pt.x, y: pt.y, button: "left", clickCount });
+  };
+  const enterTwiceIn = async (sel) => {
+    await cdp.clickReal(sel);
+    for (let i = 0; i < 2; i++)
+      for (const type of ["keyDown", "keyUp"])
+        await cdp.send("Input.dispatchKeyEvent", { type, key: "Enter", code: "Enter",
+          windowsVirtualKeyCode: 13, nativeVirtualKeyCode: 13, ...(type === "keyDown" ? { text: "\r" } : {}) });
+  };
+  const RAPID = [
+    ["双击保存键", () => doubleClick("#save")],
+    ["电话框里连按两次回车", () => enterTwiceIn("#ph")],
+    ["同一轮事件循环两次 requestSubmit", () => cdp.ev(`(()=>{const f=document.querySelector("form"); if(!f) return false;
+      f.requestSubmit(); f.requestSubmit(); return true;})()`)],
+  ];
+  for (const [label, page, base] of PAGES) {
+    for (const [vname, fireTwice] of RAPID) {
+      await open(page, { ...base, write: { data:{ ok:true }, error:null, status:200, delay:1500 } });
+      for (let i = 0; i < 40 && !(await cdp.ev(`!!document.getElementById("save")`)); i++) await sleep(100);
+      const before = (await calls())["update_my_contact"] || 0;
+      await fireTwice();
+      await sleep(2000);
+      const after = (await calls())["update_my_contact"] || 0;
+      ok("D3 " + label + "·" + vname + "：不等待连发两次，update_my_contact 增量恰为 1",
+         after - before === 1, JSON.stringify({ before, after }));
+    }
+  }
+
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");
   cdp.ws.close();

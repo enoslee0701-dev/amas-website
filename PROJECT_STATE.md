@@ -113,3 +113,8 @@ T-004 的验收改用它自己的独立命令：`node scripts/check-probe-syntax
   补的缺口：时间线「再点即重读」此前只在 vm 桩里验过，浏览器里只看了 loaded 标记。给 test-read-failures.mjs 的 stub 加页内 rpc 计数，新增 Hn3d。
   负向对照：临时换回 T-012 修复前的页面（f5013a2 版本）→ Hn3d FAIL（请求 1→1），PASS 22 FAIL 1，退出码 1；已 `git checkout HEAD --` 还原。
   当前页面：PASS 23 FAIL 0，退出码 0；`node scripts/test-applicant-history-read-boundary.mjs` 11/11；`./scripts/verify.sh` 退出码 0。
+- 2026-09-15 | T-019 | [x] | 资料页重复提交三种触发方式。T-011 的 D1/D2 已覆盖「在途时再触发」（三页 × 点击 / 回车 / requestSubmit，增量 1）。
+  补 D3「不等待连发两次」（按钮来不及禁用的瞬间）：真实双击（clickCount 1→2）、回车连按两次、同一轮事件循环两次 requestSubmit；判据增量恰为 1。
+  负向对照：临时换回 T-011 修复前学员页（5e1b4f3 版本）→ D3 学员·requestSubmit 增量 2（31→33）、D2 同样 21→23；PASS 67 FAIL 2，退出码 1；
+  双击与回车连按在修复前也是 1（浏览器按禁用态拦下）。已 `git checkout HEAD --` 还原。
+  当前页面：`node scripts/test-profile-writes.mjs` PASS 69 FAIL 0，退出码 0；`./scripts/verify.sh` 退出码 0。
