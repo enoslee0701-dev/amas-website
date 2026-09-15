@@ -120,6 +120,8 @@ window.supabase = {
       from: table,
       rpc: function(name){
         var sc = S();
+        /* 页内计数：点击不导航，计数不会被冲掉；用来量「再点一次有没有真的重新请求」。 */
+        try { window.__rpcCalls = window.__rpcCalls || {}; window.__rpcCalls[name] = (window.__rpcCalls[name] || 0) + 1; } catch (e) {}
         if (fail(name)) return reply({ data:null, error:{ message:"boom" }, status:500 });
         if (noConc(name)) return reply({ data:(sc.nullShape !== undefined ? sc.nullShape : null), error:null, status:200 });
         if (name === "my_roles") return reply({ data:(sc.roles||["student"]).map(function(r){return {role:r};}), error:null, status:200 });
@@ -251,6 +253,17 @@ try {
      /没能读到|没读到/.test(hn3), hn3.slice(0, 300));
   ok("Hn3c 而且没被标成已加载 —— 下次点还能再试",
      (await cdp.ev(`(()=>{const b=document.querySelector("[data-tl]"); return !b || b.dataset.loaded !== "1";})()`)) === true);
+  /* Hn3c 只看了标记。真正要紧的是**再点一次就重新去读** —— 原来读不到时再点只会把提示收起来，
+     要点第二下才重试（T-012 修复；node:vm 边界检查 test-applicant-history-read-boundary.mjs 也钉了）。
+     这里在真实浏览器里再钉一次：点击、hidden 属性、dataset 都是真 DOM。 */
+  const tlCalls = async () => (await cdp.ev(`(window.__rpcCalls || {}).my_application_timeline || 0`)) || 0;
+  const tl1 = await tlCalls();
+  await cdp.ev(`(()=>{const b=document.querySelector("[data-tl]"); if(b) b.click(); return !!b;})()`);
+  await sleep(1500);
+  const tl2 = await tlCalls();
+  const hn3d = await vis();
+  ok("Hn3d 读不到之后照提示「再点一次」，确实重新请求了时间线，而不是只把提示收起来",
+     tl1 === 1 && tl2 === 2 && /没能读到|没读到/.test(hn3d), JSON.stringify({ before: tl1, after: tl2, text: hn3d.slice(-120) }));
 
   /* 反面：真的没有历史 / 时间线真的为空时，原来的说法照旧，不能为修这个把正常话堵掉。 */
   await open("portal/applicant/history/", { roles:["applicant"],

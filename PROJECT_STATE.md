@@ -107,3 +107,9 @@ T-004 的验收改用它自己的独立命令：`node scripts/check-probe-syntax
   修复（assets/js/portal/api.js）：msg 只认 MESSAGES 自有键；fn 只收字符串错误码，无码时 403→forbidden、429→rate_limited。修后 20/20，退出码 0。
   回归：test-admin-overview-writes PASS 28 FAIL 0；test-session-unknown PASS 23 FAIL 0；`./scripts/verify.sh` 退出码 0。
   页面「结果不明」按 HTTP 状态判（0 / ≥500 / 200 无数据），不看 code，本次改动不影响该分流。
+- 2026-09-15 | T-018 | [x] | 申请历史页空数据 / 读取失败审核。与 T-012 同题，逐项核对现有覆盖（均通过）：
+  空数据：vm「列表 []」「时间线 []」+ 浏览器 Hn4 / Hn5；读取失败：vm 列表 error/null/{}/undefined、时间线 error/null/{} + 浏览器 H1/H2/Hn1~Hn3c；
+  重试入口：列表 error → UI.error onRetry（vm 验 reload）、列表无结论 → 刷新按钮（vm 验 reload，浏览器 Hn1b）、时间线读不到 → 再点即重读（vm）。
+  补的缺口：时间线「再点即重读」此前只在 vm 桩里验过，浏览器里只看了 loaded 标记。给 test-read-failures.mjs 的 stub 加页内 rpc 计数，新增 Hn3d。
+  负向对照：临时换回 T-012 修复前的页面（f5013a2 版本）→ Hn3d FAIL（请求 1→1），PASS 22 FAIL 1，退出码 1；已 `git checkout HEAD --` 还原。
+  当前页面：PASS 23 FAIL 0，退出码 0；`node scripts/test-applicant-history-read-boundary.mjs` 11/11；`./scripts/verify.sh` 退出码 0。
