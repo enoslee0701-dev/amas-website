@@ -29,7 +29,14 @@
     server_error: "服务暂时不可用，请稍后再试。",
     unknown: "操作未能完成，请稍后再试。",
   };
-  const msg = (code) => MESSAGES[code] || MESSAGES.unknown;
+  /* 只认 MESSAGES **自己的**键。原来是 `MESSAGES[code] || MESSAGES.unknown`：
+     对象字面量的原型上挂着 constructor / toString / hasOwnProperty…，全是真值，
+     code 恰好是这些名字时返回的是函数本身，渲染出来就是「function Object() { [native code] }」。
+     code 可能来自 Edge Function 的响应体，不是前端能保证的枚举。与资料页 ACC_KEYS 同一个坑。
+     回归：scripts/test-api-error-mapping.mjs */
+  const msg = (code) =>
+    (typeof code === "string" && Object.prototype.hasOwnProperty.call(MESSAGES, code))
+      ? MESSAGES[code] : MESSAGES.unknown;
 
   /** 把 supabase-js / HTTP 错误规范化 */
   function normalize(error, status) {
@@ -119,9 +126,15 @@
     if (r.data && r.data.error === "session_unknown")
       return { data: null, error: { code: "session_unknown", message: msg("session_unknown") } };
     if (r.status === 0) return { data: null, error: { code: "network", message: msg("network") } };
-    let code = (r.data && r.data.error) || null;
+    let code = (r.data && typeof r.data.error === "string" && r.data.error) || null;
+    /* 没有结构化错误码时按 HTTP 语义推。原来只认 401 与 5xx，
+       403 / 429 没带 body（网关页、网关限流、非 JSON）就落到 unknown ——
+       权限与限流被压成一句「操作未能完成」，用户不知道该去找人还是等一会儿。
+       与 normalize() 对 403 / 429 的口径保持一致。 */
     if (!code) {
       code = r.status === 401 ? "unauthenticated"
+           : r.status === 403 ? "forbidden"
+           : r.status === 429 ? "rate_limited"
            : r.status >= 500 ? "server_error"
            : "unknown";
     }

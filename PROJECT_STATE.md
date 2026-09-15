@@ -98,3 +98,12 @@ T-004 的验收改用它自己的独立命令：`node scripts/check-probe-syntax
   且不走 lib/chrome-launcher、未设 CHROME_PATH 时默认 Windows 路径。运行器改为分组跑并传入 chromeBinary()；探针本身未改。
   未留残留进程（一天内启动的 headless Chrome 为 0）。另见机器上有 28 个 1~2 天前的 headless Chrome，非本轮产生，未处理。
   T-015 提交后复核：`check-stamp-only-diff.mjs HEAD^ HEAD --per-commit`（在 865dd68 上）25 个 HTML 只改戳，退出码 0。
+- 2026-09-15 | 更正 | BLOCKED.md 的 QUEUE 补货请求撤回：T-017~T-024 已在队列中（Luna 追加的这 8 条随 f5013a2 / T-011 的
+  `git add CSC_AUTONOMOUS_QUEUE.md` 一起进了提交，该提交说明里没写到这一点）。我此前只 grep 了 T-014~T-016，误判为只剩 1 条。
+- 2026-09-15 | T-017 | [x] | API 错误归一化边界检查：`node scripts/test-api-error-mapping.mjs`（node:vm 加载真实 api.js，20 个用例，
+  覆盖 normalize / msg / fn / rpc 的未知、权限、限流映射、状态码优先级、不带服务端原文）。
+  修前 5 个不符 → 退出码 1：① msg(constructor/toString/__proto__/hasOwnProperty/valueOf) 返回函数或对象（原型链取值）；
+  ② fn() 403 无结构化 body → unknown；③ 429 无 body / 网关形状 body → unknown；④ body error="constructor" → message 是函数。
+  修复（assets/js/portal/api.js）：msg 只认 MESSAGES 自有键；fn 只收字符串错误码，无码时 403→forbidden、429→rate_limited。修后 20/20，退出码 0。
+  回归：test-admin-overview-writes PASS 28 FAIL 0；test-session-unknown PASS 23 FAIL 0；`./scripts/verify.sh` 退出码 0。
+  页面「结果不明」按 HTTP 状态判（0 / ≥500 / 200 无数据），不看 code，本次改动不影响该分流。
