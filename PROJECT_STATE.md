@@ -146,3 +146,9 @@ T-004 的验收改用它自己的独立命令：`node scripts/check-probe-syntax
   两次独立运行均 PASS 91 FAIL 0，退出码 0；无残留进程。`./scripts/verify.sh` 退出码 0。
   顺带观察（未处理，候选）：auth/recovery 在 auth.js 未加载成功（`!A`）时也说「门户系统尚未启用」；
   以及 supabase-js 对格式不合法的 url 会在 createClient 抛错，使 auth.js 整体加载失败 —— 均属「配置填错」而非「没配置」，不在本条范围。
+- 2026-09-15 | T-023 | [x] | [YELLOW] 发布前浏览器兼容性检查范围盘点，报告 `docs/operations/CSC-T-023-BROWSER-COMPAT-SCOPE.md`（只盘点，未改页面、未发布、未碰真实数据）。
+  现状：63 支浏览器探针全是 Chromium；WebKit/Firefox/真机/内置浏览器 0；仓库无目标浏览器定义。
+  特性扫描（36 段 JS、210 段 CSS，一次性正则）：JS 硬下限由 `?.` / `??` 决定（约 Chrome 80 / Safari 13.1 / Firefox 74，版本号待逐项复核）；
+  CSS 软下限：`:has()` 有写明的回退；`inset`（含门户确认弹窗）与 flex `gap` 为中风险；`:focus-visible` 旧 Safari 无焦点框；
+  `backdrop-filter` 全部缺 `-webkit-` 前缀（Safari < 18 无毛玻璃）。未核：supabase-js 2.116.0 UMD 的语法级别。
+  候选 4 条：C1 目标浏览器矩阵（需 Enos 决定）/ C2 静态特性下限检查（GREEN）/ C3 补 -webkit-backdrop-filter（GREEN）/ C4 Safari 冒烟（需 Enos 先开远程自动化）。
