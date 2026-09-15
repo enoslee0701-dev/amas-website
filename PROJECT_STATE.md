@@ -242,3 +242,12 @@ QUEUE_EMPTY（2026-09-16）：队列无 `[ ]` 任务；T-003、T-014 仍为 `[!]
   用例 `node scripts/test-css-prefixes.mjs` 10/10（缺前缀 / 值不一致 / 前缀在别的规则里 / 内联 style / 注释不算 / docs 不扫 / 空转）。
   视觉回归（Chromium）：header-layout 19/19、pages-touch 7/7、touch-targets 18/20（T0/T5 为已登记基线）、promo-tab 19/20（P-1280 既有，改动前后一致）；verify.sh 0。
   影响说明：Safari 18 以下原本完全没有毛玻璃效果；背景本身是半透明色，可读性不受影响，属观感修复。
+- 2026-09-16 | C-d | [x] | test-promo-tab 的两条失败查清并处理：
+  ① P-1280 是**产品问题**：桌面竖排招生胶囊实测 43x184，宽度差 1px 不到 44（点击/触控目标不合格），该断言一直在报。
+     修复：`.promo-tab` 加 `min-width:44px` 与 `justify-content:center`（不动 padding，避免连带改内部间距与光晕位置）。
+     负向对照：只还原 CSS、保留②的轮询 → P-1280 仍失败（43x184），退出码 1。
+  ② P2c 是**量具时序问题**：产品在 340ms 后才真正隐藏卡片（main.js hideCard），断言却固定等 700ms —— 机器一忙就偶发失败。
+     统计：HEAD 版本最近 5 次里 3 次失败，加了 min-width 的版本 5/5 失败（负载随时间上升，两者都受影响）。
+     处理：把固定等待改成轮询等卡片关上（上限 3 秒），**断言本身不变**。
+  结果：带 min-width + 轮询连跑 3 次均 20/20，退出码 0。回归：touch-targets 18/20（T0/T5 仍为已登记基线）、header-layout 19/19、
+  check-css-prefixes 0、`./scripts/verify.sh` 0。建议 Luna：P-1280 此前未登记为基线失败，现已修复，不需要再登记。

@@ -893,7 +893,9 @@ html[data-theme="night"] :focus-visible{outline-color:#b7be63}
 /* ===== 招生浮标 ===== */
 /* 内边距 13/12 而不是原来的 11/10：标签自身原本只有 40px 宽，低于 44px 触控下限。
    补到 44 之后仍完整落在 44px 的页面外边距里，不侵入内容列。 */
-.promo-tab{position:fixed;right:0;top:46%;z-index:93;writing-mode:vertical-rl;text-orientation:mixed;display:flex;align-items:center;gap:10px;padding:16px 13px 16px 12px;border:0;border-radius:12px 0 0 12px;background:linear-gradient(160deg,#c9963d,#e9c46a 55%,#c9963d);color:#10305a;font-size:13px;font-weight:800;letter-spacing:.14em;cursor:pointer;box-shadow:-6px 8px 26px rgba(120,90,20,.35);animation:promoGlow 2.6s ease-in-out infinite;transition:transform .2s}
+/* 竖排胶囊实测宽 43px —— 差 1px 不到 44，触控/点击目标不合格（探针 P-1280 一直在报）。
+   不改 padding（那会连带动到内部间距与光晕位置），只给一个最小宽度并居中内容。 */
+.promo-tab{position:fixed;right:0;top:46%;z-index:93;writing-mode:vertical-rl;text-orientation:mixed;display:flex;align-items:center;justify-content:center;min-width:44px;gap:10px;padding:16px 13px 16px 12px;border:0;border-radius:12px 0 0 12px;background:linear-gradient(160deg,#c9963d,#e9c46a 55%,#c9963d);color:#10305a;font-size:13px;font-weight:800;letter-spacing:.14em;cursor:pointer;box-shadow:-6px 8px 26px rgba(120,90,20,.35);animation:promoGlow 2.6s ease-in-out infinite;transition:transform .2s}
 .promo-tab:hover{transform:translateX(-4px)}
 .promo-tab-dot{width:8px;height:8px;border-radius:50%;background:#b32020;box-shadow:0 0 0 0 rgba(179,32,32,.6);animation:promoPulse 1.6s ease-out infinite}
 @keyframes promoGlow{0%,100%{box-shadow:-6px 8px 26px rgba(120,90,20,.35)}50%{box-shadow:-6px 8px 34px rgba(233,196,106,.7)}}

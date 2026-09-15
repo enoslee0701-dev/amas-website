@@ -386,7 +386,14 @@ try {
     `胶囊已收起=${handover.tabHiddenNow} 焦点在关闭键=${handover.focusMoved} 焦点未丢给body=${handover.focusVisibleSomewhere}`);
 
   await cdp.key("Enter", "Enter", 13);   // 在关闭键上回车，收起卡片
-  await sleep(700);
+  /* 卡片先播 .35s 滑出动画，340ms 后才真正 hidden（见 main.js 的 hideCard）。
+     原来固定等 700ms —— 机器一忙，setTimeout 被推迟，这条就偶发地报「卡片已关=false」，
+     而那是量具赌输了，不是产品没关。改成轮询等它关上，上限 3 秒；断言本身不变。 */
+  for (let i = 0; i < 30; i++) {
+    if (await cdp.ev(`document.querySelector('#promoCard').hidden === true`)) break;
+    await sleep(100);
+  }
+  await sleep(150);                      // 关上之后焦点交回胶囊也在同一个回调里
   const back = await cdp.ev(`(() => {
     const tab = document.querySelector('.promo-tab');
     return { cardClosed: document.querySelector('#promoCard').hidden,
