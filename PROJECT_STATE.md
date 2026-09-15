@@ -49,3 +49,5 @@ T-004 的验收改用它自己的独立命令：`node scripts/check-probe-syntax
   新增 2 个用例钉住接线：非嵌套时放一个必失败的替身 → verify.sh 必须失败；嵌套时必须跳过替身。
     接线前：10 个用例里 1 个不符（verify.sh 没跑回归），退出码 1
     接线后：10/10，连跑 3 次退出码均 0；`./scripts/verify.sh` 退出码 0，输出里有这 10 个用例
+- 2026-09-14 | T-008 | [x] | 阶段 checkpoint：报告 `docs/operations/CSC-T-008-CHECKPOINT-REPORT.md`（T-001~T-008 结果、实测验证、待复核项）。
+  提交前 `./scripts/verify.sh` 退出码 0。
