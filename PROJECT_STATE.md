@@ -128,3 +128,11 @@ T-004 的验收改用它自己的独立命令：`node scripts/check-probe-syntax
   GUARD 改用 -z + --literal-pathspecs。修后 23/23。回归：test-hook-gate.py 16/16、test-cache-bust-contract.py 15/15、
   check-cache-bust 5/5、bump.py --list 仍为 25 个、`./scripts/verify.sh` 退出码 0。
   未处理：check-cache-bust.py 工作区模式（不带 --from-index）仍用 rglob 扫描，只读不写；pre-commit 用的是 --from-index，不受影响。
+- 2026-09-15 | T-021 | [x] | 全站脚本语法与链接一致性。新增汇总入口 `node scripts/check-site-static.mjs`（6 步，一个退出码；任一步零文件 → 退出码 2）：
+  JS/MJS/CJS 117 个（node --check）、TypeScript 8 个、HTML 内联 31 个、Python 9 个（ast.parse）、Shell 2 个（sh/bash -n）、站内链接 153 个 —— 全部 0 错，退出码 0。
+  此前 assets/js 站点脚本、supabase 的 .mjs/.ts、scripts 的 .py/.sh、.githooks/pre-commit 都没有任何语法检查。
+  过程中查明：`node --check` 对 .ts **不可靠**（放过 `function c(n: number {`，退出码 0）→ TS 改为 module.stripTypeScriptTypes + vm.SourceTextModule。
+  用例 `node scripts/test-check-site-static.mjs` 11/11（每类坏文件各一例都点名失败；.ts 的 TS 层与 JS 层错误各一例；空转 → 2）。
+  无外网：`sandbox-exec -p '(version 1)(allow default)(deny network*)' node scripts/check-site-static.mjs` → 退出码 0；
+  同一沙箱反向对照 curl → exit 6、node fetch → ENOTFOUND（沙箱确实拦网）；运行前后 `git status --porcelain --ignored` 一致、无新 __pycache__。
+  未接入 verify.sh（接入属改门槛，留给 Luna 决定）。`./scripts/verify.sh` 退出码 0。
