@@ -152,3 +152,6 @@ T-004 的验收改用它自己的独立命令：`node scripts/check-probe-syntax
   CSS 软下限：`:has()` 有写明的回退；`inset`（含门户确认弹窗）与 flex `gap` 为中风险；`:focus-visible` 旧 Safari 无焦点框；
   `backdrop-filter` 全部缺 `-webkit-` 前缀（Safari < 18 无毛玻璃）。未核：supabase-js 2.116.0 UMD 的语法级别。
   候选 4 条：C1 目标浏览器矩阵（需 Enos 决定）/ C2 静态特性下限检查（GREEN）/ C3 补 -webkit-backdrop-filter（GREEN）/ C4 Safari 冒烟（需 Enos 先开远程自动化）。
+- 2026-09-15 | T-024 | [x] | 阶段 checkpoint：报告 `docs/operations/CSC-T-024-CHECKPOINT-REPORT.md`，固定 SHA `749780292b605c3ce50922361da10445cb395332`。
+  在该 SHA 上：`./scripts/verify.sh` 退出码 0；17 项非浏览器检查全部 0；浏览器 5 批 12 趟全部 0（profile-writes 69、portal-pages 112、todo-loop 4 组、read-failures 23、noconfig 91、admin-overview 28、session-unknown 23，均 FAIL 0）。
+  运行前后被跟踪文件只有 Enos 的 CLAUDE.md 改动；无残留进程。
