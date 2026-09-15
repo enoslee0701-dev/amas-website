@@ -155,3 +155,6 @@ T-004 的验收改用它自己的独立命令：`node scripts/check-probe-syntax
 - 2026-09-15 | T-024 | [x] | 阶段 checkpoint：报告 `docs/operations/CSC-T-024-CHECKPOINT-REPORT.md`，固定 SHA `749780292b605c3ce50922361da10445cb395332`。
   在该 SHA 上：`./scripts/verify.sh` 退出码 0；17 项非浏览器检查全部 0；浏览器 5 批 12 趟全部 0（profile-writes 69、portal-pages 112、todo-loop 4 组、read-failures 23、noconfig 91、admin-overview 28、session-unknown 23，均 FAIL 0）。
   运行前后被跟踪文件只有 Enos 的 CLAUDE.md 改动；无残留进程。
+- 2026-09-15 | T-024 复核 | 报告提交 0d31169 后：`check-stamp-only-diff.mjs HEAD^ HEAD --per-commit` → 25 个 HTML 只改戳、0 内容改动，退出码 0。
+
+QUEUE_EMPTY（2026-09-15）：队列无 `[ ]` 任务。剩余 `[!]`：T-003（验收已满足，待 Luna 改判）、T-014（待 Enos 决定，见 BLOCKED.md）。
