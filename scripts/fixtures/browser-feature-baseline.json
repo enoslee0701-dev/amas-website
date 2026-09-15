@@ -1,0 +1,35 @@
+{
+  "_说明": "浏览器特性基线。由 scripts/check-browser-feature-floor.mjs 使用：用到基线之外的特性就失败。",
+  "_版本号来源": "CSC-T-023 报告整理的常识下限（MDN / caniuse 印象），**尚未逐项复核**；目标浏览器矩阵待 Enos 决定（T-023 的 C1 / T-028 的 D1）。",
+  "_怎么改": "新增特性要由人决定：接受就把它加进 features 并写 notes（同时更新矩阵与 T-023 报告），不接受就换写法。不要为了让检查变绿而顺手加。",
+  "_基线确立": "2026-09-16，基于当时 git 跟踪的 assets 下 js/css 与各 HTML 的内联样式与脚本。",
+  "features": {
+    "可选链 ?.":            { "chrome": "80", "safari": "13.1", "firefox": "74" },
+    "空值合并 ??":          { "chrome": "80", "safari": "13.1", "firefox": "72" },
+    "Object.fromEntries":   { "chrome": "73", "safari": "12.1", "firefox": "63" },
+    "String#replaceAll":    { "chrome": "85", "safari": "13.1", "firefox": "77" },
+    "AbortController":      { "chrome": "66", "safari": "12.1", "firefox": "57" },
+    "IntersectionObserver": { "chrome": "51", "safari": "12.1", "firefox": "55" },
+    "navigator.clipboard":  { "chrome": "66", "safari": "13.1", "firefox": "63" },
+    "focus({preventScroll})": { "chrome": "64", "safari": "15", "firefox": "68" },
+    "scrollIntoView 选项":  { "chrome": "61", "safari": "14", "firefox": "36" },
+    ":has()":               { "chrome": "105", "safari": "15.4", "firefox": "121" },
+    ":focus-visible":       { "chrome": "86", "safari": "15.4", "firefox": "85" },
+    ":is()/:where()":       { "chrome": "88", "safari": "14", "firefox": "78" },
+    "flex gap":             { "chrome": "84", "safari": "14.1", "firefox": "63" },
+    "inset 简写":           { "chrome": "87", "safari": "14.1", "firefox": "66" },
+    "aspect-ratio":         { "chrome": "88", "safari": "15", "firefox": "89" },
+    "backdrop-filter":      { "chrome": "76", "safari": "18（带 -webkit- 前缀 9 起）", "firefox": "103" },
+    "clamp()":              { "chrome": "79", "safari": "13.1", "firefox": "75" },
+    "scroll-behavior":      { "chrome": "61", "safari": "15.4", "firefox": "36" },
+    "scroll-snap":          { "chrome": "69", "safari": "11", "firefox": "68" },
+    "env(safe-area-inset)": { "chrome": "69", "safari": "11.1", "firefox": "65" }
+  },
+  "notes": {
+    ":has()": "main.css:942 招生胶囊在卡片展开时隐藏；注释里写明不支持时回退为「被卡片盖住」，即改动之前的样子。",
+    "backdrop-filter": "10 处均已配同值 -webkit- 前缀（C-c）；不支持时只是没有毛玻璃，背景本身是半透明色。检查见 scripts/check-css-prefixes.mjs。",
+    ":focus-visible": "不支持时整条规则被丢掉 —— 键盘焦点框不显示，属可访问性风险，已记入 T-023 报告。",
+    "inset 简写": "用于弹窗遮罩与门户确认弹窗；旧 Safari 上遮罩可能盖不住页面（T-023 列为中风险）。",
+    "可选链 ?. / 空值合并 ??": "整站硬下限由这两个决定：不支持的浏览器会整段脚本解析失败。"
+  }
+}

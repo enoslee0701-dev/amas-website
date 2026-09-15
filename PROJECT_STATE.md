@@ -256,3 +256,8 @@ QUEUE_EMPTY（2026-09-16）：队列无 `[ ]` 任务；T-003、T-014 仍为 `[!]
   修复：学籍记录 `!Array.isArray` 走整页「没能读到你的学籍记录…这不表示你没有学籍」+ 重试；最近活动接住自己的 error 并另说；
   项目目录读不到且学籍里有 program_code 时显示「这一次没读到项目名称」。真的没有（[] / 没有 program_code）时说法照旧。修后 10/10。
   回归：test-read-failures 23/23（S1/S2 仍绿）、test-portal-pages 112/112、test-role-guard 61/61、todo-loop 四组 24/13/11/20、`./scripts/verify.sh` 0。
+- 2026-09-16 | C-f | [x] | 浏览器特性下限检查（基线版，T-023 的 C2 / T-028 的 D8）：新增 `scripts/check-browser-feature-floor.mjs` 与基线
+  `scripts/fixtures/browser-feature-baseline.json`（2026-09-16 固定，20 个有门槛的特性，版本号沿用 T-023 的常识下限并注明待复核）。
+  判据：用到基线外的特性 → 失败；基线里不再用到 → 只提示；零特性 → 退出码 2。本仓库退出码 0，推算下限 Chrome 105 / Safari 18（backdrop-filter 前缀情形）/ Firefox 121。
+  用例 `node scripts/test-browser-feature-floor.mjs` 10/10（JS / CSS / 内联脚本各一例超基线 → 失败；注释、docs、scripts 不算；空转 → 2；不再用到 → 提示）。
+  说明：这条只管「特性集合有没有变大」，不判断某浏览器能不能用；真实兼容性仍是 T-028 的 NOT_RUN。目标矩阵定下来后应把版本号复核并替换。
