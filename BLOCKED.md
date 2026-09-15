@@ -10,3 +10,10 @@
 - 更新 2026-09-14（Claude 追加，未改上面条目状态，留给 Luna 处置）：
   · T-003：本轮 `./scripts/verify.sh` 已能执行，拦截未复现。首轮退出码 1（index.html JSON-LD 误报），已在 T-005 修复，现退出码 0。
   · T-000：Enos 本轮在真实对话轮直接指示「读根目录 CLAUDE.md，按工作循环从队列取第一条未完成任务开始执行」，据此进入循环。
+- [ ] T-014 | UNCLEAR | 验收写「window.onerror 收集存在且不泄漏敏感值」，但**生产代码里没有任何页面异常采集**：
+  `git grep` 全部 13 个本地/远端分支的 *.html 与 assets/**/*.js，无 `window.onerror`、无 `addEventListener("error")`、无 `unhandledrejection`。
+  现有的只有测试侧：21 支探针用 CDP `Runtime.exceptionThrown` 收集，1 支（test-profile-writes.mjs）在 stub 里挂 `window.addEventListener("error")` 只存 message。
+  「补一条静态检查」无法对着不存在的采集器成立；要新建采集器则涉及：装在哪些页面（公开站 main.js / 门户 shell.js / 全部）、
+  只留在内存还是上报（上报到哪个服务 = 外发 + 隐私）、哪些字段算敏感（token / email / query string / 手机号）。
+  | 需 Luna / Enos 决定其一：(a) T-014 本意是测试侧采集 → 改写验收（例如「探针的页面异常采集不把 stub 凭据写进输出」）；
+  (b) 要生产侧采集 → 给出安装范围与去向（仅内存 / 上报目标），我按此实现并附静态检查；(c) 撤掉此条 | 2026-09-15

@@ -81,3 +81,11 @@ T-004 的验收改用它自己的独立命令：`node scripts/check-probe-syntax
   主要发现：courses 收到 `my_learning={}`、profile 收到 `my_student_profile=null` 会**卡在骨架屏**；
   courses 收到 null 显示「共 0 门」、首页 my_student_record 无结论时显示「尚未查到学籍记录」、timeline / program_catalog 的 error 被吞。
   有界候选任务 1 条：学员课程目录 my_learning 无结论边界（含验收命令），建议 GREEN；其余建议之后分别拆条。供 Luna 复核后决定是否入队。
+- 2026-09-15 | T-014 | [!] | 卡住（UNCLEAR）：验收要求的「window.onerror 收集」在生产代码与全部 13 个分支中都不存在，
+  补检查前需先决定是否新建采集器及其范围/去向。见 BLOCKED.md。T-015/T-016 与之无依赖，继续。
+- 2026-09-15 | T-015 | [x] | [YELLOW] 缓存戳变更范围审核。新增 `scripts/check-stamp-only-diff.mjs`：新旧两版把 `?v=<12位>"` 归一后逐字比，
+  相同 = 只改戳；否则（含畸形戳、新增、删除）= 内容改动，必须在 --expect 名单里；--per-commit 逐提交判，防中途加了又删被整段抵消。
+  用例 `node scripts/test-stamp-only-diff.mjs` 11/11（临时 git 仓库）。
+  实测命令：`node scripts/check-stamp-only-diff.mjs 4f47292 HEAD --per-commit --expect portal/applicant/profile/index.html portal/student/profile/index.html portal/applicant/history/index.html`
+  → 退出码 0。10 个 csc 提交（至 bbab396）里带戳的 25 个 HTML 每次全部只改戳；有内容改动的 HTML 恰是 T-009/T-011/T-012 各自那一页；T-008 同一分钟内提交，戳未变（0 个）。
+  顺带核对：check-cache-bust 的 `pages=27` 是扫描的 HTML 数（31 个跟踪文件去掉 docs/ 下 4 个），带戳的是 25 个，不矛盾。
