@@ -136,3 +136,13 @@ T-004 的验收改用它自己的独立命令：`node scripts/check-probe-syntax
   无外网：`sandbox-exec -p '(version 1)(allow default)(deny network*)' node scripts/check-site-static.mjs` → 退出码 0；
   同一沙箱反向对照 curl → exit 6、node fetch → ENOTFOUND（沙箱确实拦网）；运行前后 `git status --porcelain --ignored` 一致、无新 __pycache__。
   未接入 verify.sh（接入属改门槛，留给 Luna 决定）。`./scripts/verify.sh` 退出码 0。
+- 2026-09-15 | T-022 | [x] | 无配置启动的友好降级测试：新增 `node scripts/test-noconfig-degraded.mjs`（自带 Chrome，约 45s）。
+  覆盖全部 21 个引用 auth.js 的页面（P0 与 git grep 清单核对），走真实页面与真实 supabase-config.js（含本地旁路段）；
+  两种「没配置」：absent（旁路 404）/ placeholder（旁路 = 仓库里的 supabase-config.local.example.js 原样，非秘密占位符）。
+  逐页断言：CONFIG_STATE=missing、SDK 在（桩）但 createClient 0 次、无未捕获异常、页面不漏 undefined；
+  门户 16 页整页「门户系统尚未启用」且无重试；login/register/forgot-password/faculty-verify 页内提示可见、提交键禁用；auth/recovery 失败卡片文案。
+  稳定复现：本机 supabase-config.local.js 由测试服务器接管（从不读本机真文件）；非本机请求一律拦截（实际 0 个）；每次内部跑 2 轮逐字比对（S1）。
+  量具自检 N1：旁路换成构造的「已填」值 → 判 ready、不显示「尚未启用」、createClient ≥1（证明不是永远判 missing）。
+  两次独立运行均 PASS 91 FAIL 0，退出码 0；无残留进程。`./scripts/verify.sh` 退出码 0。
+  顺带观察（未处理，候选）：auth/recovery 在 auth.js 未加载成功（`!A`）时也说「门户系统尚未启用」；
+  以及 supabase-js 对格式不合法的 url 会在 createClient 抛错，使 auth.js 整体加载失败 —— 均属「配置填错」而非「没配置」，不在本条范围。
