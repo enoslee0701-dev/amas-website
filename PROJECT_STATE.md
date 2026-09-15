@@ -194,3 +194,4 @@ QUEUE_EMPTY（2026-09-15）：队列无 `[ ]` 任务。剩余 `[!]`：T-003（�
   test-portal-config-check 44/44、check-portal-config 输出与 HEAD 配置逐字一致（空配置本就判 NOT READY，退出码 1）、check-site-static 0、verify.sh 0。
   test-chat-timeout 38/39：I2 外网请求 —— 查明为本机真实 supabase-config.local.js 经旁路被加载所致，与本条改动无关，见 BLOCKED.md INCIDENT-0916。
   **按停止条件暂停**：INCIDENT-0916 需要 Enos 决定（真实库核对 / 清理、探针加保护），剩余 T-030~T-032 暂不继续。
+- 2026-09-16 | T-030~T-032 | [!] | 暂停待 INCIDENT-0916 决定（Stop 钩子反复推回，按队列规则改标 `[!]` 以免空转；任务本身可做，Luna 改回 `[ ]` 即恢复）。
