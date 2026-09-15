@@ -130,7 +130,12 @@ window.supabase = {
           if (pv !== undefined) return reply({ data:pv.data, error:pv.error||null, status:pv.status!=null?pv.status:200 });
           return reply({ data:PROF, error:null, status:200 });
         }
-        if (name === "my_student_profile") return reply({ data:{ profile:PROF, student:{ student_number:"S-FX", status:"active", program_code:"bth" } }, error:null, status:200 });
+        /* 形状按契约（0017_student_experience.sql:67）。原来是 { profile, student }，与契约不符 ——
+           页面对它默默画出空表单，本套只测保存所以一直没暴露；学员页补上契约形状守卫（T-025）后改正。 */
+        if (name === "my_student_profile") return reply({ data:{
+          self_editable:{ display_name:PROF.display_name, phone:PROF.phone, contact_note:PROF.contact_note },
+          registrar_managed:{ email:PROF.email, student_number:"S-FX", status:"active", program_code:"bth" },
+          has_student_record:true }, error:null, status:200 });
         if (name === "update_my_contact") {
           try { var k="wCalls"; var m=JSON.parse(sessionStorage.getItem(k)||"{}");
                 m[name]=(m[name]||0)+1; sessionStorage.setItem(k, JSON.stringify(m)); } catch(e){}

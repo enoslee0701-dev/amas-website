@@ -158,3 +158,10 @@ T-004 的验收改用它自己的独立命令：`node scripts/check-probe-syntax
 - 2026-09-15 | T-024 复核 | 报告提交 0d31169 后：`check-stamp-only-diff.mjs HEAD^ HEAD --per-commit` → 25 个 HTML 只改戳、0 内容改动，退出码 0。
 
 QUEUE_EMPTY（2026-09-15）：队列无 `[ ]` 任务。剩余 `[!]`：T-003（验收已满足，待 Luna 改判）、T-014（待 Enos 决定，见 BLOCKED.md）。
+- 2026-09-16 | T-025 | [x] | 学员 / 教师资料页主读取的网络失败与空响应回归：新增 `node scripts/test-profile-read-boundary.mjs`（node:vm，14 情形；申请人页仍由 T-009 的检查负责）。
+  修前 6 个不符 → 退出码 1：学员页 my_student_profile 为 null/undefined 时读 prof.has_student_record 抛 TypeError、**卡在骨架屏**；
+  为 {} 或缺 registrar_managed 时画空表单并写「尚无学籍记录」；教师页 my_profile 为 {} 或全 null 行时画空表单。
+  修复：学员页按契约要求 self_editable 与 registrar_managed 均为对象，否则「没有读到你的资料」+ 重试；教师页用与 T-009 相同的 gotRow 判据。修后 14/14，退出码 0。
+  网络失败（error.code=network）两页原本就走 UI.error + 重试，已加断言钉住；教师页教职档案「读失败 ≠ 还没有档案」也已钉住。
+  夹具修正：test-profile-writes.mjs 的 my_student_profile 桩原为 `{profile, student}`，与 0017 契约不符，改为契约形状（未改任何断言）。
+  回归：regress-profile-pages 8/8（profile-writes PASS 69、portal-pages 112/112、todo-loop 四组）、test-role-guard 退出码 0、`./scripts/verify.sh` 退出码 0。
