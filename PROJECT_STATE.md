@@ -76,3 +76,8 @@ T-004 的验收改用它自己的独立命令：`node scripts/check-probe-syntax
   时间线查出缺陷：读不到（error / null / {}）后提示「请稍后再点一次」，照做再点却只是把提示收起、不重新请求，要点第二下才重试。
   修复：只有已读到（loaded=1）的时间线再点才收起。修前 3 个不符 → 退出码 1；修后 0 个 → 退出码 0。
   回归：`node scripts/test-read-failures.mjs` PASS 22 FAIL 0；`./scripts/verify.sh` 退出码 0。
+- 2026-09-15 | T-013 | [x] | [YELLOW] 学员侧读失败模式盘点，报告 `docs/operations/CSC-T-013-STUDENT-READ-FAILURE-INVENTORY.md`（只盘点，未改页面）。
+  可复用模式 P1~P5；三页 11 个读取逐一列 error / 无结论现状（标明实测 vs 读码）。
+  主要发现：courses 收到 `my_learning={}`、profile 收到 `my_student_profile=null` 会**卡在骨架屏**；
+  courses 收到 null 显示「共 0 门」、首页 my_student_record 无结论时显示「尚未查到学籍记录」、timeline / program_catalog 的 error 被吞。
+  有界候选任务 1 条：学员课程目录 my_learning 无结论边界（含验收命令），建议 GREEN；其余建议之后分别拆条。供 Luna 复核后决定是否入队。
