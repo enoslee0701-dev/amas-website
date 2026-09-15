@@ -206,3 +206,10 @@ Enos：「GPT 没有额度了，你能按照你的工作计划和方向自动化
   复跑：test-chat-timeout 39/39（此前 38/39，I2 外网请求 → 现 0）、test-giving-submit 31/31、test-upload-flow 48/48、test-header-layout 19/19、test-local-config-override 16/16。
   既有问题（与本改动无关，已用 HEAD 版本对照）：test-touch-targets 18/20 = 已登记基线 T0/T5（Windows 黄金值）；
   test-promo-tab 19/20 失败 P-1280（HEAD 版本同样 19/20 P-1280；我这次首跑另有一次偶发 P2c，复跑两次均未复现）—— P-1280 未登记基线，列为候选。
+- 2026-09-16 | T-030 | [x] | 表单重复提交的键盘路径回归（依 Enos 授权由 `[!]` 恢复执行）。新增 `node scripts/test-form-keyboard-resubmit.mjs`（自带 Chrome，formsubmit 由 CDP 接管从不放出，supabase 为桩）：
+  5 个表单 × 4 来路（K1 回车连按 / K2 在途再回车 / R1 同一轮两次 requestSubmit / R2 在途再 requestSubmit），判据请求增量恰为 1。
+  修前：首页联系表单 R1、R2 实测 2（学校会收到两封咨询），PASS 13 FAIL 2（初版量具用坐标点击未聚焦，回车量到 0，改 el.focus() 后有效）。
+  修复：main.js 联系表单处理函数开头补在途守卫（与 giving.html 同写法）。修后 PASS 15 FAIL 0，退出码 0。奉献表单四来路均 1（对照）。
+  认证页（login / register / forgot-password）属 RED 只测不修：K1/K2 均 1；R1/R2 均 2 → 写入 BLOCKED.md T-030-RED。
+  回归：test-application-flow 33/33、test-contact-footer 12/12、test-probe-network-guard 19/19（新增自身例外条目）、`./scripts/verify.sh` 0。
+  未测：首页申请表（四步向导）同样无守卫，列为候选（需先写复现）。

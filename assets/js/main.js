@@ -1417,6 +1417,11 @@ function freshenStatusOnEdit(form, status){
 $("#contactForm").addEventListener("submit", async e => {
   e.preventDefault();
   const form = e.currentTarget;
+  /* 在途期间吞掉重复提交。setBusy 只把按钮设成 disabled —— 挡得住点击与回车，
+     挡不住不经过按钮的提交（form.requestSubmit()）：本地实测在途时再提交一次会发出第二笔，
+     学校邮箱收到两封一样的咨询。与 giving.html、奉献表单同一写法。回归：scripts/test-form-keyboard-resubmit.mjs */
+  const busyBtn = form.querySelector('button[type="submit"]');
+  if(busyBtn && busyBtn.disabled) return;
   if(!form.checkValidity()){ form.reportValidity(); return; }
 
   const data = Object.fromEntries(new FormData(form).entries());

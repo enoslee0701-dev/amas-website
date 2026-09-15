@@ -42,6 +42,10 @@ const ALLOW = {
     why: "在读磁盘之前自行接管 local 路径（404 或非秘密占位模板）",
     verify: (s) => { const i = s.indexOf("if (p === LOCAL_CFG_PATH)"), j = s.indexOf("path.join(ROOT, p)"); return i > -1 && j > i; },
   },
+  "scripts/test-probe-network-guard.mjs": {
+    why: "本检查自己：L3 的一次性服务器伺服临时目录，并在读盘前调用 refuseLocalConfig（文件前部的判据文本会误导通用位置判定）",
+    verify: (s) => { const i = s.lastIndexOf("if (refuseLocalConfig(p, res)) return;"), j = s.lastIndexOf("path.join(dir, p)"); return i > -1 && j > i; },
+  },
   "scripts/diag-dialog-hang.mjs": {
     why: "服务器只回一段内置 HTML，不读仓库文件",
     verify: (s) => /res\.end\(PAGE\)/.test(s) && !/path\.join\(ROOT/.test(s),

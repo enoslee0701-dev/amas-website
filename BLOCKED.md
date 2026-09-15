@@ -38,3 +38,8 @@
     L1 `scripts/lib/no-local-config.mjs`：58 个带本机服务器的探针在读磁盘前一律拒绝伺服 supabase-config.local.js（例外 3 个，理由逐条核实）；
     L2 `scripts/lib/chrome-launcher.mjs`：*.supabase.co / *.supabase.in 合并钉到 0.0.0.0（与各探针原有规则合并为一个旗标）；
     守卫检查 `node scripts/test-probe-network-guard.mjs` 19/19。加防线后复跑：test-chat-timeout 39/39（I2 零外网请求）、test-giving-submit 31/31、test-upload-flow 48/48。
+- [ ] T-030-RED | RED | 认证相关页面在途重复提交：login / register / forgot-password 的提交处理函数没有 `if (btn.disabled) return;` 守卫 | 需 Enos 决定是否允许改认证页（CLAUDE.md 列为 RED，Claude 未改） | 2026-09-16
+  · 实测（`node scripts/test-form-keyboard-resubmit.mjs`，supabase auth 为本地桩，延迟 1.5s）：回车连按 / 在途再按回车均只发 1 次（浏览器按按钮禁用态拦下）；
+    同一轮两次 `requestSubmit`、在途再 `requestSubmit` 均发 **2 次**（signInWithPassword / signUp / resetPasswordForEmail 各被调两次）。
+  · 影响：只有不经过按钮的程序化提交会触发（扩展、辅助工具、将来页面自己调用），普通点击与回车不受影响。修法与资料页 / 联系表单相同（一行守卫）。
+  · 未测：auth/recovery（需要 recovery 令牌）、faculty/verify 的 tvForm（需要邀请码与会话）—— 两者同样没有这行守卫（读源码）。
