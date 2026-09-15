@@ -165,6 +165,25 @@ try {
     { label: "首页联系表单", page: "index.html", form: "#contactForm", focus: '#contactForm input[name="name"]', red: false,
       count: () => formsubmitHits,
       fill: `(()=>{const f=document.querySelector("#contactForm"); f.name.value="键盘测试"; f.contact.value="kb@example.invalid"; f.message.value="重复提交测试"; return true;})()` },
+    /* 申请弹窗：四步向导，提交前每一步都要 checkValidity。按控件类型统一填，再打开弹窗到最后一步。 */
+    { label: "首页申请表（四步向导）", page: "index.html", form: "#applicationForm", focus: null, red: false,
+      /* 第 4 步只有一个确认勾选框，没有可以按回车提交的文本框 —— 回车路径不适用，只量 requestSubmit */
+      only: ["R1", "R2"], skipWhy: "第 4 步只有确认勾选框，没有可回车提交的文本框", count: () => formsubmitHits,
+      fill: `(()=>{
+        if (typeof openApplication === "function") openApplication();
+        const f = document.querySelector("#applicationForm");
+        [...f.querySelectorAll("input,textarea,select")].forEach((el) => {
+          if (el.closest(".honeypot")) return;
+          if (el.tagName === "SELECT") { const o = [...el.options].find((x) => x.value); if (o) el.value = o.value; return; }
+          if (el.type === "checkbox" || el.type === "radio") { if (el.required) el.checked = true; return; }
+          if (el.type === "month") { el.value = "2000-01"; return; }
+          if (el.type === "date") { el.value = "2000-01-01"; return; }
+          if (el.type === "email") { el.value = "kb@example.invalid"; return; }
+          if (el.type === "tel") { el.value = "0800000000"; return; }
+          el.value = el.tagName === "TEXTAREA" ? "键盘重复提交测试" : "键盘测试";
+        });
+        if (typeof showAppStep === "function") showAppStep(4);
+        return true;})()` },
     { label: "奉献表单（对照：本身有在途守卫）", page: "giving.html", form: "#gvForm", focus: '#gvForm input[name="name"]', red: false,
       count: () => formsubmitHits,
       fill: `(()=>{const f=document.querySelector("#gvForm"); f.name.value="键盘测试"; f.contact.value="kb@example.invalid"; return true;})()` },
@@ -186,6 +205,7 @@ try {
   for (const F of FORMS) {
     console.log(`\n=== ${F.label}（${F.page}）===`);
     for (const [vname, fire, isRS] of VECTORS) {
+      if (F.only && !F.only.some((k) => vname.startsWith(k))) { console.log(`  skip  ${F.label} · ${vname}（该表单不适用：${F.skipWhy || "见表内说明"}）`); continue; }
       await cdp.send("Page.navigate", { url: `${BASE}/${F.page}?v=${encodeURIComponent(vname)}` });
       await sleep(2200);
       await cdp.ev(F.fill);

@@ -1333,6 +1333,12 @@ $("#prevStep").addEventListener("click", () => showAppStep(Math.max(1, appStep -
 
 appForm.addEventListener("submit", async e => {
   e.preventDefault();
+  /* 在途期间吞掉重复提交。setBusy 只把按钮设成 disabled —— 挡得住点击与回车，
+     挡不住不经过按钮的提交（form.requestSubmit()）：本地实测在途时再提交一次会发出第二份申请，
+     学校会收到两份一样的申请材料。与联系表单、giving.html 同一写法。
+     回归：scripts/test-form-keyboard-resubmit.mjs */
+  const busyBtn = $("#submitApplication");
+  if(busyBtn && busyBtn.disabled) return;
   for(let s = 1; s < APP_STEPS; s++){
     if(!stepValid(s)){ showAppStep(s); return; }
   }

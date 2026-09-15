@@ -233,3 +233,7 @@ QUEUE_EMPTY（2026-09-16）：队列无 `[ ]` 任务；T-003、T-014 仍为 `[!]
   修前 3 个不符：data=null / undefined → 写「AMAS 正式课程共 0 门」（学校有 67 门）；data={} → `list.filter` 抛错、卡在骨架屏。
   修复：`!Array.isArray(rows)` 走「这一次没能读到课程目录」+ 重试；`[]` 照旧说 0 门（S5 对照仍通过）。修后 7/7，退出码 0。
   回归：`node scripts/test-portal-pages.mjs` 112/112（S1~S6 全通过）；`./scripts/verify.sh` 退出码 0。来源：T-013 报告的候选任务。
+- 2026-09-16 | C-b | [x] | 首页申请表（四步向导）在途重复提交。`scripts/test-form-keyboard-resubmit.mjs` 新增该表单用例（按控件类型统一填四步、打开弹窗到第 4 步；
+  回车路径不适用并打印原因：第 4 步只有确认勾选框）。修前 R1/R2 实测 2（学校会收到两份一样的申请材料）→ 修后均 1。
+  修复：main.js 申请表处理函数开头补在途守卫（与联系表单、giving.html 同写法）。全套 PASS 17 FAIL 0。
+  回归：test-application-flow 33/33、test-contact-footer 12/12、`./scripts/verify.sh` 0。认证页 6 条 RED 发现不变（BLOCKED.md T-030-RED）。
