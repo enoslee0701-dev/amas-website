@@ -30,6 +30,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { launchOwnChrome } from "./lib/chrome-launcher.mjs";
+import { refuseLocalConfig } from "./lib/no-local-config.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PREFIX = "/amas-website";           // 模拟 GitHub Pages 项目页的子路径
@@ -62,6 +63,7 @@ const MIME = {
 function startServer() {
   const server = http.createServer((req, res) => {
     let p = decodeURIComponent(req.url.split("?")[0]);
+    if (refuseLocalConfig(p, res)) return;   // 不伺服本机真实配置（INCIDENT-0916）
     if (p.startsWith(PREFIX + "/")) p = p.slice(PREFIX.length);
     else if (p === PREFIX) p = "/";
     if (p.endsWith("/")) p += "index.html";

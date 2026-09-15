@@ -195,3 +195,14 @@ QUEUE_EMPTY（2026-09-15）：队列无 `[ ]` 任务。剩余 `[!]`：T-003（�
   test-chat-timeout 38/39：I2 外网请求 —— 查明为本机真实 supabase-config.local.js 经旁路被加载所致，与本条改动无关，见 BLOCKED.md INCIDENT-0916。
   **按停止条件暂停**：INCIDENT-0916 需要 Enos 决定（真实库核对 / 清理、探针加保护），剩余 T-030~T-032 暂不继续。
 - 2026-09-16 | T-030~T-032 | [!] | 暂停待 INCIDENT-0916 决定（Stop 钩子反复推回，按队列规则改标 `[!]` 以免空转；任务本身可做，Luna 改回 `[ ]` 即恢复）。
+
+## 2026-09-16 Enos 授权自动推进（真实对话轮）
+Enos：「GPT 没有额度了，你能按照你的工作计划和方向自动化继续进行吗，在我不回应你，看着你的情况下」。
+据此：不做 RED（不连 / 不清理真实库、不改安全设置、不 push / merge / 发布）；先堵 INCIDENT-0916 的复发路径，再继续 T-030~T-032（由 `[!]` 恢复执行）。
+- 2026-09-16 | INC-0916-G | [x] | 探针不碰真实后端的两道防线：
+  L1 新增 `scripts/lib/no-local-config.mjs`，58 个带本机服务器的探针在解码后、读磁盘前调用 `refuseLocalConfig`（例外：test-local-config-override 伺服镜像目录、
+  test-noconfig-degraded 自行接管、diag-dialog-hang 只回内置页）；L2 `lib/chrome-launcher.mjs` 的 `withBackendBlock` 把 supabase 域名合并钉到 0.0.0.0。
+  守卫检查 `node scripts/test-probe-network-guard.mjs` 19/19（静态核对 + 例外理由核实 + 参数合并单元 + 实跑 404）；负向对照删掉 chat-timeout 那一行 → L1-1 报出，退出码 1，已恢复。
+  复跑：test-chat-timeout 39/39（此前 38/39，I2 外网请求 → 现 0）、test-giving-submit 31/31、test-upload-flow 48/48、test-header-layout 19/19、test-local-config-override 16/16。
+  既有问题（与本改动无关，已用 HEAD 版本对照）：test-touch-targets 18/20 = 已登记基线 T0/T5（Windows 黄金值）；
+  test-promo-tab 19/20 失败 P-1280（HEAD 版本同样 19/20 P-1280；我这次首跑另有一次偶发 P2c，复跑两次均未复现）—— P-1280 未登记基线，列为候选。

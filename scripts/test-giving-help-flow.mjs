@@ -31,6 +31,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { launchOwnChrome } from "./lib/chrome-launcher.mjs";
+import { refuseLocalConfig } from "./lib/no-local-config.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -56,6 +57,7 @@ const MIME = {
 function startServer() {
   const server = http.createServer((req, res) => {
     let p = decodeURIComponent(req.url.split("?")[0]);
+    if (refuseLocalConfig(p, res)) return;   // 不伺服本机真实配置（INCIDENT-0916）
     if (p.endsWith("/")) p += "index.html";
     const abs = path.join(ROOT, path.normalize(p).replace(/^(\.\.[/\\])+/, ""));
     if (!abs.startsWith(ROOT) || !fs.existsSync(abs) || fs.statSync(abs).isDirectory()) {

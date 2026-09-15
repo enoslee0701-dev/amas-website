@@ -37,6 +37,18 @@ export function chromeBinary() {
  * @returns {Promise<{chrome:import("node:child_process").ChildProcess, port:number,
  *                    profileDir:string, dispose:()=>void}>}
  */
+/* 后端域名一律钉到 0.0.0.0（INCIDENT-0916）。与 lib/no-local-config.mjs 是两道独立防线：
+   就算某支探针的页面拿到了真实配置，请求也解析不到真实 Supabase。
+   Chrome 只认**一个** --host-resolver-rules：已有的（如 formsubmit）要合并进去，不能另加一个把它覆盖掉。 */
+export const BACKEND_BLOCK_RULES = "MAP *.supabase.co 0.0.0.0, MAP *.supabase.in 0.0.0.0";
+export function withBackendBlock(extraArgs) {
+  const out = [...(extraArgs || [])];
+  const i = out.findIndex((a) => typeof a === "string" && a.startsWith("--host-resolver-rules="));
+  if (i < 0) out.push("--host-resolver-rules=" + BACKEND_BLOCK_RULES);
+  else if (!/supabase\.co/.test(out[i]) || !/supabase\.in/.test(out[i])) out[i] = out[i] + ", " + BACKEND_BLOCK_RULES;
+  return out;
+}
+
 export async function launchOwnChrome(opts = {}) {
   const prefix = opts.profilePrefix || "amas-cdp-";
   const timeoutMs = opts.timeoutMs || 15000;
@@ -50,7 +62,7 @@ export async function launchOwnChrome(opts = {}) {
        布局测量，必须由各套件自己按原样带 —— 第一版把它们统一加了进去，
        test-touch-targets 的负向控制立刻从 64x27 变成 66x25（滚动条没了，
        视口宽了 2px），18/20。旗标要原样保留，不能顺手统一。 */
-    ...(opts.extraArgs || []),
+    ...withBackendBlock(opts.extraArgs),
     "about:blank",
   ];
   const chrome = spawn(chromeBinary(), args, { stdio: "ignore" });

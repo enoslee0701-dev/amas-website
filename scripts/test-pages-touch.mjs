@@ -23,6 +23,7 @@ import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { TOUCH_PROBE } from "./lib/touch-probe.mjs";
 import { launchOwnChrome } from "./lib/chrome-launcher.mjs";
+import { refuseLocalConfig } from "./lib/no-local-config.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const results = [];
@@ -34,6 +35,7 @@ const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; cha
   ".woff2": "font/woff2", ".json": "application/json" };
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split("?")[0]);
+  if (refuseLocalConfig(p, res)) return;   // 不伺服本机真实配置（INCIDENT-0916）
   if (p.endsWith("/")) p += "index.html";
   const abs = path.join(ROOT, path.normalize(p).replace(/^(\.\.[/\\])+/, ""));
   if (!abs.startsWith(ROOT) || !fs.existsSync(abs) || fs.statSync(abs).isDirectory()) {

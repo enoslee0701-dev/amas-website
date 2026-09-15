@@ -18,6 +18,7 @@ import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { launchOwnChrome } from "./lib/chrome-launcher.mjs";
+import { refuseLocalConfig } from "./lib/no-local-config.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -32,6 +33,7 @@ let headCount = 0;
 
 const server = http.createServer(async (req, res) => {
   let p = decodeURIComponent(req.url.split("?")[0]);
+  if (refuseLocalConfig(p, res)) return;   // 不伺服本机真实配置（INCIDENT-0916）
   if (p.endsWith("/")) p += "index.html";
   if (p.indexOf("..") > -1) { res.writeHead(400); res.end("no"); return; }
   if (req.method === "HEAD") headCount++;

@@ -34,3 +34,7 @@
   · 我已停止运行这类探针。同类风险的探针（不替换配置且放行外网）：test-chat-timeout、test-giving-submit、test-upload-flow。
   · 我**没有**、也不会自行连接真实库去查询或删除（需要凭据与授权）。
 - [ ] T-030 / T-031 / T-032 | UNCLEAR | 因 INCIDENT-0916 暂停，队列标 `[!]`（任务本身未被判定不可做） | Luna：INCIDENT-0916 有决定后改回 `[ ]` 即可继续 | 2026-09-16
+  · 更新 2026-09-16（Claude 追加）：**防止再发生**的措施已落地（真实库核对 / 清理仍待 Enos）：
+    L1 `scripts/lib/no-local-config.mjs`：58 个带本机服务器的探针在读磁盘前一律拒绝伺服 supabase-config.local.js（例外 3 个，理由逐条核实）；
+    L2 `scripts/lib/chrome-launcher.mjs`：*.supabase.co / *.supabase.in 合并钉到 0.0.0.0（与各探针原有规则合并为一个旗标）；
+    守卫检查 `node scripts/test-probe-network-guard.mjs` 19/19。加防线后复跑：test-chat-timeout 39/39（I2 零外网请求）、test-giving-submit 31/31、test-upload-flow 48/48。

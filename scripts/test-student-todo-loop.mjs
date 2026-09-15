@@ -13,6 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
+import { refuseLocalConfig } from "./lib/no-local-config.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -24,6 +25,7 @@ const MIME = { ".html":"text/html; charset=utf-8", ".js":"text/javascript; chars
 const probeLog = [];
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split("?")[0]);
+  if (refuseLocalConfig(p, res)) return;   // 不伺服本机真实配置（INCIDENT-0916）
   if (p === "/__probe") {
     let b = "";
     req.on("data", (c) => { b += c; });
