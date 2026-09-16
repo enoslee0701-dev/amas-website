@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>我的资料 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609160722">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609160944">
 <style>
 .sec{margin-bottom:18px}
 .sec h2{font-size:16px;color:var(--navy);margin:0 0 4px}
@@ -27,11 +27,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609160722"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609160722"></script>
-<script src="../../../assets/js/portal/api.js?v=202609160722"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609160722"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609160722"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609160944"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609160944"></script>
+<script src="../../../assets/js/portal/api.js?v=202609160944"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609160944"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609160944"></script>
 <script>
 /* PORTAL-2B 学生资料页（2B-1）
    Single Person Model：人物主数据在 profiles，学籍数据在 student_records，
@@ -49,7 +49,7 @@
   const HQ = { approved: "总校已确认", pending: "待确认", rejected: "总校未通过" };
 
   UI.loading(main, 4);
-  const [{ data: prof, error }, { data: pc }] = await Promise.all([
+  const [{ data: prof, error }, { data: pc, error: pcErr }] = await Promise.all([
     Api.rpc("my_student_profile"),
     Api.select("program_catalog", { columns: "code,name_zh,short_label" }),
   ]);
@@ -66,7 +66,10 @@
 
   const self = (prof && prof.self_editable) || {};
   const reg = (prof && prof.registrar_managed) || {};
-  const pcMap = Object.fromEntries((pc || []).map(p => [p.code, p]));
+  /* 项目目录读不到时，「修读项目」不能写「—」—— 那是「教务还没定」的说法。与学员中心首页同一口径。
+     回归：scripts/test-profile-read-boundary.mjs */
+  const catalogUnknown = !!pcErr || !Array.isArray(pc);
+  const pcMap = Object.fromEntries((catalogUnknown ? [] : pc).map(p => [p.code, p]));
   const prog = reg.program_code ? pcMap[reg.program_code] : null;
   const hq = reg.hq_approval;
   const d = (v) => v ? new Date(v).toLocaleDateString("zh-CN") : "—";
@@ -107,7 +110,8 @@
       ro("登录邮箱", reg.email) +
       ro("学号", reg.student_number || "待教务录入") +
       ro("学籍状态", ST[reg.status] || (prof.has_student_record ? reg.status : "尚无学籍记录")) +
-      ro("修读项目", prog ? prog.name_zh + (prog.short_label ? "（" + prog.short_label + "）" : "") : "—") +
+      ro("修读项目", prog ? prog.name_zh + (prog.short_label ? "（" + prog.short_label + "）" : "")
+                          : (reg.program_code && catalogUnknown ? "这一次没读到项目名称" : "—")) +
       ro("学习路径", PW[reg.pathway] || "—") +
       ro("学籍建立时间", d(reg.created_at)) +
       (reg.activated_at ? ro("正式注册时间", d(reg.activated_at)) : "") +

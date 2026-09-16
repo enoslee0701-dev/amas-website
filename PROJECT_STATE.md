@@ -276,3 +276,10 @@ QUEUE_EMPTY（2026-09-16）：队列无 `[ ]` 任务；T-003、T-014 仍为 `[!]
 - 2026-09-16 | C 系列 checkpoint | [x] | 报告 `docs/operations/CSC-C-SERIES-CHECKPOINT-REPORT.md`，固定 SHA `f91cb9663bf1b29ec9890fa5602a3e68da38dc0d`。
   该 SHA 上：26 项非浏览器检查全部退出码 0；8 批浏览器探针全部退出码 0（promo-tab 由长期 18~19/20 变为 20/20）。
   运行前后被跟踪文件只有 Enos 的 CLAUDE.md 改动。待人决定的四项（INCIDENT-0916、T-030-RED、T-031、T-028）没有变化。
+- 2026-09-16 | D-a / D-b | [x] | 资料页的次要读取边界（C 系列报告里列的下一批候选）。
+  D-a 学员资料页：项目目录读不到、且学籍里有 program_code 时，修读项目原来写「—」（与「教务还没定」无法区分）→ 改为「这一次没读到项目名称」；
+    目录读到但没有 program_code 时照旧写「—」。与学员中心首页（C-e）同一口径。`test-profile-read-boundary.mjs` 加 3 个用例，修前 1 个不符。
+  D-b 教师资料页教职档案：补 3 个用例钉住既有行为（没有档案 → 说还没有档案；读到 → 显示工号与在职状态；形状异常 {} → 不漏 undefined / Invalid Date）。
+    这三种本来就是对的，本次只是把它们钉住 —— C 系列报告里「没有自动化回归钉住」的说法已由此更正。
+  结果：`node scripts/test-profile-read-boundary.mjs` 19/19，退出码 0。
+  回归：test-portal-pages 112/112、test-profile-writes PASS 69 FAIL 0、`./scripts/verify.sh` 0。

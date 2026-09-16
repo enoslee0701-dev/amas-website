@@ -118,7 +118,26 @@ const CASES = [
   { page: STUDENT, name: "学员：缺 registrar_managed → 同上", setup: { main: { data: { self_editable: {} }, error: null } }, check: unreadable(EMPTY_MSG) },
   { page: STUDENT, name: "学员：正常数据 → 渲染表单与学号", setup: { main: { data: STU_OK, error: null } }, check: rendered(["S-1", "李学员"]) },
   { page: STUDENT, name: "学员：确实没有学籍记录（契约形状完整）→ 照常渲染并说尚无学籍记录", setup: { main: { data: { self_editable: { display_name: "新人" }, registrar_managed: { email: "n@example.invalid" }, has_student_record: false }, error: null } }, check: rendered(["尚无学籍记录"]) },
-  { page: STUDENT, name: "学员：项目目录网络失败 → 主资料照常渲染，不抛异常", setup: { main: { data: STU_OK, error: null }, catalog: NET }, check: rendered(["S-1"]) },
+  { page: STUDENT, name: "学员：项目目录网络失败、学籍里有 program_code → 主资料照常渲染，修读项目不许写「—」，要说没读到",
+    setup: { main: { data: STU_OK, error: null }, catalog: NET },
+    check: (r) => {
+      const p = [...rendered(["S-1"])(r)];
+      const row = (r.main.innerHTML.match(/修读项目<\/span><b>([^<]*)</) || [])[1] || "";
+      if (row.trim() === "—") p.push("目录读不到时修读项目写了「—」（与「教务还没定」无法区分）");
+      if (!/没读到|没能读到/.test(row)) p.push(`修读项目那一格是「${row}」，没有说没读到`);
+      return p;
+    } },
+  { page: STUDENT, name: "学员：项目目录读到、但学籍里没有 program_code → 修读项目照旧写「—」",
+    setup: { main: { data: { ...STU_OK, registrar_managed: { ...STU_OK.registrar_managed, program_code: null } }, error: null } },
+    check: (r) => {
+      const p = [...rendered([])(r)];
+      const row = (r.main.innerHTML.match(/修读项目<\/span><b>([^<]*)</) || [])[1] || "";
+      if (row.trim() !== "—") p.push(`预期「—」，实际「${row}」`);
+      return p;
+    } },
+  { page: STUDENT, name: "学员：项目目录与学籍都正常 → 显示项目名与简称",
+    setup: { main: { data: STU_OK, error: null }, catalog: { data: [{ code: "bth", name_zh: "神学本科", short_label: "B.Th" }], error: null } },
+    check: (r) => (/神学本科（B\.Th）/.test(r.main.innerHTML) ? [] : ["没有显示项目名与简称"]) },
 
   /* ── 教师资料页 ── */
   { page: TEACHER, name: "教师：网络失败 → 报错 + 重试，不渲染表单", setup: { main: NET }, check: unreadable(/网络连接异常/) },
@@ -126,6 +145,28 @@ const CASES = [
   { page: TEACHER, name: "教师：空响应 {} → 同上，不画空表单", setup: { main: { data: {}, error: null } }, check: unreadable(EMPTY_MSG) },
   { page: TEACHER, name: "教师：全字段为 null 的行 → 同上", setup: { main: { data: Object.fromEntries(Object.keys(TEA_OK).map((k) => [k, null])), error: null } }, check: unreadable(EMPTY_MSG) },
   { page: TEACHER, name: "教师：正常数据 → 渲染表单", setup: { main: { data: TEA_OK, error: null } }, check: rendered(["王老师", "还没有教职档案记录"]) },
+  { page: TEACHER, name: "教师：没有教职档案（maybeSingle 返回 null）→ 说还没有档案，不说读不到",
+    setup: { main: { data: TEA_OK, error: null }, teacherProfile: { data: null, error: null } },
+    check: (r) => {
+      const p = [...rendered(["还没有教职档案记录"])(r)];
+      if (/暂时读不到教职档案/.test(r.main.innerHTML)) p.push("没有档案被说成了读不到");
+      return p;
+    } },
+  { page: TEACHER, name: "教师：教职档案读到 → 显示工号与在职状态，不漏 undefined",
+    setup: { main: { data: TEA_OK, error: null },
+      teacherProfile: { data: { staff_number: "T-001", public_name: "王教师", public_bio: "", status: "active", verified_at: "2026-01-05T00:00:00Z", verification_expires_at: null }, error: null } },
+    check: (r) => {
+      const p = [...rendered(["T-001", "在职"])(r)];
+      if (/undefined|\[object Object\]|Invalid Date/.test(r.main.innerHTML)) p.push("页面里漏出了 undefined / Invalid Date");
+      return p;
+    } },
+  { page: TEACHER, name: "教师：教职档案形状异常（{}）→ 不漏 undefined、不漏 Invalid Date",
+    setup: { main: { data: TEA_OK, error: null }, teacherProfile: { data: {}, error: null } },
+    check: (r) => {
+      const p = [...rendered([])(r)];
+      if (/undefined|\[object Object\]|Invalid Date/.test(r.main.innerHTML)) p.push("页面里漏出了 undefined / Invalid Date");
+      return p;
+    } },
   { page: TEACHER, name: "教师：教职档案网络失败 → 说暂时读不到，不说还没有档案", setup: { main: { data: TEA_OK, error: null }, teacherProfile: NET },
     check: (r) => [...rendered(["暂时读不到教职档案"])(r), ...(r.main.innerHTML.includes("还没有教职档案记录") ? ["读失败却说成还没有档案"] : [])] },
 ];
