@@ -287,3 +287,9 @@ QUEUE_EMPTY（2026-09-16）：队列无 `[ ]` 任务；T-003、T-014 仍为 `[!]
   `db4/BUSINESS-DATA-FAST-TRACK-LIVE-REPORT.md`（账本 0001–0026、0027 ABSENT）与 `staging-1a8/...-0022-PREFLIGHT-REPORT.md`（0022 已应用、8 项后置检查通过）取代；
   并写明写入者身份仍 UNRESOLVED、需 Enos 决定，且本校订未连接任何真实环境核实。依据是该文件开头自己的规矩「发现不一致必须报告差异并更新本文件」。
   检查：check-internal-links 0、check-site-static 7 步 0 错、`./scripts/verify.sh` 0。
+- 2026-09-16 | E-a | [x] | 教务侧两处列表「读不到说成没有」。新增 `node scripts/test-admin-read-boundary.mjs`（node:vm，10 情形）。
+  修前 4 个不符：`portal/admin/teachers/` 的 `render(data || [])` 无结论时渲染空列表 → 写「没有符合条件的申请」；
+  `portal/admin/index.html` ② 审核队列的 `const rows = data || []` 无结论时显示「暂无待处理申请」。对教务的后果是真有人等审核却以为没有。
+  修复：两处都按 `!Array.isArray(data)` 走「这一次没能读到…这不表示没有/不表示队列是空的」+ 重试（teachers 页用 UI.error onRetry=load；admin 首页写进 qErr 并隐藏表格与空态）。
+  空数组照旧显示原有空态。修后 10/10，退出码 0。
+  回归：test-admin-writes 110/110、test-admin-overview-writes 28/28、test-pending-reqs 41/41、test-admin-keyboard 113/113、test-portal-pages 112/112、`./scripts/verify.sh` 0。

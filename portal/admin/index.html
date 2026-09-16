@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>管理后台 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609160945">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609160958">
 <style>
 table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 .list th,.list td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top}
@@ -66,8 +66,8 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609160945"></script>
-<script src="../../assets/js/portal/auth.js?v=202609160945"></script>
+<script src="../../assets/js/supabase-config.js?v=202609160958"></script>
+<script src="../../assets/js/portal/auth.js?v=202609160958"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
@@ -152,7 +152,16 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
     if (A.sessionEnded()) return;          // 同上：队列也是 await 之后才渲染
     const qErr = document.getElementById("qErr"); qErr.classList.remove("show");
     if (error) { qErr.textContent = "读取失败：" + error.message; qErr.classList.add("show"); return; }
-    const rows = data || [];
+    /* 无结论（error 为空、data 不是数组）时不能显示「暂无待处理申请」——
+       那是在替服务端断言队列是空的。回归：scripts/test-admin-read-boundary.mjs */
+    if (!Array.isArray(data)) {
+      qErr.textContent = "这一次没能读到审核队列（服务端没有给出可读的结果）。这不表示队列是空的，请刷新重试。";
+      qErr.classList.add("show");
+      document.getElementById("qTable").hidden = true;
+      document.getElementById("qEmpty").classList.remove("show");
+      return;
+    }
+    const rows = data;
     document.getElementById("qTable").hidden = rows.length === 0;
     document.getElementById("qEmpty").classList.toggle("show", rows.length === 0);
     document.getElementById("qBody").innerHTML = rows.map(r => {

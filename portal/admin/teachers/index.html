@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>教师验证审核 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609160945">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609160958">
 <style>
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .tab{min-height:44px;padding:0 15px;border:1px solid var(--line);border-radius:99px;background:#fff;
@@ -40,11 +40,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609160945"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609160945"></script>
-<script src="../../../assets/js/portal/api.js?v=202609160945"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609160945"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609160945"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609160958"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609160958"></script>
+<script src="../../../assets/js/portal/api.js?v=202609160958"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609160958"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609160958"></script>
 <script>
 /* 管理端教师验证审核台。
 
@@ -133,7 +133,14 @@
       return UI.error(main, { message: error.message || Api.msg(error && error.code),
                               onRetry: load });
     }
-    render(data || [], keep);
+    /* 「没读到」和「没有符合条件的申请」是两件事。无结论（error 为空、data 不是数组）时
+       原来 `data || []` 会渲染成空列表，教务看到的是「没有符合条件的申请」——
+       真有人在等审核时，这句话会让他不去处理。回归：scripts/test-admin-read-boundary.mjs */
+    if (!Array.isArray(data)) {
+      return UI.error(main, { message: "这一次没能读到验证申请列表（服务端没有给出可读的结果）。这不表示没有待审核的申请，请稍后重试。",
+                              onRetry: load });
+    }
+    render(data, keep);
   }
 
   /* 重绘会把 main 整个换掉。先记下他此刻站在哪个控件上（连光标位置一起），
