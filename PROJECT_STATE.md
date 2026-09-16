@@ -293,3 +293,10 @@ QUEUE_EMPTY（2026-09-16）：队列无 `[ ]` 任务；T-003、T-014 仍为 `[!]
   修复：两处都按 `!Array.isArray(data)` 走「这一次没能读到…这不表示没有/不表示队列是空的」+ 重试（teachers 页用 UI.error onRetry=load；admin 首页写进 qErr 并隐藏表格与空态）。
   空数组照旧显示原有空态。修后 10/10，退出码 0。
   回归：test-admin-writes 110/110、test-admin-overview-writes 28/28、test-pending-reqs 41/41、test-admin-keyboard 113/113、test-portal-pages 112/112、`./scripts/verify.sh` 0。
+- 2026-09-16 | E-b | [x] | 教务学籍管理页两处空态：`portal/admin/students/` 的「待建档」与「在册学生」原来判 `!data || !data.length`，
+  对象形状也会落进空态，写成「没有待建档的申请」「还没有学籍记录」。修为 `!Array.isArray` → 报错 + 重试；空数组照旧显示空态。
+  `scripts/test-admin-read-boundary.mjs` 扩到 16 情形（两页 + 两面板），修前 3 个不符 → 修后 16/16。
+  量具修了三处：缺 UI.skeleton / 标签按钮列表是空的 / 渲染在异步回合里（加 flush）；另把空态判据从宽正则改成对准原句 ——
+  新文案里「这不表示没有待建档的申请」会被宽正则误命中（与 T-012 Hn1 同一个坑）。
+  回归：test-admin-writes 110/110、test-portal-pages 112/112、`./scripts/verify.sh` 0。
+  至此，门户各页「读不到 ≠ 没有」一族已全部覆盖：申请人 3 页、学员 3 页、教师 2 页、教务 4 页。

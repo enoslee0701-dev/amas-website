@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>学籍管理 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609160958">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609161007">
 <style>
 .tabs{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap}
 .tabs button{min-height:40px;padding:0 16px;border:1.5px solid var(--line);border-radius:999px;background:#fff;
@@ -32,11 +32,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609160958"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609160958"></script>
-<script src="../../../assets/js/portal/api.js?v=202609160958"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609160958"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609160958"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609161007"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609161007"></script>
+<script src="../../../assets/js/portal/api.js?v=202609161007"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609161007"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609161007"></script>
 <script>
 /* PORTAL-2 学籍管理（教务侧）
    闭环：录取 → 记录总校审核确认 → 建档(pre_enrolled) → 正式注册(active)；学号可经专用通道更正。
@@ -169,7 +169,13 @@
   async function renderQueue(){
     const { data, error } = await Api.rpc("admissions_ready_for_enrollment");
     if (error) return UI.error(panel, { message: error.message, onRetry: load });
-    if (!data || !data.length) {
+    /* 「没读到」和「没有待建档」是两件事：`!data || !data.length` 连对象形状也会落进空态。
+       教务据此决定要不要去建档，说错的代价是有人一直等不到学籍。回归：scripts/test-admin-read-boundary.mjs */
+    if (!Array.isArray(data)) {
+      return UI.error(panel, { message: "这一次没能读到待建档的申请（服务端没有给出可读的结果）。这不表示没有待建档的申请，请稍后重试。",
+                               onRetry: load });
+    }
+    if (!data.length) {
       return panel.innerHTML = UI.box("📋", "没有待建档的申请",
         "只有「已录取 + 总校已确认 + 尚未建档」的申请才会出现在这里。");
     }
@@ -194,7 +200,12 @@
       order: { column: "created_at", asc: false },
     });
     if (error) return UI.error(panel, { message: error.message, onRetry: load });
-    if (!data || !data.length) {
+    /* 同上：读不到不能说成「还没有学籍记录」。回归：scripts/test-admin-read-boundary.mjs */
+    if (!Array.isArray(data)) {
+      return UI.error(panel, { message: "这一次没能读到在册学生（服务端没有给出可读的结果）。这不表示没有学籍记录，请稍后重试。",
+                               onRetry: load });
+    }
+    if (!data.length) {
       return panel.innerHTML = UI.box("🎓", "还没有学籍记录", "完成建档后，学生会出现在这里。");
     }
     /* 同一形状的第二处：也是拿未验证的读取结果建 Map。读不到时姓名原本写「—」，

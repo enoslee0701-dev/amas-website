@@ -4,6 +4,8 @@
    portal/admin/teachers/  教师验证申请列表：`render(data || [])` —— 无结论（error 为空、data 不是数组）时
                            渲染成空列表，页面写「没有符合条件的申请」。
    portal/admin/index.html ② 验证申请审核队列：`const rows = data || []` —— 同上，显示「暂无待处理申请」。
+   portal/admin/students/  「待建档」与「在册学生」两个面板：`if (!data || !data.length)` —— 对象形状（{}）
+                           也会落进空态，写「没有待建档的申请」「还没有学籍记录」。
    这两句话对教务的后果很具体：真有待审核的申请时，他会以为没有，于是不去处理。
    真的没有（[]）时照旧那样说 —— 不能为了修这个把正常话堵掉。
 
@@ -109,6 +111,61 @@ async function runAdminQueue(result) {
     rowCount: () => ((ids.qBody && ids.qBody.innerHTML.match(/<tr/g)) || []).length };
 }
 
+/* ── portal/admin/students/（待建档 / 在册学生两个面板）──── */
+const STUDENTS_REL = "portal/admin/students/index.html";
+const STUDENTS_CODE = pageScript(STUDENTS_REL, 'admissions_ready_for_enrollment');
+
+/* tab 参数决定初始面板：queue = 待建档（读 rpc），students = 在册学生（读 student_records） */
+async function runStudents(tab, result) {
+  const calls = { error: [] };
+  const main = mkEl("main");
+  const panel = mkEl("panel");
+  const ids = {};
+  /* 页面用 main.querySelectorAll("[data-tab]") 给四个标签挂监听：按它渲染出的 HTML 动态造按钮，
+     这样「切到在册学生」这一步才真的走页面自己的那条路。 */
+  const tabBtns = [];
+  main.querySelectorAll = (sel) => {
+    if (sel !== "[data-tab]") return [];
+    if (!tabBtns.length) {
+      for (const m of String(main.innerHTML).matchAll(/data-tab="([^"]+)"/g)) {
+        const b = mkEl("tab-" + m[1]); b.dataset.tab = m[1]; tabBtns.push(b);
+      }
+    }
+    return tabBtns;
+  };
+  const ctx = { console: { log() {}, error() {}, debug() {} }, Date, Object, Array, JSON, Map, Set, Number, String,
+    window: {}, location: { reload() {} }, history: { back() {} },
+    document: { getElementById: (id) => (id === "panel" ? panel : (ids[id] ||= mkEl(id))), createElement: () => mkEl("x"),
+      querySelector: () => null, querySelectorAll: () => [], body: mkEl("body"), addEventListener() {}, removeEventListener() {} } };
+  ctx.window.AmasAuth = { ROOT: "/", client: { from: () => ({}) }, sessionEnded: () => false, watchSession: () => () => {},
+    callFn: async () => ({ status: 200, data: { ok: true } }), fetchSession: async () => ({ failed: false, session: { user: { id: "me" } } }) };
+  ctx.window.AmasShell = { mount: async () => ({ main, ctx: { session: { user: { id: "me" } } } }) };
+  ctx.window.AmasApi = {
+    rpc: async (n) => (n === "admissions_ready_for_enrollment" && tab === "queue" ? result : { data: [], error: null }),
+    select: async (t) => {
+      if (t === "program_catalog") return { data: [{ code: "bth", name_zh: "神学本科", short_label: "B.Th" }], error: null };
+      if (t === "student_records" && tab === "students") return result;
+      return { data: [], error: null };
+    },
+    fn: async () => ({ data: null, error: null }), msg: (c) => "msg:" + c };
+  ctx.window.AmasUI = { loading() {}, esc: (s) => String(s == null ? "" : s), toast() {}, confirmDialog: async () => false,
+    skeleton: () => "[骨架]", timeline: () => "", render: () => {},
+    box: (i, t, x) => `<div><b>${t}</b><p>${x}</p></div>`, empty() {},
+    error: (node, opts) => { calls.error.push(opts); if (node && node.innerHTML !== undefined) node.innerHTML = "[载入失败] " + opts.message; } };
+  vm.createContext(ctx);
+  let thrown = null;
+  try { await vm.runInContext(STUDENTS_CODE, ctx, { filename: STUDENTS_REL }); } catch (e) { thrown = e; }
+  /* 面板渲染发生在 IIFE 之后的异步回合里，要把事件循环放空几轮才量得到 */
+  const flush = async () => { for (let i = 0; i < 30; i++) await new Promise((r) => setImmediate(r)); };
+  await flush();
+  /* 默认面板是「待建档」；要量在册学生就点那个标签 */
+  if (tab === "students") {
+    const b = tabBtns.find((x) => x.dataset.tab === "students");
+    if (b && b.listeners.click) { b.listeners.click[0](); await flush(); }
+  }
+  return { calls, thrown, text: () => panel.innerHTML.replace(/<[^>]+>/g, "") };
+}
+
 const NET = { data: null, error: { code: "network", message: "网络连接异常，请检查网络后重试。" } };
 const UNREAD = /没能读到|没读到/;
 
@@ -116,24 +173,24 @@ const CASES = [
   { name: "教务·教师验证列表：读失败 → 整块报错 + 重试（原有行为，钉住）",
     run: async () => { const r = await runTeachers(NET); const p = [];
       if (r.calls.error.length !== 1) p.push("没有报错"); if (typeof (r.calls.error[0] || {}).onRetry !== "function") p.push("没有重试入口");
-      if (/没有符合条件的申请/.test(r.text())) p.push("读失败被说成了没有申请"); return p; } },
+      if (/换一个状态筛选/.test(r.text())) p.push("读失败被说成了没有申请（空态原文出现了）"); return p; } },
   { name: "教务·教师验证列表：无结论 data=null → 不许说「没有符合条件的申请」",
     run: async () => { const r = await runTeachers({ data: null, error: null }); const p = [];
       if (r.thrown) p.push("抛异常：" + r.thrown.message);
-      if (/没有符合条件的申请/.test(r.text())) p.push("把读不到说成了没有申请");
+      if (/换一个状态筛选/.test(r.text())) p.push("把读不到说成了没有申请（空态原文出现了）");
       if (!(r.calls.error.length === 1 || UNREAD.test(r.text()))) p.push("既没报错也没说没读到"); return p; } },
   { name: "教务·教师验证列表：无结论 data={} → 同上",
     run: async () => { const r = await runTeachers({ data: {}, error: null }); const p = [];
-      if (/没有符合条件的申请/.test(r.text())) p.push("把读不到说成了没有申请");
+      if (/换一个状态筛选/.test(r.text())) p.push("把读不到说成了没有申请（空态原文出现了）");
       if (!(r.calls.error.length === 1 || UNREAD.test(r.text()))) p.push("既没报错也没说没读到"); return p; } },
   { name: "教务·教师验证列表：真的没有 data=[] → 照旧说「没有符合条件的申请」",
     run: async () => { const r = await runTeachers({ data: [], error: null }); const p = [];
-      if (!/没有符合条件的申请/.test(r.text())) p.push("空数组时没有显示空态");
+      if (!/换一个状态筛选/.test(r.text())) p.push("空数组时没有显示空态");
       if (r.calls.error.length) p.push("空数组不该整块报错"); return p; } },
   { name: "教务·教师验证列表：有申请 → 列出来，不出现空态",
     run: async () => { const r = await runTeachers({ data: [REQ(1), REQ(2)], error: null }); const p = [];
       const t = r.text(); if (!t.includes("教师1")) p.push("没有列出申请");
-      if (/没有符合条件的申请/.test(t) || UNREAD.test(t)) p.push("有数据时出现了空态或没读到"); return p; } },
+      if (/换一个状态筛选/.test(t) || UNREAD.test(t)) p.push("有数据时出现了空态或没读到"); return p; } },
 
   { name: "教务首页·审核队列：读失败 → 显示读取失败（原有行为，钉住）",
     run: async () => { const r = await runAdminQueue(NET); const p = [];
@@ -155,6 +212,28 @@ const CASES = [
     run: async () => { const r = await runAdminQueue({ data: [REQ(1), REQ(2)], error: null }); const p = [];
       if (r.tableHidden() !== false) p.push("有数据时表格仍隐藏"); if (r.rowCount() !== 2) p.push("行数 " + r.rowCount());
       if (r.qEmptyShown()) p.push("有数据时显示了空态"); return p; } },
+
+  { name: "教务·待建档面板：读失败 → 报错 + 重试（原有行为，钉住）",
+    run: async () => { const r = await runStudents("queue", NET); const p = [];
+      if (r.calls.error.length !== 1) p.push("没有报错"); if (/只有「已录取/.test(r.text())) p.push("读失败被说成了没有待建档（空态原文出现了）"); return p; } },
+  { name: "教务·待建档面板：无结论 data=null → 不许说「没有待建档的申请」",
+    run: async () => { const r = await runStudents("queue", { data: null, error: null }); const p = [];
+      if (/只有「已录取/.test(r.text())) p.push("把读不到说成了没有待建档（空态原文出现了）");
+      if (!(r.calls.error.length === 1 || UNREAD.test(r.text()))) p.push("既没报错也没说没读到"); return p; } },
+  { name: "教务·待建档面板：无结论 data={} → 同上",
+    run: async () => { const r = await runStudents("queue", { data: {}, error: null }); const p = [];
+      if (/只有「已录取/.test(r.text())) p.push("把读不到说成了没有待建档（空态原文出现了）");
+      if (!(r.calls.error.length === 1 || UNREAD.test(r.text()))) p.push("既没报错也没说没读到"); return p; } },
+  { name: "教务·待建档面板：真的没有 data=[] → 照旧说「没有待建档的申请」",
+    run: async () => { const r = await runStudents("queue", { data: [], error: null }); const p = [];
+      if (!/只有「已录取/.test(r.text())) p.push("空数组时没有显示空态"); if (r.calls.error.length) p.push("空数组不该报错"); return p; } },
+  { name: "教务·在册学生面板：无结论 data={} → 不许说「还没有学籍记录」",
+    run: async () => { const r = await runStudents("students", { data: {}, error: null }); const p = [];
+      if (/完成建档后，学生会出现在这里/.test(r.text())) p.push("把读不到说成了还没有学籍记录（空态原文出现了）");
+      if (!(r.calls.error.length >= 1 || UNREAD.test(r.text()))) p.push("既没报错也没说没读到"); return p; } },
+  { name: "教务·在册学生面板：真的没有 data=[] → 照旧说「还没有学籍记录」",
+    run: async () => { const r = await runStudents("students", { data: [], error: null }); const p = [];
+      if (!/完成建档后，学生会出现在这里/.test(r.text())) p.push("空数组时没有显示空态"); return p; } },
 ];
 
 let bad = 0;
