@@ -45,3 +45,5 @@ Astra/Sol 不可用不是停工理由（ASTRA_UNAVAILABLE_MODE）。只有 RED �
 - 只在 QUEUE_EMPTY，或写入 BLOCKED.md 且需要 Enos 决定时，才结束回复。
 - 如果被 Stop 钩子推回，立即取下一条，不解释。
 - 中文，简短。
+
+@EXECUTOR.md
