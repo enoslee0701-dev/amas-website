@@ -1,5 +1,5 @@
 # BLOCKED.md — 需要 Enos / Luna 介入的事项
-（Claude 追加，处理完由 Luna 删除或标 `[已解决]`）
+（Claude 追加，处理完由 Enos 打勾或删除）
 
 格式：
 - [ ] <任务ID> | <级别 RED/YELLOW/UNCLEAR> | <一句话问题> | <需要谁做什么> | <时间>
