@@ -1,8 +1,20 @@
 // 从 App 的 OFFICIAL_CATALOG（课程权威源）生成 Supabase 只读镜像的播种 SQL。
 // 这是镜像不是新权威源：改课程仍然只能改 catalog.ts，本脚本重跑即可同步。
 import fs from "node:fs";
+import path from "node:path";
 
-const SRC = "C:/Users/enosl/Desktop/amas---asian-missionary-theological-seminary/services/catalog.ts";
+/* 课程权威源在 **App 仓库**里（不在本仓库）。原来写死了某台机器上的桌面路径，
+   换机器就直接崩在 readFileSync，看不出是路径问题还是文件没了。
+   用 AMAS_APP_DIR 指向 App 仓库根目录；没设就说清楚怎么设。 */
+const APP_DIR = process.env.AMAS_APP_DIR || "";
+const SRC = process.env.AMAS_CATALOG_SRC || (APP_DIR ? path.join(APP_DIR, "services", "catalog.ts") : "");
+if (!SRC || !fs.existsSync(SRC)) {
+  console.error("找不到课程权威源 services/catalog.ts。");
+  console.error("  用 AMAS_APP_DIR 指向 App 仓库根目录，例如：");
+  console.error("    AMAS_APP_DIR=/path/to/app-repo node scripts/gen-course-catalog.mjs");
+  console.error("  或用 AMAS_CATALOG_SRC 直接指向那个文件。" + (SRC ? `（当前解析为 ${SRC}）` : ""));
+  process.exit(2);
+}
 const src = fs.readFileSync(SRC, "utf8");
 
 const CAT = { NT: "nt", OT: "ot", BB: "bible_basics", TH: "theology", PR: "practical", HI: "history", LA: "language" };

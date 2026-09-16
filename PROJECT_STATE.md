@@ -261,3 +261,15 @@ QUEUE_EMPTY（2026-09-16）：队列无 `[ ]` 任务；T-003、T-014 仍为 `[!]
   判据：用到基线外的特性 → 失败；基线里不再用到 → 只提示；零特性 → 退出码 2。本仓库退出码 0，推算下限 Chrome 105 / Safari 18（backdrop-filter 前缀情形）/ Firefox 121。
   用例 `node scripts/test-browser-feature-floor.mjs` 10/10（JS / CSS / 内联脚本各一例超基线 → 失败；注释、docs、scripts 不算；空转 → 2；不再用到 → 提示）。
   说明：这条只管「特性集合有没有变大」，不判断某浏览器能不能用；真实兼容性仍是 T-028 的 NOT_RUN。目标矩阵定下来后应把版本号复核并替换。
+- 2026-09-16 | C-g | [x] | 去掉写死的机器路径 + 修订 tests 说明书（T-031 的两条 GREEN 候选）。
+  · `supabase/tests/sec3_http.mjs` / `sec3_mfa.mjs`：写死的某台机器草稿目录 → `SEC_ENV_DIR`（默认当前目录，与 portal*_http 同口径），
+    找不到凭据文件时明说怎么设并以退出码 2 结束（实测 SEC_ENV_DIR=/nonexistent → 退出码 2 且提示可操作）。
+  · `supabase/tests/portal2b_catalog_consistency.mjs`：App 仓库路径默认值（某台机器的桌面）→ 空，未设 AMAS_APP_DIR 时如实说明。
+  · `scripts/gen-course-catalog.mjs`：课程权威源路径 → AMAS_APP_DIR / AMAS_CATALOG_SRC，未设时退出码 2 并给出用法（实测）。
+  · 4 支截图脚本与 test-touch-targets 的 SHOT_DIR 默认值 → 系统临时目录下 amas-shots。
+  · 新增静态检查：`check-site-static.mjs` 第 7 步「机器绑定的绝对路径」（扫 scripts 与 supabase 下脚本；夹具行可用 `machine-path-ok` 放行），
+    夹具用例 `test-check-site-static.mjs` 14/14；给 test-verify-g1-guards.mjs 的脏环境夹具加了放行标记（4 行）。
+  · `supabase/tests/README.md`：UI 验收改用 gitignored 的 supabase-config.local.js，不再让人临时改已提交的 supabase-config.js（那条路忘了还原并推送就会公开配置）；
+    并补上 SEC_ENV_DIR 的说明与「scripts 下探针不需要该文件」的提示。
+  回归：check-site-static 7 步 0 错、check-internal-links 0、test-verify-g1-guards 39/39、touch-targets 18/20（T0/T5 仍为已登记基线）、
+  test-probe-network-guard 19/19、feature-floor 0、`./scripts/verify.sh` 0。

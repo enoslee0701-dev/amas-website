@@ -42,6 +42,9 @@ const CASES = [
   { name: "站内链接指向不存在的页面 → 失败并点名", files: { "about.html": '<!doctype html><html><body><a href="missing/">x</a></body></html>\n' }, expect: 1, out: /missing\// },
   { name: ".ts 里是 JS 层面的错（剥完类型也不是合法模块）→ 失败并点名", files: { "fn/c.ts": "export const = (n: number) => n;\n" }, expect: 1, out: /fn\/c\.ts/ },
   /* 工具链自己带着 .py / .mjs，所以「空转」拿 Shell 这一类来造：把两个 shell 文件都拿掉 */
+  { name: "脚本里写死某台机器的家目录 → 失败并点名", files: { "scripts/x.py": 'SRC = "C:/Users/someone/Desktop/x"\n' }, expect: 1, out: /scripts\/x\.py:1/ },   // machine-path-ok（夹具数据）
+  { name: "类 Unix 家目录写死也算 → 失败", files: { "scripts/y.mjs": 'export const p = "/Users/someone/work/x";\n' }, expect: 1, out: /scripts\/y\.mjs:1/ },   // machine-path-ok（夹具数据）
+  { name: "夹具标记 machine-path-ok 的行放行 → 通过", files: { "scripts/y.mjs": 'export const p = "/Users/someone/work/x"; // machine-path-ok\n' }, expect: 0 },
   { name: "某一类一个文件都没有（没有任何 Shell 脚本）→ 退出码 2", files: { "tools/e.sh": null, ".githooks/pre-commit": null }, expect: 2, out: /没扫到文件的步骤：Shell 语法/ },
 ];
 

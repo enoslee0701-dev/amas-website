@@ -14,8 +14,9 @@ import path from "node:path";
 
 const ENV = Object.fromEntries(fs.readFileSync(process.env.AMAS_ENV || "staging.env", "utf8")
   .trim().split(/\r?\n/).map(l => { const i = l.indexOf("="); return [l.slice(0, i).trim(), l.slice(i + 1).trim()]; }));
-const APP_DIR = process.env.AMAS_APP_DIR
-  || "C:/Users/enosl/Desktop/amas---asian-missionary-theological-seminary";
+/* App 仓库路径没有合理的默认值（它在本仓库之外）。原来写死了某台机器上的桌面路径 ——
+   换机器就静默指向一个不存在的目录，C00 报「缺少课程权威源」，看起来像数据问题。 */
+const APP_DIR = process.env.AMAS_APP_DIR || "";
 const SITE_DIR = process.env.AMAS_SITE_DIR || ".";
 
 const R = [];
@@ -24,7 +25,7 @@ const rec = (id, name, ok, d = "") => { R.push({ id, name, ok, d }); console.log
 // ---- 1. 权威源：App OFFICIAL_CATALOG ----
 const catPath = path.join(APP_DIR, "services/catalog.ts");
 if (!fs.existsSync(catPath)) {
-  rec("C00", "找到 App 课程权威源", false, `缺少 ${catPath}（可用 AMAS_APP_DIR 指定）`);
+  rec("C00", "找到 App 课程权威源", false, APP_DIR ? `缺少 ${catPath}（可用 AMAS_APP_DIR 指定）` : "未设置 AMAS_APP_DIR —— 请指向 App 仓库根目录");
   console.log(`\n=== 目录一致性: 0/1 PASSED ===`);
   process.exit(1);
 }

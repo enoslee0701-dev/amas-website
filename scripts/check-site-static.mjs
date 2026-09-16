@@ -17,6 +17,9 @@
      4 Python 语法              git 跟踪的 .py，ast.parse（不用 py_compile，不写 __pycache__）
      5 Shell 语法               git 跟踪的 .sh 与 .githooks/*，按 shebang 用 sh -n / bash -n
      6 站内链接                 python3 scripts/check-internal-links.py
+     7 机器绑定的绝对路径        git 跟踪的 scripts 与 supabase 下的脚本里不得写死某台机器的家目录
+                                （换机器就跑不起来；要留活口就用环境变量，见各脚本头注释；
+                                 夹具里故意写的假路径在行末加 machine-path-ok 放行）
 
    只读文件、只做解析：不执行被检查的脚本、不开浏览器、不联网、不写文件。
    「不联网」可以用 macOS 沙箱实测：
@@ -134,6 +137,21 @@ const step = (name, scanned, errors, note = "") => {
   const errors = r.status === 0 ? [] : (r.stdout || "").split("\n").filter((l) => /\s->\s/.test(l)).map((l) => l.trim().replace(/\s+/g, " "));
   if (r.status !== 0 && !errors.length) errors.push(`check-internal-links.py 退出码 ${r.status}：${firstLines(r.stdout + r.stderr)}`);
   step("站内链接", scanned, errors, "check-internal-links.py");
+}
+
+/* 7 机器绑定的绝对路径 */
+{
+  const files = tracked("scripts/*", "supabase/*").filter((f) => /\.(mjs|js|py|sh|sql)$/.test(f));
+  const RE = /(?:[A-Za-z]:[\\/]+Users[\\/]+|\/Users\/|\/home\/)[A-Za-z0-9._-]+[\\/]/;
+  const errors = [];
+  for (const f of files) {
+    const text = fs.readFileSync(path.join(ROOT, f), "utf8");
+    /* 夹具里故意写的假路径用行末标记 machine-path-ok 放行 —— 那是测试数据，不是会被执行的路径 */
+    text.split("\n").forEach((line, i) => {
+      if (RE.test(line) && !line.includes("machine-path-ok")) errors.push(`${f}:${i + 1}：${line.trim().slice(0, 90)}`);
+    });
+  }
+  step("机器绑定的绝对路径", files.length, errors, "不得写死某台机器的家目录");
 }
 
 const empty = steps.filter((s) => s.scanned === 0);

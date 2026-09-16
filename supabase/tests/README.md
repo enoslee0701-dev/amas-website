@@ -23,9 +23,21 @@
 python -m http.server 8090 --bind 127.0.0.1 &     # 探针访问 http://127.0.0.1:8090
 ```
 
-并需**临时**把 `assets/js/supabase-config.js` 指向 staging（填入 URL 与 anon key），
-**跑完必须还原为空配置**——仓库内不得留下任何密钥。
+并需让页面拿到 staging 的 URL 与 anon key。**用本地旁路文件，不要改已提交的 `assets/js/supabase-config.js`**：
+
+```bash
+cp assets/js/supabase-config.local.example.js assets/js/supabase-config.local.js   # 填入 URL 与 anon key
+```
+
+`supabase-config.local.js` 已在 `.gitignore` 中，且只在 127.0.0.1 / localhost 上加载
+（见 `assets/js/supabase-config.js` 末尾的旁路），发布站点上不会生效。
+以前这里写的是「临时把配置填进 `supabase-config.js`、跑完还原」——那条路只要忘了还原并推送，
+配置就随 GitHub Pages 公开了（master 推送即发布）。旁路文件没有这个风险。
+
 可用 `CHROME_PATH` 覆盖 Chrome 路径；Edge 的 headless 在近期版本上不可用，请用 Chrome。
+
+> 本机跑 `scripts/` 下的探针时**不需要**这个文件：那些探针的测试服务器一律拒绝伺服它
+> （`scripts/lib/no-local-config.mjs`，见 BLOCKED.md 的 INCIDENT-0916），以免测试数据写进真实后端。
 
 ## PORTAL-2（学籍核心）
 
@@ -56,7 +68,10 @@ python -m http.server 8090 --bind 127.0.0.1 &     # 探针访问 http://127.0.0.
 ## 环境文件
 
 `staging.env` 放在运行目录，已在 `.gitignore` 中，**不得入库**。
-所有脚本默认读运行目录下的 `staging.env`，可用 `AMAS_ENV=<path>` 覆盖。
+所有脚本默认读运行目录下的 `staging.env`：
+`portal*` 与 `e2e_acceptance_matrix` 用 `AMAS_ENV=<path>/staging.env` 覆盖；
+`sec3_http.mjs` / `sec3_mfa.mjs` / `portal*_http.mjs` 用 `SEC_ENV_DIR=<dir>` 指定它所在的**目录**。
+（sec3 两支此前写死了某台机器的草稿目录，2026-09-16 改为与其余脚本同一口径；找不到文件时会明说怎么设。）
 
 ```
 URL=https://<ref>.supabase.co

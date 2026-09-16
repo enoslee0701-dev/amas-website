@@ -37,8 +37,9 @@ const check = (cond, name, detail) => results.push([!!cond, name, detail]);
 
 const shotArg = process.argv.find((a) => a.startsWith("--shots="));
 const SHOT_PREFIX = shotArg ? shotArg.slice("--shots=".length) : null;
-const SHOT_DIR = process.env.SHOT_DIR ||
-  "C:/Users/enosl/Documents/Codex/2026-09-11/bang/work/shots";
+/* 截图落盘目录。原来默认指向某台机器上的一个目录 —— 换机器就写不进去。
+   默认改为系统临时目录下的 amas-shots，要留档就用 SHOT_DIR 指定。 */
+const SHOT_DIR = process.env.SHOT_DIR || path.join(os.tmpdir(), "amas-shots");
 
 function findChrome() {
   if (process.env.CHROME) return process.env.CHROME;

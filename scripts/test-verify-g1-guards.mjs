@@ -59,10 +59,10 @@ ok("Q1d 不开 TCP（listen_addresses 为空）", own.listenAddresses === "", JS
 
 console.log("\n=== R libpq 的覆盖来源必须洗干净 ===");
 const dirty = {
-  PATH: "/usr/bin", HOME: "/Users/x",
+  PATH: "/usr/bin", HOME: "/Users/x",   // machine-path-ok（这是被清洗的脏环境夹具，不是真实路径）
   PGHOST: "prod.example.com", PGHOSTADDR: "10.0.0.9", PGPORT: "5432",
-  PGSERVICE: "production", PGSERVICEFILE: "/Users/x/.pg_service.conf",
-  PGDATABASE: "amas_prod", PGUSER: "admin", PGPASSWORD: "s3cret", PGPASSFILE: "/Users/x/.pgpass",
+  PGSERVICE: "production", PGSERVICEFILE: "/Users/x/.pg_service.conf",   // machine-path-ok（这是被清洗的脏环境夹具，不是真实路径）
+  PGDATABASE: "amas_prod", PGUSER: "admin", PGPASSWORD: "s3cret", PGPASSFILE: "/Users/x/.pgpass",   // machine-path-ok（这是被清洗的脏环境夹具，不是真实路径）
   PGSSLMODE: "require", PGOPTIONS: "-c search_path=evil",
 };
 const clean = sanitizeEnv(dirty, { PGHOST: own.sockDir, PGPORT: "5433", PGDATABASE: "amas_g1", PGUSER: "tester" });
@@ -77,7 +77,7 @@ ok("R3 PGPASSWORD / PGPASSFILE / PGOPTIONS / PGSSLMODE 也不留",
 ok("R4 最终 host 是我们指定的 socket 目录，不是外面那个 prod",
    clean.PGHOST === own.sockDir && clean.PGDATABASE === "amas_g1", JSON.stringify({ h: clean.PGHOST, d: clean.PGDATABASE }));
 ok("R5 无关的环境变量照常保留（不是把整个环境清空了事）",
-   clean.PATH === "/usr/bin" && clean.HOME === "/Users/x", JSON.stringify({ p: clean.PATH, h: clean.HOME }));
+   clean.PATH === "/usr/bin" && clean.HOME === "/Users/x", JSON.stringify({ p: clean.PATH, h: clean.HOME }));   // machine-path-ok（这是被清洗的脏环境夹具，不是真实路径）
 ok("R6 清单里确实包含那几个关键覆盖源",
    ["PGHOST", "PGHOSTADDR", "PGPORT", "PGSERVICE", "PGSERVICEFILE", "PGPASSFILE", "PGOPTIONS"]
      .every(k => LIBPQ_OVERRIDES.includes(k)), JSON.stringify(LIBPQ_OVERRIDES));

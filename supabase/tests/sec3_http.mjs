@@ -4,8 +4,20 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { createHash, randomUUID } from "node:crypto";
 
-const S = "C:/Users/enosl/AppData/Local/Temp/claude/C--Users-enosl/0a8d7f45-a7db-4338-8119-b764f90bf3ca/scratchpad";
-const env = Object.fromEntries(readFileSync(`${S}/staging.env`, "utf8").trim().split(/\r?\n/).map(l => {
+/* staging.env 所在目录：与 portal*_http.mjs 同一口径（SEC_ENV_DIR，默认当前目录）。
+   原来这里写死的是某台机器上的一次性草稿目录 —— 换一台机器、甚至换一次会话就跑不起来，
+   而这支脚本是 SEC 验收的入口。凭据文件本身绝不入库。 */
+const S = process.env.SEC_ENV_DIR || ".";
+const ENV_FILE = `${S}/staging.env`;
+function readEnvFile() {
+  try { return readFileSync(ENV_FILE, "utf8"); }
+  catch (e) {
+    console.error(`找不到凭据文件 ${ENV_FILE}。用 SEC_ENV_DIR 指到它所在的目录，例如：`);
+    console.error(`  SEC_ENV_DIR=/path/to/dir node ${process.argv[1]}`);
+    process.exit(2);
+  }
+}
+const env = Object.fromEntries(readEnvFile().trim().split(/\r?\n/).map(l => {
   const i = l.indexOf("="); return [l.slice(0, i), l.slice(i + 1)];
 }));
 const URL_ = env.URL, ANON = env.ANON, SERVICE = env.SERVICE;
