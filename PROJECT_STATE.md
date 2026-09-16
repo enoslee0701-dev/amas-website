@@ -273,3 +273,6 @@ QUEUE_EMPTY（2026-09-16）：队列无 `[ ]` 任务；T-003、T-014 仍为 `[!]
     并补上 SEC_ENV_DIR 的说明与「scripts 下探针不需要该文件」的提示。
   回归：check-site-static 7 步 0 错、check-internal-links 0、test-verify-g1-guards 39/39、touch-targets 18/20（T0/T5 仍为已登记基线）、
   test-probe-network-guard 19/19、feature-floor 0、`./scripts/verify.sh` 0。
+- 2026-09-16 | C 系列 checkpoint | [x] | 报告 `docs/operations/CSC-C-SERIES-CHECKPOINT-REPORT.md`，固定 SHA `f91cb9663bf1b29ec9890fa5602a3e68da38dc0d`。
+  该 SHA 上：26 项非浏览器检查全部退出码 0；8 批浏览器探针全部退出码 0（promo-tab 由长期 18~19/20 变为 20/20）。
+  运行前后被跟踪文件只有 Enos 的 CLAUDE.md 改动。待人决定的四项（INCIDENT-0916、T-030-RED、T-031、T-028）没有变化。
