@@ -908,7 +908,14 @@ Production Recovery        PENDING
 | **Website** | `amas-website` master | 无构建（纯静态） | GitHub Pages 从 master 直发 | ✅ https://enoslee0701-dev.github.io/amas-website/ | 已验证线上内容与 `origin/master` 逐字节一致 |
 | **Portal** | 同上 `portal/**` | 同上 | 同上 | ✅ 页面可达 | 数据依赖 staging Supabase |
 | **API（App backend）** | `AMAS Seminary App/backend` | `UNKNOWN` | `UNKNOWN` | `UNKNOWN` | code-stage 103/103 |
-| **Supabase** | `amas-website/supabase` | migrations `0001`–`0021` | staging 已部署 | staging | 621 项 staging 断言 |
+| **Supabase** | `amas-website/supabase` | migrations `0001`–`0021` ⚠ 见下方校订 | staging 已部署 | staging | 621 项 staging 断言 |
+
+> **校订 2026-09-16（Claude / CSC）**：上表这一行与 BLOCKER-08 的「0022 未执行」都**已被更新的报告取代**。
+> 更新依据：`docs/operations/db4/BUSINESS-DATA-FAST-TRACK-LIVE-REPORT.md`（2026-09-10）记录 staging 账本为 `0001–0026`、`0027` ABSENT；
+> `docs/operations/staging-1a8/STAGING-1A8-0022-PREFLIGHT-REPORT.md` 记录 0022 已由**未知外部写入者**应用且 8 项后置检查通过。
+> 仍未解决：0011–0021 与 0022 的写入者身份（1A7 / 1A8 均标 UNRESOLVED）。
+> 本校订只是**指出文档之间的冲突**：我没有连接任何真实环境核实，按本文件开头的优先级，以实际 Supabase 状态为准。
+> 相关盘点见 `docs/operations/CSC-T-031-BACKEND-INTEGRATION-PREREQUISITES.md`。
 | **Edge Functions** | 同上 `supabase/functions` | 7 个 | staging 已部署 | staging | 含在上述断言内 |
 | **Android** | App branch | Native Build READY | 未分发 | — | Real Device PENDING |
 
@@ -1181,6 +1188,11 @@ Owner:     用户
 **Next engineering action**：域名确定后按 `AUTH-production-auth-config.md` §3 收敛为精确 URL。
 
 ### BLOCKER-08｜0022 迁移未执行（潜伏项，当前无用户影响）
+
+> **校订 2026-09-16（Claude / CSC）**：据 `staging-1a8/STAGING-1A8-0022-PREFLIGHT-REPORT.md` 与
+> `db4/BUSINESS-DATA-FAST-TRACK-LIVE-REPORT.md`，0022 **已在 staging 应用**（账本 0001–0026），
+> 因此下文「尚未在任何环境执行」已过时。**执行者身份仍未查明**（报告记为 UNKNOWN EXTERNAL WRITER），
+> 这一条是否关闭、以及单一写入者规则怎么重定，需要 Enos 决定。未连接真实环境核实。
 
 ```
 Severity:  P2  （2026-09-07 由 P1 下调，见下方「实际影响」）

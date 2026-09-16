@@ -283,3 +283,7 @@ QUEUE_EMPTY（2026-09-16）：队列无 `[ ]` 任务；T-003、T-014 仍为 `[!]
     这三种本来就是对的，本次只是把它们钉住 —— C 系列报告里「没有自动化回归钉住」的说法已由此更正。
   结果：`node scripts/test-profile-read-boundary.mjs` 19/19，退出码 0。
   回归：test-portal-pages 112/112、test-profile-writes PASS 69 FAIL 0、`./scripts/verify.sh` 0。
+- 2026-09-16 | D-c | [x] | `docs/operations/AMAS_PROJECT_HANDOFF.md` 加两条日期校订（不删原文）：组件表 Supabase 那一行与 BLOCKER-08 的「0022 未执行」都已被
+  `db4/BUSINESS-DATA-FAST-TRACK-LIVE-REPORT.md`（账本 0001–0026、0027 ABSENT）与 `staging-1a8/...-0022-PREFLIGHT-REPORT.md`（0022 已应用、8 项后置检查通过）取代；
+  并写明写入者身份仍 UNRESOLVED、需 Enos 决定，且本校订未连接任何真实环境核实。依据是该文件开头自己的规矩「发现不一致必须报告差异并更新本文件」。
+  检查：check-internal-links 0、check-site-static 7 步 0 错、`./scripts/verify.sh` 0。
