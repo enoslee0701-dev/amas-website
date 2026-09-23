@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>学员中心 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202609231552">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202609231612">
 <style>
 .idcard{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);color:#fff;border-radius:16px;padding:20px 22px;margin-bottom:18px}
 .idcard h2{margin:0;font-size:19px;color:#fff}
@@ -31,11 +31,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202609231552"></script>
-<script src="../../assets/js/portal/auth.js?v=202609231552"></script>
-<script src="../../assets/js/portal/api.js?v=202609231552"></script>
-<script src="../../assets/js/portal/ui.js?v=202609231552"></script>
-<script src="../../assets/js/portal/shell.js?v=202609231552"></script>
+<script src="../../assets/js/supabase-config.js?v=202609231612"></script>
+<script src="../../assets/js/portal/auth.js?v=202609231612"></script>
+<script src="../../assets/js/portal/api.js?v=202609231612"></script>
+<script src="../../assets/js/portal/ui.js?v=202609231612"></script>
+<script src="../../assets/js/portal/shell.js?v=202609231612"></script>
 <script>
 /* PORTAL-2 学员中心（V1）
    原则：状态机与 DB 是权威源，UI 不模拟业务状态；没有真实数据就显示真实空态，绝不填充假数据。
@@ -57,7 +57,7 @@
   /* 这几路读取原来只解构 data，把各自的 error 丢掉 —— 读不到就当成「没有」。
      后果很具体：my_action_items 挂掉时页面写「目前没有需要你处理的事项。」，
      一个正被教务要求补件的学员会以为没事要做；my_learning 挂掉时写
-     「AMAS 正式课程共 0 门」，而学校有 67 门。 */
+     「AMAS 正式课程共 0 门」，而学校有 68 门。 */
   const [{ data: recRows, error }, { data: tl, error: tlErr }, { data: pc, error: pcErr }, { data: acts, error: actsErr },
          { data: cap }, { data: learn, error: learnErr }] =
     await Promise.all([
