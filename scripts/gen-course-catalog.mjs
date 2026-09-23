@@ -30,6 +30,7 @@ while ((m = re.exec(body))) {
   const lvl = /level:\s*(\w+)/.exec(rest);
   const les = /totalLessons:\s*(\d+)/.exec(rest);
   const ins = /instructor:\s*'([^']*)'/.exec(rest);
+  const cre = /credits:\s*(\d+)/.exec(rest);
   const lessons = les ? +les[1] : 0;
   rows.push({
     code: id, title, category: CAT[cat],
@@ -37,20 +38,32 @@ while ((m = re.exec(body))) {
     instructor: ins ? ins[1] : null,
     total_lessons: lessons,
     availability: lessons > 0 ? "available" : "in_development",
+    /* 学分只有学士的 27 门有值（《课程总表 V1.0》2026-09-23 批准）；
+       其余层级的逐课学分未经批准，保持 null —— 不推算、不编造。 */
+    credits: cre ? +cre[1] : null,
     sort_order: (rows.length + 1) * 10,
   });
 }
 
-if (rows.length !== 67) {
-  console.error(`FATAL: 解析到 ${rows.length} 门课程，必须恰好 67 门。目录结构可能变了，请人工核对后再生成。`);
+const EXPECTED_TOTAL = 68;   // V1.0 起：67 → 68（三处合并 −3、四门新增 +4）
+const EXPECTED_CREDITED = 27;
+if (rows.length !== EXPECTED_TOTAL) {
+  console.error(`FATAL: 解析到 ${rows.length} 门课程，必须恰好 ${EXPECTED_TOTAL} 门。目录结构可能变了，请人工核对后再生成。`);
+  process.exit(1);
+}
+const credited = rows.filter(r => r.credits !== null);
+if (credited.length !== EXPECTED_CREDITED || credited.some(r => r.level !== "bth")) {
+  console.error(`FATAL: 有学分的应当恰好是学士的 ${EXPECTED_CREDITED} 门，实际 ${credited.length} 门`
+    + `（非学士却有学分的：${credited.filter(r => r.level !== "bth").map(r => r.code).join(", ") || "无"}）。`);
   process.exit(1);
 }
 const q = (v) => v === null ? "null" : `'${String(v).replace(/'/g, "''")}'`;
 const values = rows.map(r =>
-  `  (${q(r.code)}, ${q(r.title)}, ${q(r.category)}, ${q(r.level)}, ${q(r.instructor)}, ${r.total_lessons}, ${q(r.availability)}, ${r.sort_order})`
+  `  (${q(r.code)}, ${q(r.title)}, ${q(r.category)}, ${q(r.level)}, ${q(r.instructor)}, ${r.total_lessons}, ${q(r.availability)}, ${r.credits === null ? "null" : r.credits}, ${r.sort_order})`
 ).join(",\n");
 
 fs.writeFileSync("course_seed.sql", values + "\n", "utf8");
 const byCat = rows.reduce((a, r) => (a[r.category] = (a[r.category] || 0) + 1, a), {});
 console.log("生成", rows.length, "门 ·", JSON.stringify(byCat));
 console.log("内容筹备中:", rows.filter(r => r.availability === "in_development").length, "门");
+console.log("学士计学分:", credited.length, "门 ·", credited.reduce((a, r) => a + r.credits, 0), "学分");
