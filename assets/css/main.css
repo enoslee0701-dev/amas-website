@@ -355,6 +355,19 @@ html[data-theme="night"] .course-result-clear{background:var(--surface);color:va
 .course-card p{grid-area:desc;font-size:13px;line-height:1.7;color:var(--muted);margin:0;min-height:0}
 .course-meta{grid-area:meta;display:block;font-size:11px;color:#777065}
 .course-meta span{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:5px 12px;background:var(--paper2);letter-spacing:.06em}
+/* 学位层级徽章。68 门课是学士 / 硕士 / 博士混编的，卡片上必须一眼看出
+   这门课属于哪个学位，否则申请学士的人会把博士课也当成自己要修的。
+   只有学士的学分经《课程总表 V1.0》批准，所以也只有学士卡显示学分。 */
+.course-meta .lvl{margin-left:6px;font-weight:700;letter-spacing:.04em}
+.course-meta .lvl-bth{border-color:#10305a;background:#eaf0f8;color:#10305a}
+.course-meta .lvl-mdiv{border-color:var(--olive-dark);background:#f2f1e4;color:#5f5a2a}
+.course-meta .lvl-dmin{border-color:#7a5b2e;background:#f7f0e4;color:#6b4d22}
+.course-meta .lvl-none{border-color:var(--line);background:var(--paper2);color:#777065}
+.course-meta .cr{margin-left:6px;border-color:#10305a;background:#10305a;color:#fff;font-weight:700}
+/* 层级筛选行与它下面那句说明：说明必须跟着筛选一起出现，
+   否则「27 门 / 70 学分 / 毕业 77」这几个数字无处可查。 */
+.level-row{margin-bottom:12px}
+.level-note{margin:0 0 24px;font-size:12.5px;line-height:1.85;color:#777065;max-width:70ch}
 
 /* admissions */
 .admissions-section{position:relative;isolation:isolate;background:#e9e2cf}
@@ -729,6 +742,12 @@ html[data-theme="night"] .steps span.active{color:#0a0c10}
 
 /* 课程卡的学分/周数在深色卡片上偏暗 */
 html[data-theme="night"] .course-meta{color:#9a968b}
+html[data-theme="night"] .course-meta .lvl-bth{border-color:#4a7ab8;background:#16202e;color:#9dc2ea}
+html[data-theme="night"] .course-meta .lvl-mdiv{border-color:#8a8347;background:#1e1e16;color:#c8c08a}
+html[data-theme="night"] .course-meta .lvl-dmin{border-color:#9a7a4e;background:#221c14;color:#d0b48a}
+html[data-theme="night"] .course-meta .lvl-none{border-color:var(--line);background:var(--surface);color:#9a968b}
+html[data-theme="night"] .course-meta .cr{border-color:#4a7ab8;background:#1d3a5c;color:#dce9f7}
+html[data-theme="night"] .level-note{color:#9a968b}
 
 /* 支柱卡片上那个圆图标的描边原本是纯白，夜晚要跟卡片同色 */
 html[data-theme="night"] .round-icon{border-color:var(--surface)}
