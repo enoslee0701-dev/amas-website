@@ -1,8 +1,8 @@
 // PORTAL-2B · 课程目录三方一致性守卫
 //
-// 67 门正式课程在三个地方出现：
+// 68 门正式课程在三个地方出现（2026-09-23《课程总表 V1.0》起由 67 门变 68 门）：
 //   1. App  services/catalog.ts → OFFICIAL_CATALOG   ← 唯一权威源
-//   2. 官网 index.html 的 67 张课程卡                ← 展示副本
+//   2. 官网 index.html 的 68 张课程卡                ← 展示副本
 //   3. Supabase course_catalog                        ← 门户只读镜像
 // 任一侧漂移，这里立刻失败。改课程只能改 (1)，再重新生成 (3)。
 //
@@ -35,15 +35,17 @@ const app = [...body.matchAll(/\{\s*id:\s*'([^']+)',\s*title:\s*'([^']+)',\s*cat
   .map(m => ({
     id: m[1], title: m[2], cat: m[3],
     lessons: /totalLessons:\s*(\d+)/.exec(m[4]) ? +/totalLessons:\s*(\d+)/.exec(m[4])[1] : 0,
+    level: /level:\s*(\w+)/.exec(m[4]) ? /level:\s*(\w+)/.exec(m[4])[1].toLowerCase() : null,
+    credits: /credits:\s*(\d+)/.exec(m[4]) ? +/credits:\s*(\d+)/.exec(m[4])[1] : null,
   }));
-rec("C01", "App 权威目录恰好 67 门", app.length === 67, `count=${app.length}`);
+rec("C01", "App 权威目录恰好 68 门", app.length === 68, `count=${app.length}`);
 
 // ---- 2. Supabase 镜像 ----
 const res = await fetch(`${ENV.URL}/rest/v1/course_catalog?select=code,title_zh,category,total_lessons,availability,credits&order=sort_order`,
   { headers: { apikey: ENV.ANON, Authorization: `Bearer ${ENV.ANON}` } });
 const mirror = await res.json();
-rec("C02", "Supabase 镜像可匿名读取且为 67 门",
-  Array.isArray(mirror) && mirror.length === 67, `count=${Array.isArray(mirror) ? mirror.length : "err"}`);
+rec("C02", "Supabase 镜像可匿名读取且为 68 门",
+  Array.isArray(mirror) && mirror.length === 68, `count=${Array.isArray(mirror) ? mirror.length : "err"}`);
 
 // ---- 3. code 与顺序完全一致 ----
 const appIds = app.map(a => a.id);
@@ -65,16 +67,29 @@ const availDiff = app.filter((a, i) => {
 }).map(a => a.id);
 rec("C05", "内容可用性与权威源一致", availDiff.length === 0, `diff=${availDiff.join(",")}`);
 
-// ---- 6. credits 必须全 null ----
-const withCredits = (mirror || []).filter(m => m.credits !== null);
-rec("C06", "镜像 credits 全为 null（未推算学分）", withCredits.length === 0,
-  `hits=${withCredits.map(m => m.code).join(",")}`);
+// ---- 6. credits：只有学士的 27 门可以有，且必须与权威源逐条相等 ----
+// 《课程总表 V1.0》（2026-09-23）批准的只是学士学分表。其余层级仍然一个学分都不许填，
+// 这条纪律没有放松，只是从「全 null」变成「除了被批准的那 27 门以外全 null」。
+const creditDiff = app
+  .map((a, i) => ({ a, m: (mirror || [])[i] }))
+  .filter(({ a, m }) => !m || m.credits !== a.credits)
+  .map(({ a, m }) => `${a.id}:权威${a.credits}≠镜像${m ? m.credits : "缺"}`);
+rec("C06a", "镜像 credits 与权威源逐条一致", creditDiff.length === 0, `diff=${creditDiff.join(" / ")}`);
+
+const strayCredits = app.filter(a => a.credits !== null && a.level !== "bth").map(a => a.id);
+rec("C06b", "只有学士课程有学分（其余层级未获批准，必须为 null）",
+  strayCredits.length === 0, `hits=${strayCredits.join(",")}`);
+
+const credited = app.filter(a => a.credits !== null);
+const creditSum = credited.reduce((n, a) => n + a.credits, 0);
+rec("C06c", "学士 27 门 70 学分（课程部分，另有实践训练 5 项 7 学分）",
+  credited.length === 27 && creditSum === 70, `count=${credited.length} sum=${creditSum}`);
 
 // ---- 7. 官网课程卡数量与标题 ----
 const html = fs.readFileSync(path.join(SITE_DIR, "index.html"), "utf8");
 const cards = [...html.matchAll(/<span class="course-code">([^<]+)<\/span><h3 data-i18n="courseCards\.(\d+)\.title">([^<]+)<\/h3>/g)]
   .map(m => ({ code: m[1].trim(), title: m[3].trim() }));
-rec("C07", "官网课程卡恰好 67 张", cards.length === 67, `count=${cards.length}`);
+rec("C07", "官网课程卡恰好 68 张", cards.length === 68, `count=${cards.length}`);
 
 const appTitles = new Set(app.map(a => a.title));
 const siteOnly = cards.map(c => c.title).filter(t => !appTitles.has(t));
@@ -85,9 +100,9 @@ rec("C08", "官网课程名称与权威源完全一致（无例外）", siteOnly
 
 // ---- 8. 分类计数 ----
 const catCount = (mirror || []).reduce((a, m) => (a[m.category] = (a[m.category] || 0) + 1, a), {});
-const EXPECT = { nt: 27, ot: 2, bible_basics: 3, theology: 11, practical: 18, history: 3, language: 3 };
+const EXPECT = { nt: 27, ot: 2, bible_basics: 3, theology: 12, practical: 18, history: 3, language: 3 };
 const catOk = Object.entries(EXPECT).every(([k, v]) => catCount[k] === v);
-rec("C09", "七大类计数 27/2/3/11/18/3/3", catOk, JSON.stringify(catCount));
+rec("C09", "七大类计数 27/2/3/12/18/3/3", catOk, JSON.stringify(catCount));
 
 // ---- 9. 匿名不可写 ----
 const w = await fetch(`${ENV.URL}/rest/v1/course_catalog`, {

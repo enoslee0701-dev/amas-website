@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>课程目录 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609231331">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609231525">
 <style>
 .filters{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
 .filters button{min-height:40px;padding:0 14px;border:1.5px solid var(--line);border-radius:999px;
@@ -27,11 +27,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609231331"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609231331"></script>
-<script src="../../../assets/js/portal/api.js?v=202609231331"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609231331"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609231331"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609231525"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609231525"></script>
+<script src="../../../assets/js/portal/api.js?v=202609231525"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609231525"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609231525"></script>
 <script>
 /* PORTAL-2B 课程目录（2B-2 / 2B-4）
    三个概念严格分离：
@@ -80,7 +80,8 @@
     '<div class="filters" id="ft"></div>' +
     '<div id="list"></div>' +
     '<div class="msg info show" style="margin-top:18px">' +
-      '<b>关于学分：</b>AMAS 正式学分表尚未提供，因此本页不显示任何课程的学分数值。' +
+      '<b>关于学分：</b>《AMAS 课程总表 V1.0》已确认神学学士（B.Th）培养方案的学分，' +
+      '这些课程会显示学分数值；其余层级的正式学分表尚未提供，仍显示「不显示学分信息」。' +
       '系统不会根据课时或其他信息推算学分。' +
     '</div>' +
     (cap && cap.course_content_access === false ?

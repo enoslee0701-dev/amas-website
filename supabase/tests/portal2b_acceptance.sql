@@ -53,22 +53,27 @@ begin
   v := public.create_student_record(app_o, reg, 'B2B-0003', null);
 
   ------------------------------------------------------------
-  -- B01 课程目录：恰好 67 门，credits 全为 null
+  -- B01 课程目录：恰好 68 门；credits 只有学士的 27 门有值（《课程总表 V1.0》2026-09-23 批准）
   ------------------------------------------------------------
   select count(*) into v_cnt from public.course_catalog;
-  if v_cnt <> 67 then raise exception 'FAIL B01 course_catalog 应为 67 门，实为 %', v_cnt; end if;
+  if v_cnt <> 68 then raise exception 'FAIL B01 course_catalog 应为 68 门，实为 %', v_cnt; end if;
   select count(*) into v_cnt from public.course_catalog where credits is not null;
-  if v_cnt <> 0 then raise exception 'FAIL B01 有 % 门课程被填了 credits', v_cnt; end if;
-  raise notice 'PASS B01 课程目录 67 门且 credits 全为 null';
+  if v_cnt <> 27 then raise exception 'FAIL B01 有学分的应为 27 门（学士），实为 %', v_cnt; end if;
+  select count(*) into v_cnt from public.course_catalog where credits is not null and level is distinct from 'bth';
+  if v_cnt <> 0 then raise exception 'FAIL B01 有 % 门非学士课程被填了 credits', v_cnt; end if;
+  select coalesce(sum(credits), 0) into v_cnt from public.course_catalog;
+  if v_cnt <> 70 then raise exception 'FAIL B01 学士课程学分合计应为 70，实为 %', v_cnt; end if;
+  raise notice 'PASS B01 课程目录 68 门，学士 27 门 70 学分，其余层级 credits 全为 null';
 
   ------------------------------------------------------------
-  -- B02 credits 被写入必须直接失败（守卫是约束不是约定）
+  -- B02 非学士课程写 credits 必须直接失败（守卫是约束不是约定）
+  --     c_matthew 自 V1.0 起是学士课程，改用一门硕士课程来验证闸门仍在。
   ------------------------------------------------------------
   begin
-    update public.course_catalog set credits = 3 where code = 'c_matthew';
+    update public.course_catalog set credits = 3 where code = 'c_john';
     raise exception 'FAIL B02 credits 被写入成功';
   exception when others then
-    if sqlerrm like '%credits 未经正式学分表批准%' then raise notice 'PASS B02 写入 credits 被数据库拒绝';
+    if sqlerrm like '%credits 目前只对学士%' then raise notice 'PASS B02 非学士课程写 credits 被数据库拒绝';
     else raise; end if;
   end;
 
@@ -102,15 +107,15 @@ begin
   -- B05 学习读模型：只返回 catalogued / content_pending，绝不产生其他状态
   ------------------------------------------------------------
   select count(*) into v_cnt from public.my_learning();
-  if v_cnt <> 67 then raise exception 'FAIL B05 my_learning 返回 % 行', v_cnt; end if;
+  if v_cnt <> 68 then raise exception 'FAIL B05 my_learning 返回 % 行', v_cnt; end if;
   select count(*) into v_cnt from public.my_learning()
    where learning_state not in ('catalogued','content_pending');
   if v_cnt <> 0 then raise exception 'FAIL B05 出现了没有数据源的学习状态（% 行）', v_cnt; end if;
   select count(*) into v_cnt from public.my_learning() where learning_state = 'content_pending';
   if v_cnt <> 21 then raise exception 'FAIL B05 内容筹备中应为 21 门，实为 %', v_cnt; end if;
   select count(*) into v_cnt from public.my_learning() where credits is not null;
-  if v_cnt <> 0 then raise exception 'FAIL B05 学习读模型返回了非 null 的 credits'; end if;
-  raise notice 'PASS B05 学习读模型只产生有数据源的状态，credits 全 null';
+  if v_cnt <> 27 then raise exception 'FAIL B05 学习读模型返回的有学分课程为 % 门，应为 27', v_cnt; end if;
+  raise notice 'PASS B05 学习读模型只产生有数据源的状态，学分只来自已批准的学士 27 门';
 
   ------------------------------------------------------------
   -- B06 资料读模型：可改字段与教务字段分区正确
@@ -237,7 +242,7 @@ begin
   perform set_config('request.jwt.claims', null, true);
   set local role anon;
   select count(*) into v_cnt from public.course_catalog;
-  if v_cnt <> 67 then raise exception 'FAIL B16 匿名读课程目录失败（% 行）', v_cnt; end if;
+  if v_cnt <> 68 then raise exception 'FAIL B16 匿名读课程目录失败（% 行）', v_cnt; end if;
   select count(*) into v_cnt from public.student_records;
   if v_cnt <> 0 then raise exception 'FAIL B16 匿名读到学籍记录'; end if;
   raise notice 'PASS B16 目录公开可读，学籍对匿名不可见';

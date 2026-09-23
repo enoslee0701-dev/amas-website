@@ -5,6 +5,15 @@
 -- 前提：目标库已应用 0001..0026，并已执行 DB-6 的 apply SQL
 --       （backend/scripts/db6-course-migration.mjs --emit-sql 的产物）。
 --
+-- ⚠ 适用范围（2026-09-23 补记）：本文件钉的是 **DB-6 迁移当时的快照**
+--   —— 67 条、credits 全 null、provenance 35/32、thumbnail 32/35，以及一组
+--   毫秒精度锚点。这些数字来自那一次迁移的源库，不是长期不变量。
+--   0028_bth_curriculum_v1.sql（《课程总表 V1.0》）之后目录变为 68 条、
+--   学士 27 门带学分，本文件届时**不再适用**，应当在 apply 0028 之前运行。
+--   V1.0 之后的现行不变量由 supabase/tests/portal2b_acceptance.sql 与
+--   supabase/tests/portal2b_catalog_consistency.mjs 接手守卫。
+--   不要把这里的数字改成 68 —— 那会让 DB-6 的验收记录失去意义。
+--
 -- 运行：psql -v ON_ERROR_STOP=1 -f supabase/tests/db6_course_contract.sql
 --
 -- 写操作全部在事务内并于结尾 ROLLBACK；只读断言不产生任何副作用。

@@ -517,10 +517,27 @@ try {
   ok("S1 计数按 availability 分开（1 门已开放 / 2 门筹备中）",
      /1/.test(s1) && /2/.test(s1) && /筹备中/.test(s1), s1.slice(0, 160));
 
-  // S2 **不编造学分** —— 这一条是产品纪律，必须钉死
-  ok("S2 页面不出现任何学分数值", !/\d+\s*学分/.test(s1), s1.slice(0, 200));
+  // S2 **不编造学分** —— 这一条是产品纪律，必须钉死。
+  // 2026-09-23《课程总表 V1.0》批准学士学分表之后纪律没有放松，只是分成两半：
+  // 有批准的（credits 有值）如实显示，没批准的（credits 为 null）仍然一个数字都不许出现。
+  ok("S2 credits 全为 null 时，页面不出现任何学分数值", !/\d+\s*学分/.test(s1), s1.slice(0, 200));
   ok("S2 credits 为 null 时显示「不显示学分信息」", /不显示学分信息/.test(s1));
   ok("S2 明说学分表尚未提供、不推算", /学分表尚未提供/.test(s1) && /不会根据课时/.test(s1));
+
+  // S2b 已批准的学分如实显示，且同一页里两种课互不污染
+  await open("portal/student/courses/", Object.assign({}, STUDENT_BASE, {
+    rpc: Object.assign({}, STU_ROLES, {
+      my_learning: { data: LEARN.concat([{
+        code: "c_acts", title_zh: "使徒行传", category: "nt", level: "bth",
+        total_lessons: 29, availability: "available", credits: 3, learning_state: "catalogued",
+      }]) },
+      my_student_capabilities: { data: { course_content_access: false } },
+    }) }));
+  const s2b = await txt();
+  ok("S2b 学士课程显示它被批准的学分", /3\s*学分/.test(s2b), s2b.slice(0, 200));
+  ok("S2b 同页未批准学分的课仍显示「不显示学分信息」", /不显示学分信息/.test(s2b));
+  ok("S2b 学分数值不会凭空多出来（只出现被批准的那一个）",
+     (s2b.match(/\d+\s*学分/g) || []).length === 1, JSON.stringify(s2b.match(/\d+\s*学分/g)));
 
   // S3 筹备中的课如实标注，不假装可学
   ok("S3 筹备中的课给出说明", /线上学习内容尚未开放/.test(s1));
