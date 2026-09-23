@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>课程目录 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609231525">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202609231552">
 <style>
 .filters{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
 .filters button{min-height:40px;padding:0 14px;border:1.5px solid var(--line);border-radius:999px;
@@ -27,15 +27,15 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202609231525"></script>
-<script src="../../../assets/js/portal/auth.js?v=202609231525"></script>
-<script src="../../../assets/js/portal/api.js?v=202609231525"></script>
-<script src="../../../assets/js/portal/ui.js?v=202609231525"></script>
-<script src="../../../assets/js/portal/shell.js?v=202609231525"></script>
+<script src="../../../assets/js/supabase-config.js?v=202609231552"></script>
+<script src="../../../assets/js/portal/auth.js?v=202609231552"></script>
+<script src="../../../assets/js/portal/api.js?v=202609231552"></script>
+<script src="../../../assets/js/portal/ui.js?v=202609231552"></script>
+<script src="../../../assets/js/portal/shell.js?v=202609231552"></script>
 <script>
 /* PORTAL-2B 课程目录（2B-2 / 2B-4）
    三个概念严格分离：
-     列入 67 门正式目录  ≠  学生已注册  ≠  课程内容当前可学
+     列入 68 门正式目录  ≠  学生已注册  ≠  课程内容当前可学
    本页只表达第 1 与第 3 项；「已注册」在当前系统内没有任何数据源，因此不表达（审计 §4）。
    credits 为 null 时显示"不显示学分信息"，绝不显示 0、不合计、不生成学分进度。
    内容未开放的课程给出真实说明，不做空播放器、不做假课程页。 */
