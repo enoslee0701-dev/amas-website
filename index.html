@@ -83,9 +83,9 @@
 })();
 </script>
 <script>(function(){var l=document.createElement("link");l.rel="preload";l.as="image";l.href="assets/img/hero-"+(document.documentElement.dataset.theme==="night"?"night":"day")+".webp";document.head.appendChild(l);})();</script>
-<script src="assets/js/supabase-config.js?v=202609231631"></script>
+<script src="assets/js/supabase-config.js?v=202609231718"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/main.css?v=202609231631">
+<link rel="stylesheet" href="assets/css/main.css?v=202609231718">
 </head>
 <body>
 <a class="skip-link" href="#main" data-i18n="actions.skip">跳到主要内容</a>
@@ -352,15 +352,17 @@
            会把 18 门博士课也当成自己要修的。层级取自《课程总表 V1.0》落库迁移
            0028_bth_curriculum_v1.sql 的 level 字段，与该表一一对应。 -->
       <div class="filter-row level-row" role="group" aria-label="按学位层级筛选" data-i18n-aria="courses.levelGroup">
+        <span class="filter-label" data-i18n="courses.byLevel">学位层级</span>
         <button class="filter active" type="button" data-level-filter="all" aria-pressed="true" data-i18n="courses.levels.all">全部层级</button>
         <button class="filter" type="button" data-level-filter="bth" aria-pressed="false" data-i18n="courses.levels.bth">神学学士 B.Th</button>
         <button class="filter" type="button" data-level-filter="mdiv" aria-pressed="false" data-i18n="courses.levels.mdiv">道学硕士 M.Div</button>
         <button class="filter" type="button" data-level-filter="dmin" aria-pressed="false" data-i18n="courses.levels.dmin">教牧学博士 D.Min</button>
         <button class="filter" type="button" data-level-filter="none" aria-pressed="false" data-i18n="courses.levels.none">其他课程</button>
       </div>
-      <p class="level-note" data-i18n="courses.levelNote">神学学士 B.Th 共 27 门课 · 70 学分，加 5 项实践训练 7 学分，毕业合计 77 学分。道学硕士 M.Div 与教牧学博士 D.Min 的课程方案与逐课学分仍在制定中，确定前不显示学分；其余课程暂未归入学位方案。</p>
+      <p class="level-note" data-i18n="courses.note.all">神学学士 B.Th 共 27 门 · 70 学分，加 5 项实践训练 7 学分，毕业合计 77 学分。硕士与博士方案仍在制定中。</p>
 
       <div class="filter-row cat-row" role="group" aria-label="课程筛选" data-i18n-aria="courses.filterGroup">
+        <span class="filter-label" data-i18n="courses.byCategory">课程分类</span>
         <button class="filter active" type="button" data-filter="all" aria-pressed="true" data-i18n="courses.filters.all">全部</button>
         <button class="filter" type="button" data-filter="nt" aria-pressed="false" data-i18n="courses.filters.nt">新约书卷</button>
         <button class="filter" type="button" data-filter="ot" aria-pressed="false" data-i18n="courses.filters.ot">旧约书卷</button>
@@ -1268,6 +1270,6 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="assets/js/main.js?v=202609231631"></script>
+<script src="assets/js/main.js?v=202609231718"></script>
 </body>
 </html>

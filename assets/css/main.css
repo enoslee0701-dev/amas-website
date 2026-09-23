@@ -286,8 +286,20 @@ html[data-theme="night"] .digital-section::after{background:linear-gradient(105d
 
 /* courses */
 .courses-section{background:var(--paper2)}
-.filter-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:28px}
-.filter{border:1px solid var(--line);background:#fff;border-radius:999px;padding:10px 17px;color:#514d43}.filter.active{background:linear-gradient(135deg,#10305a,#0a1d38);color:#fff;border-color:var(--olive-dark)}
+/* 课程筛选：两个维度，不是一堆胶囊。
+   原来层级与分类两行长得一模一样，13 个胶囊堆成三行，读起来是一坨，
+   也看不出「先选学位、再在学位内选分类」这层关系。
+   现在每行给一个安静的小标签，层级做主筛选（大一档、深色实心），
+   分类退到次一级（小一档、灰色实心），纵向节奏也收紧。 */
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.filter-label{flex:0 0 auto;margin-right:4px;font-size:11px;letter-spacing:.14em;color:#8a8478;white-space:nowrap}
+.filter{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 16px;font-size:13px;color:#514d43;transition:border-color .18s,background .18s,color .18s}
+.filter:hover{border-color:var(--olive-dark)}
+.filter.active{background:linear-gradient(135deg,#10305a,#0a1d38);color:#fff;border-color:#10305a}
+/* 分类是次一级：小一档、换一个更安静的选中色，免得和层级抢 */
+.cat-row{margin-bottom:22px}
+.cat-row .filter{padding:7px 13px;font-size:12.5px}
+.cat-row .filter.active{background:#514d43;border-color:#514d43;color:#fff}
 /* 课程列表：一行一课，默认折叠显示前几门 */
 .course-grid{display:flex;flex-direction:column;gap:10px}
 .course-card{display:flex;align-items:center;gap:22px;overflow:hidden;border:1px solid var(--line);border-radius:12px;background:#fff;transition:.25s;padding:10px 22px 10px 10px}
@@ -307,12 +319,32 @@ html[data-theme="night"] .digital-section::after{background:linear-gradient(105d
 .course-result.is-empty{color:#8a5a1f}
 .course-result-clear{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:44px;margin-left:10px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#514d43;font:inherit;font-size:13px;cursor:pointer}
 .course-result-clear:focus-visible{outline:2px solid var(--olive-dark);outline-offset:2px}
+@media(max-width:580px){
+  /* 窄屏上标签独占一行，胶囊才不会被挤成一列 */
+  .filter-label{flex:0 0 100%;margin:0 0 2px}
+  .filter-row{gap:6px;margin-bottom:12px}
+  .filter{padding:8px 13px;font-size:12.5px}
+  .cat-row .filter{padding:6px 11px;font-size:12px}
+  .cat-row{margin-bottom:18px}
+  .level-note{font-size:11.5px;line-height:1.7;margin-bottom:14px}
+}
 @media (max-width:360px){.course-search input{height:46px}}
 html[data-theme="night"] .course-search input{background:var(--surface);color:var(--ink);border-color:var(--line)}
 html[data-theme="night"] .course-search input::placeholder{color:#8b897f}
 html[data-theme="night"] .course-result-clear{background:var(--surface);color:var(--ink)}
 /* 课程缩略图：每门课一张矢量版画（tools/gen-thumbs.mjs 生成），任何 DPR 都锐利 */
 .course-thumb{width:150px;height:88px;flex-shrink:0;border-radius:8px;background-size:cover;background-position:center;background-repeat:no-repeat;background-color:var(--paper3)}
+/* 0028 迁移新建的 4 门课还没有配图（四福音概论 / 旧约救赎预表神学 /
+   基督教宗派与神学思想 / 异象与使命）。没有 thumb-* 类时原样是一块空米色，
+   看着像图片加载失败。给一个**明确的占位**：虚线边 + 淡书本符号，
+   一眼看出是「暂缺配图」而不是「坏了」。不借用别的课的照片冒充。
+   属性精确匹配 class="course-thumb"：有 thumb-* 的卡不受影响。 */
+.course-thumb[class="course-thumb"]{
+  background-image:linear-gradient(135deg,var(--paper2),var(--paper3));
+  border:1px dashed var(--line);
+  display:flex;align-items:center;justify-content:center;
+}
+.course-thumb[class="course-thumb"]::after{content:"\1F4D6";font-size:24px;opacity:.22;line-height:1}
 /* 每门课的专属封面：写实照片，一课一图不重复 */
 .thumb-c-bib101{background-image:url("../img/course-bib101.webp")}      /* 手中翻开的圣经 */
 .thumb-c-bib201{background-image:url("../img/courses/bib201.webp")}      /* 捧读圣经 */
@@ -366,8 +398,10 @@ html[data-theme="night"] .course-result-clear{background:var(--surface);color:va
 .course-meta .cr{margin-left:6px;border-color:#10305a;background:#10305a;color:#fff;font-weight:700}
 /* 层级筛选行与它下面那句说明：说明必须跟着筛选一起出现，
    否则「27 门 / 70 学分 / 毕业 77」这几个数字无处可查。 */
-.level-row{margin-bottom:12px}
-.level-note{margin:0 0 24px;font-size:12.5px;line-height:1.85;color:#777065;max-width:70ch}
+.level-row{margin-bottom:8px}
+/* 说明紧跟层级行，缩进与胶囊对齐 —— 27 门 / 70 学分 / 毕业 77 这几个数字
+   必须跟筛选挨着，否则访客无处可查。 */
+.level-note{margin:0 0 18px;font-size:12px;line-height:1.75;color:#8a8478;max-width:62ch}
 
 /* admissions */
 .admissions-section{position:relative;isolation:isolate;background:#e9e2cf}
@@ -748,6 +782,9 @@ html[data-theme="night"] .course-meta .lvl-dmin{border-color:#9a7a4e;background:
 html[data-theme="night"] .course-meta .lvl-none{border-color:var(--line);background:var(--surface);color:#9a968b}
 html[data-theme="night"] .course-meta .cr{border-color:#4a7ab8;background:#1d3a5c;color:#dce9f7}
 html[data-theme="night"] .level-note{color:#9a968b}
+html[data-theme="night"] .filter-label{color:#9a968b}
+html[data-theme="night"] .cat-row .filter.active{background:#3b3b33;border-color:#3b3b33;color:#e8e4d8}
+html[data-theme="night"] .course-thumb[class="course-thumb"]{background-image:linear-gradient(135deg,#1a1a16,#20201a)}
 
 /* 支柱卡片上那个圆图标的描边原本是纯白，夜晚要跟卡片同色 */
 html[data-theme="night"] .round-icon{border-color:var(--surface)}
