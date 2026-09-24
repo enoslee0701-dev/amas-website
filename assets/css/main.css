@@ -347,7 +347,16 @@ html[data-theme="night"] .course-result-clear{background:var(--surface);color:va
 .course-thumb[class="course-thumb"]::after{content:"\1F4D6";font-size:24px;opacity:.22;line-height:1}
 /* 每门课的专属封面：写实照片，一课一图不重复 */
 .thumb-c-bib101{background-image:url("../img/course-bib101.webp")}      /* 手中翻开的圣经 */
-.thumb-c-bib201{background-image:url("../img/courses/bib201.webp")}      /* 捧读圣经 */
+.thumb-c-bib201{background-image:url("../img/courses/bib201.webp")}
+/* 0028 迁移新建的四门课的封面，照现有 25 张 SVG 的版式自制：
+   600×220、双色渐变、两个半透明圆、淡金大字水印、Georgia 编号、宋体标题、金色小横线。
+   配色沿类别规律：圣经=深绿、神学=深蓝、实践=橄榄。
+   直接用 SVG 而非 webp：矢量任何尺寸都清晰，体积仅 ~0.9KB。
+   类名用课程 code 而非编号 —— 按编号取名会与既有的 thumb-c-pt09（传道法）撞车。 */
+.thumb-c-gospels-intro{background-image:url("../img/courses/gospels-intro.svg")}
+.thumb-c-ot-typology{background-image:url("../img/courses/ot-typology.svg")}
+.thumb-c-denominations{background-image:url("../img/courses/denominations.svg")}
+.thumb-c-vision-mission{background-image:url("../img/courses/vision-mission.svg")}      /* 捧读圣经 */
 .thumb-c-bib202{background-image:url("../img/courses/bib202.webp")}      /* 发光的书—生命之光 */
 .thumb-c-bib203{background-image:url("../img/course-mis201.webp")}      /* 世界地图—直到地极 */
 .thumb-c-bib301{background-image:url("../img/course-bib203.webp")}      /* 摊开的书与笔 */

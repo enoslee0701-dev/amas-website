@@ -107,8 +107,8 @@ const i18n = {
   "chat.kb.apply":"点击「申请入学」填写在线申请（约 3 分钟），提交后招生同工会主动联系你说明后续步骤；也可以在资源中心下载完整版 Word 申请表。",
   "chat.kb.tuition":"学费采用按科修读、按科缴费的方式，具体金额请亲自向招生同工咨询；经济上有困难的学员可说明情况，申请学费减免、分期或其他学习支持。","chat.kb.tuitionBtn":"查看学费与支持",
   "chat.kb.courses":"按学院最终课程表开设 68 门课程：新约书卷 27、旧约书卷 2、圣经基础与研经 3、神学与思想 12、实践神学与牧养 18、历史与文化 3、语言与工具 3；另有 5 项实践训练（合计 7 学分，计入毕业学分）。学分制、按科修读，神学学士 B.Th 毕业 77 学分，硕士班 G.Dip / M.Div 毕业 90 学分。","chat.kb.coursesBtn":"浏览课程",
-  "chat.kb.programs":"学位课程采用学分制、按科修读：神学学士（B.Th，77 学分）、教牧学研究硕士（G.Dip，90 学分）、道学硕士（M.Div，90 学分）与教牧学博士（D.Min，48 学分）。2026 届 B.Th 招生进行中，9 月开学。证书与装备课程暂不开放报名，如有需要请直接联系招生同工。","chat.kb.programsBtn":"查看培养项目",
-  "chat.kb.mode":"线上 + 线下灵活学习：线上课程为主，鼓励参与清迈线下门训与实践。2026 届 B.Th 于 2026 年 9 月开学。",
+  "chat.kb.programs":"学位课程采用学分制、按科修读：神学学士（B.Th，77 学分）、教牧学研究硕士（G.Dip，90 学分）、道学硕士（M.Div，90 学分）与教牧学博士（D.Min，48 学分）。2026 届 B.Th 招生进行中，10 月开学。证书与装备课程暂不开放报名，如有需要请直接联系招生同工。","chat.kb.programsBtn":"查看培养项目",
+  "chat.kb.mode":"线上 + 线下灵活学习：线上课程为主，鼓励参与清迈线下门训与实践。2026 届 B.Th 于 2026 年 10 月开学。",
   "chat.kb.contact":"可以通过以下方式联系我们：","chat.kb.contactEmpty":"联系方式即将公布；现在可以直接在这里留言，或用页面底部的咨询表单，招生同工会主动联系你。",
   "chat.kb.location":"学院教学中心位于泰国清迈（Chiang Mai, Thailand），同时提供线上学习。",
   "chat.kb.video":"我们准备了学院介绍视频，可以点击观看。",
@@ -122,11 +122,11 @@ const i18n = {
   "toast.themeNight":"已切换为夜晚模式","toast.themeDay":"已切换为白日模式","toast.applied":"申请资料已送出","toast.appliedDemo":"申请资料已提交（演示）","toast.inquiry":"咨询已送出","toast.inquiryDemo":"咨询已提交（演示）","toast.failed":"提交失败，请稍后再试","toast.timeout":"等待回应超时，请看弹窗内说明","toast.downloaded":"已下载占位文件","resources.unavailable":"「{name}」暂时无法下载","resources.notReady":"「{name}」尚未提供可下载的正式文件","resources.unavailableHint":"你可以直接联系招生同工索取，或先提交在线申请，我们会与你联络。","resources.checking":"正在检查「{name}」…","resources.timeout":"「{name}」检查超时","resources.timeoutHint":"网络似乎较慢，这不代表文件不存在。可以重试一次；若多次不成，再联系招生同工。","resources.retry":"重试","resources.contactLink":"联系招生同工","resources.applyLink":"在线申请",
   "meta.credits":"{n} 学分","hero.title":"亚洲宣教神学院","hero.sub":"ASIA MISSIONARY ASSOCIATION SEMINARY","hero.verse":"你们要去，使万民作我的门徒。","hero.verseRef":"— 马太福音 28:19",
   "hero.ai.title":"定制化神学 · 3 分钟看见你的信仰成长状态","hero.ai.sub":"10 道题 · 5 项初步状态 · 一条下一步建议 · 完整档案在「AMAS 神学院」App","hero.ai.go":"立即探索 →",
-  "herometa.program":"项目","herometa.programVal":"神学学士 B.Th","herometa.startVal":"2026 年 9 月","herometa.start":"2026 届开学","herometa.mode":"学习","herometa.modeVal":"线上 + 线下",
+  "herometa.program":"项目","herometa.programVal":"神学学士 B.Th","herometa.startVal":"2026 年 10 月","herometa.start":"2026 届开学","herometa.mode":"学习","herometa.modeVal":"线上 + 线下",
   "accred.more":"查看认证详情 →","accred.title":"学术认证与资质","accred.intro":"AMAS 的以下学位课程已通过 Asia Theological Association (ATA) 的认证评估。","accred.bthName":"神学学士 Bachelor of Theology (B.Th.)","accred.mdivName":"道学硕士 Master of Divinity (M.Div.)","accred.dminName":"教牧学博士 Doctor of Ministry (D.Min.)","accred.bthNote":"经 Asia Theological Association (ATA) 认证","accred.note":"ATA 认证适用于上述列明的学位项目；认证范围与有效期以 ATA 出具的认证文件为准。",
   "actions.consult":"咨询招生","actions.applyBth":"申请神学学士 B.Th",
   "band.status":"总校审核并建立正式学籍","band.mode":"线上课程 + 清迈线下训练","band.adm":"2026 届神学学士 B.Th 招生",
-  "admissions.facts.startLabel":"开学","admissions.facts.startValue":"2026 年 9 月","admissions.facts.feeLabel":"费用","admissions.facts.feeValue":"欢迎咨询招生同工","admissions.facts.modeLabel":"模式","admissions.facts.modeValue":"线上 + 线下","admissions.facts.statusLabel":"学籍","admissions.facts.statusValue":"总校审核建立",
+  "admissions.facts.startLabel":"开学","admissions.facts.startValue":"2026 年 10 月","admissions.facts.feeLabel":"费用","admissions.facts.feeValue":"欢迎咨询招生同工","admissions.facts.modeLabel":"模式","admissions.facts.modeValue":"线上 + 线下","admissions.facts.statusLabel":"学籍","admissions.facts.statusValue":"总校审核建立",
   "admissions.consultBtn":"先咨询，30 秒","admissions.applyBtn":"正式申请",
   "admissions.path.title1":"初次了解 AMAS？","admissions.path.title2":"从一次轻松的咨询开始。","admissions.path.s1":"快速咨询","admissions.path.s1d":"姓名 + 联系方式 + 城市 + 想了解什么","admissions.path.s2":"招生同工沟通","admissions.path.s2d":"确认课程、学籍、时间与适合程度","admissions.path.s3":"正式申请","admissions.path.s3d":"再填写完整信仰与服事资料",
   "about.title":"AMAS 亚洲宣教神学院<br>植根圣经 · 面向世界","about.body":"我们致力于以圣经真理为根基，结合跨文化视野与实践训练，装备学生成为忠心的传道人、牧者与宣教工人，在教会与世界中活出福音，见证神的国度。","about.link":"了解我们的异象与使命",
@@ -144,7 +144,7 @@ const i18n = {
   "programs.title":"培养项目","programs.desc":"学分制 · 按科修读、按科缴费：从神学学士到博士研究，修满学分即可毕业；2026 届 B.Th 招生已开放，欢迎咨询了解。",
   "programs.degree.title":"学位课程","programs.degree.sub":"学分制逐科修读，修满规定学分即毕业；学籍由 AMAS 总校审核建立","programs.equip.title":"证书与装备课程","programs.equip.sub":"面向在职牧者与平信徒的短期训练",
   "programs.items.laycert.badge":"证书","programs.items.laycert.name":"平信徒指导者课程","programs.items.laycert.desc":"36 学分 · 每 3 个月集中学习 10 天 · 修满即结业","programs.items.pdip.badge":"文凭","programs.items.pdip.name":"牧会训练课程","programs.items.pdip.desc":"60 学分 · 可在线按科学习 · 修毕获结业证","application.programs.laycert":"平信徒指导者课程（证书）","application.programs.pdip":"牧会训练课程（文凭）",
-  "programs.items.bth.name":"神学学士","programs.items.bth.desc":"2026 届招生 · 2026 年 9 月开学 · 77 学分 · 按科修读、线上 + 线下",
+  "programs.items.bth.name":"神学学士","programs.items.bth.desc":"2026 届招生 · 2026 年 10 月开学 · 77 学分 · 按科修读、线上 + 线下",
   "programs.items.gdip.name":"教牧学研究硕士","programs.items.gdip.desc":"90 学分 · 按科修读 · 补修学分可衔接 M.Div",
   "programs.items.mdiv.name":"道学硕士","programs.items.mdiv.desc":"90 学分 · 按科修读 · 面向全职事奉的完整神学与教牧装备",
   "programs.items.dmin.name":"教牧学博士","programs.items.dmin.desc":"D.Min · 48 学分（含论文）· 按学分完成研究与实践",
@@ -179,7 +179,7 @@ const i18n = {
   "faq.title":"常见问题","faq.items.0.q":"没有神学背景可以申请吗？","faq.items.0.a":"可以。我们更看重持续学习、遵守学习纪律与认真接受装备的意愿。","faq.items.1.q":"课程全部线上吗？","faq.items.1.a":"以灵活学习为原则，包含线上课程，同时鼓励参与清迈线下门训、实践与群体学习。","faq.items.2.q":"完成后由谁建立学籍和颁发学位？","faq.items.2.a":"学籍由 AMAS 总校审核建立，并按学校正式制度完成毕业与学位流程。","faq.items.3.q":"如何开始申请？","faq.items.3.a":"点击“申请入学”，填写基础资料与学习动机，之后由招生同工联络并说明下一步。",
   "giving.cta":"了解参与方式","giving.ctaNote":"具体方式由同工一对一说明。",
   "giving.title":"奉献支持","giving.verse":"“各人要随本心所酌定的，不要作难，不要勉强，因为捐得乐意的人是神所喜爱的。”","giving.verseRef":"—— 哥林多后书 9:7","giving.desc":"神学教育是一场同工的事奉。你的奉献将帮助愿意受装备的学员走完学习的路，也支持教学与宣教事工继续前行。","giving.d1":"学员助学","giving.d1b":"资助经济困难的学员完成装备","giving.d2":"教学事工","giving.d2b":"支持教师团队与课程建设","giving.d3":"宣教士训练","giving.d3b":"支持差派预备中的工人","giving.ok":"已收到，愿主纪念你的摆上！","giving.fail":"服务器拒绝了这次发送，没有送达。请稍后再试，或直接联系我们。","giving.unsure":"没能拿到服务器的回应，无法确认是否已送达。你填的内容都还在。建议先直接联系我们核实，确认没收到再重新发送，以免重复。","giving.note":"奉献完全出于自愿，用于学员助学、教学与宣教事工；如需了解奉献的使用情况，欢迎随时与我们联系。","faq.items.4.q":"我可以怎样支持 AMAS？","faq.items.4.a":"欢迎以代祷参与，也可以为学员助学、教学与宣教事工奉献，详见「奉献支持」版块；把学院介绍给身边合适的人同样是宝贵的支持。",
-  "promo.tab":"2026 届招生进行中","promo.title":"2026 届神学学士 B.Th 招生中","promo.desc":"线上 + 清迈线下 · 按科修读 · 9 月开学。想先了解一下？招生助手随时为你解答。","promo.ask":"立即咨询","promo.apply":"申请入学","admissions.countdown":"2026 年 9 月开学 · 2026 届招生进行中","admissions.started":"2026 届已开学，欢迎咨询下一批次","actions.copy":"复制","toast.copied":"已复制","faq.ask.title":"还有其他问题？","faq.ask.desc":"AI 咨询助手可以随时解答；也可以直接留言给招生同工，我们会尽快回复你。","faq.ask.ai":"问 AI 咨询助手","faq.ask.leave":"给招生同工留言",
+  "promo.tab":"2026 届招生进行中","promo.title":"2026 届神学学士 B.Th 招生中","promo.desc":"线上 + 清迈线下 · 按科修读 · 10 月开学。想先了解一下？招生助手随时为你解答。","promo.ask":"立即咨询","promo.apply":"申请入学","admissions.countdown":"2026 年 10 月开学 · 2026 届招生进行中","admissions.started":"2026 届已开学，欢迎咨询下一批次","actions.copy":"复制","toast.copied":"已复制","faq.ask.title":"还有其他问题？","faq.ask.desc":"AI 咨询助手可以随时解答；也可以直接留言给招生同工，我们会尽快回复你。","faq.ask.ai":"问 AI 咨询助手","faq.ask.leave":"给招生同工留言",
   "contact.title":"想进一步了解？","contact.desc":"留下你的问题，我们会通过你提供的联系方式回复。","contact.locationLabel":"地区","contact.studyLabel":"学习","contact.studyValue":"线上 + 线下","contact.emailLabel":"邮箱","contact.phoneLabel":"电话（泰国）","contact.phoneCNLabel":"电话（中国）","contact.lineLabel":"Line","contact.wechatLabel":"微信",
   "form.name":"姓名","form.contact":"邮箱 / Line / 微信","form.message":"想咨询的内容","form.send":"发送咨询",
   "form.okDemo":"已收到。当前演示版将咨询保存在本机浏览器中。","form.ok":"已收到，我们会尽快通过你留下的方式联络你。","form.error":"服务器拒绝了这次提交，没有送达。请稍后再试，或直接与我们联系。","form.unsure":"没能拿到服务器的回应，无法确认是否已送达。你填的内容都还在。建议先直接联系我们核实，确认没收到再重新提交，以免重复。",
@@ -206,8 +206,8 @@ const i18n = {
   "chat.kb.apply":"Click Apply and complete the online form (about 3 minutes). The admissions team will contact you with next steps. A full Word application form is also available in Resources.",
   "chat.kb.tuition":"Tuition is charged per course, paid course by course. For specific amounts, please contact our admissions team directly. Students facing financial hardship may ask about fee reduction, instalments or other learning support.","chat.kb.tuitionBtn":"Tuition & support",
   "chat.kb.courses":"The official catalogue offers 68 courses: 27 New Testament books, 2 Old Testament books, 3 Bible foundations & study, 12 theology & thought, 18 practical theology & pastoral care, 3 history & culture and 3 languages & tools, plus 5 practical trainings (7 credits in total, counted toward graduation). Credit-based, course by course; the B.Th track graduates with 77 credits and the G.Dip / M.Div track with 90 credits.","chat.kb.coursesBtn":"Browse courses",
-  "chat.kb.programs":"Degree programs are credit-based and taken course by course: B.Th (90 credits), G.Dip / Master of Ministry Studies (90), M.Div (90) and D.Min / Doctor of Ministry (48). The B.Th Class of 2026 intake is open; classes start in September 2026. Certificate and equipping tracks are not open for application at this time - please contact the admissions team if you need them.","chat.kb.programsBtn":"View programs",
-  "chat.kb.mode":"Flexible online + in-person study: online coursework combined with in-person discipleship in Chiang Mai. The B.Th Class of 2026 intake starts in September 2026.",
+  "chat.kb.programs":"Degree programs are credit-based and taken course by course: B.Th (77 credits), G.Dip / Master of Ministry Studies (90), M.Div (90) and D.Min / Doctor of Ministry (48). The B.Th Class of 2026 intake is open; classes start in October 2026. Certificate and equipping tracks are not open for application at this time - please contact the admissions team if you need them.","chat.kb.programsBtn":"View programs",
+  "chat.kb.mode":"Flexible online + in-person study: online coursework combined with in-person discipleship in Chiang Mai. The B.Th Class of 2026 intake starts in October 2026.",
   "chat.kb.contact":"You can reach us via:","chat.kb.contactEmpty":"Contact details will be published soon. You can leave a message right here, or use the inquiry form at the bottom of the page.",
   "chat.kb.location":"The teaching center is in Chiang Mai, Thailand, with online study available.",
   "chat.kb.video":"We have an introduction video you can watch.",
@@ -221,11 +221,11 @@ const i18n = {
   "toast.themeNight":"Night mode on","toast.themeDay":"Day mode on","toast.applied":"Application sent","toast.appliedDemo":"Application submitted (demo)","toast.inquiry":"Inquiry sent","toast.inquiryDemo":"Inquiry submitted (demo)","toast.failed":"Submission failed, please try again","toast.timeout":"Timed out — see the note in the form","toast.downloaded":"Placeholder file downloaded","resources.unavailable":"\u201c{name}\u201d cannot be downloaded right now","resources.notReady":"No official file is available yet for \u201c{name}\u201d","resources.unavailableHint":"You can ask the admissions team for it directly, or submit the online application and we will get in touch.","resources.checking":"Checking \u201c{name}\u201d\u2026","resources.timeout":"Checking \u201c{name}\u201d timed out","resources.timeoutHint":"The network looks slow. This does not mean the file is missing. Try again; if it keeps failing, contact the admissions team.","resources.retry":"Try again","resources.contactLink":"Contact admissions","resources.applyLink":"Apply online",
   "meta.credits":"{n} Credits","hero.title":"Asia Missionary Association Seminary","hero.sub":"亚洲宣教神学院 · CHIANG MAI, THAILAND","hero.verse":"Go therefore and make disciples of all nations.","hero.verseRef":"— Matthew 28:19",
   "hero.ai.title":"Personalized Theology · See your faith-growth status in 3 minutes","hero.ai.sub":"10 questions · 5 quick indicators · one next step · full profile in the AMAS Seminary app","hero.ai.go":"Start exploring →",
-  "herometa.program":"Program","herometa.programVal":"B.Th — Bachelor of Theology","herometa.startVal":"September 2026","herometa.start":"Class of 2026 starts","herometa.mode":"Format","herometa.modeVal":"Online + On-site",
+  "herometa.program":"Program","herometa.programVal":"B.Th — Bachelor of Theology","herometa.startVal":"October 2026","herometa.start":"Class of 2026 starts","herometa.mode":"Format","herometa.modeVal":"Online + On-site",
   "accred.more":"View accreditation →","accred.title":"Academic Accreditation","accred.intro":"The following degree programs of AMAS have been accredited by the Asia Theological Association (ATA).","accred.bthName":"Bachelor of Theology (B.Th.)","accred.mdivName":"Master of Divinity (M.Div.)","accred.dminName":"Doctor of Ministry (D.Min.)","accred.bthNote":"Accredited by the Asia Theological Association (ATA)","accred.note":"ATA accreditation applies to the degree programs listed above; the scope and validity of accreditation are as stated in the official ATA accreditation documents.",
   "actions.consult":"Admissions Inquiry","actions.applyBth":"Apply for B.Th",
   "band.status":"Official student status registered by the main campus","band.mode":"Online courses + on-site training in Chiang Mai","band.adm":"B.Th Class of 2026 intake",
-  "admissions.facts.startLabel":"Starts","admissions.facts.startValue":"September 2026","admissions.facts.feeLabel":"Fee","admissions.facts.feeValue":"Please ask our admissions team","admissions.facts.modeLabel":"Mode","admissions.facts.modeValue":"Online + On-site","admissions.facts.statusLabel":"Student status","admissions.facts.statusValue":"Registered by the main campus",
+  "admissions.facts.startLabel":"Starts","admissions.facts.startValue":"October 2026","admissions.facts.feeLabel":"Fee","admissions.facts.feeValue":"Please ask our admissions team","admissions.facts.modeLabel":"Mode","admissions.facts.modeValue":"Online + On-site","admissions.facts.statusLabel":"Student status","admissions.facts.statusValue":"Registered by the main campus",
   "admissions.consultBtn":"Quick inquiry — 30 sec","admissions.applyBtn":"Formal application",
   "admissions.path.title1":"New to AMAS?","admissions.path.title2":"Start with a simple conversation.","admissions.path.s1":"Quick inquiry","admissions.path.s1d":"Name + contact + city + what you'd like to know","admissions.path.s2":"Talk with admissions","admissions.path.s2d":"Confirm courses, student status, schedule and fit","admissions.path.s3":"Formal application","admissions.path.s3d":"Then complete the full faith and ministry form",
   "about.title":"AMAS Chiang Mai<br>Rooted in Scripture · Facing the World","about.body":"We provide Scripture-rooted, practice-oriented theological education that forms knowledge, character and ministry skills for faithful service in church, work and mission.","about.link":"Discover our vision and mission",
@@ -243,7 +243,7 @@ const i18n = {
   "programs.title":"Programs","programs.desc":"Credit-based, course by course: from the B.Th to doctoral study, graduate on completing the required credits. The B.Th Class of 2026 intake is open — contact us to learn more.",
   "programs.degree.title":"Degree Programs","programs.degree.sub":"Credit-based study course by course; graduate on completing the required credits. Enrolment is verified by AMAS headquarters.","programs.equip.title":"Certificate & Equipping Programs","programs.equip.sub":"Short-term training for serving pastors and lay leaders",
   "programs.items.laycert.badge":"CERT","programs.items.laycert.name":"Lay Leader Course","programs.items.laycert.desc":"36 credits · a 10-day intensive every 3 months · complete on full credits","programs.items.pdip.badge":"DIP","programs.items.pdip.name":"Pastoral Training Diploma","programs.items.pdip.desc":"60 credits · online, course by course · certificate of completion","application.programs.laycert":"Lay Leader Course (Certificate)","application.programs.pdip":"Pastoral Training Diploma",
-  "programs.items.bth.name":"Bachelor of Theology","programs.items.bth.desc":"Class of 2026 · starts September 2026 · 90 credits · course by course, online + in-person",
+  "programs.items.bth.name":"Bachelor of Theology","programs.items.bth.desc":"Class of 2026 · starts October 2026 · 77 credits · course by course, online + in-person",
   "programs.items.gdip.name":"Master of Ministry Studies (G.Dip)","programs.items.gdip.desc":"90 credits · course by course · additional credits bridge to the M.Div",
   "programs.items.mdiv.name":"Master of Divinity","programs.items.mdiv.desc":"90 credits · course by course · full theological and pastoral equipping for vocational ministry",
   "programs.items.dmin.name":"Doctor of Ministry","programs.items.dmin.desc":"D.Min · 48 credits incl. dissertation · credit-based research and practice",
@@ -278,7 +278,7 @@ const i18n = {
   "faq.title":"Frequently Asked Questions","faq.items.0.q":"Can I apply without prior theological study?","faq.items.0.a":"Yes. We value willingness to learn, consistency and commitment to serious formation.","faq.items.1.q":"Are all classes online?","faq.items.1.a":"Learning is flexible: online coursework is combined with encouraged in-person discipleship, practice and community in Chiang Mai.","faq.items.2.q":"Who manages student status and degree completion?","faq.items.2.a":"Official student status is reviewed and established through AMAS according to school policies.","faq.items.3.q":"How do I begin?","faq.items.3.a":"Click Apply, submit basic information and your motivation, then admissions will contact you with next steps.",
   "giving.cta":"How to Take Part","giving.ctaNote":"Details are shared personally, one to one, by our team.",
   "giving.title":"Giving & Support","giving.verse":"“Each of you should give what you have decided in your heart to give, not reluctantly or under compulsion, for God loves a cheerful giver.”","giving.verseRef":"— 2 Corinthians 9:7","giving.desc":"Theological education is a shared ministry. Your giving helps committed students finish their training, and keeps the teaching and mission work moving forward.","giving.d1":"Student Aid","giving.d1b":"Help students in financial hardship complete their training","giving.d2":"Teaching Ministry","giving.d2b":"Support the faculty and curriculum development","giving.d3":"Missionary Training","giving.d3b":"Support workers preparing to be sent","giving.ok":"Received — may the Lord remember your gift!","giving.fail":"The server rejected this, so it did not go through. Please try again, or contact us directly.","giving.unsure":"We did not get a reply from the server, so we cannot confirm whether it arrived. Everything you typed is still here. Please contact us to check before sending again, so you do not send it twice.","giving.note":"Giving is entirely voluntary and is used for student aid, teaching and mission; you are welcome to ask how gifts are used at any time.","faq.items.4.q":"How can I support AMAS?","faq.items.4.a":"Pray for us, give toward student aid, teaching or missionary training (see the Giving section), or simply introduce AMAS to someone who should know about it.",
-  "promo.tab":"Admissions 2026 Open","promo.title":"B.Th Class of 2026 — Now Enrolling","promo.desc":"Online + on-site in Chiang Mai · pay per course · starts September 2026. Curious? Our admissions assistant is here to help.","promo.ask":"Ask Now","promo.apply":"Apply","admissions.countdown":"Classes begin September 2026 · Now enrolling","admissions.started":"Classes have begun — ask about the next intake","actions.copy":"Copy","toast.copied":"Copied","faq.ask.title":"Still have questions?","faq.ask.desc":"Our AI assistant is available anytime — or leave a message for the admissions team and we will reply soon.","faq.ask.ai":"Ask the AI assistant","faq.ask.leave":"Leave a message",
+  "promo.tab":"Admissions 2026 Open","promo.title":"B.Th Class of 2026 — Now Enrolling","promo.desc":"Online + on-site in Chiang Mai · pay per course · starts October 2026. Curious? Our admissions assistant is here to help.","promo.ask":"Ask Now","promo.apply":"Apply","admissions.countdown":"Classes begin October 2026 · Now enrolling","admissions.started":"Classes have begun — ask about the next intake","actions.copy":"Copy","toast.copied":"Copied","faq.ask.title":"Still have questions?","faq.ask.desc":"Our AI assistant is available anytime — or leave a message for the admissions team and we will reply soon.","faq.ask.ai":"Ask the AI assistant","faq.ask.leave":"Leave a message",
   "contact.title":"Want to know more?","contact.desc":"Leave your question and preferred contact information, and our team will follow up.","contact.locationLabel":"Location","contact.studyLabel":"Study","contact.studyValue":"Online + In-person","contact.emailLabel":"Email","contact.phoneLabel":"Phone (Thailand)","contact.phoneCNLabel":"Phone (China)","contact.lineLabel":"Line","contact.wechatLabel":"WeChat",
   "form.name":"Name","form.contact":"Email / Line / WeChat","form.message":"Your question","form.send":"Send Inquiry",
   "form.okDemo":"Received. This demo stores the inquiry in your browser.","form.ok":"Received. We will follow up using the contact details you provided.","form.error":"The server rejected this submission, so it did not go through. Please try again, or contact us directly.","form.unsure":"We did not get a reply from the server, so we cannot confirm whether it arrived. Everything you typed is still here. Please contact us to check before submitting again, so you do not send it twice.",
@@ -305,8 +305,8 @@ const i18n = {
   "chat.kb.apply":"「입학 지원」을 눌러 온라인 지원서를 작성하세요(약 3분). 제출 후 입학 담당자가 연락드려 다음 단계를 안내합니다. 자료실에서 Word 지원서 전체 양식을 내려받을 수도 있습니다.",
   "chat.kb.tuition":"등록금은 과목별 수강·과목별 납부 방식입니다. 구체적인 금액은 입학 담당자에게 직접 문의해 주세요. 경제적으로 어려운 학생은 감면·분납 등 학업 지원을 신청할 수 있습니다.","chat.kb.tuitionBtn":"등록금과 지원 안내",
   "chat.kb.courses":"최종 과목표로 68개 과목을 개설합니다: 신약 각 권 27, 구약 각 권 2, 성경 기초와 연구 3, 신학과 사상 12, 실천신학과 목양 18, 역사와 문화 3, 언어와 도구 3, 그리고 실천 훈련 5항목(합계 7학점, 졸업 학점에 포함). 학점제·과목별 수강, 신학사(B.Th) 졸업 77학점, 석사 과정(G.Dip / M.Div) 졸업 90학점.","chat.kb.coursesBtn":"과목 살펴보기",
-  "chat.kb.programs":"학위 과정은 학점제·과목별 수강: 신학사(B.Th, 90학점)·목회연구석사(G.Dip, 90)·목회학석사(M.Div, 90)·목회학박사(D.Min, 48). 2026학년도 B.Th 모집 중, 9월 개강. 자격·훈련 과정은 현재 지원을 받지 않습니다. 필요하시면 입학처로 문의해 주세요.","chat.kb.programsBtn":"과정 안내 보기",
-  "chat.kb.mode":"온라인 + 오프라인 유연 학습: 온라인 수업을 중심으로 치앙마이 현장 제자훈련과 실습 참여를 권장합니다. 2026학년도 B.Th는 2026년 9월 개강합니다.",
+  "chat.kb.programs":"학위 과정은 학점제·과목별 수강: 신학사(B.Th, 77학점)·목회연구석사(G.Dip, 90)·목회학석사(M.Div, 90)·목회학박사(D.Min, 48). 2026학년도 B.Th 모집 중, 10월 개강. 자격·훈련 과정은 현재 지원을 받지 않습니다. 필요하시면 입학처로 문의해 주세요.","chat.kb.programsBtn":"과정 안내 보기",
+  "chat.kb.mode":"온라인 + 오프라인 유연 학습: 온라인 수업을 중심으로 치앙마이 현장 제자훈련과 실습 참여를 권장합니다. 2026학년도 B.Th는 2026년 10월 개강합니다.",
   "chat.kb.contact":"다음 연락처로 문의하실 수 있습니다:","chat.kb.contactEmpty":"연락처는 곧 공개됩니다. 지금은 이곳에 메시지를 남기시거나 페이지 하단의 문의 양식을 이용해 주세요.",
   "chat.kb.location":"본교 교육센터는 태국 치앙마이(Chiang Mai)에 있으며, 온라인 학습도 함께 제공합니다.",
   "chat.kb.video":"학교 소개 영상을 준비했습니다. 클릭하여 시청하세요.",
@@ -320,11 +320,11 @@ const i18n = {
   "toast.themeNight":"야간 모드로 전환되었습니다","toast.themeDay":"주간 모드로 전환되었습니다","toast.applied":"지원서가 전송되었습니다","toast.appliedDemo":"지원서가 제출되었습니다(데모)","toast.inquiry":"문의가 전송되었습니다","toast.inquiryDemo":"문의가 제출되었습니다(데모)","toast.failed":"제출 실패. 잠시 후 다시 시도해 주세요","toast.timeout":"응답 시간 초과 — 창 안의 안내를 확인해 주세요","toast.downloaded":"샘플 파일이 다운로드되었습니다","resources.unavailable":"「{name}」은(는) 지금 내려받을 수 없습니다","resources.notReady":"「{name}」의 정식 파일이 아직 준비되지 않았습니다","resources.unavailableHint":"입학 담당자에게 직접 요청하시거나, 온라인 지원을 먼저 제출해 주시면 연락드리겠습니다.","resources.checking":"\u300c{name}\u300d 확인 중\u2026","resources.timeout":"\u300c{name}\u300d 확인 시간 초과","resources.timeoutHint":"네트워크가 느린 것 같습니다. 파일이 없다는 뜻은 아닙니다. 다시 시도해 보시고, 계속 실패하면 입학 담당자에게 문의해 주세요.","resources.retry":"다시 시도","resources.contactLink":"입학 담당자 문의","resources.applyLink":"온라인 지원",
   "meta.credits":"{n}학점","hero.title":"아시아선교신학교","hero.sub":"ASIA MISSIONARY ASSOCIATION SEMINARY","hero.verse":"그러므로 너희는 가서 모든 민족을 제자로 삼으라.","hero.verseRef":"— 마태복음 28:19",
   "hero.ai.title":"맞춤 신학 · 3분 만에 나의 신앙 성장 상태 보기","hero.ai.sub":"10문항 · 5가지 초기 지표 · 다음 한 걸음 · 전체 프로필은 「AMAS 신학교」 앱에서","hero.ai.go":"바로 탐색 →",
-  "herometa.program":"과정","herometa.programVal":"신학사 B.Th","herometa.startVal":"2026년 9월","herometa.start":"2026학년도 개강","herometa.mode":"학습","herometa.modeVal":"온라인 + 오프라인",
+  "herometa.program":"과정","herometa.programVal":"신학사 B.Th","herometa.startVal":"2026년 10월","herometa.start":"2026학년도 개강","herometa.mode":"학습","herometa.modeVal":"온라인 + 오프라인",
   "accred.more":"인증 상세 보기 →","accred.title":"학술 인증","accred.intro":"AMAS의 다음 학위 과정은 Asia Theological Association(ATA)의 인증 평가를 통과했습니다.","accred.bthName":"신학사 Bachelor of Theology (B.Th.)","accred.mdivName":"목회학석사 Master of Divinity (M.Div.)","accred.dminName":"목회학박사 Doctor of Ministry (D.Min.)","accred.bthNote":"Asia Theological Association (ATA) 인증","accred.note":"ATA 인증은 위에 명시된 학위 과정에 적용되며, 인증 범위와 유효 기간은 ATA가 발급한 인증 문서를 기준으로 합니다.",
   "actions.consult":"입학 상담","actions.applyBth":"신학사 B.Th 지원",
   "band.status":"본교 심사를 거쳐 정식 학적 등록","band.mode":"온라인 수업 + 치앙마이 현장 훈련","band.adm":"2026학년도 신학사 B.Th 모집",
-  "admissions.facts.startLabel":"개강","admissions.facts.startValue":"2026년 9월","admissions.facts.feeLabel":"등록금","admissions.facts.feeValue":"입학처에 문의해 주세요","admissions.facts.modeLabel":"방식","admissions.facts.modeValue":"온라인 + 오프라인","admissions.facts.statusLabel":"학적","admissions.facts.statusValue":"본교 심사 후 등록",
+  "admissions.facts.startLabel":"개강","admissions.facts.startValue":"2026년 10월","admissions.facts.feeLabel":"등록금","admissions.facts.feeValue":"입학처에 문의해 주세요","admissions.facts.modeLabel":"방식","admissions.facts.modeValue":"온라인 + 오프라인","admissions.facts.statusLabel":"학적","admissions.facts.statusValue":"본교 심사 후 등록",
   "admissions.consultBtn":"먼저 상담하기 (30초)","admissions.applyBtn":"정식 지원",
   "admissions.path.title1":"AMAS가 처음이신가요?","admissions.path.title2":"가벼운 상담부터 시작하세요.","admissions.path.s1":"빠른 상담","admissions.path.s1d":"이름 + 연락처 + 도시 + 궁금한 점","admissions.path.s2":"입학 담당자 상담","admissions.path.s2d":"과정·학적·일정·적합성 확인","admissions.path.s3":"정식 지원","admissions.path.s3d":"신앙 및 사역 정보를 포함한 지원서 작성",
   "about.title":"AMAS 아시아선교신학교<br>성경에 뿌리내리고 · 세계를 향하여","about.body":"우리는 성경 진리를 기초로 타문화 비전과 실천 훈련을 결합하여, 학생들을 신실한 전도자·목회자·선교사로 세우고, 교회와 세상 속에서 복음을 살아내며 하나님 나라를 증거하도록 돕습니다.","about.link":"우리의 비전과 사명 보기",
@@ -342,7 +342,7 @@ const i18n = {
   "programs.title":"교육 프로그램","programs.desc":"학점제 · 과목별 수강·납부: 신학사부터 박사 연구까지, 필요 학점을 채우면 졸업합니다. 2026학년도 B.Th 모집 중입니다. 자세한 내용은 문의해 주세요.",
   "programs.degree.title":"학위 과정","programs.degree.sub":"학점제로 과목별 이수, 규정 학점을 채우면 졸업. 학적은 AMAS 본교 심사로 등록.","programs.equip.title":"자격·훈련 과정","programs.equip.sub":"현직 목회자와 평신도를 위한 단기 훈련",
   "programs.items.laycert.badge":"수료","programs.items.laycert.name":"평신도 지도자 과정","programs.items.laycert.desc":"36학점 · 3개월마다 10일 집중 과정 · 학점 이수 시 수료","programs.items.pdip.badge":"디플로마","programs.items.pdip.name":"목회 훈련 디플로마","programs.items.pdip.desc":"60학점 · 온라인 과목별 수강 · 수료증 발급","application.programs.laycert":"평신도 지도자 과정(수료)","application.programs.pdip":"목회 훈련 디플로마",
-  "programs.items.bth.name":"신학사","programs.items.bth.desc":"2026학년도 모집 · 2026년 9월 개강 · 90학점 · 과목별 수강, 온라인 + 오프라인",
+  "programs.items.bth.name":"신학사","programs.items.bth.desc":"2026학년도 모집 · 2026년 10월 개강 · 77학점 · 과목별 수강, 온라인 + 오프라인",
   "programs.items.gdip.name":"목회연구석사 (G.Dip)","programs.items.gdip.desc":"90학점 · 과목별 수강 · 추가 이수 시 M.Div 연계",
   "programs.items.mdiv.name":"목회학석사","programs.items.mdiv.desc":"90학점 · 과목별 수강 · 전임 사역을 위한 신학·목회 훈련",
   "programs.items.dmin.name":"목회학박사","programs.items.dmin.desc":"D.Min · 48학점(논문 포함) · 학점제 연구와 실천",
@@ -377,7 +377,7 @@ const i18n = {
   "faq.title":"자주 묻는 질문","faq.items.0.q":"신학 배경이 없어도 지원할 수 있나요?","faq.items.0.a":"네. 우리는 꾸준한 학습, 학습 규율 준수, 진지하게 훈련받으려는 의지를 더 중요하게 봅니다.","faq.items.1.q":"수업은 전부 온라인인가요?","faq.items.1.a":"유연 학습을 원칙으로 온라인 수업을 제공하며, 동시에 치앙마이 현장 제자훈련·실습·공동체 학습 참여를 권장합니다.","faq.items.2.q":"수료 후 학적 등록과 학위 수여는 누가 하나요?","faq.items.2.a":"학적은 AMAS 본교의 심사를 거쳐 등록되며, 학교의 정식 제도에 따라 졸업과 학위 절차가 진행됩니다.","faq.items.3.q":"지원은 어떻게 시작하나요?","faq.items.3.a":"「입학 지원」을 눌러 기본 정보와 학업 동기를 작성하시면, 이후 입학 담당자가 연락드려 다음 단계를 안내합니다.",
   "giving.cta":"동역 방법 알아보기","giving.ctaNote":"구체적인 방법은 담당자가 일대일로 안내합니다.",
   "giving.title":"후원과 동역","giving.verse":"“각각 그 마음에 정한 대로 할 것이요 인색함으로나 억지로 하지 말지니 하나님은 즐겁게 내는 자를 사랑하시느니라.”","giving.verseRef":"— 고린도후서 9:7","giving.desc":"신학 교육은 함께 세워가는 사역입니다. 당신의 후원은 훈련받기 원하는 학생이 학업을 마치도록 돕고, 교육과 선교 사역을 지탱합니다.","giving.d1":"학생 장학","giving.d1b":"경제적 어려움이 있는 학생의 훈련을 돕습니다","giving.d2":"교육 사역","giving.d2b":"교수진과 커리큘럼을 지원합니다","giving.d3":"선교사 훈련","giving.d3b":"파송을 준비하는 일꾼을 돕습니다","giving.ok":"접수되었습니다. 주님께서 당신의 드림을 기억하시기를!","giving.fail":"서버가 거부하여 전달되지 않았습니다. 잠시 후 다시 시도하거나 직접 연락해 주세요.","giving.unsure":"서버 응답을 받지 못해 전달 여부를 확인할 수 없습니다. 입력하신 내용은 그대로 남아 있습니다. 중복 전송을 피하기 위해 다시 보내기 전에 직접 연락해 확인해 주세요.","giving.note":"후원은 전적으로 자발적이며 학생 장학·교육·선교 사역에 사용됩니다. 사용 내역은 언제든 문의하실 수 있습니다.","faq.items.4.q":"AMAS를 어떻게 도울 수 있나요?","faq.items.4.a":"기도로 함께해 주세요. 학생 장학·교육·선교사 훈련을 위해 후원하실 수 있으며(「후원과 동역」 참조), 주변에 학교를 소개하는 것도 귀한 동역입니다.",
-  "promo.tab":"2026학년도 모집 중","promo.title":"2026학년도 신학사 B.Th 모집 중","promo.desc":"온라인 + 치앙마이 오프라인 · 과목별 수강 · 9월 개강. 먼저 알아보고 싶으신가요? 입학 도우미가 언제든 답해 드립니다.","promo.ask":"바로 상담","promo.apply":"입학 지원","admissions.countdown":"2026년 9월 개강 · 모집 진행 중","admissions.started":"개강했습니다 — 다음 기수를 문의해 주세요","actions.copy":"복사","toast.copied":"복사되었습니다","faq.ask.title":"더 궁금한 점이 있으신가요?","faq.ask.desc":"AI 상담 도우미가 언제든 답해 드립니다. 입학 담당자에게 직접 메시지를 남기셔도 빠르게 회신드립니다.","faq.ask.ai":"AI 상담 도우미에게 묻기","faq.ask.leave":"입학처에 메시지 남기기",
+  "promo.tab":"2026학년도 모집 중","promo.title":"2026학년도 신학사 B.Th 모집 중","promo.desc":"온라인 + 치앙마이 오프라인 · 과목별 수강 · 10월 개강. 먼저 알아보고 싶으신가요? 입학 도우미가 언제든 답해 드립니다.","promo.ask":"바로 상담","promo.apply":"입학 지원","admissions.countdown":"2026년 10월 개강 · 모집 진행 중","admissions.started":"개강했습니다 — 다음 기수를 문의해 주세요","actions.copy":"복사","toast.copied":"복사되었습니다","faq.ask.title":"더 궁금한 점이 있으신가요?","faq.ask.desc":"AI 상담 도우미가 언제든 답해 드립니다. 입학 담당자에게 직접 메시지를 남기셔도 빠르게 회신드립니다.","faq.ask.ai":"AI 상담 도우미에게 묻기","faq.ask.leave":"입학처에 메시지 남기기",
   "contact.title":"더 알고 싶으신가요?","contact.desc":"질문을 남겨 주시면 남겨 주신 연락처로 회신드립니다.","contact.locationLabel":"지역","contact.studyLabel":"학습","contact.studyValue":"온라인 + 오프라인","contact.emailLabel":"이메일","contact.phoneLabel":"전화(태국)","contact.phoneCNLabel":"전화(중국)","contact.lineLabel":"Line","contact.wechatLabel":"위챗",
   "form.name":"이름","form.contact":"이메일 / Line / 위챗","form.message":"문의 내용","form.send":"문의 보내기",
   "form.okDemo":"접수되었습니다. 데모 버전은 문의를 브라우저에만 저장합니다.","form.ok":"접수되었습니다. 남겨 주신 연락처로 곧 연락드리겠습니다.","form.error":"서버가 이 제출을 거부하여 전달되지 않았습니다. 잠시 후 다시 시도하시거나 직접 연락해 주세요.","form.unsure":"서버 응답을 받지 못해 전달 여부를 확인할 수 없습니다. 입력하신 내용은 그대로 남아 있습니다. 중복 제출을 피하기 위해 다시 보내기 전에 직접 연락해 확인해 주세요.",
@@ -404,8 +404,8 @@ const i18n = {
   "chat.kb.apply":"กด「สมัครเข้าเรียน」เพื่อกรอกใบสมัครออนไลน์ (ประมาณ 3 นาที) หลังส่งแล้วฝ่ายรับสมัครจะติดต่อกลับเพื่อแนะนำขั้นตอนต่อไป หรือดาวน์โหลดใบสมัครฉบับเต็ม (Word) ได้ที่ศูนย์ทรัพยากร",
   "chat.kb.tuition":"ค่าเล่าเรียนคิดเป็นรายวิชา จ่ายทีละวิชา จำนวนเงินโปรดสอบถามฝ่ายรับสมัครโดยตรง ผู้เรียนที่มีข้อจำกัดทางการเงินสามารถขอส่วนลด ผ่อนชำระ หรือความช่วยเหลืออื่นได้","chat.kb.tuitionBtn":"ดูค่าเล่าเรียนและการช่วยเหลือ",
   "chat.kb.courses":"ตารางวิชาทางการมี 68 วิชา: พันธสัญญาใหม่ 27, พันธสัญญาเดิม 2, พื้นฐานพระคัมภีร์ 3, ศาสนศาสตร์ 12, ศาสนศาสตร์ภาคปฏิบัติ 18, ประวัติศาสตร์ 3, ภาษาและเครื่องมือ 3 และการฝึกภาคปฏิบัติ 5 รายการ (รวม 7 หน่วยกิต นับเป็นหน่วยกิตจบการศึกษา) ระบบหน่วยกิต หลักสูตร B.Th จบที่ 77 หน่วยกิต และ G.Dip / M.Div จบที่ 90 หน่วยกิต","chat.kb.coursesBtn":"ดูรายวิชา",
-  "chat.kb.programs":"หลักสูตรปริญญาเป็นระบบหน่วยกิต เรียนรายวิชา: B.Th (90)·G.Dip (90)·M.Div (90)·D.Min (48) เปิดรับ B.Th รุ่นปี 2026 เปิดเรียนกันยายน ส่วนหลักสูตรประกาศนียบัตรและอบรมยังไม่เปิดรับสมัครในขณะนี้ หากสนใจโปรดติดต่อฝ่ายรับสมัคร","chat.kb.programsBtn":"ดูหลักสูตร",
-  "chat.kb.mode":"เรียนแบบยืดหยุ่นออนไลน์ + ออนไซต์: เน้นเรียนออนไลน์ พร้อมสนับสนุนให้เข้าร่วมการฝึกสาวกและภาคปฏิบัติที่เชียงใหม่ B.Th รุ่นปี 2026 เปิดเรียนกันยายน 2026",
+  "chat.kb.programs":"หลักสูตรปริญญาเป็นระบบหน่วยกิต เรียนรายวิชา: B.Th (77)·G.Dip (90)·M.Div (90)·D.Min (48) เปิดรับ B.Th รุ่นปี 2026 เปิดเรียนตุลาคม ส่วนหลักสูตรประกาศนียบัตรและอบรมยังไม่เปิดรับสมัครในขณะนี้ หากสนใจโปรดติดต่อฝ่ายรับสมัคร","chat.kb.programsBtn":"ดูหลักสูตร",
+  "chat.kb.mode":"เรียนแบบยืดหยุ่นออนไลน์ + ออนไซต์: เน้นเรียนออนไลน์ พร้อมสนับสนุนให้เข้าร่วมการฝึกสาวกและภาคปฏิบัติที่เชียงใหม่ B.Th รุ่นปี 2026 เปิดเรียนตุลาคม 2026",
   "chat.kb.contact":"ติดต่อเราได้ทางช่องทางต่อไปนี้:","chat.kb.contactEmpty":"ช่องทางติดต่อจะประกาศเร็ว ๆ นี้ ตอนนี้ฝากข้อความที่นี่ หรือใช้แบบฟอร์มสอบถามท้ายหน้าได้เลย",
   "chat.kb.location":"ศูนย์การศึกษาตั้งอยู่ที่เชียงใหม่ ประเทศไทย พร้อมการเรียนออนไลน์",
   "chat.kb.video":"เรามีวิดีโอแนะนำวิทยาลัย กดเพื่อรับชมได้",
@@ -419,11 +419,11 @@ const i18n = {
   "toast.themeNight":"สลับเป็นโหมดกลางคืนแล้ว","toast.themeDay":"สลับเป็นโหมดกลางวันแล้ว","toast.applied":"ส่งใบสมัครแล้ว","toast.appliedDemo":"ส่งใบสมัครแล้ว (สาธิต)","toast.inquiry":"ส่งคำถามแล้ว","toast.inquiryDemo":"ส่งคำถามแล้ว (สาธิต)","toast.failed":"ส่งไม่สำเร็จ โปรดลองใหม่ภายหลัง","toast.timeout":"หมดเวลารอ — โปรดดูคำอธิบายในหน้าต่าง","toast.downloaded":"ดาวน์โหลดไฟล์ตัวอย่างแล้ว","resources.unavailable":"ขณะนี้ยังดาวน์โหลด \u201c{name}\u201d ไม่ได้","resources.notReady":"ยังไม่มีไฟล์ฉบับทางการของ \u201c{name}\u201d","resources.unavailableHint":"คุณสามารถติดต่อฝ่ายรับสมัครเพื่อขอไฟล์ หรือส่งใบสมัครออนไลน์ไว้ก่อน แล้วเราจะติดต่อกลับ","resources.checking":"กำลังตรวจสอบ \u201c{name}\u201d\u2026","resources.timeout":"ตรวจสอบ \u201c{name}\u201d หมดเวลา","resources.timeoutHint":"เครือข่ายอาจช้า ไม่ได้แปลว่าไม่มีไฟล์ กรุณาลองอีกครั้ง หากยังไม่สำเร็จให้ติดต่อฝ่ายรับสมัคร","resources.retry":"ลองอีกครั้ง","resources.contactLink":"ติดต่อฝ่ายรับสมัคร","resources.applyLink":"สมัครออนไลน์",
   "meta.credits":"{n} หน่วยกิต","hero.title":"วิทยาลัยพระคริสตธรรมเอเชียมิชชัน","hero.sub":"ASIA MISSIONARY ASSOCIATION SEMINARY","hero.verse":"เหตุฉะนั้น ท่านทั้งหลายจงออกไปและนำชนทุกชาติมาเป็นสาวก","hero.verseRef":"— มัทธิว 28:19",
   "hero.ai.title":"ศาสนศาสตร์เฉพาะบุคคล · ดูสถานะการเติบโตแห่งความเชื่อใน 3 นาที","hero.ai.sub":"10 ข้อ · 5 ตัวชี้วัด · หนึ่งก้าวถัดไป · โปรไฟล์ฉบับเต็มในแอป AMAS","hero.ai.go":"เริ่มสำรวจ →",
-  "herometa.program":"หลักสูตร","herometa.programVal":"ศาสนศาสตรบัณฑิต B.Th","herometa.startVal":"กันยายน 2026","herometa.start":"รุ่นปี 2026 เปิดเรียน","herometa.mode":"การเรียน","herometa.modeVal":"ออนไลน์ + ออนไซต์",
+  "herometa.program":"หลักสูตร","herometa.programVal":"ศาสนศาสตรบัณฑิต B.Th","herometa.startVal":"ตุลาคม 2026","herometa.start":"รุ่นปี 2026 เปิดเรียน","herometa.mode":"การเรียน","herometa.modeVal":"ออนไลน์ + ออนไซต์",
   "accred.more":"ดูรายละเอียดการรับรอง →","accred.title":"การรับรองทางวิชาการ","accred.intro":"หลักสูตรปริญญาต่อไปนี้ของ AMAS ผ่านการประเมินรับรองจาก Asia Theological Association (ATA)","accred.bthName":"ศาสนศาสตรบัณฑิต Bachelor of Theology (B.Th.)","accred.mdivName":"ศาสนศาสตรมหาบัณฑิต Master of Divinity (M.Div.)","accred.dminName":"ศาสนศาสตรดุษฎีบัณฑิต Doctor of Ministry (D.Min.)","accred.bthNote":"รับรองโดย Asia Theological Association (ATA)","accred.note":"การรับรอง ATA ใช้กับหลักสูตรปริญญาที่ระบุข้างต้น ขอบเขตและอายุการรับรองเป็นไปตามเอกสารรับรองที่ ATA ออกให้",
   "actions.consult":"สอบถามการสมัคร","actions.applyBth":"สมัคร B.Th",
   "band.status":"ขึ้นทะเบียนนักศึกษาโดยการพิจารณาของวิทยาลัยหลัก","band.mode":"เรียนออนไลน์ + ฝึกภาคปฏิบัติที่เชียงใหม่","band.adm":"รับสมัคร B.Th รุ่นปี 2026",
-  "admissions.facts.startLabel":"เปิดเรียน","admissions.facts.startValue":"กันยายน 2026","admissions.facts.feeLabel":"ค่าเล่าเรียน","admissions.facts.feeValue":"โปรดสอบถามฝ่ายรับสมัคร","admissions.facts.modeLabel":"รูปแบบ","admissions.facts.modeValue":"ออนไลน์ + ออนไซต์","admissions.facts.statusLabel":"สถานภาพ","admissions.facts.statusValue":"พิจารณาโดยวิทยาลัยหลัก",
+  "admissions.facts.startLabel":"เปิดเรียน","admissions.facts.startValue":"ตุลาคม 2026","admissions.facts.feeLabel":"ค่าเล่าเรียน","admissions.facts.feeValue":"โปรดสอบถามฝ่ายรับสมัคร","admissions.facts.modeLabel":"รูปแบบ","admissions.facts.modeValue":"ออนไลน์ + ออนไซต์","admissions.facts.statusLabel":"สถานภาพ","admissions.facts.statusValue":"พิจารณาโดยวิทยาลัยหลัก",
   "admissions.consultBtn":"สอบถามก่อน 30 วินาที","admissions.applyBtn":"สมัครอย่างเป็นทางการ",
   "admissions.path.title1":"เพิ่งรู้จัก AMAS?","admissions.path.title2":"เริ่มจากการพูดคุยง่าย ๆ ก่อน","admissions.path.s1":"สอบถามด่วน","admissions.path.s1d":"ชื่อ + ช่องทางติดต่อ + เมือง + สิ่งที่อยากทราบ","admissions.path.s2":"พูดคุยกับฝ่ายรับสมัคร","admissions.path.s2d":"ยืนยันหลักสูตร สถานภาพ เวลา และความเหมาะสม","admissions.path.s3":"สมัครอย่างเป็นทางการ","admissions.path.s3d":"กรอกข้อมูลความเชื่อและการรับใช้ให้ครบถ้วน",
   "about.title":"AMAS วิทยาลัยพระคริสตธรรม<br>หยั่งรากในพระคัมภีร์ · มุ่งสู่โลกกว้าง","about.body":"เรามุ่งมั่นวางรากฐานบนความจริงแห่งพระคัมภีร์ ผสานวิสัยทัศน์ข้ามวัฒนธรรมกับการฝึกภาคปฏิบัติ เพื่อเตรียมผู้เรียนให้เป็นผู้ประกาศ ศิษยาภิบาล และมิชชันนารีที่สัตย์ซื่อ ดำเนินชีวิตตามข่าวประเสริฐและเป็นพยานถึงแผ่นดินของพระเจ้า","about.link":"ดูวิสัยทัศน์และพันธกิจของเรา",
@@ -441,7 +441,7 @@ const i18n = {
   "programs.title":"หลักสูตร","programs.desc":"ระบบหน่วยกิต เรียนและชำระรายวิชา: จากปริญญาตรีถึงปริญญาเอก ครบหน่วยกิตก็จบการศึกษา เปิดรับ B.Th รุ่นปี 2026 สอบถามเพิ่มเติมได้",
   "programs.degree.title":"หลักสูตรปริญญา","programs.degree.sub":"เรียนรายวิชาแบบหน่วยกิต ครบตามกำหนดก็จบ ทะเบียนนักศึกษาตรวจสอบโดย AMAS สำนักงานใหญ่","programs.equip.title":"ประกาศนียบัตรและการอบรม","programs.equip.sub":"การอบรมระยะสั้นสำหรับศิษยาภิบาลและฆราวาส",
   "programs.items.laycert.badge":"ใบรับรอง","programs.items.laycert.name":"หลักสูตรผู้นำฆราวาส","programs.items.laycert.desc":"36 หน่วยกิต · เรียนเข้ม 10 วันทุก 3 เดือน · ครบหน่วยกิตรับใบสำเร็จ","programs.items.pdip.badge":"ประกาศนียบัตร","programs.items.pdip.name":"ประกาศนียบัตรการฝึกศิษยาภิบาล","programs.items.pdip.desc":"60 หน่วยกิต · เรียนออนไลน์รายวิชา · รับใบสำเร็จ","application.programs.laycert":"หลักสูตรผู้นำฆราวาส","application.programs.pdip":"ประกาศนียบัตรศิษยาภิบาล",
-  "programs.items.bth.name":"ศาสนศาสตรบัณฑิต","programs.items.bth.desc":"รุ่นปี 2026 · เปิดเรียนกันยายน 2026 · 90 หน่วยกิต · เรียนรายวิชา ออนไลน์ + ออนไซต์",
+  "programs.items.bth.name":"ศาสนศาสตรบัณฑิต","programs.items.bth.desc":"รุ่นปี 2026 · เปิดเรียนตุลาคม 2026 · 77 หน่วยกิต · เรียนรายวิชา ออนไลน์ + ออนไซต์",
   "programs.items.gdip.name":"ปริญญาโทศึกษาพันธกิจ (G.Dip)","programs.items.gdip.desc":"90 หน่วยกิต · เรียนรายวิชา · เรียนเพิ่มต่อยอด M.Div",
   "programs.items.mdiv.name":"ศาสนศาสตรมหาบัณฑิต","programs.items.mdiv.desc":"90 หน่วยกิต · เรียนรายวิชา · การเตรียมศาสนศาสตร์และศิษยาภิบาลเต็มรูปแบบ",
   "programs.items.dmin.name":"ดุษฎีบัณฑิตศาสนศาสตร์","programs.items.dmin.desc":"D.Min · 48 หน่วยกิต (รวมวิทยานิพนธ์) · วิจัยและปฏิบัติตามหน่วยกิต",
@@ -476,7 +476,7 @@ const i18n = {
   "faq.title":"คำถามที่พบบ่อย","faq.items.0.q":"ไม่มีพื้นฐานศาสนศาสตร์ สมัครได้ไหม?","faq.items.0.a":"ได้ เราให้ความสำคัญกับการเรียนอย่างต่อเนื่อง การรักษาวินัยการเรียน และความตั้งใจรับการเตรียมมากกว่า","faq.items.1.q":"เรียนออนไลน์ทั้งหมดหรือไม่?","faq.items.1.a":"ยึดหลักเรียนยืดหยุ่น มีวิชาออนไลน์ พร้อมสนับสนุนให้ร่วมการฝึกสาวก ภาคปฏิบัติ และการเรียนแบบชุมชนที่เชียงใหม่","faq.items.2.q":"จบแล้วใครขึ้นทะเบียนสถานภาพและมอบปริญญา?","faq.items.2.a":"สถานภาพนักศึกษาขึ้นทะเบียนโดยการพิจารณาของวิทยาลัยหลัก AMAS และดำเนินการจบการศึกษาและปริญญาตามระบบทางการของวิทยาลัย","faq.items.3.q":"เริ่มสมัครอย่างไร?","faq.items.3.a":"กด「สมัครเข้าเรียน」กรอกข้อมูลพื้นฐานและแรงจูงใจ จากนั้นฝ่ายรับสมัครจะติดต่อและแนะนำขั้นตอนต่อไป",
   "giving.cta":"ดูวิธีมีส่วนร่วม","giving.ctaNote":"ทีมงานจะแนะนำรายละเอียดเป็นการส่วนตัว",
   "giving.title":"ถวายสนับสนุน","giving.verse":"“ทุกคนจงให้ตามที่ตนคิดหมายไว้ในใจ มิใช่ด้วยนิสัยเสียดายหรือด้วยความจำใจ เพราะว่าพระเจ้าทรงรักคนที่ให้ด้วยใจยินดี”","giving.verseRef":"— 2 โครินธ์ 9:7","giving.desc":"การศึกษาศาสนศาสตร์เป็นพันธกิจที่ร่วมกันทำ การถวายของคุณช่วยให้ผู้เรียนเรียนจนจบ และหนุนการสอนกับพันธกิจมิชชัน","giving.d1":"ทุนการศึกษา","giving.d1b":"ช่วยผู้เรียนที่ขาดแคลนทุนทรัพย์","giving.d2":"พันธกิจการสอน","giving.d2b":"สนับสนุนคณาจารย์และหลักสูตร","giving.d3":"อบรมมิชชันนารี","giving.d3b":"สนับสนุนผู้เตรียมถูกส่งออก","giving.ok":"ได้รับแล้ว ขอพระเจ้าทรงระลึกถึงของถวายของคุณ!","giving.fail":"เซิร์ฟเวอร์ปฏิเสธ จึงยังไม่ถึงเรา โปรดลองใหม่หรือติดต่อเรา","giving.unsure":"ไม่ได้รับการตอบกลับจากเซิร์ฟเวอร์ จึงยืนยันไม่ได้ว่าส่งถึงหรือไม่ ข้อมูลที่กรอกไว้ยังอยู่ครบ กรุณาติดต่อเราเพื่อตรวจสอบก่อนส่งใหม่ เพื่อไม่ให้ส่งซ้ำ","giving.note":"การถวายเป็นไปโดยสมัครใจ ใช้เพื่อทุนการศึกษา การสอน และมิชชัน สอบถามการใช้ได้ทุกเมื่อ","faq.items.4.q":"จะสนับสนุน AMAS ได้อย่างไร?","faq.items.4.a":"อธิษฐานเผื่อเรา ถวายเพื่อทุนการศึกษา การสอน หรืออบรมมิชชันนารี (ดูส่วนถวายสนับสนุน) หรือแนะนำวิทยาลัยให้คนที่เหมาะสม",
-  "promo.tab":"เปิดรับสมัครรุ่น 2026","promo.title":"เปิดรับสมัคร B.Th รุ่นปี 2026","promo.desc":"ออนไลน์ + ออนไซต์เชียงใหม่ · เรียนรายวิชา · เปิดเรียน ก.ย. 2026 อยากทราบเพิ่มเติม? ผู้ช่วยรับสมัครพร้อมตอบทุกเมื่อ","promo.ask":"สอบถามเลย","promo.apply":"สมัครเรียน","admissions.countdown":"เปิดเรียนกันยายน 2026 · กำลังรับสมัคร","admissions.started":"เปิดเรียนแล้ว — สอบถามรุ่นถัดไปได้","actions.copy":"คัดลอก","toast.copied":"คัดลอกแล้ว","faq.ask.title":"ยังมีคำถามอื่นอีกไหม?","faq.ask.desc":"ผู้ช่วย AI ตอบได้ตลอดเวลา หรือฝากข้อความถึงฝ่ายรับสมัครโดยตรง เราจะติดต่อกลับโดยเร็ว","faq.ask.ai":"ถามผู้ช่วย AI","faq.ask.leave":"ฝากข้อความถึงฝ่ายรับสมัคร",
+  "promo.tab":"เปิดรับสมัครรุ่น 2026","promo.title":"เปิดรับสมัคร B.Th รุ่นปี 2026","promo.desc":"ออนไลน์ + ออนไซต์เชียงใหม่ · เรียนรายวิชา · เปิดเรียน ก.ย. 2026 อยากทราบเพิ่มเติม? ผู้ช่วยรับสมัครพร้อมตอบทุกเมื่อ","promo.ask":"สอบถามเลย","promo.apply":"สมัครเรียน","admissions.countdown":"เปิดเรียนตุลาคม 2026 · กำลังรับสมัคร","admissions.started":"เปิดเรียนแล้ว — สอบถามรุ่นถัดไปได้","actions.copy":"คัดลอก","toast.copied":"คัดลอกแล้ว","faq.ask.title":"ยังมีคำถามอื่นอีกไหม?","faq.ask.desc":"ผู้ช่วย AI ตอบได้ตลอดเวลา หรือฝากข้อความถึงฝ่ายรับสมัครโดยตรง เราจะติดต่อกลับโดยเร็ว","faq.ask.ai":"ถามผู้ช่วย AI","faq.ask.leave":"ฝากข้อความถึงฝ่ายรับสมัคร",
   "contact.title":"อยากรู้จักเรามากขึ้น?","contact.desc":"ฝากคำถามไว้ แล้วเราจะติดต่อกลับตามช่องทางที่คุณให้ไว้","contact.locationLabel":"ที่ตั้ง","contact.studyLabel":"การเรียน","contact.studyValue":"ออนไลน์ + ออนไซต์","contact.emailLabel":"อีเมล","contact.phoneLabel":"โทร (ไทย)","contact.phoneCNLabel":"โทร (จีน)","contact.lineLabel":"Line","contact.wechatLabel":"WeChat",
   "form.name":"ชื่อ","form.contact":"อีเมล / Line / WeChat","form.message":"เรื่องที่ต้องการสอบถาม","form.send":"ส่งคำถาม",
   "form.okDemo":"ได้รับแล้ว เวอร์ชันสาธิตจะบันทึกคำถามไว้ในเบราว์เซอร์ของคุณ","form.ok":"ได้รับแล้ว เราจะติดต่อกลับตามช่องทางที่ให้ไว้โดยเร็ว","form.error":"เซิร์ฟเวอร์ปฏิเสธการส่งครั้งนี้ จึงยังไม่ถึงเรา โปรดลองใหม่ หรือติดต่อเราโดยตรง","form.unsure":"ไม่ได้รับการตอบกลับจากเซิร์ฟเวอร์ จึงยืนยันไม่ได้ว่าส่งถึงหรือไม่ ข้อมูลที่กรอกไว้ยังอยู่ครบ กรุณาติดต่อเราเพื่อตรวจสอบก่อนส่งใหม่ เพื่อไม่ให้ส่งซ้ำ",
@@ -701,57 +701,33 @@ function announceCourseCount(){
   const n = $$(".course-card:not(.hidden-card)").length;
   $("#courseCount").textContent = t("courses.count", { n });
 }
-/* ===== 课程搜索 =====
-   68 门课光靠 7 个分类还是不好定位某一门（只记得「NT 04」或「约翰福音」的情况很常见）。
-   只搜卡片上**已有**的文本：编号、课名、简介、分类名 —— 不引入任何新的课程事实。
-   与分类筛选是「与」关系：在当前分类内再按关键词收窄。 */
-let courseQuery = "";
 
-/** 把一张卡的可搜索文本取出来。
-    每次现取而不是缓存：课名/简介/分类名都是 i18n 的，切语言后内容会变，
-    缓存下来就会搜不到新语言的词。68 张卡读 textContent 很便宜。 */
-function courseHaystack(card){
-  const raw = (card.textContent || "").toLowerCase();
-  // 课程编号页面上写作「NT 01」，但访客常打「NT01」。去掉空白再拼一份，两种都能命中。
-  return raw + " " + raw.replace(/[\s\u3000]+/g, "");
-}
-function courseMatchesQuery(card){
-  if(!courseQuery) return true;
-  return courseHaystack(card).includes(courseQuery);
-}
-
+/* 课程可见性：按学位层级筛选 + 折叠限额。
+   分类筛选与搜索框的 UI 已按 Enos 要求移除。卡片上仍保留 data-category，
+   因为课程卡右下角那个分类胶囊还要靠它显示分类名 —— 但这里不再按它过滤。 */
 function applyCourseVisibility(){
-  const f  = $(".cat-row .filter.active")?.dataset.filter || "all";
-  /* 层级与分类是「与」关系，再与搜索关键词相「与」。 */
   const lv = $(".level-row .filter.active")?.dataset.levelFilter || "all";
-  /* 搜索期间不再受「先显示 6 门」的限额约束：访客已经主动收窄了范围，
-     再把命中结果藏到「展开全部」后面只会让人以为没搜到。这是刻意的取舍。 */
-  const searching = !!courseQuery;
   let shown = 0, total = 0;
   $$(".course-card").forEach(card => {
-    const match = (f === "all" || card.dataset.category === f)
-               && (lv === "all" || card.dataset.level === lv)
-               && courseMatchesQuery(card);
+    const match = (lv === "all" || card.dataset.level === lv);
     if(match) total++;
-    const visible = match && (searching || coursesExpanded || shown < COURSE_LIMIT);
+    const visible = match && (coursesExpanded || shown < COURSE_LIMIT);
     if(visible) shown++;
     card.classList.toggle("hidden-card", !visible);
   });
   const btn = $("#courseMoreBtn");
   if(btn){
-    // 搜索时把命中结果全显示了，「展开更多」就没有意义
-    btn.hidden = searching || total <= COURSE_LIMIT;
+    btn.hidden = total <= COURSE_LIMIT;
     $("span", btn).textContent = coursesExpanded
       ? t("courses.less")
       : t("courses.more", { n: total - COURSE_LIMIT });
   }
   renderLevelNote(lv);
-  renderCourseResult(total);
   announceCourseCount();
 }
 
 /** 说明跟着选中的层级走。
-    原来一整段把四种情形全写在一起，缩到窄屏就是三行灰字，谁也不看。
+    一整段把四种情形全写在一起，缩到窄屏就是三行灰字，谁也不看。
     选哪个层级就只说哪一条；同时改写 data-i18n，切语言后仍取到对应那一条。 */
 function renderLevelNote(lv){
   const el = $(".level-note");
@@ -761,69 +737,13 @@ function renderLevelNote(lv){
   el.textContent = t(key);
 }
 
-/** 可见的结果行。原来的 #courseCount 是 visually-hidden 的，只有读屏听得到；
-    搜索之后「到底有几条」对看得见的访客同样重要，所以另给一行可见文字。
-    零结果时附一个「清空搜索」按钮 —— 不能只说没有，要给得回去的路。 */
-function renderCourseResult(total){
-  const box = $("#courseResult");
-  if(!box) return;
-  if(!courseQuery){ box.hidden = true; box.textContent = ""; box.classList.remove("is-empty"); return; }
-  box.hidden = false;
-  box.classList.toggle("is-empty", total === 0);
-  box.textContent = total === 0 ? t("courses.noResult", { q: courseQuery }) : t("courses.count", { n: total });
-  if(total === 0){
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "course-result-clear";
-    b.textContent = t("courses.searchClear");
-    b.addEventListener("click", () => clearCourseSearch(true));
-    box.appendChild(b);
-  }
-}
-
-function clearCourseSearch(focusInput){
-  const input = $("#courseSearch");
-  courseQuery = "";
-  if(input) input.value = "";
-  const clr = $("#courseSearchClear");
-  if(clr) clr.hidden = true;
-  applyCourseVisibility();
-  if(focusInput && input) input.focus();
-}
-
-(function(){
-  const input = $("#courseSearch");
-  if(!input) return;
-  const clr = $("#courseSearchClear");
-  const commit = () => {
-    courseQuery = input.value.trim().toLowerCase().replace(/[\s\u3000]+/g, "");
-    if(clr) clr.hidden = !input.value;
-    coursesExpanded = false;
-    applyCourseVisibility();
-  };
-  input.addEventListener("input", (e) => {
-    /* 中文输入法：拼音拼到一半时 input 也会触发，拿到的是「ma」「matai」这类
-       中间态，会在用户还没选词时就闪出「没有找到」。组合进行中先不过滤，
-       等 compositionend 再算一次。 */
-    if(e.isComposing) return;
-    commit();
-  });
-  input.addEventListener("compositionend", commit);
-  input.addEventListener("keydown", (e) => {
-    // Escape 清空并留在输入框里，不用去摸那个小叉
-    if(e.key === "Escape" && input.value){ e.preventDefault(); clearCourseSearch(true); }
-  });
-  if(clr) clr.addEventListener("click", () => clearCourseSearch(true));
-})();
-
 $$(".filter").forEach(btn => btn.addEventListener("click", () => {
-  /* 只清**本行**的选中态：层级与分类是两组独立的筛选，
-     原来一把清空会让点层级时把分类也重置掉。 */
+  /* 只清**本行**的选中态（现在只剩层级一行，保留按行清理以免日后再加一组时踩坑）。 */
   const row = btn.closest(".filter-row") || document;
   $$(".filter", row).forEach(x => { x.classList.remove("active"); x.setAttribute("aria-pressed","false"); });
   btn.classList.add("active"); btn.setAttribute("aria-pressed","true");
   coursesExpanded = false;
-  applyCourseVisibility();   // 分类改变时保留当前关键词：两者是「与」关系
+  applyCourseVisibility();
 }));
 $("#courseMoreBtn")?.addEventListener("click", () => {
   coursesExpanded = !coursesExpanded;
