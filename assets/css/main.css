@@ -683,7 +683,7 @@ html[data-theme="night"] .chat-chips button:hover{color:#0a0c10}
  .accred-card{grid-template-columns:1fr}.accred-card-side{border-radius:6px 6px 0 0}
  .accred-seal{left:auto;right:0;top:-34px;transform:rotate(-8deg);width:104px;height:104px}
  .accred-card-main{padding:30px 24px 16px}
- .course-content{grid-template-areas:"code meta" "title meta" "desc desc";grid-template-columns:1fr auto;row-gap:4px}
+ .course-content{grid-template-areas:"code" "title" "desc" "meta";grid-template-columns:1fr;row-gap:2px}
  .pillar-cards{grid-template-columns:repeat(2,1fr)}.stats-bar{grid-template-columns:repeat(2,1fr)}.stat{border-bottom:1px solid var(--line)}
  .mission-grid{grid-template-columns:1fr 1fr}.mission-item:nth-child(2){border-right:0}.mission-item:nth-child(-n+2){border-bottom:1px solid rgba(255,255,255,.14)}
  .admissions-grid,.contact-grid,.faq-grid,.tuition-grid{grid-template-columns:1fr;gap:45px}
@@ -708,7 +708,7 @@ html[data-theme="night"] .chat-chips button:hover{color:#0a0c10}
  .accred-item{flex-wrap:wrap;gap:12px;padding:18px 6px}.accred-item-info{flex:1 1 60%}.accred-tag{margin-left:58px}
  .about{padding-top:32px}.about-copy h2{font-size:26px}.seal{display:none}.pillar-cards{grid-template-columns:1fr}.stats-bar{grid-template-columns:1fr}.stat{border-right:0}
  .mission-grid{grid-template-columns:1fr}.mission-item{border-right:0!important;border-bottom:1px solid rgba(255,255,255,.14)!important}.mission-item:last-child{border-bottom:0!important}
- .course-card{padding:8px;gap:12px}.course-thumb{width:96px;height:96px}.course-card h3{font-size:15px}.course-card p{font-size:12px}.course-meta span{padding:4px 10px;font-size:10px}
+ .course-card{padding:8px;gap:12px}.course-thumb{width:80px;height:80px;border-radius:6px}.course-card h3{font-size:15px}.course-card p{font-size:12px}.course-meta span{padding:4px 10px;font-size:10px}
  .admission-points{grid-template-columns:1fr}.admission-card-head strong{font-size:58px}
  .admission-facts{grid-template-columns:1fr;column-gap:0}.path-card{padding:30px 24px}.path-card h3{font-size:21px}
  .tuition-motto{font-size:17px}.tuition-principles{position:static;padding:28px 22px}
@@ -1057,7 +1057,8 @@ html[data-theme="night"] .copy-btn{background:rgba(255,255,255,.06)}
 .thumb-c-ele113{background-image:url("../img/courses/ele113.webp")}
 
 /* 课程 meta 双标签 */
-.course-meta{display:flex;gap:8px;justify-content:flex-end}
+.course-meta{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+@media(max-width:580px){.course-meta{justify-content:flex-start;margin-top:4px}}
 
 /* 属灵训练与毕业要求 */
 .training-panel{margin-top:34px;border:1px solid rgba(183,138,53,.4);border-radius:14px;background:linear-gradient(160deg,#10305a,#0a1d38);color:#f4ecd8;padding:30px 34px}
