@@ -34,10 +34,9 @@
     },
     {
       key: "church", title: "2 · 信仰与教会",
+      note: "按数据最小化原则，本系统不收集教会类型、家庭成员资料与健康医疗信息。",
       fields: [
         { name: "church_name", label: "教会名称", type: "text", required: true, max: 120 },
-        { name: "church_type", label: "教会种类", type: "select",
-          options: [["independent","自立"],["denominational","宗派"],["other","其他"]] },
         { name: "church_phone", label: "教会电话", type: "tel", max: 40 },
         { name: "church_role", label: "目前服事", type: "text", required: true, max: 120 },
         { name: "conversion_date", label: "初信日期", type: "month", required: true },
@@ -51,8 +50,6 @@
           columns: [["school", "学校"], ["city", "城市"], ["start_ym", "入学年月"], ["end_ym", "毕业年月"], ["degree", "学位 / 文凭"]] },
         { name: "experience", label: "工作 / 事奉简历（选填）", type: "rows", full: true,
           columns: [["org", "教会或机构"], ["city", "城市"], ["start_ym", "开始"], ["end_ym", "结束"], ["position", "职位"]] },
-        { name: "family", label: "家庭状况（选填）", type: "rows", full: true,
-          columns: [["relation", "关系"], ["name", "姓名"], ["birth_ym", "出生年月"], ["faith", "信仰"]] },
       ],
     },
     {
@@ -65,7 +62,7 @@
         { name: "calling", label: "异象 / 蒙召", type: "textarea", required: true, max: 800, full: true },
         { name: "referrer", label: "介绍人及电话", type: "text", max: 120, full: true },
         { name: "special_notes", label: "特记事项（选填）", type: "textarea", max: 800, full: true,
-          hint: "如有特殊情况需要说明，请在此填写。" },
+          hint: "如有需要说明的事项请在此填写。请勿填写健康或医疗信息。" },
       ],
     },
     {

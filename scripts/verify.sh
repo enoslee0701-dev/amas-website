@@ -18,6 +18,7 @@ echo "== 3/3 回归脚本 =="
 # 嵌套运行（test-inline-script-check.mjs 在临时仓库里调本脚本）时跳过，避免递归
 if [ -z "${CSC_VERIFY_NESTED:-}" ]; then
   node scripts/test-inline-script-check.mjs
+  node scripts/test-application-field-policy.mjs
 fi
 [ -x scripts/regress.sh ] && scripts/regress.sh
 [ -f package.json ] && grep -q '"test"' package.json && npm test --silent
