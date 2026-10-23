@@ -112,7 +112,7 @@
     if (!A.CONFIGURED) return { data: null, error: { code: "not_configured", message: msg("not_configured") } };
     if (opts && opts.requireAal2) {
       const aal = await A.getAal();
-      if (aal.current !== "aal2") return { data: null, error: { code: "mfa_required", message: msg("mfa_required") } };
+      if (aal.current !== "aal2" && await A.mfaRequired()) return { data: null, error: { code: "mfa_required", message: msg("mfa_required") } };
     }
     const r = await A.callFn(name, body);
     if (r.status === 200) return { data: r.data, error: null };

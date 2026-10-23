@@ -24,7 +24,7 @@ globalThis.Deno = { env: { get: (k) => ({ SUPABASE_URL: "https://x.invalid", SUP
 const USERS = { "tok-admin": { id: "aaaaaaaa-0000-4000-8000-000000000001", roles: ["registrar"] },
                 "tok-super": { id: "aaaaaaaa-0000-4000-8000-000000000002", roles: ["super_admin"] },
                 "tok-teacher": { id: "aaaaaaaa-0000-4000-8000-000000000003", roles: ["teacher"] } };
-let rpcLog = [], rpcReply = { data: { ok: true }, error: null };
+let rpcLog = [], rpcReply = { data: { ok: true }, error: null }, mfaReply = { data: true, error: null };
 globalThis.__createClient = () => ({
   auth: { getUser: async (jwt) => {
     const tok = (() => { try { return JSON.parse(Buffer.from(jwt.split(".")[1], "base64url").toString()).tok; } catch { return null; } })();
@@ -33,7 +33,7 @@ globalThis.__createClient = () => ({
   } },
   from: () => { let uid = null; const q = { select: () => q, eq: (_k, v) => { uid = v; return q; },
     is: async () => ({ data: (Object.values(USERS).find(u => u.id === uid)?.roles || []).map(role => ({ role })), error: null }) }; return q; },
-  rpc: async (name, args) => { rpcLog.push({ name, args }); return rpcReply; },
+  rpc: async (name, args) => { if (name === "mfa_required") return mfaReply; rpcLog.push({ name, args }); return rpcReply; },
 });
 await import(pathToFileURL(file).href);
 if (!handler) { console.log("Deno.serve 没被调用"); process.exit(2); }
@@ -60,6 +60,18 @@ let r = await call({ action: "create_offering" }, { auth: false });
 ok("E03 没有令牌 401", r.status === 401 && r.rpc.length === 0);
 r = await call({ action: "create_offering", course_code: "c", academic_year: "2026-2027" }, { aal: "aal1" });
 ok("E04 未两步验证 403 mfa_required 且不调库", r.status === 403 && r.json?.error === "mfa_required" && r.rpc.length === 0);
+mfaReply = { data: false, error: null };
+r = await call({ action: "publish_grades", offering_id: U(1) }, { aal: "aal1" });
+ok("E04b 两步验证开关关闭时 aal1 放行", r.status === 200 && r.rpc[0]?.name === "sis_publish_grades");
+r = await call({ action: "publish_grades", offering_id: U(1) }, { aal: "aal1", tok: "tok-teacher" });
+ok("E04c 开关关闭不放松角色门禁", r.status === 403 && r.rpc.length === 0);
+mfaReply = { data: null, error: { message: "boom" } };
+r = await call({ action: "publish_grades", offering_id: U(1) }, { aal: "aal1" });
+ok("E04d 读不到开关时仍要求两步验证", r.status === 403 && r.json?.error === "mfa_required" && r.rpc.length === 0);
+mfaReply = { data: "false", error: null };
+r = await call({ action: "publish_grades", offering_id: U(1) }, { aal: "aal1" });
+ok("E04e 开关返回非布尔值时仍要求两步验证", r.status === 403);
+mfaReply = { data: true, error: null };
 r = await call({ action: "create_offering", course_code: "c", academic_year: "2026-2027" }, { tok: "tok-teacher" });
 ok("E05 教授调教务接口 403", r.status === 403 && r.rpc.length === 0);
 r = await call({ action: "drop_database" });

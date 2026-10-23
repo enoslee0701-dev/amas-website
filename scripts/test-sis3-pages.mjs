@@ -125,6 +125,23 @@ try {
   ok("O2 成绩与进度显示外校转入学分与打印入口", t.includes("外校转入 3 学分") && (await ev(`!!document.querySelector('a[href*="portal/student/transcript/"]')`)));
   await open("portal/admin/roles/", roleScen());
   ok("O3 后台导航有「角色管理」", await ev(`[...document.querySelectorAll("nav a")].some(a=>a.textContent.includes("角色管理"))`));
+  // ═══ M 两步验证开关（0035） ═══
+  console.log("\n=== M 两步验证开关 ===");
+  const AAL1 = { session: { user: { id: "u-admin", email: "a@example.invalid" } }, aal: "aal1" };
+  const offRpc = { my_roles: { data: [{ role: "registrar" }] }, admin_list_offerings: { data: [] } };
+  await open("portal/admin/offerings/", Object.assign({}, AAL1, { rpc: offRpc }));
+  ok("M1 默认（读不到开关）仍跳去两步验证", (await ev("location.pathname")).includes("/portal/mfa/"));
+  await open("portal/admin/offerings/", Object.assign({}, AAL1, { rpc: Object.assign({ mfa_required: { data: true } }, offRpc) }));
+  ok("M2 开关开着时跳去两步验证", (await ev("location.pathname")).includes("/portal/mfa/"));
+  await open("portal/admin/offerings/", Object.assign({}, AAL1, { rpc: Object.assign({ mfa_required: { data: false } }, offRpc) }));
+  ok("M3 开关关闭后账号密码直接进后台", (await ev("location.pathname")).includes("/portal/admin/offerings/") && (await txt()).includes("开课与编班"));
+  await armFn("ok", { ok: true, offering_id: "o-x" });
+  await ev(`window.AmasApi.fn("sis-admin", { action: "publish_grades", offering_id: "x" }, { requireAal2: true }).then(r => (window.__r = r))`);
+  await sleep(300);
+  ok("M4 开关关闭后后台操作也能发出", (await fnCalls()).length === 1);
+  await open("portal/admin/offerings/", Object.assign({}, AAL1, { rpc: Object.assign({ mfa_required: { data: false } }, { my_roles: { data: [{ role: "student" }] } }) }));
+  ok("M5 开关关闭不放松角色：学员仍进不了后台", !(await txt()).includes("开课与编班") || (await ev("location.pathname")).indexOf("/portal/admin/") < 0);
+
   ok("O4 全程没有请求离开本机", h.external() === 0);
 } catch (e) {
   h.fail("测试过程抛错：" + e.message);

@@ -176,6 +176,33 @@ begin
   end if;
   raise notice 'PASS X07 B.Th 毕业政策：77 学分、无 GPA 门槛、转入不设上限';
 
+  -- ---------- X08 两步验证开关（0035） ----------
+  if not public.mfa_required() then raise exception 'FAIL X08 开关默认应为「要求两步验证」'; end if;
+  perform set_config('amas.test.uid', v_t::text, true);
+  perform set_config('request.jwt.claims', '{"aal":"aal1"}', true);
+  execute 'set role authenticated';
+  r := public.teacher_save_session(v_off, null, '2026-10-09', '开关开着', null, null);
+  if r->>'error' is distinct from 'mfa_required' then raise exception 'FAIL X08b 开关开着时 aal1 不应能写 %', r; end if;
+  begin
+    update public.portal_settings set value = 'false' where key = 'mfa_required';
+    raise exception 'FAIL X08c 客户端能改开关';
+  exception when insufficient_privilege then null;
+  end;
+  execute 'reset role';
+  update public.portal_settings set value = 'false' where key = 'mfa_required';
+  execute 'set role authenticated';
+  r := public.teacher_save_session(v_off, null, '2026-10-09', '开关关了', null, null);
+  if not (r->>'ok')::boolean then raise exception 'FAIL X08d 开关关闭后 aal1 应能写 %', r; end if;
+  perform set_config('amas.test.uid', v_u1::text, true);
+  r := public.teacher_save_session(v_off, null, '2026-10-09', '学员越权', null, null);
+  if r->>'error' is distinct from 'not_assigned' then raise exception 'FAIL X08e 开关关闭不应放松任课门禁 %', r; end if;
+  execute 'reset role';
+  update public.portal_settings set value = '"no"' where key = 'mfa_required';
+  if not public.mfa_required() then raise exception 'FAIL X08f 开关为非布尔值时应按「要求」处理'; end if;
+  delete from public.portal_settings where key = 'mfa_required';
+  if not public.mfa_required() then raise exception 'FAIL X08g 开关缺行时应按「要求」处理'; end if;
+  raise notice 'PASS X08 两步验证开关：默认要求、客户端改不了、只有明确 false 才放行、不放松任课门禁、异常值按要求';
+
   raise notice '=== SIS COMPLETION ACCEPTANCE PASSED ===';
 end $$;
 

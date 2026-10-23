@@ -6,6 +6,13 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+// 两步验证开关（0035_mfa_switch）：只有库里明确设为 false 才放行 aal1；读不到、出错一律按「要求」处理
+type RpcClient = { rpc: (fn: string) => PromiseLike<{ data: unknown; error: unknown }> };
+const mfaRequired = async (c: RpcClient) => {
+  try { const { data, error } = await c.rpc("mfa_required"); return !!error || data !== false; }
+  catch { return true; }
+};
+
 const URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -40,7 +47,7 @@ Deno.serve(async (req) => {
   // aal2 强制（前端引导、此处强制、DB 再验角色）
   try {
     const payload = JSON.parse(atob(jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
-    if (payload.aal !== "aal2") return fail(403, "mfa_required");
+    if (payload.aal !== "aal2" && await mfaRequired(admin)) return fail(403, "mfa_required");
   } catch { return fail(401, "unauthenticated"); }
 
   const { data: roles } = await admin.from("user_roles").select("role")

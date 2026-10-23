@@ -723,11 +723,22 @@
     /* 读不出就停下来说清楚：**不放行**（他可能确实还没做），
        也**不把人弹去做两步验证**（他可能早就做过了）。给重试。 */
     if (aal.failed) { renderBlocked("aal-unavailable"); return null; }
-    if (aal.current !== "aal2") {
+    if (aal.current !== "aal2" && await mfaRequired()) {
       location.replace(withNext("portal/mfa/"));
       return null;
     }
     return ctx;
+  }
+
+  /** 两步验证开关（0035_mfa_switch）。只有服务端明确回 false 才算「不要求」；
+      读不到、出错、返回别的值一律按「要求」处理。只影响跳不跳扫码页 ——
+      服务端（Edge / 数据库）读的是同一个开关，各自再验一次。 */
+  async function mfaRequired() {
+    if (!client) return true;
+    try {
+      const { data, error } = await client.rpc("mfa_required");
+      return !!error || data !== false;
+    } catch (e) { return true; }
   }
 
   /** 调用受保护 Edge Function（自动携带用户 JWT） */
@@ -778,6 +789,6 @@
     // 必须是同一套口径，各写一遍迟早各走各的。
     classifyAuthError,
     signIn, signUp, resetPassword, signOut, requireRole, renderDisabled, renderBlocked, safePath,
-    getAal, fetchAal, fetchSession, requireRoleAal2, callFn,
+    getAal, fetchAal, fetchSession, requireRoleAal2, callFn, mfaRequired,
   };
 })();
