@@ -1418,3 +1418,34 @@ html[data-theme="night"] .footer{background:linear-gradient(180deg,#0a1220,#060b
   .upload-box input,
   .resource-search-wrap input{font-size:16px}
 }
+
+/* ===== 手机端版面收紧（≤580px）=====
+   放在文件末尾：前面 ≤480px 的 `.section h2{font-size:34px}` 与这些选择器同权重，
+   写在它之前会被它盖掉（about 标题原本的 26px 就是这样失效的）。 */
+@media(max-width:580px){
+  /* 「AMAS 亚洲宣教神学院」「学习不是孤立发生的。」在 390px 宽内各占一行 */
+  .about .about-copy h2{font-size:23px;line-height:1.4}
+  .life-section .section-head h2{font-size:26px}
+
+  /* 使命四项：编号、图标、标题同一行，说明在下 */
+  .mission-item{display:grid;grid-template-columns:auto auto 1fr;align-items:center;column-gap:14px;padding:20px 4px}
+  .mission-item .icon-chip{width:42px;height:42px;margin:0}
+  .mission-item .icon-chip svg{width:22px;height:22px}
+  .mission-item h3{font-size:20px;margin:0}
+  .mission-item p{grid-column:1/-1;margin-top:8px}
+
+  /* 学院生活：编号与图标+标题同一行 */
+  .life-block{display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:16px;padding:22px 20px 24px}
+  .life-head{margin:0;gap:12px}
+  .life-head .icon-chip{width:44px;height:44px}
+  .life-head .icon-chip svg{width:22px;height:22px}
+  .life-block h3{font-size:22px;padding-bottom:10px}
+  .life-block p,.life-block .life-points{grid-column:1/-1}
+  .life-block p{margin-top:14px}
+
+  /* 课程卡：图在上、课名在图下，标签横排 */
+  .course-card{flex-direction:column;align-items:stretch;gap:12px;padding:0 0 14px}
+  .course-thumb{width:100%;height:128px;border-radius:12px 12px 0 0}
+  .course-content{padding:0 14px}
+  .course-meta span{white-space:nowrap}
+}
