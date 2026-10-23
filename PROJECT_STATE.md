@@ -308,3 +308,12 @@ QUEUE_EMPTY（2026-09-16）：队列无 `[ ]` 任务；T-003、T-014 仍为 `[!]
   验证：sis1_acceptance.sql 12 组全过（本地一次性 PGlite 库，装 0001–0030；放宽策略的反例会失败）；
   R-8 守卫 5/5；test-sis-pages 45/45；既有门户回归全过；verify.sh OK。
   未覆盖：sis-admin 的 HTTP 级用例（需 deno + 测试库）；真实 Supabase 上的 RLS 行为待测试库验收。
+
+- 2026-10-23 [YELLOW] 学员管理系统第二至四期（Enos：「自动化进行，最后验收」）
+  eca767f1 数据库：0031 graduated；0032 上课 / 出勤 / 作业 / 总评与更正 / 学分账本 / 实践训练 / 毕业 / 导师，
+  12 张新表客户端不可直读直写，只经 RPC；正式记录登记 R-8。**Schema 变更，未在任何真实库执行。**
+  e315bf7e 页面：教授课程班页、成绩审核、学员学业总览、成绩与进度、导师页；sis-admin 加 6 个动作。
+  验证：sis2_acceptance 9 组（含一名学员修满 77 学分毕业全流程）+ sis1 12 组 + R-8 5/5（scripts/run-sql-local.mjs）；
+  test-sis2-pages 56/56、test-sis-pages 45/45、check-sis-rpc-contract 67/67；既有门户回归全过；verify.sh OK。
+  按默认待确认：毕业 GPA 2.0、出勤不扣学分、无外校转学分。未做：角色管理页（权限授予，待 Enos 决定）。
+  未覆盖：sis-admin HTTP 级用例与真实 Supabase 上的 RLS（需测试库上库后验收）。
