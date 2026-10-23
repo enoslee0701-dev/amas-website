@@ -182,6 +182,43 @@ try {
   await open("portal/admin/offerings/", Object.assign({}, AAL1, { rpc: Object.assign({ mfa_required: { data: false } }, { my_roles: { data: [{ role: "student" }] } }) }));
   ok("M5 开关关闭不放松角色：学员仍进不了后台", !(await txt()).includes("开课与编班") || (await ev("location.pathname")).indexOf("/portal/admin/") < 0);
 
+  // ═══ Z 360px 窄屏：所有学员管理页面不出现横向滚动 ═══
+  console.log("\n=== Z 360px 窄屏 ===");
+  await send("Emulation.setDeviceMetricsOverride", { width: 360, height: 780, deviceScaleFactor: 1, mobile: true });
+  const TEA2 = { session: { user: { id: "t-1", email: "t@example.invalid" } }, aal: "aal2" };
+  const SCALE2 = ["A+","A","A-","B+","B","B-","C+","C","C-","D+","D","D-","F"].map((l, i) => ({ letter: l, points: 4 - i * 0.3, passing: l !== "F", sort: i + 1 }));
+  const OID2 = "11111111-1111-4111-8111-111111111111";
+  const DET = { offering: { id: OID2, title_zh: "旧约救赎预表神学", credits: 3, academic_year: "2026-2027", status: "in_progress",
+      starts_on: "2026-10-05", ends_on: "2026-12-20", schedule_note: "每周二、四 19:30–21:00（清迈中心二楼）", delivery_mode: "hybrid" },
+    roster: [{ enrollment_id: "e-1", display_name: "很长名字的学员甲乙丙", student_number: "B26-0001234", final_grade: "B+", final_status: "published" }],
+    sessions: [{ id: "s1", held_on: "2026-10-06", topic: "第一课：从创世记到启示录的救赎主线", materials_url: "https://example.org/a.pdf", attendance: {} }],
+    assignments: [{ id: "a1", title: "读书报告：《基督在旧约中》", due_on: "2026-10-20", weight: 30, scores: {} }] };
+  const pages = [
+    ["portal/admin/", Object.assign({}, ADMIN, { rpc: { my_roles: { data: [{ role: "registrar" }] } } })],
+    ["portal/admin/offerings/", Object.assign({}, ADMIN, { rpc: { my_roles: { data: [{ role: "registrar" }] }, admin_list_offerings: { data: [
+      { offering_id: OID2, title_zh: "旧约救赎预表神学", section_label: "清迈线下 B 班", academic_year: "2026-2027", delivery_mode: "hybrid",
+        starts_on: "2026-10-05", ends_on: "2026-12-20", schedule_note: "每周二、四 19:30–21:00（清迈中心二楼）", credits: 3, capacity: 30,
+        offering_status: "in_progress", teachers: [{ name: "王约翰教授" }, { name: "李以利亚教授", role: "assistant" }], enrolled_count: 28, session_count: 12, last_session_on: "2026-11-20" }] } } })],
+    ["portal/admin/grades/", Object.assign({}, ADMIN, { rpc: { my_roles: { data: [{ role: "registrar" }] }, admin_grade_queue: { data: [
+      { offering_id: OID2, title_zh: "旧约救赎预表神学", academic_year: "2026-2027", offering_status: "completed", teachers: "王约翰教授、李以利亚教授", enrolled: 28, drafts: 0, submitted: 28, published: 0 }] } } })],
+    ["portal/admin/student/?id=" + SID, Object.assign({}, ADMIN, { rpc: { my_roles: { data: [{ role: "registrar" }] }, admin_student_overview: { data: OVR },
+      admin_list_students: { data: [{ student_id: SID, display_name: "很长名字的学员甲乙丙", student_number: "B26-0001234" }] } } })],
+    ["portal/admin/roles/", roleScen()],
+    ["portal/admin/transcript/?id=" + SID, Object.assign({}, ADMIN, { rpc: { my_roles: { data: [{ role: "registrar" }] }, admin_transcript: { data: TR } } })],
+    ["portal/teacher/class/?id=" + OID2, Object.assign({}, TEA2, { rpc: { my_roles: { data: [{ role: "teacher" }] }, teacher_offering_detail: { data: DET } }, tables: { grade_scale: { data: SCALE2 } } })],
+    ["portal/student/", homeScen("active")],
+    ["portal/student/records/", Object.assign({}, STU, { rpc: { my_roles: { data: [{ role: "student" }] }, my_progress: { data: Object.assign({}, OVR, { practicum: TR.practicum }) },
+      my_grades: { data: [{ title_zh: "旧约救赎预表神学", academic_year: "2026-2027", credits: 3, grade: "B+", points: 3.3, passing: true }] } } })],
+    ["portal/student/transcript/", Object.assign({}, STU, { rpc: { my_roles: { data: [{ role: "student" }] }, my_transcript: { data: TR } } })],
+  ];
+  for (const [pg, scen] of pages) {
+    await open(pg, scen);
+    if (pg.startsWith("portal/teacher/class/")) { for (const tb of ["sessions", "assignments", "grades"]) { await click(`[data-tab="${tb}"]`); await sleep(150); } }
+    const sw = await ev("document.documentElement.scrollWidth");
+    ok(`Z ${pg.split("?")[0]} 360px 无横向滚动`, sw <= 360, `scrollWidth=${sw}`);
+  }
+  await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 820, deviceScaleFactor: 1, mobile: true });
+
   ok("O4 全程没有请求离开本机", h.external() === 0);
 } catch (e) {
   h.fail("测试过程抛错：" + e.message);
