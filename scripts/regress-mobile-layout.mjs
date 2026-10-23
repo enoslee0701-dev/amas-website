@@ -84,9 +84,20 @@ try {
   check(`${W}px 课程卡：课名与标签无竖排`, r.cardInfo.every(c => !c.vertical), JSON.stringify(r.cardInfo.map(c => c.vertical)));
   check(`${W}px 页面无横向滚动`, r.scrollW <= W, `scrollWidth=${r.scrollW}`);
 
+  /* 已开课 + 仍在招生：四种语言下首屏状态栏不溢出，招生区不再出现「咨询下一批次」 */
+  for (const lang of ["zh", "en", "ko", "th"]) {
+    const s = await evalJs(`(() => { applyLanguage(${JSON.stringify(lang)}); refreshCountdown();
+      const items = [...document.querySelectorAll('.hero-meta-item')];
+      const over = items.filter(i => i.scrollWidth > i.clientWidth + 1 || i.getBoundingClientRect().right > innerWidth).length;
+      return { over, cd: document.getElementById('admCountdown').textContent, sw: document.documentElement.scrollWidth }; })()`);
+    check(`${W}px [${lang}] 首屏状态栏不溢出、无横向滚动`, s.over === 0 && s.sw <= W, `overflowItems=${s.over} scrollWidth=${s.sw}`);
+    check(`${W}px [${lang}] 招生状态写「已开课且仍在招生」`, !/下一批次|next intake|다음 기수|รุ่นถัดไป/.test(s.cd) && s.cd.length > 0, s.cd);
+  }
+  await evalJs(`applyLanguage("zh")`);
+
   if (SHOTS && W === 360) {
     fs.mkdirSync(SHOT_DIR, { recursive: true });
-    for (const [name, sel] of [["about", ".about-copy"], ["mission", ".mission-item"], ["courses", "#courseGrid"], ["life-head", ".life-section .section-head"], ["life", ".life-block"]]) {
+    for (const [name, sel] of [["hero", ".hero-meta"], ["admissions", "#admCountdown"], ["about", ".about-copy"], ["mission", ".mission-item"], ["courses", "#courseGrid"], ["life-head", ".life-section .section-head"], ["life", ".life-block"]]) {
       await evalJs(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); window.scrollTo({ top: e.getBoundingClientRect().top + scrollY - 90, behavior: "instant" }); })()`);
       await sleep(400);
       const s = await send("Page.captureScreenshot", { format: "png" });
