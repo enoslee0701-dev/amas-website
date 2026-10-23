@@ -53,7 +53,11 @@ async function run({ record = { data: [REC], error: null }, timeline = { data: T
   ctx.window.AmasShell = { mount: async () => ({ main, profile: { display_name: "李学员", email: "s@example.invalid" } }) };
   ctx.window.AmasApi = {
     rpc: async (n) => ({ my_student_record: record, my_student_timeline: timeline, my_action_items: acts,
-                         my_student_capabilities: { data: {}, error: null }, my_learning: learn }[n] || { data: null, error: null }),
+                         my_student_capabilities: { data: {}, error: null }, my_learning: learn,
+                         /* 学员管理系统（0030/0032）后首页另读两路：编班与学分进度。夹具给出正常值。 */
+                         my_courses: { data: [], error: null },
+                         my_progress: { data: { status: "active", credits_earned: 0, credits_required: 77, gpa: null, eligible: false }, error: null },
+                       }[n] || { data: null, error: null }),
     select: async () => catalog, msg: (c) => c,
   };
   ctx.window.AmasUI = { loading() {}, esc: (s) => String(s == null ? "" : s), toast() {},

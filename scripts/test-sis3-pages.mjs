@@ -125,6 +125,46 @@ try {
   ok("O2 成绩与进度显示外校转入学分与打印入口", t.includes("外校转入 3 学分") && (await ev(`!!document.querySelector('a[href*="portal/student/transcript/"]')`)));
   await open("portal/admin/roles/", roleScen());
   ok("O3 后台导航有「角色管理」", await ev(`[...document.querySelectorAll("nav a")].some(a=>a.textContent.includes("角色管理"))`));
+  // ═══ H 学员首页接入学员管理系统 ═══
+  console.log("\n=== H 学员首页 ===");
+  const homeScen = (status, rpc = {}) => Object.assign({}, STU, { rpc: Object.assign({ my_roles: { data: [{ role: "student" }] },
+    my_student_record: { data: [{ id: "sr-1", status, student_number: "B26-001", program_code: "bth", activated_at: "2026-10-01T00:00:00Z" }] },
+    my_student_timeline: { data: [] }, my_action_items: { data: [] }, my_student_capabilities: { data: {} }, my_learning: { data: [] },
+    my_courses: { data: [{ offering_id: "o-1", offering_status: "in_progress" }, { offering_id: "o-2", offering_status: "completed" }] },
+    my_progress: { data: { status, credits_earned: 30, credits_required: 77, gpa: 3.25, eligible: false } } }, rpc),
+    tables: { program_catalog: { data: [{ code: "bth", name_zh: "神学学士", short_label: "B.Th" }] } } });
+  await open("portal/student/", homeScen("active"));
+  t = await txt();
+  ok("H1 显示编班数与正在上课数", t.includes("编入 2 个课程班") && t.includes("1 个正在上课"));
+  ok("H2 显示学分与 GPA，并有成绩与成绩单入口", t.includes("已得 30 / 77 学分") && t.includes("3.25") &&
+     (await ev(`!!document.querySelector('a[href*="portal/student/records/"]') && !!document.querySelector('a[href*="portal/student/transcript/"]')`)));
+  ok("H3 不再说「门户尚未接入学习记录」", !t.includes("门户尚未接入学习记录"));
+  for (const [st, label] of [["on_leave", "休学中"], ["withdrawn", "已退学"], ["graduated", "已毕业"]]) {
+    await open("portal/student/", homeScen(st));
+    t = await txt();
+    ok(`H4 学籍状态 ${st} 显示为「${label}」，不露出英文代码`, t.includes(label) && !new RegExp("\\b" + st + "\\b").test(t));
+  }
+  await open("portal/student/", homeScen("active", { my_courses: { error: { message: "x" } }, my_progress: { error: { message: "x" } } }));
+  t = await txt();
+  ok("H5 编班与学分读不到时如实说，不说成没有", t.includes("没能读到你的课程班") && t.includes("没能读到你的学分进度") && !t.includes("还没有为你编班"));
+
+  // ═══ W 管理后台首页的工作入口 ═══
+  console.log("\n=== W 管理后台首页 ===");
+  const hubScen = (rpc = {}) => Object.assign({}, ADMIN, { rpc: Object.assign({ my_roles: { data: [{ role: "registrar" }] },
+    admin_grade_queue: { data: [{ submitted: 2 }, { submitted: 0 }, { submitted: 1 }] },
+    admin_pending_corrections: { data: [{}, {}, {}] }, admissions_ready_for_enrollment: { data: [{}, {}] } }, rpc),
+    tables: { teacher_verification_requests: { data: [] } } });
+  await open("portal/admin/", hubScen());
+  t = await txt();
+  ok("W1 显示待发布班数、待审批更正、待建档人数", t.includes("2 个班待发布 · 3 条更正待审批") && t.includes("2 名已录取学员待建档"), t.slice(0, 160));
+  const hubLinks = await ev(`[...document.querySelectorAll(".hub a")].map(a => a.href)`);
+  const hubOk = [];
+  for (const u of hubLinks) hubOk.push((await fetch(u)).status === 200);
+  ok("W2 六个入口都指向真实存在的页面", hubLinks.length === 6 && hubOk.every(Boolean), JSON.stringify(hubLinks));
+  await open("portal/admin/", hubScen({ admin_grade_queue: { error: { message: "x" } }, admissions_ready_for_enrollment: { error: { message: "x" } } }));
+  t = await txt();
+  ok("W3 读不到待办时不显示数字、不写 0", !/\d+ 个班待发布/.test(t) && !t.includes("待建档") && t.includes("发布成绩、审批更正"));
+
   // ═══ M 两步验证开关（0035） ═══
   console.log("\n=== M 两步验证开关 ===");
   const AAL1 = { session: { user: { id: "u-admin", email: "a@example.invalid" } }, aal: "aal1" };

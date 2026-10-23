@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>学员中心 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202610232247">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202610232256">
 <style>
 .idcard{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);color:#fff;border-radius:16px;padding:20px 22px;margin-bottom:18px}
 .idcard h2{margin:0;font-size:19px;color:#fff}
@@ -31,11 +31,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202610232247"></script>
-<script src="../../assets/js/portal/auth.js?v=202610232247"></script>
-<script src="../../assets/js/portal/api.js?v=202610232247"></script>
-<script src="../../assets/js/portal/ui.js?v=202610232247"></script>
-<script src="../../assets/js/portal/shell.js?v=202610232247"></script>
+<script src="../../assets/js/supabase-config.js?v=202610232256"></script>
+<script src="../../assets/js/portal/auth.js?v=202610232256"></script>
+<script src="../../assets/js/portal/api.js?v=202610232256"></script>
+<script src="../../assets/js/portal/ui.js?v=202610232256"></script>
+<script src="../../assets/js/portal/shell.js?v=202610232256"></script>
 <script>
 /* PORTAL-2 学员中心（V1）
    原则：状态机与 DB 是权威源，UI 不模拟业务状态；没有真实数据就显示真实空态，绝不填充假数据。
@@ -51,6 +51,9 @@
   const ST = {
     pre_enrolled: { t: "待正式注册", d: "学籍已建立，正在等待教务完成正式注册。完成后即可开始课程学习。" },
     active:       { t: "在读", d: "学籍状态正常。" },
+    on_leave:     { t: "休学中", d: "你目前处于休学状态，学籍与已修成绩保留。复学请联系教务同工。" },
+    withdrawn:    { t: "已退学", d: "你的学籍已办理退学。如有疑问请联系教务同工。" },
+    graduated:    { t: "已毕业", d: "恭喜毕业！你的成绩与学分永久保留，可随时打印成绩单。" },
   };
 
   UI.loading(main, 4);
@@ -59,7 +62,7 @@
      一个正被教务要求补件的学员会以为没事要做；my_learning 挂掉时写
      「AMAS 正式课程共 0 门」，而学校有 68 门。 */
   const [{ data: recRows, error }, { data: tl, error: tlErr }, { data: pc, error: pcErr }, { data: acts, error: actsErr },
-         { data: cap }, { data: learn, error: learnErr }] =
+         { data: cap }, { data: learn, error: learnErr }, { data: myc, error: mycErr }, { data: myProg, error: progErr }] =
     await Promise.all([
       Api.rpc("my_student_record"),
       Api.rpc("my_student_timeline"),
@@ -67,6 +70,8 @@
       Api.rpc("my_action_items"),
       Api.rpc("my_student_capabilities"),
       Api.rpc("my_learning"),
+      Api.rpc("my_courses"),
+      Api.rpc("my_progress"),
     ]);
   if (error) return UI.error(main, { message: error.message, onRetry: () => location.reload() });
   /* 「没读到」和「学校还没给你建档」是两件事。my_student_record returns table，正常是数组；
@@ -181,13 +186,27 @@
             '所以这里暂时不显示课程数。请稍后刷新再看。</p>'
           : '<p class="none">AMAS 正式课程共 <b>' + learnCount + '</b> 门，其中 <b>' + learnOpen +
             '</b> 门已有线上学习内容。</p>') +
-        '<p class="none">课程学习与进度目前保存在「AMAS 神学院」App 中，门户暂未接入，' +
-          '因此这里不显示学习进度。</p>' +
+        /* 编班来自 my_courses（0030）。读不到就说读不到，不说成「还没有编班」。 */
+        (mycErr || !Array.isArray(myc)
+          ? '<p class="none">这一次没能读到你的课程班，请稍后刷新。</p>'
+          : myc.length
+            ? '<p class="none">教务已为你编入 <b>' + myc.length + '</b> 个课程班，其中 <b>' +
+              myc.filter(c => c.offering_status === "in_progress").length + '</b> 个正在上课。</p>'
+            : '<p class="none">教务还没有为你编班。</p>') +
+        '<p class="none">课程视频与线上内容在「AMAS 神学院」App 中学习。</p>' +
+        '<a class="link" href="' + A.ROOT + 'portal/student/classes/">我的课程（出勤与作业）→</a><br>' +
         '<a class="link" href="' + A.ROOT + 'portal/student/courses/">查看课程目录 →</a></div>' +
 
-      '<div class="card mod"><h3>学习记录</h3>' +
-        '<p class="none">门户尚未接入学习记录。出勤、作业与成绩等正式记录，' +
-          '须待相应教务规则批准后才会建立。</p></div>' +
+      '<div class="card mod"><h3>学分与成绩</h3>' +
+        /* my_progress（0032/0033）：学分、GPA、毕业要求。读不到不显示数字。 */
+        (progErr || !myProg
+          ? '<p class="none">这一次没能读到你的学分进度，请稍后刷新。</p>'
+          : '<p class="none">已得 <b>' + (Number(myProg.credits_earned) || 0) + '</b>' +
+            (myProg.credits_required ? ' / ' + myProg.credits_required : "") + ' 学分' +
+            (myProg.gpa != null ? '，GPA <b>' + Number(myProg.gpa).toFixed(2) + '</b>' : "") + '。' +
+            (myProg.status === "graduated" ? "" : myProg.eligible ? " 已满足毕业条件。" : "") + '</p>') +
+        '<a class="link" href="' + A.ROOT + 'portal/student/records/">成绩与进度 →</a><br>' +
+        '<a class="link" href="' + A.ROOT + 'portal/student/transcript/">打印成绩单 →</a></div>' +
 
       '<div class="card mod"><h3>信仰成长档案</h3>' +
         // 门户当前读不到 CP 数据（两套身份未打通），因此不显示 Top 3 / 倾向指数 /

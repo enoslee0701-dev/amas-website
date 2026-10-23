@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>管理后台 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202610232247">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202610232256">
 <style>
 table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 .list th,.list td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top}
@@ -21,6 +21,10 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 .tokenbox{font:600 12px/1.6 Consolas,monospace;background:var(--wash);border-radius:8px;padding:10px 12px;word-break:break-all;margin-top:10px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:640px){.grid2{grid-template-columns:1fr}}
+.hub{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:0 0 6px}
+.hub a{display:block;border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px 14px;text-decoration:none;color:var(--ink)}
+.hub a b{display:block;color:var(--navy);font-size:15px}.hub a span{font-size:12px;color:var(--muted)}
+.hub a em{font-style:normal;font-weight:700;color:#8a5a12}
 </style>
 </head>
 <body>
@@ -29,6 +33,21 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
     <img src="../../assets/img/school-seal.webp" alt="AMAS">
     <h1>管理后台</h1>
     <div class="en">ADMIN CONSOLE</div>
+  </div>
+
+  <!-- 教务登录后落在本页（auth.js homeForRoles）。这一页不走 Shell、没有导航条，
+       所以必须在这里给出全部工作入口，否则开课、成绩、学籍这些页面无路可进。 -->
+  <div class="card" style="margin-bottom:14px">
+    <h2 style="margin:0 0 10px">工作入口</h2>
+    <div class="hub">
+      <a href="admissions/"><b>招生审核</b><span>审核入学申请</span></a>
+      <a href="students/"><b>学籍管理</b><span id="hubStu">建档、注册、休学 / 退学</span></a>
+      <a href="offerings/"><b>开课与编班</b><span>课程班、排教授、编班</span></a>
+      <a href="grades/"><b>成绩审核</b><span id="hubGrades">发布成绩、审批更正</span></a>
+      <a href="teachers/"><b>教师验证</b><span>审核教师资格</span></a>
+      <a href="roles/"><b>角色管理</b><span>仅超级管理员</span></a>
+    </div>
+    <div class="who" id="hubNote"></div>
   </div>
 
   <div class="card">
@@ -66,8 +85,8 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202610232247"></script>
-<script src="../../assets/js/portal/auth.js?v=202610232247"></script>
+<script src="../../assets/js/supabase-config.js?v=202610232256"></script>
+<script src="../../assets/js/portal/auth.js?v=202610232256"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
@@ -81,6 +100,22 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
   if (A.sessionEnded()) return;            // 晚返回的渲染让位，不拿死会话摆出管理界面
   document.getElementById("who").textContent = (p && (p.display_name || p.email)) || "";
   document.getElementById("btnOut").addEventListener("click", () => A.signOut());
+  /* 待办数量：读到才显示数字；读不到就保持原说明，不写「0」。 */
+  (async () => {
+    try {
+      const [g, c, q] = await Promise.all([A.client.rpc("admin_grade_queue"), A.client.rpc("admin_pending_corrections"),
+                                           A.client.rpc("admissions_ready_for_enrollment")]);
+      if (A.sessionEnded()) return;
+      if (!g.error && Array.isArray(g.data) && !c.error && Array.isArray(c.data)) {
+        const pub = g.data.filter(o => Number(o.submitted) > 0).length;
+        document.getElementById("hubGrades").innerHTML = pub || c.data.length
+          ? '<em>' + pub + ' 个班待发布 · ' + c.data.length + ' 条更正待审批</em>' : "没有待处理的成绩";
+      }
+      if (!q.error && Array.isArray(q.data) && q.data.length) {
+        document.getElementById("hubStu").innerHTML = '<em>' + q.data.length + ' 名已录取学员待建档</em>';
+      }
+    } catch (e) {}
+  })();
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
   /* 「结果不明」的统一判据（与 portal/admin/teachers/、portal/admin/students/
