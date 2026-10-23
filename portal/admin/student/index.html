@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>学员学业总览 | AMAS</title>
+<link rel="icon" href="../../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610231310">
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/api.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610231310"></script>
+<script>
+/* 学员管理系统第三、四期：教务看单个学员的学业 —— 学分、GPA、未修课程、实践训练、导师、毕业登记。
+   读：admin_student_overview（0032，含毕业审核结果）；写：sis-admin（assign_mentor / end_mentor / graduate）。
+   毕业按钮只在审核结果「可毕业」时出现；数据库里还会再审一次，不满足一律拒绝。 */
+(async function(){
+  const A = window.AmasAuth, UI = window.AmasUI, Api = window.AmasApi, Shell = window.AmasShell, S = window.AmasSis;
+  const mounted = await Shell.mount({ space: "admin", title: "管理后台",
+    allow: ["registrar","academic_admin","super_admin"], requireAal2: true });
+  if (!mounted) return;
+  const { main } = mounted;
+  const id = new URLSearchParams(location.search).get("id") || "";
+
+  async function load(){
+    UI.loading(main, 5);
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return main.innerHTML = UI.box("❓", "没有指定学员", "请从「学籍管理」进入。");
+    const [{ data: o, error }, { data: list }] = await Promise.all([
+      Api.rpc("admin_student_overview", { p_student: id }), Api.rpc("admin_list_students")]);
+    if (error) return UI.error(main, { message: "这一次没能读到这名学员的学业。", onRetry: load });
+    if (!o) return main.innerHTML = UI.box("❓", "找不到这名学员", "可能已被删除，或你没有权限。");
+    const me = (Array.isArray(list) ? list : []).find(x => x.student_id === id) || {};
+    const req = Number(o.credits_required) || 0, got = Number(o.credits_earned) || 0;
+    const missing = o.missing_courses || [];
+    const live = o.status === "active" || o.status === "on_leave";
+
+    main.innerHTML = '<a class="link" href="' + A.ROOT + 'portal/admin/students/">← 返回学籍管理</a>' +
+      '<h1 style="margin-top:10px">' + UI.esc(me.display_name || "学员") + ' <span class="chip ' + o.status + '">' + (S.SST[o.status] || o.status) + '</span></h1>' +
+      '<p class="lead">学号 ' + UI.esc(me.student_number || "未录入") + ' · 项目 ' + UI.esc(o.program_code || "—") + '</p>' +
+      '<div class="msg err" id="err" role="alert" tabindex="-1"></div>' +
+      '<div class="stat"><div><b>' + got + (req ? ' / ' + req : "") + '</b><span>已得学分</span></div>' +
+        '<div><b>' + (o.gpa == null ? "—" : Number(o.gpa).toFixed(2)) + '</b><span>GPA' + (o.min_gpa ? '（门槛 ' + o.min_gpa + '）' : "") + '</span></div>' +
+        '<div><b>' + missing.length + '</b><span>未修必修课</span></div></div>' +
+      (req ? '<div class="meter" style="margin:12px 0 4px"><i style="width:' + Math.min(100, Math.round(got / req * 100)) + '%"></i></div>' : "") +
+      '<p class="who">课程 ' + (o.course_credits || 0) + ' 学分 + 实践训练 ' + (o.practicum_credits || 0) + ' 学分。</p>' +
+
+      '<div class="card" style="margin-top:14px"><h2 style="font-size:16px;margin:0 0 6px">毕业审核</h2>' +
+        (o.graduation ? '<div class="msg info show">已于 ' + S.d(o.graduation.graduated_on) + ' 登记毕业，毕业学分 ' + o.graduation.total_credits +
+            (o.graduation.gpa != null ? '，GPA ' + Number(o.graduation.gpa).toFixed(2) : "") + '。</div>'
+          : o.eligible ? '<div class="msg info show">已满足全部毕业条件。</div><div class="bar" style="margin-top:8px"><button class="sbtn pri" id="grad">登记毕业</button></div>'
+          : '<ul style="margin:6px 0 0 18px;font-size:14px">' +
+              (req && got < req ? '<li>学分还差 ' + (req - got) + '</li>' : "") +
+              (missing.length ? '<li>还有 ' + missing.length + ' 门必修课未修过</li>' : "") +
+              (o.min_gpa && (o.gpa == null || Number(o.gpa) < Number(o.min_gpa)) ? '<li>GPA 未达 ' + o.min_gpa + '</li>' : "") +
+              (o.status !== "active" ? '<li>学籍状态须为「在读」</li>' : "") + '</ul>') + '</div>' +
+
+      '<div class="card" style="margin-top:14px"><h2 style="font-size:16px;margin:0 0 6px">导师</h2>' +
+        ((o.mentors || []).length ? o.mentors.map(m => '<div class="row"><span>' + UI.esc(m.name || "未登记姓名") + ' <small>自 ' + S.d(m.started_at) + '</small></span>' +
+            (live ? '<button class="sbtn" data-end="' + m.assignment_id + '" data-n="' + UI.esc(m.name || "") + '">解除</button>' : "") + '</div>').join("")
+          : '<p class="who">还没有指派导师。</p>') +
+        (live ? '<div class="bar" style="margin-top:8px"><button class="sbtn pri" id="addm">指派导师</button></div>' : "") + '</div>' +
+
+      '<div class="card" style="margin-top:14px"><h2 style="font-size:16px;margin:0 0 6px">实践训练（学员自报）</h2>' +
+        (o.practicum || []).map(i => '<div class="row"><span>' + UI.esc(i.title_zh) + ' <small>' + i.credits + ' 学分</small></span>' +
+          (i.done ? '<span class="chip published">已完成 ' + S.d(i.completed_on) + '</span>' : '<span class="chip">未填报</span>') + '</div>').join("") + '</div>' +
+
+      (missing.length ? '<div class="card" style="margin-top:14px"><h2 style="font-size:16px;margin:0 0 6px">未修必修课</h2>' +
+        missing.map(c => '<div class="row"><span>' + UI.esc(c.title_zh) + '</span><small>' + c.credits + ' 学分</small></div>').join("") + '</div>' : "");
+
+    const errBox = main.querySelector("#err");
+    const say = (m) => { errBox.textContent = m; errBox.classList.add("show"); errBox.focus(); };
+    main.querySelector("#grad")?.addEventListener("click", async () => {
+      const v = await S.ask({ title: "为「" + (me.display_name || "学员") + "」登记毕业", text: "已得 " + got + " 学分，GPA " + (o.gpa ?? "—") + "。登记后学籍状态改为「已毕业」，不能撤回。",
+        fields: [{ id: "on", label: "毕业日期", type: "date", required: true, value: S.today() }], confirmLabel: "确认登记毕业" });
+      if (!v) return;
+      if (await S.write({ lock: "grad", fn: "sis-admin", args: { action: "graduate", student_id: id, graduated_on: v.on }, say })) { UI.toast("已登记毕业"); load(); }
+    });
+    main.querySelector("#addm")?.addEventListener("click", async () => {
+      const { data: ms, error: e2 } = await Api.rpc("admin_list_mentors");
+      if (e2 || !Array.isArray(ms)) return say("这一次没能读到导师名单，请重试。");
+      const have = new Set((o.mentors || []).map(m => m.mentor_id));
+      const opts = ms.filter(m => !have.has(m.user_id));
+      if (!opts.length) return say("没有可指派的导师（需有有效的导师身份）。");
+      const v = await S.ask({ title: "为「" + (me.display_name || "学员") + "」指派导师",
+        fields: [{ id: "m", label: "导师", type: "select", required: true, options: [["", "请选择"]].concat(opts.map(m => [m.user_id, m.name || "未登记姓名"])) }], confirmLabel: "指派" });
+      if (!v) return;
+      if (await S.write({ lock: "m", fn: "sis-admin", args: { action: "assign_mentor", student_id: id, mentor_id: v.m }, say })) { UI.toast("已指派"); load(); }
+    });
+    main.querySelectorAll("[data-end]").forEach(b => b.addEventListener("click", async () => {
+      const ok = await UI.confirmDialog({ title: "解除导师「" + b.dataset.n + "」", text: "解除后这位导师看不到这名学员，已写的陪伴记录保留。", confirmLabel: "确认解除", danger: true });
+      if (ok && await S.write({ lock: "e-" + b.dataset.end, fn: "sis-admin", args: { action: "end_mentor", assignment_id: b.dataset.end }, say })) { UI.toast("已解除"); load(); }
+    }));
+  }
+  load();
+})();
+</script>
+</body>
+</html>

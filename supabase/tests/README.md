@@ -72,6 +72,17 @@ cp assets/js/supabase-config.local.example.js assets/js/supabase-config.local.js
 | `sis1_acceptance.sql` | 数据库（状态机 / 开课 / 排教授 / 编班 / 五种身份的可见范围 / 审计 / R-8） | 12 | `psql -f supabase/tests/sis1_acceptance.sql`，结束自动回滚。纯 SQL，无 psql 元命令；在真实 Supabase 上需把文件里的 `amas.test.uid` 换成 `request.jwt.claims`（见文件末尾） |
 | `scripts/test-sis-pages.mjs` | 浏览器（开课与编班、教授/学员「我的课程」、休学/退学；本机 stub） | 44 | `node scripts/test-sis-pages.mjs` |
 
+## 学员管理系统第二至四期（0031 + 0032：授课出勤、作业、总评与更正、学分、实践训练、毕业、导师）
+
+| 文件 | 层 | 断言组 | 运行方式 |
+|---|---|---|---|
+| `sis2_acceptance.sql` | 数据库（两步验证与任课门禁 / 出勤与作业 / 总评状态机 / 发布入账 / 更正补扣 / 实践训练 / 毕业全流程 / 导师可见范围 / 审计） | 9 | 同上；两步验证读 `request.jwt.claims` 的 `aal`，与真实 Supabase 一致 |
+| `scripts/test-sis2-pages.mjs` | 浏览器（教授课程班页、成绩审核、学业总览、成绩与进度、导师页；本机 stub） | 56 | `node scripts/test-sis2-pages.mjs` |
+| `scripts/check-sis-rpc-contract.mjs` | 静态对账：页面与 Edge 调用的函数名、参数名 ↔ 迁移定义 | 67 处调用 | `node scripts/check-sis-rpc-contract.mjs` |
+
+本地没有 psql 时，用 `scripts/run-sql-local.mjs` 在一次性 PGlite 内存库里跑（装 `scripts/verify-g1/prelude.sql` + Supabase 默认授权 + 全部迁移），
+不连任何真实库；PGlite 装在仓库外，用法见脚本文件头。
+
 Edge Function `sis-admin` 尚无 HTTP 级用例（需要 deno 与测试库），部署到测试库后补。
 
 ## 环境文件

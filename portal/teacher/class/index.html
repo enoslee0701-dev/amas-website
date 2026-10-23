@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>课程班 | AMAS 教师工作台</title>
+<link rel="icon" href="../../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610231310">
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/api.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610231310"></script>
+<script>
+/* 学员管理系统第二期：教授的课程班工作页 —— 上课与出勤、作业与评分、课程总评。
+   读：teacher_offering_detail()；写：teacher_* RPC（0032），数据库内复核本班任课 + 有效角色 + aal2。
+   总评流程：草稿 → 提交给教务 → 教务发布；发布后不能直接改，只能申请更正（须另一位教务批准）。 */
+(async function(){
+  const A = window.AmasAuth, Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell, S = window.AmasSis;
+  const mounted = await Shell.mount({ space: "teacher", title: "课程班", allow: ["teacher"], requireAal2: true });
+  if (!mounted) return;
+  const { main } = mounted;
+  const id = new URLSearchParams(location.search).get("id") || "";
+  let tab = "sessions", data = null, scale = null, openSession = null, openAsg = null;
+
+  main.innerHTML = '<a class="link" href="' + A.ROOT + 'portal/teacher/classes/">← 返回我的课程</a>' +
+    '<div id="head"></div><div class="msg err" id="err" role="alert" tabindex="-1"></div>' +
+    '<div class="tabs" role="tablist">' +
+      '<button role="tab" data-tab="sessions" aria-selected="true">上课与出勤</button>' +
+      '<button role="tab" data-tab="assignments" aria-selected="false">作业</button>' +
+      '<button role="tab" data-tab="grades" aria-selected="false">课程总评</button></div>' +
+    '<div id="panel"></div>';
+  const panel = main.querySelector("#panel"), errBox = main.querySelector("#err");
+  const say = (m) => { errBox.textContent = m; errBox.classList.add("show"); errBox.focus(); };
+  const clear = () => errBox.classList.remove("show");
+  main.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => {
+    tab = b.dataset.tab;
+    main.querySelectorAll("[data-tab]").forEach(x => x.setAttribute("aria-selected", String(x === b)));
+    clear(); draw();
+  }));
+
+  async function load(){
+    panel.innerHTML = UI.skeleton(4);
+    const [{ data: d, error }, sc] = await Promise.all([Api.rpc("teacher_offering_detail", { p_offering: id }), S.gradeScale()]);
+    scale = sc;
+    if (error) { main.querySelector("#head").innerHTML = ""; return UI.error(panel, { message: "这一次没能读到这个课程班，请重试。", onRetry: load }); }
+    if (!d || !d.offering) {
+      main.querySelector(".tabs").hidden = true;
+      return panel.innerHTML = UI.box("🔒", "看不到这个课程班", "你不是这个班的任课教授，或者教务已把你撤下。");
+    }
+    data = d;
+    const o = d.offering;
+    main.querySelector("#head").innerHTML = '<div class="of" style="margin:12px 0"><div class="top"><h3 style="font-size:18px">' +
+      UI.esc(o.title_zh) + (o.section_label ? " · " + UI.esc(o.section_label) : "") + '</h3><span class="chip ' + o.status + '">' + (S.OST[o.status] || o.status) + '</span></div>' +
+      '<div class="meta"><span>' + UI.esc(o.academic_year) + ' 学年</span><span>' + UI.esc(S.MODE[o.delivery_mode] || o.delivery_mode) + '</span><span>' +
+      S.span(o.starts_on, o.ends_on) + '</span>' + (o.credits ? '<span>' + o.credits + ' 学分</span>' : "") + '<span>在班 ' + d.roster.length + ' 人</span></div>' +
+      (o.schedule_note ? '<div class="who">上课安排：' + UI.esc(o.schedule_note) + '</div>' : "") + '</div>';
+    draw();
+  }
+
+  const nameOf = (eid) => { const r = data.roster.find(x => x.enrollment_id === eid); return r ? r.display_name || r.student_number || "学员" : "学员"; };
+  const gradeOpts = (cur, blank) => (blank ? '<option value="">' + blank + '</option>' : "") +
+    (scale || []).map(g => '<option' + (g.letter === cur ? " selected" : "") + '>' + UI.esc(g.letter) + '</option>').join("");
+
+  function draw(){
+    if (!data) return;
+    if (tab === "sessions") return drawSessions();
+    if (tab === "assignments") return drawAssignments();
+    return drawGrades();
+  }
+
+  // ---------- 上课与出勤 ----------
+  function drawSessions(){
+    const live = data.offering.status !== "cancelled";
+    const count = (att) => { const c = { present: 0, late: 0, excused: 0, absent: 0 }; Object.values(att || {}).forEach(a => { c[a.status]++; }); return c; };
+    panel.innerHTML = (live ? '<form class="card" id="sf" novalidate style="margin-bottom:12px"><h2 style="font-size:15px;margin:0 0 8px">登记一次上课</h2><div class="grid2">' +
+        '<div class="f"><label for="s-d">上课日期</label><input id="s-d" type="date" value="' + S.today() + '"></div>' +
+        '<div class="f"><label for="s-t">本课主题</label><input id="s-t" maxlength="200" placeholder="如：登山宝训（上）"></div>' +
+        '<div class="f full"><label for="s-u">讲义 / 录音链接（可选）</label><input id="s-u" maxlength="500" placeholder="https://"></div></div>' +
+        '<div class="bar" style="margin-top:10px"><button class="btn" type="submit" style="width:auto;padding:0 18px">登记并点名</button></div></form>' : "") +
+      (data.sessions.length ? '<div class="ofs">' + data.sessions.map(s => {
+          const c = count(s.attendance), marked = Object.keys(s.attendance || {}).length;
+          return '<div class="of"><div class="top"><h3>' + S.d(s.held_on) + ' · ' + UI.esc(s.topic) + '</h3>' +
+            '<span class="who">' + (marked ? "出席 " + c.present + " · 迟到 " + c.late + " · 请假 " + c.excused + " · 缺席 " + c.absent : "<b>还没点名</b>") + '</span></div>' +
+            (s.materials_url ? '<a class="link" href="' + UI.esc(s.materials_url) + '" target="_blank" rel="noopener">讲义 / 录音</a>' : "") +
+            '<div class="bar"><button class="sbtn pri" data-roll="' + s.id + '">' + (openSession === s.id ? "收起点名" : "点名") + '</button>' +
+            '<button class="sbtn" data-delsess="' + s.id + '">删除</button></div>' +
+            (openSession === s.id ? rollForm(s) : "") + '</div>';
+        }).join("") + '</div>'
+        : UI.box("🗓️", "还没有上课记录", "每上完一次课，在上面登记日期和主题，再点名。"));
+
+    panel.querySelector("#sf")?.addEventListener("submit", async (e) => {
+      e.preventDefault(); clear();
+      const v = (s) => panel.querySelector(s).value.trim();
+      if (!v("#s-d") || !v("#s-t")) return say("请填写上课日期和主题。");
+      const r = await S.write({ lock: "sess", rpc: "teacher_save_session", say,
+        args: { p_offering: id, p_session: null, p_held_on: v("#s-d"), p_topic: v("#s-t"), p_materials_url: v("#s-u") || null, p_note: null } });
+      if (r) { UI.toast("已登记"); openSession = r.session_id; await load(); }
+    });
+    panel.querySelectorAll("[data-roll]").forEach(b => b.addEventListener("click", () => {
+      openSession = openSession === b.dataset.roll ? null : b.dataset.roll; drawSessions();
+    }));
+    panel.querySelectorAll("[data-delsess]").forEach(b => b.addEventListener("click", async () => {
+      const s = data.sessions.find(x => x.id === b.dataset.delsess);
+      const ok = await UI.confirmDialog({ title: "删除这次上课记录", text: S.d(s.held_on) + " · " + s.topic + "。这次的点名也会一起删除。", confirmLabel: "确认删除", danger: true });
+      if (!ok) return;
+      if (await S.write({ lock: "del-" + s.id, rpc: "teacher_delete_session", args: { p_session: s.id }, say })) { UI.toast("已删除"); load(); }
+    }));
+    const rf = panel.querySelector("#rf");
+    if (rf) {
+      rf.querySelector("#allp").addEventListener("click", () => rf.querySelectorAll("select[data-e]").forEach(x => { x.value = "present"; }));
+      rf.addEventListener("submit", async (e) => {
+        e.preventDefault(); clear();
+        const entries = [...rf.querySelectorAll("select[data-e]")].filter(x => x.value).map(x => ({ enrollment_id: x.dataset.e, status: x.value }));
+        if (!entries.length) return say("请至少给一位学员选择出勤情况。");
+        const r = await S.write({ lock: "roll-" + openSession, rpc: "teacher_set_attendance", args: { p_session: openSession, p_entries: entries }, say });
+        if (r) { UI.toast("已保存 " + r.saved + " 人" + (r.rejected ? "，" + r.rejected + " 人未保存（已不在班）" : "")); openSession = null; load(); }
+      });
+    }
+  }
+  function rollForm(s){
+    if (!data.roster.length) return '<p class="who">班里还没有学员。</p>';
+    return '<form id="rf" novalidate>' + data.roster.map(r => {
+      const cur = (s.attendance || {})[r.enrollment_id];
+      return '<div class="row"><span>' + UI.esc(r.display_name || "未登记姓名") + ' <small>' + UI.esc(r.student_number || "") + '</small></span>' +
+        '<select data-e="' + r.enrollment_id + '" aria-label="' + UI.esc(r.display_name || "") + ' 出勤"><option value="">未点</option>' +
+        Object.keys(S.ATT).map(k => '<option value="' + k + '"' + (cur && cur.status === k ? " selected" : "") + '>' + S.ATT[k] + '</option>').join("") + '</select></div>';
+    }).join("") + '<div class="bar" style="margin-top:10px"><button type="button" class="sbtn" id="allp">全部出席</button>' +
+      '<button type="submit" class="sbtn pri">保存点名</button></div></form>';
+  }
+
+  // ---------- 作业 ----------
+  function drawAssignments(){
+    if (!scale) return panel.innerHTML = '<div class="msg warn show">这一次没能读到等级表，暂时不能评分。请刷新。</div>';
+    panel.innerHTML = '<form class="card" id="af" novalidate style="margin-bottom:12px"><h2 style="font-size:15px;margin:0 0 8px">布置作业</h2><div class="grid2">' +
+        '<div class="f full"><label for="a-t">作业名称</label><input id="a-t" maxlength="200" placeholder="如：读书报告"></div>' +
+        '<div class="f"><label for="a-d">截止日期（可选）</label><input id="a-d" type="date"></div>' +
+        '<div class="f"><label for="a-w">占总评比重 %（可选）</label><input id="a-w" type="number" min="1" max="100" inputmode="numeric"></div>' +
+        '<div class="f full"><label for="a-x">要求说明（可选）</label><textarea id="a-x" rows="2" maxlength="2000"></textarea></div></div>' +
+        '<div class="bar" style="margin-top:10px"><button class="btn" type="submit" style="width:auto;padding:0 18px">布置</button></div></form>' +
+      (data.assignments.length ? '<div class="ofs">' + data.assignments.map(a => {
+          const n = Object.keys(a.scores || {}).length;
+          return '<div class="of"><div class="top"><h3>' + UI.esc(a.title) + '</h3><span class="who">已评 ' + n + ' / ' + data.roster.length + '</span></div>' +
+            '<div class="meta"><span>截止 ' + S.d(a.due_on) + '</span>' + (a.weight ? '<span>比重 ' + a.weight + '%</span>' : "") + '</div>' +
+            (a.description ? '<div class="who">' + UI.esc(a.description) + '</div>' : "") +
+            '<div class="bar"><button class="sbtn pri" data-score="' + a.id + '">' + (openAsg === a.id ? "收起" : "评分") + '</button>' +
+            '<button class="sbtn" data-delasg="' + a.id + '">删除</button></div>' + (openAsg === a.id ? scoreForm(a) : "") + '</div>';
+        }).join("") + '</div>' : UI.box("📝", "还没有布置作业", "布置后可以逐个给学员评等级、写评语。"));
+
+    panel.querySelector("#af").addEventListener("submit", async (e) => {
+      e.preventDefault(); clear();
+      const v = (s) => panel.querySelector(s).value.trim();
+      if (!v("#a-t")) return say("请填写作业名称。");
+      const r = await S.write({ lock: "asg", rpc: "teacher_save_assignment", say, args: { p_offering: id, p_assignment: null,
+        p_title: v("#a-t"), p_description: v("#a-x") || null, p_due_on: v("#a-d") || null, p_weight: v("#a-w") ? Number(v("#a-w")) : null } });
+      if (r) { UI.toast("已布置"); load(); }
+    });
+    panel.querySelectorAll("[data-score]").forEach(b => b.addEventListener("click", () => { openAsg = openAsg === b.dataset.score ? null : b.dataset.score; drawAssignments(); }));
+    panel.querySelectorAll("[data-delasg]").forEach(b => b.addEventListener("click", async () => {
+      const a = data.assignments.find(x => x.id === b.dataset.delasg);
+      const ok = await UI.confirmDialog({ title: "删除作业「" + a.title + "」", text: "这份作业的评分也会一起删除。", confirmLabel: "确认删除", danger: true });
+      if (ok && await S.write({ lock: "dela-" + a.id, rpc: "teacher_delete_assignment", args: { p_assignment: a.id }, say })) { UI.toast("已删除"); load(); }
+    }));
+    const sf = panel.querySelector("#scf");
+    sf?.addEventListener("submit", async (e) => {
+      e.preventDefault(); clear();
+      const entries = data.roster.map(r => ({ enrollment_id: r.enrollment_id,
+        grade: sf.querySelector('[data-g="' + r.enrollment_id + '"]').value,
+        comment: sf.querySelector('[data-c="' + r.enrollment_id + '"]').value.trim() }));
+      const r = await S.write({ lock: "sc-" + openAsg, rpc: "teacher_set_scores", args: { p_assignment: openAsg, p_entries: entries }, say });
+      if (r) { UI.toast("评分已保存"); openAsg = null; load(); }
+    });
+  }
+  function scoreForm(a){
+    if (!data.roster.length) return '<p class="who">班里还没有学员。</p>';
+    return '<form id="scf" novalidate>' + data.roster.map(r => {
+      const cur = (a.scores || {})[r.enrollment_id] || {};
+      return '<div class="row"><span>' + UI.esc(r.display_name || "未登记姓名") + '</span>' +
+        '<span class="bar"><select data-g="' + r.enrollment_id + '" aria-label="等级">' + gradeOpts(cur.grade, "未评") + '</select>' +
+        '<input data-c="' + r.enrollment_id + '" maxlength="1000" placeholder="评语（可选）" value="' + UI.esc(cur.comment || "") + '"></span></div>';
+    }).join("") + '<div class="bar" style="margin-top:10px"><button class="sbtn pri" type="submit">保存评分</button></div></form>';
+  }
+
+  // ---------- 课程总评 ----------
+  function drawGrades(){
+    if (!scale) return panel.innerHTML = '<div class="msg warn show">这一次没能读到等级表，暂时不能录总评。请刷新。</div>';
+    const st = data.offering.status;
+    if (st === "planned" || st === "cancelled") {
+      return panel.innerHTML = UI.box("📋", "还不能录总评", st === "planned" ? "课程班开始上课后才能录总评。" : "这个课程班已取消。");
+    }
+    const rows = data.roster;
+    const returned = rows.find(r => r.returned_reason && r.final_status === "draft");
+    const editable = rows.some(r => !r.final_status || r.final_status === "draft");
+    panel.innerHTML = (returned ? '<div class="msg warn show"><b>教务退回了这批成绩：</b>' + UI.esc(returned.returned_reason) + '</div>' : "") +
+      '<p class="who">等级制 A+ 至 F，D- 及以上给学分，F 须重修。流程：保存草稿 → 提交给教务 → 教务发布后学员才看得到。</p>' +
+      (rows.length ? '<form class="card" id="gf" novalidate>' + rows.map(r => {
+          const s = r.final_status || "none";
+          const lockd = s === "submitted" || s === "published";
+          return '<div class="row"><span>' + UI.esc(r.display_name || "未登记姓名") + ' <small>' + UI.esc(r.student_number || "") + '</small> ' +
+            '<span class="chip ' + s + '">' + S.GST[s] + '</span>' + (r.correction_pending ? ' <span class="chip">更正待审批</span>' : "") + '</span>' +
+            (lockd ? '<span class="bar"><b>' + UI.esc(r.final_grade || "") + '</b>' +
+                (s === "published" && !r.correction_pending ? '<button type="button" class="sbtn" data-corr="' + r.enrollment_id + '">申请更正</button>' : "") + '</span>'
+              : '<span class="bar"><select data-g="' + r.enrollment_id + '" aria-label="总评">' + gradeOpts(r.final_grade, "未录") + '</select>' +
+                '<input data-c="' + r.enrollment_id + '" maxlength="1000" placeholder="评语（可选）" value="' + UI.esc(r.final_comment || "") + '"></span>') + '</div>';
+        }).join("") +
+        (editable ? '<div class="bar" style="margin-top:12px"><button class="sbtn" type="submit">保存草稿</button>' +
+          '<button class="sbtn pri" type="button" id="submitg">提交给教务</button></div>' : "") + '</form>'
+        : UI.box("📋", "班里还没有学员", ""));
+
+    const gf = panel.querySelector("#gf");
+    const collect = () => [...gf.querySelectorAll("select[data-g]")].map(x => ({ enrollment_id: x.dataset.g, grade: x.value,
+      comment: gf.querySelector('[data-c="' + x.dataset.g + '"]').value.trim() }));
+    gf?.addEventListener("submit", async (e) => {
+      e.preventDefault(); clear();
+      const r = await S.write({ lock: "grades", rpc: "teacher_save_grades", args: { p_offering: id, p_entries: collect() }, say });
+      if (r) { UI.toast("草稿已保存"); load(); }
+    });
+    panel.querySelector("#submitg")?.addEventListener("click", async () => {
+      clear();
+      const missing = collect().filter(x => !x.grade).length;
+      if (missing) return say("还有 " + missing + " 位学员没有选等级，全部录完才能提交。");
+      const ok = await UI.confirmDialog({ title: "提交总评给教务", text: "提交前会先保存当前填写。提交后不能再改，教务发布后学员才看得到。", confirmLabel: "保存并提交" });
+      if (!ok) return;
+      const saved = await S.write({ lock: "grades", rpc: "teacher_save_grades", args: { p_offering: id, p_entries: collect() }, say });
+      if (!saved) return;
+      if (await S.write({ lock: "grades", rpc: "teacher_submit_grades", args: { p_offering: id }, say })) { UI.toast("已提交给教务"); load(); }
+    });
+    panel.querySelectorAll("[data-corr]").forEach(b => b.addEventListener("click", async () => {
+      const r = data.roster.find(x => x.enrollment_id === b.dataset.corr);
+      const v = await S.ask({ title: "申请更正「" + (r.display_name || "") + "」的总评", text: "现等级 " + r.final_grade + "。更正须由教务审批，批准后学分会自动随之调整。",
+        fields: [{ id: "to", label: "改为", type: "select", required: true, options: scale.filter(g => g.letter !== r.final_grade).map(g => [g.letter, g.letter]) },
+                 { id: "reason", label: "更正原因", type: "textarea", required: true }], confirmLabel: "提交更正申请" });
+      if (!v) return;
+      if (await S.write({ lock: "corr-" + r.enrollment_id, rpc: "teacher_request_correction",
+            args: { p_enrollment: r.enrollment_id, p_to_grade: v.to, p_reason: v.reason }, say })) { UI.toast("更正申请已提交"); load(); }
+    }));
+  }
+
+  if (!/^[0-9a-f-]{36}$/i.test(id)) {
+    main.querySelector(".tabs").hidden = true;
+    panel.innerHTML = UI.box("❓", "没有指定课程班", "请从「我的课程」进入。");
+  } else load();
+})();
+</script>
+</body>
+</html>

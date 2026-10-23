@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>学籍管理 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610231243">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610231310">
 <style>
 .tabs{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap}
 .tabs button{min-height:40px;padding:0 16px;border:1.5px solid var(--line);border-radius:999px;background:#fff;
@@ -22,10 +22,12 @@
 .st.active{background:#e9f3ee;color:var(--ok)}
 .st.on_leave{background:#eaf0f8;color:#10305a}
 .st.withdrawn{background:#f3e9e9;color:#8a2c2c}
+.st.graduated{background:#eaf0f8;color:#10305a}
 .num{font-variant-numeric:tabular-nums;word-break:break-all}
 .acts2{display:flex;gap:6px;flex-wrap:wrap}
 .acts2 button{min-height:40px;padding:0 12px;border:1.5px solid var(--line);border-radius:9px;background:#fff;font:inherit;font-size:13px;cursor:pointer}
 .acts2 button.pri{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700}
+.acts2 .sbtn-link{display:inline-flex;align-items:center;min-height:40px;padding:0 12px;border:1.5px solid var(--line);border-radius:9px;background:#fff;font-size:13px;color:var(--navy);text-decoration:none}
 .fld{margin-top:12px}
 .fld label{display:block;font-size:13px;font-weight:700;color:var(--navy);margin-bottom:5px}
 .fld input{width:100%;min-height:44px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font:inherit}
@@ -34,11 +36,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202610231243"></script>
-<script src="../../../assets/js/portal/auth.js?v=202610231243"></script>
-<script src="../../../assets/js/portal/api.js?v=202610231243"></script>
-<script src="../../../assets/js/portal/ui.js?v=202610231243"></script>
-<script src="../../../assets/js/portal/shell.js?v=202610231243"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/api.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610231310"></script>
 <script>
 /* PORTAL-2 学籍管理（教务侧）
    闭环：录取 → 记录总校审核确认 → 建档(pre_enrolled) → 正式注册(active)；学号可经专用通道更正。
@@ -54,7 +56,7 @@
   if (!mounted) return;
   const { main } = mounted;
 
-  const ST = { pre_enrolled: "待正式注册", active: "在读", on_leave: "休学中", withdrawn: "已退学" };
+  const ST = { pre_enrolled: "待正式注册", active: "在读", on_leave: "休学中", withdrawn: "已退学", graduated: "已毕业" };
   const HQ = { pending: "待确认", approved: "总校已确认", rejected: "总校未通过" };
   let tab = "queue", pcMap = {};
 
@@ -267,7 +269,8 @@
               ? '<button data-void="' + s.id + '"' + noId + '>申请纠正误录</button>' : "") +
             (s.status === "active" ? '<button data-to="on_leave" data-sid="' + s.id + '"' + noId + '>休学</button>' : "") +
             (s.status === "on_leave" ? '<button data-to="active" data-sid="' + s.id + '"' + noId + '>复学</button>' : "") +
-            (s.status !== "withdrawn" ? '<button data-to="withdrawn" data-sid="' + s.id + '"' + noId + '>退学</button>' : "") +
+            (s.status !== "withdrawn" && s.status !== "graduated" ? '<button data-to="withdrawn" data-sid="' + s.id + '"' + noId + '>退学</button>' : "") +
+            (s.status !== "pre_enrolled" ? '<a class="sbtn-link" href="' + A.ROOT + 'portal/admin/student/?id=' + s.id + '">学业</a>' : "") +
           '</div></td></tr>';
       }).join("") + '</tbody></table></div></div>';
 

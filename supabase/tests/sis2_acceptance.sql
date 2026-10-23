@@ -56,11 +56,8 @@ begin
   perform set_config('amas.test.uid', v_t1::text, true);
   perform set_config('request.jwt.claims', '{"aal":"aal1"}', true);
   execute 'set role authenticated';
-  begin
-    r := public.teacher_save_session(v_off, null, '2026-10-06', '第一课', null, null);
-    raise exception 'FAIL G01 未两步验证也能记课';
-  exception when others then if sqlerrm not like '%mfa_required%' then raise; end if;
-  end;
+  r := public.teacher_save_session(v_off, null, '2026-10-06', '第一课', null, null);
+  if r->>'error' is distinct from 'mfa_required' then raise exception 'FAIL G01 未两步验证也能记课 %', r; end if;
   perform set_config('request.jwt.claims', '{"aal":"aal2"}', true);
   r := public.teacher_save_session(v_off, null, '2026-10-06', '第一课：福音书导论', 'https://example.org/s1.pdf', null);
   if not (r->>'ok')::boolean then raise exception 'FAIL G01b 记课失败 %', r; end if;
@@ -70,11 +67,11 @@ begin
   execute 'reset role';
   perform set_config('amas.test.uid', v_t2::text, true);
   execute 'set role authenticated';
-  begin
-    r := public.teacher_save_session(v_off, null, '2026-10-06', '越权', null, null);
-    raise exception 'FAIL G01d 非任课教授能记课';
-  exception when others then if sqlerrm not like '%not_assigned%' then raise; end if;
-  end;
+  perform set_config('request.jwt.claims', '{"aal":"aal2"}', true);
+  r := public.teacher_save_session(v_off, null, '2026-10-06', '越权', null, null);
+  if r->>'error' is distinct from 'not_assigned' then raise exception 'FAIL G01d 非任课教授能记课 %', r; end if;
+  r := public.teacher_save_grades(v_off, jsonb_build_array(jsonb_build_object('enrollment_id', e1, 'grade', 'A+')));
+  if r->>'error' is distinct from 'not_assigned' then raise exception 'FAIL G01d2 非任课教授能录成绩 %', r; end if;
   select count(*) into n from public.teacher_offering_detail(v_off) x where x is not null;
   if n <> 0 then raise exception 'FAIL G01e 非任课教授读到班级详情'; end if;
   execute 'reset role';
@@ -283,11 +280,8 @@ begin
   if public.mentee_detail(s1) is not null then raise exception 'FAIL G08e 导师看到非所带学员'; end if;
   r := public.mentor_add_note(s2, '本周谈了服事方向');
   if not (r->>'ok')::boolean then raise exception 'FAIL G08f 写陪伴记录失败 %', r; end if;
-  begin
-    r := public.mentor_add_note(s1, '越权');
-    raise exception 'FAIL G08g 导师能给非所带学员写记录';
-  exception when others then if sqlerrm not like '%not_assigned%' then raise; end if;
-  end;
+  r := public.mentor_add_note(s1, '越权');
+  if r->>'error' is distinct from 'not_assigned' then raise exception 'FAIL G08g 导师能给非所带学员写记录 %', r; end if;
   execute 'reset role';
   perform set_config('amas.test.uid', v_u2::text, true);
   execute 'set role authenticated';

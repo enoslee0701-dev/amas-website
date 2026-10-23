@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>成绩与进度 | AMAS 学员中心</title>
+<link rel="icon" href="../../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610231310">
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/api.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610231310"></script>
+<script>
+/* 学员管理系统第三期：学员的成绩与毕业进度。
+   my_progress()：已得学分（课程 + 实践训练）/ 毕业要求、GPA、未修课程、实践训练；my_grades()：已发布总评。
+   实践训练由学员自行填报完成（Enos 2026-10-23 决定），填报即计学分，可撤回。
+   这里显示的是**学习记录**，不是正式成绩单；正式成绩单的出具方式待定。 */
+(async function(){
+  const UI = window.AmasUI, Api = window.AmasApi, Shell = window.AmasShell, S = window.AmasSis;
+  const mounted = await Shell.mount({ space: "student", title: "成绩与进度", allow: ["student"] });
+  if (!mounted) return;
+  const { main } = mounted;
+
+  async function load(){
+    UI.loading(main, 5);
+    const [p, g] = await Promise.all([Api.rpc("my_progress"), Api.rpc("my_grades")]);
+    if (p.error || g.error || !Array.isArray(g.data)) {
+      return UI.error(main, { message: "这一次没能读到你的成绩与进度。这不表示你没有记录，请稍后重试。", onRetry: load });
+    }
+    const pr = p.data;
+    if (!pr) return main.innerHTML = '<h1>成绩与进度</h1>' + UI.box("🎓", "还没有学籍记录", "建档后这里会显示你的学分与成绩。");
+    const req = Number(pr.credits_required) || 0, got = Number(pr.credits_earned) || 0;
+    const pct = req ? Math.min(100, Math.round(got / req * 100)) : 0;
+    const editable = pr.status === "active" || pr.status === "on_leave";
+    const missing = pr.missing_courses || [];
+
+    main.innerHTML = '<h1>成绩与进度</h1>' +
+      '<p class="lead">这是你的学习记录（非正式成绩单）。成绩以教务发布为准。</p>' +
+      '<div class="msg err" id="err" role="alert" tabindex="-1"></div>' +
+      '<div class="stat"><div><b>' + got + (req ? ' / ' + req : "") + '</b><span>已得学分</span></div>' +
+        '<div><b>' + (pr.gpa == null ? "—" : Number(pr.gpa).toFixed(2)) + '</b><span>平均绩点 GPA</span></div>' +
+        '<div><b>' + missing.length + '</b><span>未修必修课</span></div></div>' +
+      (req ? '<div class="meter" style="margin:12px 0 4px" role="progressbar" aria-valuemin="0" aria-valuemax="' + req + '" aria-valuenow="' + got + '"><i style="width:' + pct + '%"></i></div>' +
+        '<p class="who">课程 ' + (pr.course_credits || 0) + ' 学分 + 实践训练 ' + (pr.practicum_credits || 0) + ' 学分。' +
+        (pr.status === "graduated" ? "<b>已毕业。</b>" : pr.eligible ? "<b>已满足毕业条件</b>，教务审核后登记毕业。" :
+          "毕业需修满 " + req + " 学分" + (pr.min_gpa ? "、GPA 不低于 " + Number(pr.min_gpa).toFixed(1) : "") + "。") + '</p>' : "") +
+
+      '<div class="card" style="margin-top:16px"><h2 style="font-size:16px;margin:0 0 6px">实践训练</h2>' +
+        '<p class="who">完成后由你自己填报，填报即计学分；填错可以撤回。</p>' +
+        (pr.practicum || []).map(i => '<div class="row"><span>' + UI.esc(i.title_zh) + ' <small>' + i.credits + ' 学分</small></span>' +
+          '<span class="bar">' + (i.done ? '<span class="chip published">已完成 ' + S.d(i.completed_on) + '</span>' : '<span class="chip">未填报</span>') +
+          (editable ? (i.done ? '<button class="sbtn" data-undo="' + i.code + '" data-t="' + UI.esc(i.title_zh) + '">撤回</button>'
+                              : '<button class="sbtn pri" data-rep="' + i.code + '" data-t="' + UI.esc(i.title_zh) + '">填报完成</button>') : "") +
+          '</span></div>').join("") + '</div>' +
+
+      '<div class="card" style="margin-top:16px"><h2 style="font-size:16px;margin:0 0 6px">已发布的成绩</h2>' +
+        (g.data.length ? g.data.map(x => '<div class="row"><span>' + UI.esc(x.title_zh) + ' <small>' + UI.esc(x.academic_year) +
+            (x.credits ? ' · ' + x.credits + ' 学分' : "") + '</small></span><span class="bar"><b>' + UI.esc(x.grade) + '</b>' +
+            '<small>' + Number(x.points).toFixed(1) + '</small>' + (x.passing ? "" : '<span class="chip withdrawn">须重修</span>') + '</span></div>').join("")
+          : '<p class="who">还没有已发布的成绩。</p>') + '</div>' +
+
+      (missing.length ? '<div class="card" style="margin-top:16px"><h2 style="font-size:16px;margin:0 0 6px">尚未修过的必修课（' + missing.length + '）</h2>' +
+        missing.map(c => '<div class="row"><span>' + UI.esc(c.title_zh) + '</span><small>' + c.credits + ' 学分</small></div>').join("") + '</div>' : "");
+
+    const errBox = main.querySelector("#err");
+    const say = (m) => { errBox.textContent = m; errBox.classList.add("show"); errBox.focus(); };
+    main.querySelectorAll("[data-rep]").forEach(b => b.addEventListener("click", async () => {
+      const v = await S.ask({ title: "填报完成：" + b.dataset.t, fields: [
+        { id: "on", label: "完成日期", type: "date", required: true, value: S.today() },
+        { id: "note", label: "说明", type: "textarea" }], confirmLabel: "确认填报" });
+      if (!v) return;
+      const r = await S.write({ lock: "p-" + b.dataset.rep, rpc: "report_practicum", args: { p_item: b.dataset.rep, p_completed_on: v.on, p_note: v.note || null }, say });
+      if (r) { UI.toast("已填报" + (Number(r.credits_added) ? "，计入 " + r.credits_added + " 学分" : "")); load(); }
+    }));
+    main.querySelectorAll("[data-undo]").forEach(b => b.addEventListener("click", async () => {
+      const ok = await UI.confirmDialog({ title: "撤回「" + b.dataset.t + "」", text: "撤回后这项的学分会扣回，可以再重新填报。", confirmLabel: "确认撤回", danger: true });
+      if (!ok) return;
+      if (await S.write({ lock: "p-" + b.dataset.undo, rpc: "retract_practicum", args: { p_item: b.dataset.undo }, say })) { UI.toast("已撤回"); load(); }
+    }));
+  }
+  load();
+})();
+</script>
+</body>
+</html>

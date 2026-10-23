@@ -645,8 +645,17 @@ try {
      (await cdp.ev(`!!document.querySelector(".portal-shell .pn")`)) === true);
   ok("T1 导航里有「我的资料」",
      (await cdp.ev(`[...document.querySelectorAll(".pn a")].some(a=>/我的资料/.test(a.textContent||""))`)) === true);
-  ok("T1 未开通的四项不是可点链接（点进去空无一物比看见「即将开通」更糟）",
-     (await cdp.ev(`document.querySelectorAll(".spaces a").length`)) === 0);
+  /* 原断言是「未开通的四项不是可点链接」—— 用意是点进去不能空无一物。
+     学员管理系统（0030/0032）把「我的课程」「我带的学员」做成了真页面，入口随之变成链接；
+     用意不变，改成直接验它：工作台上每个链接都必须指向一个真实存在的页面，且不再有「即将开通」。 */
+  const tc_links = await cdp.ev(`[...document.querySelectorAll(".spaces a")].map(a=>a.getAttribute("href"))`);
+  const tc_ok = [];
+  for (const h of tc_links) {
+    const u = new URL(h, `${BASE}/portal/teacher/`);
+    tc_ok.push((await fetch(u.href)).status === 200);
+  }
+  ok("T1 工作台入口都指向真实存在的页面，且没有「即将开通」的空入口",
+     tc_links.length >= 1 && tc_ok.every(Boolean) && !/即将开通/.test(tc_t1), JSON.stringify(tc_links));
 
   // T2 工作台：还没有档案 —— 与「读取出错」必须分开说
   await open("portal/teacher/", Object.assign({}, TEACHER, {

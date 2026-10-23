@@ -447,24 +447,27 @@ end $$;
 -- ============================================================
 -- 7. 教授 RPC（authenticated；本班任课 + 有效 teacher 角色 + aal2）
 -- ============================================================
-create or replace function public.sis_teacher_gate(p_offering uuid, p_allow text[])
-returns public.course_offerings language plpgsql stable security definer set search_path = '' as $$
-declare o public.course_offerings;
+create or replace function public.sis_teacher_check(p_offering uuid, p_allow text[])
+returns text language plpgsql stable security definer set search_path = '' as $$
+declare v_status text;
 begin
-  if not public.request_is_aal2() then raise exception 'mfa_required'; end if;
-  if not public.is_assigned_teacher(auth.uid(), p_offering) then raise exception 'not_assigned'; end if;
-  select * into o from public.course_offerings where id = p_offering;
-  if not (o.status = any(p_allow)) then raise exception 'invalid_state'; end if;
-  return o;
+  -- 拒绝一律**返回**错误码而不是抛异常：抛出的异常经 PostgREST 到前端只剩 400，
+  -- 页面分不清「没两步验证」「不是本班教授」「课程班已取消」。
+  if not public.request_is_aal2() then return 'mfa_required'; end if;
+  if not public.is_assigned_teacher(auth.uid(), p_offering) then return 'not_assigned'; end if;
+  select status into v_status from public.course_offerings where id = p_offering;
+  if not (v_status = any(p_allow)) then return 'invalid_state'; end if;
+  return null;
 end $$;
-revoke execute on function public.sis_teacher_gate(uuid,text[]) from public, anon, authenticated;
+revoke execute on function public.sis_teacher_check(uuid,text[]) from public, anon, authenticated;
 
 create or replace function public.teacher_save_session(
   p_offering uuid, p_session uuid, p_held_on date, p_topic text, p_materials_url text, p_note text
 ) returns jsonb language plpgsql security definer set search_path = '' as $$
-declare v_id uuid; v_old public.class_sessions;
+declare v_gate text; v_id uuid; v_old public.class_sessions;
 begin
-  perform public.sis_teacher_gate(p_offering, array['planned','in_progress','completed']);
+  v_gate := public.sis_teacher_check(p_offering, array['planned','in_progress','completed']);
+  if v_gate is not null then return jsonb_build_object('ok', false, 'error', v_gate); end if;
   if p_held_on is null or coalesce(trim(p_topic), '') = '' then
     return jsonb_build_object('ok', false, 'error', 'bad_request');
   end if;
@@ -475,7 +478,7 @@ begin
       returning id into v_id;
     else
       select * into v_old from public.class_sessions where id = p_session and offering_id = p_offering for update;
-      if not found then raise exception 'not_found'; end if;
+      if not found then return jsonb_build_object('ok', false, 'error', 'not_found'); end if;
       update public.class_sessions set held_on = p_held_on, topic = trim(p_topic),
              materials_url = nullif(trim(p_materials_url), ''), note = nullif(trim(p_note), '')
        where id = p_session;
@@ -493,11 +496,12 @@ end $$;
 
 create or replace function public.teacher_delete_session(p_session uuid)
 returns jsonb language plpgsql security definer set search_path = '' as $$
-declare v public.class_sessions;
+declare v_gate text; v public.class_sessions;
 begin
   select * into v from public.class_sessions where id = p_session for update;
-  if not found then raise exception 'not_found'; end if;
-  perform public.sis_teacher_gate(v.offering_id, array['planned','in_progress','completed']);
+  if not found then return jsonb_build_object('ok', false, 'error', 'not_found'); end if;
+  v_gate := public.sis_teacher_check(v.offering_id, array['planned','in_progress','completed']);
+  if v_gate is not null then return jsonb_build_object('ok', false, 'error', v_gate); end if;
   delete from public.class_sessions where id = p_session;
   perform public.sis_audit(auth.uid(), 'session_deleted', 'class_sessions', p_session::text,
     jsonb_build_object('offering', v.offering_id, 'held_on', v.held_on, 'topic', v.topic), null, null);
@@ -507,11 +511,12 @@ end $$;
 -- p_entries: [{"enrollment_id": "...", "status": "present|late|excused|absent", "note": "..."}]
 create or replace function public.teacher_set_attendance(p_session uuid, p_entries jsonb)
 returns jsonb language plpgsql security definer set search_path = '' as $$
-declare v public.class_sessions; x jsonb; n int := 0; v_bad int := 0;
+declare v_gate text; v public.class_sessions; x jsonb; n int := 0; v_bad int := 0;
 begin
   select * into v from public.class_sessions where id = p_session;
-  if not found then raise exception 'not_found'; end if;
-  perform public.sis_teacher_gate(v.offering_id, array['planned','in_progress','completed']);
+  if not found then return jsonb_build_object('ok', false, 'error', 'not_found'); end if;
+  v_gate := public.sis_teacher_check(v.offering_id, array['planned','in_progress','completed']);
+  if v_gate is not null then return jsonb_build_object('ok', false, 'error', v_gate); end if;
   if jsonb_typeof(p_entries) <> 'array' then return jsonb_build_object('ok', false, 'error', 'bad_request'); end if;
   for x in select * from jsonb_array_elements(p_entries) loop
     if not exists (select 1 from public.course_enrollments e
@@ -533,9 +538,10 @@ end $$;
 create or replace function public.teacher_save_assignment(
   p_offering uuid, p_assignment uuid, p_title text, p_description text, p_due_on date, p_weight numeric
 ) returns jsonb language plpgsql security definer set search_path = '' as $$
-declare v_id uuid;
+declare v_gate text; v_id uuid;
 begin
-  perform public.sis_teacher_gate(p_offering, array['planned','in_progress','completed']);
+  v_gate := public.sis_teacher_check(p_offering, array['planned','in_progress','completed']);
+  if v_gate is not null then return jsonb_build_object('ok', false, 'error', v_gate); end if;
   if coalesce(trim(p_title), '') = '' then return jsonb_build_object('ok', false, 'error', 'bad_request'); end if;
   begin
     if p_assignment is null then
@@ -546,7 +552,7 @@ begin
       update public.assignments set title = trim(p_title), description = nullif(trim(p_description), ''),
              due_on = p_due_on, weight = p_weight
        where id = p_assignment and offering_id = p_offering returning id into v_id;
-      if v_id is null then raise exception 'not_found'; end if;
+      if v_id is null then return jsonb_build_object('ok', false, 'error', 'not_found'); end if;
     end if;
   exception when check_violation then
     return jsonb_build_object('ok', false, 'error', 'invalid_fields');
@@ -558,11 +564,12 @@ end $$;
 
 create or replace function public.teacher_delete_assignment(p_assignment uuid)
 returns jsonb language plpgsql security definer set search_path = '' as $$
-declare a public.assignments;
+declare v_gate text; a public.assignments;
 begin
   select * into a from public.assignments where id = p_assignment for update;
-  if not found then raise exception 'not_found'; end if;
-  perform public.sis_teacher_gate(a.offering_id, array['planned','in_progress','completed']);
+  if not found then return jsonb_build_object('ok', false, 'error', 'not_found'); end if;
+  v_gate := public.sis_teacher_check(a.offering_id, array['planned','in_progress','completed']);
+  if v_gate is not null then return jsonb_build_object('ok', false, 'error', v_gate); end if;
   delete from public.assignments where id = p_assignment;
   perform public.sis_audit(auth.uid(), 'assignment_deleted', 'assignments', p_assignment::text,
     jsonb_build_object('offering', a.offering_id, 'title', a.title), null, null);
@@ -572,11 +579,12 @@ end $$;
 -- p_entries: [{"enrollment_id": "...", "grade": "A-", "comment": "..."}]；grade 为空 = 清除该生评分
 create or replace function public.teacher_set_scores(p_assignment uuid, p_entries jsonb)
 returns jsonb language plpgsql security definer set search_path = '' as $$
-declare a public.assignments; x jsonb; n int := 0; v_bad int := 0; g text;
+declare v_gate text; a public.assignments; x jsonb; n int := 0; v_bad int := 0; g text;
 begin
   select * into a from public.assignments where id = p_assignment;
-  if not found then raise exception 'not_found'; end if;
-  perform public.sis_teacher_gate(a.offering_id, array['planned','in_progress','completed']);
+  if not found then return jsonb_build_object('ok', false, 'error', 'not_found'); end if;
+  v_gate := public.sis_teacher_check(a.offering_id, array['planned','in_progress','completed']);
+  if v_gate is not null then return jsonb_build_object('ok', false, 'error', v_gate); end if;
   if jsonb_typeof(p_entries) <> 'array' then return jsonb_build_object('ok', false, 'error', 'bad_request'); end if;
   for x in select * from jsonb_array_elements(p_entries) loop
     g := nullif(trim(coalesce(x->>'grade', '')), '');
@@ -603,9 +611,10 @@ end $$;
 -- 课程总评：只能改草稿；已提交 / 已发布的不动（发布后走更正）
 create or replace function public.teacher_save_grades(p_offering uuid, p_entries jsonb)
 returns jsonb language plpgsql security definer set search_path = '' as $$
-declare x jsonb; n int := 0; v_locked int := 0; v_bad int := 0; g text; v_eid uuid; cur public.final_grades;
+declare v_gate text; x jsonb; n int := 0; v_locked int := 0; v_bad int := 0; g text; v_eid uuid; cur public.final_grades;
 begin
-  perform public.sis_teacher_gate(p_offering, array['in_progress','completed']);
+  v_gate := public.sis_teacher_check(p_offering, array['in_progress','completed']);
+  if v_gate is not null then return jsonb_build_object('ok', false, 'error', v_gate); end if;
   if jsonb_typeof(p_entries) <> 'array' then return jsonb_build_object('ok', false, 'error', 'bad_request'); end if;
   for x in select * from jsonb_array_elements(p_entries) loop
     v_eid := (x->>'enrollment_id')::uuid;
@@ -630,9 +639,10 @@ end $$;
 
 create or replace function public.teacher_submit_grades(p_offering uuid)
 returns jsonb language plpgsql security definer set search_path = '' as $$
-declare n int; v_missing int;
+declare v_gate text; n int; v_missing int;
 begin
-  perform public.sis_teacher_gate(p_offering, array['in_progress','completed']);
+  v_gate := public.sis_teacher_check(p_offering, array['in_progress','completed']);
+  if v_gate is not null then return jsonb_build_object('ok', false, 'error', v_gate); end if;
   select count(*) into v_missing from public.course_enrollments e
    left join public.final_grades g on g.enrollment_id = e.id
    where e.offering_id = p_offering and e.status = 'enrolled' and (g.enrollment_id is null or g.grade is null);
@@ -651,11 +661,12 @@ end $$;
 
 create or replace function public.teacher_request_correction(p_enrollment uuid, p_to_grade text, p_reason text)
 returns jsonb language plpgsql security definer set search_path = '' as $$
-declare g public.final_grades; v_off uuid; v_id uuid;
+declare v_gate text; g public.final_grades; v_off uuid; v_id uuid;
 begin
   select e.offering_id into v_off from public.course_enrollments e where e.id = p_enrollment;
-  if v_off is null then raise exception 'not_found'; end if;
-  perform public.sis_teacher_gate(v_off, array['in_progress','completed']);
+  if v_off is null then return jsonb_build_object('ok', false, 'error', 'not_found'); end if;
+  v_gate := public.sis_teacher_check(v_off, array['in_progress','completed']);
+  if v_gate is not null then return jsonb_build_object('ok', false, 'error', v_gate); end if;
   if coalesce(trim(p_reason), '') = '' then return jsonb_build_object('ok', false, 'error', 'reason_required'); end if;
   if not exists (select 1 from public.grade_scale where letter = p_to_grade) then
     return jsonb_build_object('ok', false, 'error', 'bad_grade');
@@ -1001,7 +1012,7 @@ create or replace function public.report_practicum(p_item text, p_completed_on d
 returns jsonb language plpgsql security definer set search_path = '' as $$
 declare v_sid uuid := public.my_student_id(); s public.student_records; i public.practicum_items; r public.practicum_reports;
 begin
-  if v_sid is null then raise exception 'not_a_student'; end if;
+  if v_sid is null then return jsonb_build_object('ok', false, 'error', 'not_a_student'); end if;
   select * into s from public.student_records where id = v_sid;
   if s.status not in ('active','on_leave') then return jsonb_build_object('ok', false, 'error', 'invalid_state'); end if;
   select * into i from public.practicum_items where code = p_item and program_code = s.program_code;
@@ -1030,7 +1041,7 @@ create or replace function public.retract_practicum(p_item text)
 returns jsonb language plpgsql security definer set search_path = '' as $$
 declare v_sid uuid := public.my_student_id(); s public.student_records; i public.practicum_items; r public.practicum_reports;
 begin
-  if v_sid is null then raise exception 'not_a_student'; end if;
+  if v_sid is null then return jsonb_build_object('ok', false, 'error', 'not_a_student'); end if;
   select * into s from public.student_records where id = v_sid;
   if s.status not in ('active','on_leave') then return jsonb_build_object('ok', false, 'error', 'invalid_state'); end if;
   select * into r from public.practicum_reports where student_id = v_sid and item_code = p_item for update;
@@ -1091,8 +1102,8 @@ create or replace function public.mentor_add_note(p_student uuid, p_body text)
 returns jsonb language plpgsql security definer set search_path = '' as $$
 declare v_id uuid;
 begin
-  if not public.request_is_aal2() then raise exception 'mfa_required'; end if;
-  if not public.is_assigned_mentor(auth.uid(), p_student) then raise exception 'not_assigned'; end if;
+  if not public.request_is_aal2() then return jsonb_build_object('ok', false, 'error', 'mfa_required'); end if;
+  if not public.is_assigned_mentor(auth.uid(), p_student) then return jsonb_build_object('ok', false, 'error', 'not_assigned'); end if;
   if coalesce(trim(p_body), '') = '' or char_length(p_body) > 4000 then
     return jsonb_build_object('ok', false, 'error', 'bad_request');
   end if;

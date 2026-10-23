@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>我带的学员 | AMAS 教师工作台</title>
+<link rel="icon" href="../../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610231310">
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/api.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610231310"></script>
+<script>
+/* 学员管理系统第四期：导师看所带学员的学业进度，并写陪伴记录。
+   my_mentees / mentee_detail / mentor_add_note（0032）：只限教务指派给他的学员；
+   陪伴记录只增不改，学员与任课教授都看不到。 */
+(async function(){
+  const UI = window.AmasUI, Api = window.AmasApi, Shell = window.AmasShell, S = window.AmasSis;
+  const mounted = await Shell.mount({ space: "teacher", title: "我带的学员", allow: ["mentor"], requireAal2: true });
+  if (!mounted) return;
+  const { main } = mounted;
+  let open = null;
+
+  async function load(){
+    UI.loading(main, 4);
+    const { data, error } = await Api.rpc("my_mentees");
+    if (error || !Array.isArray(data)) return UI.error(main, { message: "这一次没能读到你带的学员。这不表示没有指派，请重试。", onRetry: load });
+    let detail = "";
+    if (open) {
+      const { data: m, error: e } = await Api.rpc("mentee_detail", { p_student: open });
+      detail = e || !m ? '<p class="who">这一次没能读到这位学员的详情。</p>'
+        : '<div class="meta" style="margin:6px 0"><span>课程 ' + (m.course_credits || 0) + ' 学分</span><span>实践训练 ' + (m.practicum_credits || 0) + ' 学分</span>' +
+            '<span>未修必修课 ' + (m.missing_courses || []).length + ' 门</span></div>' +
+          '<h3 style="font-size:14px;margin:10px 0 4px">在修课程</h3>' +
+          ((m.courses || []).length ? m.courses.map(c => '<div class="row"><span>' + UI.esc(c.title_zh) + ' <small>' + UI.esc(c.academic_year) + '</small></span><b>' +
+              UI.esc(c.grade || S.OST[c.offering_status] || "") + '</b></div>').join("") : '<p class="who">暂无。</p>') +
+          '<h3 style="font-size:14px;margin:12px 0 4px">陪伴记录（只有你和教务看得到）</h3>' +
+          '<form id="nf" novalidate><textarea id="nb" rows="3" maxlength="4000" style="width:100%;padding:10px;border:1.5px solid var(--line);border-radius:10px;font:inherit" placeholder="这次谈了什么、代祷事项、下次跟进…"></textarea>' +
+          '<div class="bar" style="margin-top:6px"><button class="sbtn pri" type="submit">保存记录</button></div></form>' +
+          ((m.notes || []).length ? m.notes.map(n => '<div class="row"><span style="white-space:pre-wrap">' + UI.esc(n.body) + '</span><small>' + S.d(n.created_at) + '</small></div>').join("") : '<p class="who">还没有记录。</p>');
+    }
+    main.innerHTML = '<h1>我带的学员</h1><p class="lead">教务指派给你的学员。陪伴记录写下后不能修改，只有你和教务看得到。</p>' +
+      '<div class="msg err" id="err" role="alert" tabindex="-1"></div>' +
+      (data.length ? '<div class="ofs">' + data.map(s => '<div class="of"><div class="top"><h3>' + UI.esc(s.display_name || "未登记姓名") + '</h3>' +
+          '<span class="chip ' + s.status + '">' + (S.SST[s.status] || s.status) + '</span></div>' +
+          '<div class="meta"><span>学号 ' + UI.esc(s.student_number || "—") + '</span><span>学分 ' + s.credits_earned + (s.credits_required ? ' / ' + s.credits_required : "") + '</span>' +
+            '<span>GPA ' + (s.gpa == null ? "—" : Number(s.gpa).toFixed(2)) + '</span></div>' +
+          '<div class="bar"><button class="sbtn pri" data-open="' + s.student_id + '">' + (open === s.student_id ? "收起" : "查看与记录") + '</button></div>' +
+          (open === s.student_id ? detail : "") + '</div>').join("") + '</div>'
+        : UI.box("🤝", "还没有指派给你的学员", "教务指派后，学员会出现在这里。"));
+
+    const errBox = main.querySelector("#err");
+    const say = (m) => { errBox.textContent = m; errBox.classList.add("show"); errBox.focus(); };
+    main.querySelectorAll("[data-open]").forEach(b => b.addEventListener("click", () => { open = open === b.dataset.open ? null : b.dataset.open; load(); }));
+    main.querySelector("#nf")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const body = main.querySelector("#nb").value.trim();
+      if (!body) return say("请先写下记录内容。");
+      if (await S.write({ lock: "note-" + open, rpc: "mentor_add_note", args: { p_student: open, p_body: body }, say })) { UI.toast("已保存"); load(); }
+    });
+  }
+  load();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>成绩审核 | AMAS</title>
+<link rel="icon" href="../../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610231310">
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/api.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610231310"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610231310"></script>
+<script>
+/* 学员管理系统第二期：教务的成绩审核 —— 发布 / 退回教授提交的总评，审批成绩更正。
+   读：admin_grade_queue / admin_offering_grades / admin_pending_corrections；
+   写：sis-admin（aal2 + 角色复核），发布即按及格与否自动入学分账本（0032）。 */
+(async function(){
+  const UI = window.AmasUI, Api = window.AmasApi, Shell = window.AmasShell, S = window.AmasSis;
+  const mounted = await Shell.mount({ space: "admin", title: "管理后台",
+    allow: ["registrar","academic_admin","super_admin"], requireAal2: true });
+  if (!mounted) return;
+  const { main } = mounted;
+  let tab = "queue", open = null;
+
+  main.innerHTML = '<h1>成绩审核</h1><p class="lead">教授提交的总评由教务发布后，学员才看得到，学分同时入账。发布后的成绩只能经更正申请修改。</p>' +
+    '<div class="tabs" role="tablist"><button role="tab" data-tab="queue" aria-selected="true">待发布</button>' +
+    '<button role="tab" data-tab="corr" aria-selected="false">更正申请</button></div>' +
+    '<div class="msg err" id="err" role="alert" tabindex="-1"></div><div id="panel"></div>';
+  const panel = main.querySelector("#panel"), errBox = main.querySelector("#err");
+  const say = (m) => { errBox.textContent = m; errBox.classList.add("show"); errBox.focus(); };
+  const clear = () => errBox.classList.remove("show");
+  main.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => {
+    tab = b.dataset.tab; open = null;
+    main.querySelectorAll("[data-tab]").forEach(x => x.setAttribute("aria-selected", String(x === b)));
+    clear(); load();
+  }));
+
+  async function load(){
+    panel.innerHTML = UI.skeleton(4);
+    return tab === "corr" ? drawCorr() : drawQueue();
+  }
+
+  async function drawQueue(){
+    const { data, error } = await Api.rpc("admin_grade_queue");
+    if (error || !Array.isArray(data)) return UI.error(panel, { message: "这一次没能读到成绩队列。这不表示没有待发布的成绩，请重试。", onRetry: load });
+    if (!data.length) return panel.innerHTML = UI.box("📋", "还没有上课中或已结课的课程班", "课程班开始上课后，教授录的总评会出现在这里。");
+    let detail = "";
+    if (open) {
+      const { data: rows, error: e2 } = await Api.rpc("admin_offering_grades", { p_offering: open });
+      detail = e2 || !Array.isArray(rows) ? '<div class="msg warn show">这一次没能读到这个班的成绩。</div>'
+        : rows.map(r => '<div class="row"><span>' + UI.esc(r.display_name || "未登记姓名") + ' <small>' + UI.esc(r.student_number || "") + '</small></span>' +
+            '<span class="bar"><b>' + UI.esc(r.grade || "—") + '</b><span class="chip ' + r.status + '">' + (S.GST[r.status] || r.status) + '</span></span></div>').join("");
+    }
+    panel.innerHTML = '<div class="ofs">' + data.map(o => {
+      const ready = Number(o.submitted) > 0;
+      return '<div class="of"><div class="top"><h3>' + UI.esc(o.title_zh) + (o.section_label ? " · " + UI.esc(o.section_label) : "") + '</h3>' +
+        (ready ? '<span class="chip submitted">待发布 ' + o.submitted + '</span>' : '<span class="chip ' + o.offering_status + '">' + (S.OST[o.offering_status] || "") + '</span>') + '</div>' +
+        '<div class="meta"><span>' + UI.esc(o.academic_year) + '</span><span>教授：' + UI.esc(o.teachers || "未排") + '</span>' +
+        '<span>在班 ' + o.enrolled + '</span><span>草稿 ' + o.drafts + '</span><span>已发布 ' + o.published + '</span></div>' +
+        '<div class="bar"><button class="sbtn" data-open="' + o.offering_id + '">' + (open === o.offering_id ? "收起" : "查看成绩") + '</button>' +
+        (ready ? '<button class="sbtn pri" data-pub="' + o.offering_id + '" data-n="' + o.submitted + '" data-t="' + UI.esc(o.title_zh) + '">发布</button>' +
+                 '<button class="sbtn" data-ret="' + o.offering_id + '" data-t="' + UI.esc(o.title_zh) + '">退回教授</button>' : "") + '</div>' +
+        (open === o.offering_id ? '<div>' + detail + '</div>' : "") + '</div>';
+    }).join("") + '</div>';
+
+    panel.querySelectorAll("[data-open]").forEach(b => b.addEventListener("click", () => { open = open === b.dataset.open ? null : b.dataset.open; load(); }));
+    panel.querySelectorAll("[data-pub]").forEach(b => b.addEventListener("click", async () => {
+      clear();
+      const ok = await UI.confirmDialog({ title: "发布「" + b.dataset.t + "」的 " + b.dataset.n + " 条成绩", text: "发布后学员立即可见，及格者自动计入学分。发布后只能经更正申请修改。", confirmLabel: "确认发布" });
+      if (!ok) return;
+      const r = await S.write({ lock: "pub-" + b.dataset.pub, fn: "sis-admin", args: { action: "publish_grades", offering_id: b.dataset.pub }, say });
+      if (r) { UI.toast("已发布 " + r.published + " 条，入账 " + r.credits_added + " 学分"); load(); }
+    }));
+    panel.querySelectorAll("[data-ret]").forEach(b => b.addEventListener("click", async () => {
+      clear();
+      const v = await S.ask({ title: "把「" + b.dataset.t + "」的成绩退回教授", text: "退回后教授可以修改再提交，原因会显示给教授。",
+        fields: [{ id: "reason", label: "退回原因", type: "textarea", required: true }], confirmLabel: "确认退回", danger: true });
+      if (!v) return;
+      if (await S.write({ lock: "pub-" + b.dataset.ret, fn: "sis-admin", args: { action: "return_grades", offering_id: b.dataset.ret, reason: v.reason }, say })) {
+        UI.toast("已退回"); load();
+      }
+    }));
+  }
+
+  async function drawCorr(){
+    const { data, error } = await Api.rpc("admin_pending_corrections");
+    if (error || !Array.isArray(data)) return UI.error(panel, { message: "这一次没能读到更正申请。这不表示没有申请，请重试。", onRetry: load });
+    if (!data.length) return panel.innerHTML = UI.box("✅", "没有待审批的更正申请", "");
+    panel.innerHTML = '<div class="ofs">' + data.map(c => '<div class="of"><div class="top"><h3>' + UI.esc(c.display_name || "未登记姓名") +
+        ' · ' + UI.esc(c.title_zh) + '</h3><span class="who"><b>' + UI.esc(c.from_grade) + '</b> → <b>' + UI.esc(c.to_grade) + '</b></span></div>' +
+      '<div class="meta"><span>' + UI.esc(c.academic_year) + '</span><span>学号 ' + UI.esc(c.student_number || "—") + '</span>' +
+        '<span>申请人 ' + UI.esc(c.requested_by_name || "—") + '</span><span>' + S.d(c.requested_at) + '</span></div>' +
+      '<div>原因：' + UI.esc(c.reason) + '</div>' +
+      '<div class="bar"><button class="sbtn pri" data-ok="' + c.correction_id + '">批准</button><button class="sbtn" data-no="' + c.correction_id + '">驳回</button></div></div>').join("") + '</div>';
+    const who = (cid) => data.find(x => x.correction_id === cid);
+    panel.querySelectorAll("[data-ok]").forEach(b => b.addEventListener("click", async () => {
+      clear(); const c = who(b.dataset.ok);
+      const v = await S.ask({ title: "批准更正：" + (c.display_name || "") + " · " + c.title_zh, text: c.from_grade + " → " + c.to_grade + "。学分会随及格与否自动补扣。",
+        fields: [{ id: "note", label: "审批意见", type: "textarea" }], confirmLabel: "确认批准" });
+      if (!v) return;
+      const r = await S.write({ lock: "c-" + c.correction_id, fn: "sis-admin", args: { action: "decide_correction", correction_id: c.correction_id, approve: true, note: v.note || null }, say });
+      if (r) { UI.toast("已批准" + (Number(r.credit_delta) ? "，学分变动 " + r.credit_delta : "")); load(); }
+    }));
+    panel.querySelectorAll("[data-no]").forEach(b => b.addEventListener("click", async () => {
+      clear(); const c = who(b.dataset.no);
+      const v = await S.ask({ title: "驳回更正：" + (c.display_name || "") + " · " + c.title_zh, text: "驳回理由会留在审计记录里。",
+        fields: [{ id: "note", label: "驳回理由", type: "textarea", required: true }], confirmLabel: "确认驳回", danger: true });
+      if (!v) return;
+      if (await S.write({ lock: "c-" + c.correction_id, fn: "sis-admin", args: { action: "decide_correction", correction_id: c.correction_id, approve: false, note: v.note }, say })) {
+        UI.toast("已驳回"); load();
+      }
+    }));
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>

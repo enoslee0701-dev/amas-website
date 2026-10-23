@@ -1,4 +1,5 @@
-// AMAS · 学员管理系统第一期教务写入（开课 / 排教授 / 编班 / 学籍状态）
+// AMAS · 学员管理系统教务写入：开课 / 排教授 / 编班 / 学籍状态（0030），
+//        成绩发布与退回 / 成绩更正审批 / 毕业登记 / 导师指派（0032）
 // 调用者：registrar / academic_admin / super_admin，且 JWT 必须 aal2。
 // 与 student-lifecycle 同一模式：入口只验身份、角色、aal2 与参数形状，业务规则全在 0030 的 RPC 里。
 // 部署：supabase functions deploy sis-admin
@@ -84,6 +85,33 @@ const ACTIONS: Record<string, (b: Body, actor: string) => [string, Record<string
     if (!isId(b.enrollment_id) || typeof b.reason !== "string" || !b.reason.trim()) return null;
     return ["sis_drop_enrollment", { p_enrollment: b.enrollment_id, p_actor: actor, p_reason: b.reason }];
   },
+  publish_grades: (b, actor) => {
+    if (!isId(b.offering_id)) return null;
+    return ["sis_publish_grades", { p_offering: b.offering_id, p_actor: actor }];
+  },
+  return_grades: (b, actor) => {
+    if (!isId(b.offering_id) || typeof b.reason !== "string" || !b.reason.trim()) return null;
+    return ["sis_return_grades", { p_offering: b.offering_id, p_actor: actor, p_reason: b.reason }];
+  },
+  decide_correction: (b, actor) => {
+    if (!isId(b.correction_id) || typeof b.approve !== "boolean") return null;
+    const note = optText(b.note, 1000);
+    if (note === undefined || (!b.approve && !String(note ?? "").trim())) return null;
+    return ["sis_decide_correction", { p_correction: b.correction_id, p_actor: actor, p_approve: b.approve, p_note: note }];
+  },
+  graduate: (b, actor) => {
+    const d = optDate(b.graduated_on);
+    if (!isId(b.student_id) || d === undefined) return null;
+    return ["sis_graduate", { p_student: b.student_id, p_actor: actor, p_graduated_on: d }];
+  },
+  assign_mentor: (b, actor) => {
+    if (!isId(b.student_id) || !isId(b.mentor_id)) return null;
+    return ["sis_assign_mentor", { p_student: b.student_id, p_actor: actor, p_mentor: b.mentor_id }];
+  },
+  end_mentor: (b, actor) => {
+    if (!isId(b.assignment_id)) return null;
+    return ["sis_end_mentor", { p_assignment: b.assignment_id, p_actor: actor }];
+  },
   change_student_status: (b, actor) => {
     if (!isId(b.student_id) || !["on_leave", "active", "withdrawn"].includes(String(b.to)) ||
         typeof b.reason !== "string" || !b.reason.trim()) return null;
@@ -124,7 +152,7 @@ Deno.serve(async (req) => {
   if (error) {
     if (/not_found/i.test(error.message)) return fail(404, "not_found");
     if (/lacks admin role/i.test(error.message)) return fail(403, "forbidden");
-    if (/invalid student transition/i.test(error.message)) return fail(409, "invalid_state");
+    if (/invalid student transition|invalid_state/i.test(error.message)) return fail(409, "invalid_state");
     return fail(500, "server_error");
   }
   // RPC 的业务拒绝（ok:false）原样返回 409，前端按 error 码给出说明

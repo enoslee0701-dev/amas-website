@@ -35,6 +35,7 @@
     student: [
       { href: "portal/student/", icon: "🏠", label: "首页" },
       { href: "portal/student/classes/", icon: "🗓️", label: "我的课程" },
+      { href: "portal/student/records/", icon: "📊", label: "成绩与进度" },
       { href: "portal/student/courses/", icon: "📚", label: "课程目录" },
       { href: "portal/student/profile/", icon: "👤", label: "我的资料" },
       { href: "help/", icon: "💬", label: "帮助" },
@@ -42,6 +43,7 @@
     teacher: [
       { href: "portal/teacher/", icon: "🏠", label: "工作台" },
       { href: "portal/teacher/classes/", icon: "📚", label: "我的课程" },
+      { href: "portal/teacher/mentees/", icon: "🤝", label: "我带的学员" },
       { href: "portal/teacher/profile/", icon: "👤", label: "我的资料" },
       { href: "help/", icon: "💬", label: "帮助" },
     ],
@@ -50,6 +52,7 @@
       { href: "portal/admin/admissions/", icon: "📥", label: "招生审核" },
       { href: "portal/admin/students/", icon: "🎓", label: "学籍管理" },
       { href: "portal/admin/offerings/", icon: "📚", label: "开课与编班" },
+      { href: "portal/admin/grades/", icon: "📝", label: "成绩审核" },
       { href: "portal/admin/teachers/", icon: "🏫", label: "教师验证" },
       { href: "help/", icon: "💬", label: "帮助" },
     ],
