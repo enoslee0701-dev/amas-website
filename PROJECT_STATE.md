@@ -300,3 +300,11 @@ QUEUE_EMPTY（2026-09-16）：队列无 `[ ]` 任务；T-003、T-014 仍为 `[!]
   新文案里「这不表示没有待建档的申请」会被宽正则误命中（与 T-012 Hn1 同一个坑）。
   回归：test-admin-writes 110/110、test-portal-pages 112/112、`./scripts/verify.sh` 0。
   至此，门户各页「读不到 ≠ 没有」一族已全部覆盖：申请人 3 页、学员 3 页、教师 2 页、教务 4 页。
+
+- 2026-10-23 [YELLOW] 学员管理系统第一期（Enos 批准开工；策划书 https://claude.ai/artifact/L8ZELszQfRjRPrJYsVJ9t7）
+  c727df0f 数据库：0029 学籍 on_leave/withdrawn；0030 课程班 / 排教授 / 编班 + RLS + service_role RPC + 审计；
+  占位函数 is_assigned_teacher / is_enrolled_student 改查真表。**Schema 变更，未在任何真实库执行**，测试库/正式库由 Enos 执行。
+  caaa2501 页面：Edge sis-admin；portal/admin/offerings、teacher/classes、student/classes；学籍页加休学/复学/退学。
+  验证：sis1_acceptance.sql 12 组全过（本地一次性 PGlite 库，装 0001–0030；放宽策略的反例会失败）；
+  R-8 守卫 5/5；test-sis-pages 45/45；既有门户回归全过；verify.sh OK。
+  未覆盖：sis-admin 的 HTTP 级用例（需 deno + 测试库）；真实 Supabase 上的 RLS 行为待测试库验收。
