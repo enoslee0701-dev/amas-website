@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>我的课程 | AMAS 教师工作台</title>
+<link rel="icon" href="../../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610231235">
+<style>
+.ofs{display:grid;gap:10px}
+.of{border:1px solid var(--line);border-radius:12px;background:#fff;padding:14px 16px;display:grid;gap:6px}
+.of h3{margin:0;font-size:16px;color:var(--navy)}
+.of .meta{font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px}
+.of .top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.chip{display:inline-block;padding:2px 10px;border-radius:99px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.chip.planned{background:#fdf4e3;color:#7a5a12}.chip.in_progress{background:#e9f3ee;color:var(--ok)}
+.chip.completed{background:#eaf0f8;color:#10305a}.chip.cancelled{background:#f3e9e9;color:#8a2c2c}
+.sbtn{min-height:40px;padding:0 14px;border:1.5px solid var(--line);border-radius:9px;background:#fff;font:inherit;font-size:13px;cursor:pointer;justify-self:start}
+.roster{border-top:1px solid var(--line);margin-top:6px;padding-top:6px}
+.roster div{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.roster div:last-child{border-bottom:0}
+.roster small{color:var(--muted)}
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610231235"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610231235"></script>
+<script src="../../../assets/js/portal/api.js?v=202610231235"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610231235"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610231235"></script>
+<script>
+/* 学员管理系统第一期：教授的「我的课程」——教务排给他的课程班与班级名单。
+   my_teaching() / offering_roster()（0030）：只返回他任教的班；名单只有姓名与学号，
+   不含联系方式。点名、作业与成绩在第二期开通。 */
+(async function(){
+  const Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell;
+  const mounted = await Shell.mount({ space: "teacher", title: "我的课程",
+                                      allow: ["teacher"], requireAal2: true });
+  if (!mounted) return;
+  const { main } = mounted;
+
+  const MODE = { online: "线上", onsite: "清迈线下", hybrid: "线上 + 线下" };
+  const OST = { planned: "未开课", in_progress: "上课中", completed: "已结课", cancelled: "已取消" };
+  const d = (v) => v ? String(v).slice(0, 10) : "待定";
+
+  UI.loading(main, 3);
+  const { data, error } = await Api.rpc("my_teaching");
+  if (error || !Array.isArray(data)) {
+    return UI.error(main, { message: "这一次没能读到你的课程。这不表示没有排课，请稍后重试。",
+                            onRetry: () => location.reload() });
+  }
+  main.innerHTML = '<h1>我的课程</h1>' +
+    '<p class="lead">教务排给你的课程班。点名、作业与成绩登记将在下一期开通。</p>' +
+    (data.length
+      ? '<div class="ofs">' + data.map(c =>
+          '<div class="of"><div class="top"><h3>' + UI.esc(c.title_zh) + (c.section_label ? ' · ' + UI.esc(c.section_label) : "") + '</h3>' +
+            '<span class="chip ' + c.offering_status + '">' + (OST[c.offering_status] || c.offering_status) + '</span></div>' +
+          '<div class="meta"><span>' + UI.esc(c.academic_year) + ' 学年</span><span>' + UI.esc(MODE[c.delivery_mode] || c.delivery_mode) + '</span>' +
+            '<span>' + d(c.starts_on) + ' 至 ' + d(c.ends_on) + '</span>' +
+            '<span>' + (c.my_role === "assistant" ? "助教" : "主讲") + '</span></div>' +
+          (c.schedule_note ? '<div>上课安排：' + UI.esc(c.schedule_note) + '</div>' : "") +
+          '<button class="sbtn" data-roster="' + c.offering_id + '" aria-expanded="false">班级名单（' + c.enrolled_count + ' 人）</button>' +
+          '<div class="roster" id="r-' + c.offering_id + '" hidden></div></div>').join("") + '</div>'
+      : UI.box("📚", "还没有排给你的课程班", "教务排课后，你的课程会出现在这里。"));
+
+  main.querySelectorAll("[data-roster]").forEach(b => b.addEventListener("click", async () => {
+    const box = main.querySelector("#r-" + b.dataset.roster);
+    const open = b.getAttribute("aria-expanded") === "true";
+    b.setAttribute("aria-expanded", String(!open));
+    box.hidden = open;
+    if (open || box.dataset.loaded) return;
+    box.innerHTML = UI.skeleton(2);
+    const { data: rows, error: e } = await Api.rpc("offering_roster", { p_offering: b.dataset.roster });
+    if (e || !Array.isArray(rows)) {
+      box.innerHTML = '<p class="who">这一次没能读到名单，请再点一次。</p>';
+      b.setAttribute("aria-expanded", "false"); box.hidden = true; return;
+    }
+    box.dataset.loaded = "1";
+    box.innerHTML = rows.length
+      ? rows.map(r => '<div><span>' + UI.esc(r.display_name || "未登记姓名") + '</span><small>' + UI.esc(r.student_number || "") + '</small></div>').join("")
+      : '<p class="who">班里还没有学员。</p>';
+  }));
+})();
+</script>
+</body>
+</html>

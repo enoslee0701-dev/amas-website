@@ -65,6 +65,15 @@ cp assets/js/supabase-config.local.example.js assets/js/supabase-config.local.js
 > **`portal2b_irreversible_guard.sql` 每次新增 migration 后都要跑**——
 > 它是 R-8 的自动化守卫，防止新增正式记录表时静默绕过学号纠错的安全闸门。
 
+## 学员管理系统第一期（0029 + 0030：学籍休学/退学、开课、排教授、编班）
+
+| 文件 | 层 | 断言组 | 运行方式 |
+|---|---|---|---|
+| `sis1_acceptance.sql` | 数据库（状态机 / 开课 / 排教授 / 编班 / 五种身份的可见范围 / 审计 / R-8） | 12 | `psql -f supabase/tests/sis1_acceptance.sql`，结束自动回滚。纯 SQL，无 psql 元命令；在真实 Supabase 上需把文件里的 `amas.test.uid` 换成 `request.jwt.claims`（见文件末尾） |
+| `scripts/test-sis-pages.mjs` | 浏览器（开课与编班、教授/学员「我的课程」、休学/退学；本机 stub） | 44 | `node scripts/test-sis-pages.mjs` |
+
+Edge Function `sis-admin` 尚无 HTTP 级用例（需要 deno 与测试库），部署到测试库后补。
+
 ## 环境文件
 
 `staging.env` 放在运行目录，已在 `.gitignore` 中，**不得入库**。

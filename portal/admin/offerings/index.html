@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>开课与编班 | AMAS</title>
+<link rel="icon" href="../../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610231235">
+<style>
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
+.bar select,.f input,.f select,.f textarea{min-height:44px;padding:9px 12px;border:1.5px solid var(--line);border-radius:10px;font:inherit;background:#fff;color:var(--ink)}
+.bar .btn{width:auto;padding:0 18px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.f{display:flex;flex-direction:column;gap:5px}
+.f label{font-size:13px;font-weight:700;color:var(--navy)}
+.f .hint{font-size:12px;color:var(--muted)}
+.full{grid-column:1/-1}
+.ofs{display:grid;gap:10px}
+.of{border:1px solid var(--line);border-radius:12px;background:#fff;padding:14px 16px;display:grid;gap:6px}
+.of h3{margin:0;font-size:16px;color:var(--navy)}
+.of .meta{font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px}
+.of .foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.chip{display:inline-block;padding:2px 10px;border-radius:99px;font-size:11.5px;font-weight:700;background:var(--paper2,#f4f1ea);color:#5f5a4c}
+.chip.planned{background:#fdf4e3;color:#7a5a12}.chip.in_progress{background:#e9f3ee;color:var(--ok)}
+.chip.completed{background:#eaf0f8;color:#10305a}.chip.cancelled{background:#f3e9e9;color:#8a2c2c}
+.sec{margin-top:18px}
+.sec h2{font-size:15px;color:var(--navy);margin:0 0 8px}
+.line{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.line:last-child{border-bottom:0}
+.line small{color:var(--muted)}
+.sbtn{min-height:40px;padding:0 12px;border:1.5px solid var(--line);border-radius:9px;background:#fff;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
+.sbtn.pri{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700}
+.sbtn:disabled{opacity:.5;cursor:not-allowed}
+.picks{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:4px 12px;background:#fff}
+.picks label{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px;cursor:pointer}
+.picks label:last-child{border-bottom:0}
+.picks input{width:20px;height:20px}
+@media(max-width:640px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610231235"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610231235"></script>
+<script src="../../../assets/js/portal/api.js?v=202610231235"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610231235"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610231235"></script>
+<script>
+/* 学员管理系统第一期：开课、排教授、编班（教务侧）。
+   所有写入经 sis-admin Edge Function（aal2 + 角色复核），规则在 0030 的 RPC 里；
+   按钮显隐只是展示。沿用学籍管理页的三条规矩：
+     · 读不到 ≠ 没有：读失败就说读失败；
+     · 结果不明（断网 / 5xx / 空响应）不劝重试，只让他刷新核实；
+     · 同一课程班的上一笔还没回来，不发第二笔。 */
+(async function(){
+  const Api = window.AmasApi, UI = window.AmasUI, Shell = window.AmasShell;
+  const mounted = await Shell.mount({
+    space: "admin", title: "管理后台",
+    allow: ["registrar","academic_admin","super_admin"], requireAal2: true,
+  });
+  if (!mounted) return;
+  const { main } = mounted;
+
+  const MODE = { online: "线上", onsite: "清迈线下", hybrid: "线上 + 线下" };
+  const OST = { planned: "未开课", in_progress: "上课中", completed: "已结课", cancelled: "已取消" };
+  const LEVEL = { bth: "神学学士 B.Th", mdiv: "道学硕士 M.Div", dmin: "教牧学博士 D.Min" };
+  const ERR = {
+    offering_exists: "同一学年已有这门课的同名班级。要再开一班，请填不同的班级名称（如「B 班」）。",
+    invalid_fields: "填写有误：学年须是相连的两年（如 2026-2027），结课日不能早于开课日，人数上限须为正整数。",
+    unknown_course: "课程目录里没有这门课。",
+    invalid_state: "这个课程班当前的状态不允许这项操作（已结课或已取消的不能再改）。",
+    capacity_below_enrolled: "人数上限不能少于已编入的人数。",
+    reason_required: "请填写原因。",
+    not_a_teacher: "这个账号没有有效的教授身份，不能排课。",
+    already_assigned: "这位教授已经在本班。",
+    not_assigned: "这位教授已经不在本班。",
+    no_students: "请至少勾选一名学员。",
+    too_many: "一次最多编入 200 人。",
+    bad_request: "提交的内容不完整或格式不对。",
+  };
+  const UNKNOWN_CODES = { network: 1, server_error: 1, unknown: 1 };
+  const UNKNOWN_TEXT = "没有拿到这次操作的结果，无法确认它是否已经生效。请先刷新核实，不要重复提交。";
+  const d = (v) => v ? String(v).slice(0, 10) : "待定";
+  const span = (o) => o.starts_on || o.ends_on ? d(o.starts_on) + " 至 " + d(o.ends_on) : "日期待定";
+  const thisYear = (() => { const t = new Date(), y = t.getFullYear();
+    return t.getMonth() >= 7 ? y + "-" + (y + 1) : (y - 1) + "-" + y; })();
+
+  let year = thisYear, view = { kind: "list" }, catalog = null, catalogErr = false;
+  const busy = new Set();
+
+  main.innerHTML =
+    '<h1>开课与编班</h1>' +
+    '<p class="lead">按学年开课程班，每班自带开课日、结课日和上课安排；排好教授后由教务编班。</p>' +
+    '<div class="msg err" id="err" role="alert" tabindex="-1"></div>' +
+    '<div id="panel"></div>';
+  const panel = document.getElementById("panel");
+  const errBox = document.getElementById("err");
+  const sayErr = (m) => { errBox.textContent = m; errBox.classList.add("show"); errBox.focus(); };
+  const clearErr = () => errBox.classList.remove("show");
+
+  /** 写入：统一处理在途锁、结果不明与业务拒绝。返回 data 或 null。 */
+  async function call(lock, body, okMsg){
+    if (busy.has(lock)) { UI.toast("上一次提交还没有回结果，这一次没有发出。", "err"); return null; }
+    busy.add(lock); clearErr();
+    try {
+      const { data, error } = await Api.fn("sis-admin", body, { requireAal2: true });
+      if (error) {
+        if (!error.code || UNKNOWN_CODES[error.code]) sayErr(UNKNOWN_TEXT);
+        else sayErr(ERR[error.code] || error.message || error.code);
+        return null;
+      }
+      if (!data || data.ok !== true) { sayErr(UNKNOWN_TEXT); return null; }
+      if (okMsg) UI.toast(okMsg);
+      return data;
+    } finally { busy.delete(lock); }
+  }
+
+  /** 需要写原因的确认框（退选、取消课程班、撤下教授）。返回原因或 null。 */
+  function askReason({ title, text, label, confirmLabel, required }){
+    return new Promise((resolve) => {
+      const prev = document.activeElement;
+      const wrap = document.createElement("div");
+      wrap.className = "portal-modal";
+      wrap.innerHTML = '<div class="pm-backdrop" data-x></div>' +
+        '<div class="pm-card" role="dialog" aria-modal="true" aria-labelledby="ar-t">' +
+        '<h3 id="ar-t">' + UI.esc(title) + '</h3><p>' + UI.esc(text) + '</p>' +
+        '<div class="f"><label for="ar-in">' + UI.esc(label) + '</label>' +
+        '<textarea id="ar-in" rows="3" maxlength="500"></textarea></div>' +
+        '<div class="msg err" id="ar-err" style="margin-top:8px"></div>' +
+        '<div class="pm-acts"><button class="btn ghost" data-cancel style="width:auto;padding:0 20px">取消</button>' +
+        '<button class="btn danger" data-ok style="width:auto;padding:0 20px">' + UI.esc(confirmLabel) + '</button></div></div>';
+      document.body.appendChild(wrap);
+      const input = wrap.querySelector("#ar-in");
+      input.focus();
+      const close = (v) => { wrap.remove(); document.removeEventListener("keydown", onKey); prev?.focus?.(); resolve(v); };
+      const onKey = (e) => { if (e.key === "Escape") close(null); };
+      document.addEventListener("keydown", onKey);
+      wrap.querySelector("[data-cancel]").addEventListener("click", () => close(null));
+      wrap.querySelector("[data-x]").addEventListener("click", () => close(null));
+      wrap.querySelector("[data-ok]").addEventListener("click", () => {
+        const v = input.value.trim();
+        if (required && !v) {
+          const e = wrap.querySelector("#ar-err"); e.textContent = "请填写原因。"; e.classList.add("show"); input.focus(); return;
+        }
+        close(v);
+      });
+    });
+  }
+
+  async function loadCatalog(){
+    if (catalog) return;
+    const { data, error } = await Api.select("course_catalog", {
+      columns: "code,title_zh,level,credits,sort_order", order: { column: "sort_order", asc: true } });
+    catalogErr = !!error || !Array.isArray(data);
+    catalog = Array.isArray(data) ? data : [];
+  }
+
+  async function render(){
+    clearErr();
+    panel.innerHTML = UI.skeleton(4);
+    return view.kind === "detail" ? renderDetail(view.id) : renderList();
+  }
+
+  // ---------- 列表 ----------
+  async function renderList(){
+    const { data, error } = await Api.rpc("admin_list_offerings", { p_year: year || null });
+    if (error || !Array.isArray(data)) {
+      return UI.error(panel, { message: "这一次没能读到课程班。这不表示没有课程班，请重试。", onRetry: render });
+    }
+    const years = [...new Set([thisYear, year].filter(Boolean))];
+    panel.innerHTML =
+      '<div class="bar"><label for="yr" class="who">学年</label><select id="yr">' +
+        years.map(y => '<option' + (y === year ? " selected" : "") + '>' + UI.esc(y) + '</option>').join("") +
+        '<option value=""' + (year ? "" : " selected") + '>全部学年</option></select>' +
+        '<button class="btn" id="new">＋ 开新课程班</button></div>' +
+      '<div id="form"></div>' +
+      (data.length
+        ? '<div class="ofs">' + data.map(o => {
+            const t = (o.teachers || []).map(x => x.name + (x.role === "assistant" ? "（助教）" : "")).join("、");
+            return '<div class="of"><div class="foot"><h3>' + UI.esc(o.title_zh) +
+                (o.section_label ? ' · ' + UI.esc(o.section_label) : "") + '</h3>' +
+                '<span class="chip ' + o.offering_status + '">' + (OST[o.offering_status] || o.offering_status) + '</span></div>' +
+              '<div class="meta"><span>' + UI.esc(o.academic_year) + '</span><span>' + UI.esc(MODE[o.delivery_mode] || o.delivery_mode) + '</span>' +
+                '<span>' + span(o) + '</span>' +
+                (o.schedule_note ? '<span>' + UI.esc(o.schedule_note) + '</span>' : "") +
+                (o.credits ? '<span>' + o.credits + ' 学分</span>' : "") + '</div>' +
+              '<div class="foot"><span class="who">教授：' + (t ? UI.esc(t) : "<b>未排</b>") +
+                ' ｜ 在班 ' + o.enrolled_count + (o.capacity ? ' / ' + o.capacity : "") + ' 人</span>' +
+                '<button class="sbtn pri" data-open="' + o.offering_id + '">管理</button></div></div>';
+          }).join("") + '</div>'
+        : UI.box("📚", year ? year + " 学年还没有课程班" : "还没有课程班", "点「开新课程班」从课程目录开第一个班。"));
+
+    panel.querySelector("#yr").addEventListener("change", (e) => { year = e.target.value; render(); });
+    panel.querySelector("#new").addEventListener("click", openCreateForm);
+    panel.querySelectorAll("[data-open]").forEach(b =>
+      b.addEventListener("click", () => { view = { kind: "detail", id: b.dataset.open }; render(); }));
+  }
+
+  async function openCreateForm(){
+    const box = panel.querySelector("#form");
+    box.innerHTML = UI.skeleton(2);
+    await loadCatalog();
+    if (catalogErr) {
+      box.innerHTML = '<div class="msg warn show">这一次没能读到课程目录，暂时不能开课。请刷新后再试。</div>';
+      return;
+    }
+    const groups = {};
+    catalog.forEach(c => { const k = LEVEL[c.level] ? c.level : "other"; (groups[k] = groups[k] || []).push(c); });
+    const opts = ["bth", "mdiv", "dmin", "other"].filter(k => groups[k]).map(k =>
+      '<optgroup label="' + UI.esc(LEVEL[k] || "其他课程") + '">' + groups[k].map(c =>
+        '<option value="' + UI.esc(c.code) + '">' + UI.esc(c.title_zh) + (c.credits ? "（" + c.credits + " 学分）" : "") + '</option>').join("") +
+      '</optgroup>').join("");
+    box.innerHTML = '<form class="card" id="cf" style="margin-bottom:14px" novalidate><h2 style="font-size:16px;margin:0 0 12px">开新课程班</h2>' +
+      '<div class="grid2">' +
+        '<div class="f full"><label for="c-course">课程</label><select id="c-course" required><option value="">请选择</option>' + opts + '</select></div>' +
+        '<div class="f"><label for="c-year">学年</label><input id="c-year" value="' + UI.esc(thisYear) + '" inputmode="numeric" placeholder="2026-2027"></div>' +
+        '<div class="f"><label for="c-sec">班级名称（可选）</label><input id="c-sec" maxlength="40" placeholder="同一学年开第二班时填，如 B 班"></div>' +
+        '<div class="f"><label for="c-mode">上课方式</label><select id="c-mode"><option value="online">线上</option><option value="onsite">清迈线下</option><option value="hybrid">线上 + 线下</option></select></div>' +
+        '<div class="f"><label for="c-cap">人数上限（可选）</label><input id="c-cap" type="number" min="1" inputmode="numeric"></div>' +
+        '<div class="f"><label for="c-s">开课日</label><input id="c-s" type="date"></div>' +
+        '<div class="f"><label for="c-e">结课日</label><input id="c-e" type="date"></div>' +
+        '<div class="f full"><label for="c-note">上课安排（可选）</label><input id="c-note" maxlength="200" placeholder="如：每周二、四 19:30–21:00"></div>' +
+      '</div>' +
+      '<div class="bar" style="margin:14px 0 0"><button class="btn" type="submit">开课</button>' +
+        '<button class="btn ghost" type="button" id="c-cancel">收起</button></div></form>';
+    const f = box.querySelector("#cf");
+    box.querySelector("#c-cancel").addEventListener("click", () => { box.innerHTML = ""; });
+    f.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const v = (id) => f.querySelector(id).value.trim();
+      if (!v("#c-course")) { sayErr("请选择课程。"); return; }
+      const btn = f.querySelector("[type=submit]");
+      if (btn.disabled) return;
+      btn.disabled = true;
+      const r = await call("create", {
+        action: "create_offering", course_code: v("#c-course"), academic_year: v("#c-year"),
+        section_label: v("#c-sec") || null, delivery_mode: v("#c-mode"),
+        capacity: v("#c-cap") || null, starts_on: v("#c-s") || null, ends_on: v("#c-e") || null,
+        schedule_note: v("#c-note") || null,
+      }, "课程班已开出");
+      btn.disabled = false;
+      if (r) { year = v("#c-year"); view = { kind: "detail", id: r.offering_id }; render(); }
+    });
+  }
+
+  // ---------- 课程班详情 ----------
+  async function renderDetail(id){
+    const [list, roster, teachers] = await Promise.all([
+      Api.rpc("admin_list_offerings", { p_year: null }),
+      Api.rpc("offering_roster", { p_offering: id }),
+      Api.rpc("admin_list_teachers"),
+    ]);
+    const o = Array.isArray(list.data) ? list.data.find(x => x.offering_id === id) : null;
+    if (list.error || !Array.isArray(list.data)) {
+      return UI.error(panel, { message: "这一次没能读到这个课程班。", onRetry: render });
+    }
+    if (!o) { view = { kind: "list" }; return render(); }
+    const rosterOk = !roster.error && Array.isArray(roster.data);
+    const teachersOk = !teachers.error && Array.isArray(teachers.data);
+    const open = o.offering_status === "planned" || o.offering_status === "in_progress";
+    const enrolled = rosterOk ? roster.data.filter(r => r.enrollment_status === "enrolled") : [];
+
+    const tList = (o.teachers || []).length
+      ? o.teachers.map(t => '<div class="line"><span>' + UI.esc(t.name) + ' <small>' + (t.role === "assistant" ? "助教" : "主讲") + '</small></span>' +
+          (open ? '<button class="sbtn" data-rmt="' + t.teacher_id + '" data-name="' + UI.esc(t.name) + '">撤下</button>' : "") + '</div>').join("")
+      : '<p class="who">还没有排教授。</p>';
+    const assigned = new Set((o.teachers || []).map(t => t.teacher_id));
+    const tPick = open
+      ? (teachersOk
+          ? '<div class="bar" style="margin-top:10px"><select id="t-pick"><option value="">选择教授</option>' +
+              teachers.data.filter(t => !assigned.has(t.user_id)).map(t =>
+                '<option value="' + t.user_id + '">' + UI.esc(t.name || "未登记姓名") + (t.staff_number ? "（" + UI.esc(t.staff_number) + "）" : "") + '</option>').join("") +
+              '</select><select id="t-role"><option value="lead">主讲</option><option value="assistant">助教</option></select>' +
+              '<button class="sbtn pri" id="t-add">排入</button></div>'
+          : '<div class="msg warn show">这一次没能读到教授名单，暂时不能排课。</div>')
+      : "";
+
+    const rList = !rosterOk
+      ? '<div class="msg warn show">这一次没能读到班级名单。这不表示班里没人，请刷新。</div>'
+      : enrolled.length
+        ? enrolled.map(r => '<div class="line"><span>' + UI.esc(r.display_name || "未登记姓名") +
+            ' <small>' + UI.esc(r.student_number || "学号待录入") + '</small></span>' +
+            (open ? '<button class="sbtn" data-drop="' + r.enrollment_id + '" data-name="' + UI.esc(r.display_name || r.student_number || "") + '">退选</button>' : "") + '</div>').join("")
+        : '<p class="who">班里还没有学员。</p>';
+
+    const statusBtns = {
+      planned: '<button class="sbtn pri" data-st="in_progress">开始上课</button><button class="sbtn" data-st="cancelled">取消此班</button>',
+      in_progress: '<button class="sbtn pri" data-st="completed">结课</button><button class="sbtn" data-st="cancelled">取消此班</button>',
+    }[o.offering_status] || "";
+
+    panel.innerHTML =
+      '<button class="link" id="back">← 返回课程班列表</button>' +
+      '<div class="card" style="margin-top:10px"><div class="of" style="border:0;padding:0">' +
+        '<div class="foot"><h3 style="font-size:18px">' + UI.esc(o.title_zh) + (o.section_label ? ' · ' + UI.esc(o.section_label) : "") + '</h3>' +
+          '<span class="chip ' + o.offering_status + '">' + (OST[o.offering_status] || o.offering_status) + '</span></div>' +
+        '<div class="meta"><span>' + UI.esc(o.academic_year) + '</span><span>' + UI.esc(MODE[o.delivery_mode] || o.delivery_mode) + '</span>' +
+          '<span>' + span(o) + '</span>' +
+          (o.schedule_note ? '<span>' + UI.esc(o.schedule_note) + '</span>' : "") +
+          (o.capacity ? '<span>上限 ' + o.capacity + ' 人</span>' : "") + '</div>' +
+        (statusBtns ? '<div class="bar" style="margin:8px 0 0">' + statusBtns + (open ? '<button class="sbtn" id="edit">修改资料</button>' : "") + '</div>' : "") +
+        '<div id="editbox"></div>' +
+      '</div></div>' +
+      '<div class="card sec"><h2>任课教授</h2>' + tList + tPick + '</div>' +
+      '<div class="card sec"><h2>班级名单（' + (rosterOk ? enrolled.length : "?") + (o.capacity ? ' / ' + o.capacity : "") + ' 人）</h2>' + rList +
+        (open && rosterOk ? '<div class="bar" style="margin-top:12px"><button class="sbtn pri" id="addstu">＋ 编入学员</button></div><div id="pickbox"></div>' : "") +
+      '</div>';
+
+    panel.querySelector("#back").addEventListener("click", () => { view = { kind: "list" }; render(); });
+
+    panel.querySelectorAll("[data-st]").forEach(b => b.addEventListener("click", async () => {
+      const to = b.dataset.st;
+      let reason = null;
+      if (to === "cancelled") {
+        reason = await askReason({ title: "取消「" + o.title_zh + "」这个班", text: "取消后不能再编班或排教授，也不能恢复。",
+                                   label: "取消原因", confirmLabel: "确认取消此班", required: true });
+        if (reason === null) return;
+      } else {
+        const ok = await UI.confirmDialog({ title: to === "completed" ? "结课" : "开始上课",
+          text: to === "completed" ? "结课后不能再编班、排教授或修改资料。" : "标记为上课中。",
+          confirmLabel: to === "completed" ? "确认结课" : "确认开始" });
+        if (!ok) return;
+      }
+      if (await call(id, { action: "set_offering_status", offering_id: id, status: to, reason }, "已更新")) render();
+    }));
+
+    panel.querySelector("#edit")?.addEventListener("click", () => {
+      const eb = panel.querySelector("#editbox");
+      eb.innerHTML = '<form id="ef" class="grid2" style="margin-top:12px" novalidate>' +
+        '<div class="f"><label for="e-sec">班级名称</label><input id="e-sec" maxlength="40" value="' + UI.esc(o.section_label || "") + '"></div>' +
+        '<div class="f"><label for="e-mode">上课方式</label><select id="e-mode">' + Object.keys(MODE).map(k =>
+          '<option value="' + k + '"' + (k === o.delivery_mode ? " selected" : "") + '>' + MODE[k] + '</option>').join("") + '</select></div>' +
+        '<div class="f"><label for="e-s">开课日</label><input id="e-s" type="date" value="' + UI.esc(o.starts_on || "") + '"></div>' +
+        '<div class="f"><label for="e-e">结课日</label><input id="e-e" type="date" value="' + UI.esc(o.ends_on || "") + '"></div>' +
+        '<div class="f"><label for="e-cap">人数上限</label><input id="e-cap" type="number" min="1" value="' + (o.capacity || "") + '"></div>' +
+        '<div class="f"><label for="e-note">上课安排</label><input id="e-note" maxlength="200" value="' + UI.esc(o.schedule_note || "") + '"></div>' +
+        '<div class="bar full"><button class="btn" type="submit" style="width:auto;padding:0 18px">保存</button></div></form>';
+      eb.querySelector("#ef").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const v = (s) => eb.querySelector(s).value.trim();
+        if (await call(id, { action: "update_offering", offering_id: id, section_label: v("#e-sec") || null,
+              delivery_mode: v("#e-mode"), starts_on: v("#e-s") || null, ends_on: v("#e-e") || null,
+              capacity: v("#e-cap") || null, schedule_note: v("#e-note") || null }, "已保存")) render();
+      });
+    });
+
+    panel.querySelector("#t-add")?.addEventListener("click", async () => {
+      const tid = panel.querySelector("#t-pick").value;
+      if (!tid) { sayErr("请选择教授。"); return; }
+      if (await call(id, { action: "assign_teacher", offering_id: id, teacher_id: tid,
+            role: panel.querySelector("#t-role").value }, "已排入")) render();
+    });
+    panel.querySelectorAll("[data-rmt]").forEach(b => b.addEventListener("click", async () => {
+      const reason = await askReason({ title: "把「" + b.dataset.name + "」撤下本班", text: "撤下后这位教授将看不到本班名单。",
+                                       label: "原因（可选）", confirmLabel: "确认撤下", required: false });
+      if (reason === null) return;
+      if (await call(id, { action: "remove_teacher", offering_id: id, teacher_id: b.dataset.rmt, reason: reason || null }, "已撤下")) render();
+    }));
+    panel.querySelectorAll("[data-drop]").forEach(b => b.addEventListener("click", async () => {
+      const reason = await askReason({ title: "让「" + b.dataset.name + "」退出本班", text: "退选后可以再重新编入。",
+                                       label: "退选原因", confirmLabel: "确认退选", required: true });
+      if (reason === null) return;
+      if (await call(id, { action: "drop_enrollment", enrollment_id: b.dataset.drop, reason }, "已退选")) render();
+    }));
+    panel.querySelector("#addstu")?.addEventListener("click", () => openPicker(id, new Set(enrolled.map(r => r.student_id))));
+  }
+
+  async function openPicker(id, inClass){
+    const box = panel.querySelector("#pickbox");
+    box.innerHTML = UI.skeleton(2);
+    const { data, error } = await Api.rpc("admin_list_students");
+    if (error || !Array.isArray(data)) {
+      box.innerHTML = '<div class="msg warn show">这一次没能读到学员名册，请刷新后再试。</div>'; return;
+    }
+    const cands = data.filter(s => s.status === "active" && !inClass.has(s.student_id));
+    if (!cands.length) {
+      box.innerHTML = '<p class="who" style="margin-top:10px">没有可编入的在读学员（只有「在读」状态的学员能编班）。</p>'; return;
+    }
+    box.innerHTML = '<div style="margin-top:10px"><label class="who"><input type="checkbox" id="all"> 全选（' + cands.length + ' 人）</label>' +
+      '<div class="picks" style="margin-top:6px">' + cands.map(s =>
+        '<label><input type="checkbox" value="' + s.student_id + '"><span>' + UI.esc(s.display_name || "未登记姓名") +
+        ' <small class="who">' + UI.esc(s.student_number || "") + '</small></span></label>').join("") + '</div>' +
+      '<div class="bar" style="margin-top:10px"><button class="sbtn pri" id="go">编入所选学员</button></div></div>';
+    const boxes = () => [...box.querySelectorAll(".picks input")];
+    box.querySelector("#all").addEventListener("change", (e) => boxes().forEach(x => { x.checked = e.target.checked; }));
+    box.querySelector("#go").addEventListener("click", async () => {
+      const ids = boxes().filter(x => x.checked).map(x => x.value);
+      if (!ids.length) { sayErr(ERR.no_students); return; }
+      const r = await call(id, { action: "enroll_students", offering_id: id, student_ids: ids });
+      if (!r) return;
+      const names = Object.fromEntries(cands.map(s => [s.student_id, s.display_name || s.student_number || "未登记姓名"]));
+      const why = { not_active: "不是在读状态", full: "已满员", already_enrolled: "已在班里", not_found: "找不到学籍" };
+      const skipped = (r.skipped || []).map(x => (names[x.student_id] || "一名学员") + "（" + (why[x.reason] || x.reason) + "）");
+      UI.toast("已编入 " + r.enrolled + " 人" + (skipped.length ? "；跳过：" + skipped.join("、") : ""), skipped.length ? "err" : undefined);
+      render();
+    });
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>

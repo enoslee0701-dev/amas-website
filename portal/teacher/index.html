@@ -6,15 +6,15 @@
 <meta name="robots" content="noindex">
 <title>教师工作台 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202610231211">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202610231235">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202610231211"></script>
-<script src="../../assets/js/portal/auth.js?v=202610231211"></script>
-<script src="../../assets/js/portal/api.js?v=202610231211"></script>
-<script src="../../assets/js/portal/ui.js?v=202610231211"></script>
-<script src="../../assets/js/portal/shell.js?v=202610231211"></script>
+<script src="../../assets/js/supabase-config.js?v=202610231235"></script>
+<script src="../../assets/js/portal/auth.js?v=202610231235"></script>
+<script src="../../assets/js/portal/api.js?v=202610231235"></script>
+<script src="../../assets/js/portal/ui.js?v=202610231235"></script>
+<script src="../../assets/js/portal/shell.js?v=202610231235"></script>
 <script>
 /* 教师工作台。
 
@@ -58,7 +58,8 @@
   main.innerHTML =
     '<h1>教师工作台</h1>' +
     '<div class="msg info show">教师身份已激活（本页要求两步验证通过后才能进入）。' +
-      '课程分配、点名、作业与成绩模块在 Phase 4 开通；在此之前你可以查看自己的验证与档案状态。</div>' +
+      '教务排给你的课程班与名单在<a class="link" href="' + A.ROOT + 'portal/teacher/classes/">我的课程</a>里查看；' +
+      '点名、作业与成绩登记将在下一期开通。</div>' +
 
     '<h3 style="color:var(--navy);margin:20px 0 8px">我的教师档案</h3>' +
     tpBox +
@@ -68,17 +69,15 @@
 
     '<h3 style="color:var(--navy);margin:22px 0 8px">即将开通</h3>' +
     '<div class="spaces">' +
-      '<span style="opacity:.55"><span class="ic">📚</span><span><b>我的课程</b>' +
-        '<span>Phase 4 · 被分配的课程与班级</span></span></span>' +
       '<span style="opacity:.55"><span class="ic">🗓️</span><span><b>出勤点名</b>' +
-        '<span>Phase 4</span></span></span>' +
+        '<span>第二期</span></span></span>' +
       '<span style="opacity:.55"><span class="ic">📝</span><span><b>作业与成绩</b>' +
-        '<span>Phase 4 · 批改、评分与发布建议</span></span></span>' +
+        '<span>第二期 · 批改、评分与发布</span></span></span>' +
       '<span style="opacity:.55"><span class="ic">🤝</span><span><b>导师反馈</b>' +
         '<span>Phase 5 · 被授权学员的成长摘要</span></span></span>' +
     '</div>' +
     '<p class="note" style="font-size:12.5px;color:var(--muted);margin-top:8px">' +
-      '这四项尚未开通，所以不做成可点的链接 —— 点进去空无一物比看见「即将开通」更糟。</p>';
+      '这三项尚未开通，所以不做成可点的链接 —— 点进去空无一物比看见「即将开通」更糟。</p>';
 })();
 </script>
 </body>
