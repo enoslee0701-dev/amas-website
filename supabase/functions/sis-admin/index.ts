@@ -1,5 +1,5 @@
 // AMAS · 学员管理系统教务写入：开课 / 排教授 / 编班 / 学籍状态（0030），
-//        成绩发布与退回 / 成绩更正审批 / 毕业登记 / 导师指派（0032）
+//        成绩发布与退回 / 成绩更正审批 / 毕业登记 / 导师指派（0032），转入学分 / 角色管理（0033）
 // 调用者：registrar / academic_admin / super_admin，且 JWT 必须 aal2。
 // 与 student-lifecycle 同一模式：入口只验身份、角色、aal2 与参数形状，业务规则全在 0030 的 RPC 里。
 // 部署：supabase functions deploy sis-admin
@@ -112,6 +112,23 @@ const ACTIONS: Record<string, (b: Body, actor: string) => [string, Record<string
     if (!isId(b.assignment_id)) return null;
     return ["sis_end_mentor", { p_assignment: b.assignment_id, p_actor: actor }];
   },
+  add_transfer: (b, actor) => {
+    const code = optText(b.course_code, 80), ev = optText(b.evidence, 500);
+    const cr = b.credits === undefined || b.credits === null || b.credits === "" ? null : Number(b.credits);
+    if (!isId(b.student_id) || code === undefined || ev === undefined || typeof b.reason !== "string" || !b.reason.trim() ||
+        (cr !== null && !(Number.isFinite(cr) && cr > 0)) || (!code && cr === null)) return null;
+    return ["sis_add_transfer_credit", { p_student: b.student_id, p_actor: actor, p_course_code: code || null,
+      p_credits: cr, p_reason: b.reason, p_evidence: ev }];
+  },
+  revoke_transfer: (b, actor) => {
+    if (!Number.isInteger(b.ledger_id) || typeof b.reason !== "string" || !b.reason.trim()) return null;
+    return ["sis_revoke_transfer", { p_ledger: b.ledger_id, p_actor: actor, p_reason: b.reason }];
+  },
+  set_staff_role: (b, actor) => {
+    if (!isId(b.user_id) || !["registrar", "academic_admin", "mentor"].includes(String(b.role)) ||
+        typeof b.grant !== "boolean" || typeof b.reason !== "string" || !b.reason.trim()) return null;
+    return ["sis_set_staff_role", { p_actor: actor, p_user: b.user_id, p_role: b.role, p_grant: b.grant, p_reason: b.reason }];
+  },
   change_student_status: (b, actor) => {
     if (!isId(b.student_id) || !["on_leave", "active", "withdrawn"].includes(String(b.to)) ||
         typeof b.reason !== "string" || !b.reason.trim()) return null;
@@ -145,6 +162,8 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { return fail(400, "bad_request"); }
   const build = ACTIONS[String(body?.action)];
   if (!build) return fail(400, "bad_request");
+  // 角色管理只给 super_admin（DB 里还会再验一次）
+  if (body.action === "set_staff_role" && !names.includes("super_admin")) return fail(403, "forbidden");
   const call = build(body, userData.user.id);
   if (!call) return fail(400, "bad_request");
 

@@ -38,6 +38,11 @@
     unknown_item: "不是本项目的实践训练项目。",
     not_reported: "这一项还没有填报。",
     not_a_student: "你的学员身份当前无效。",
+    already_credited: "这门课已经有学分（本校修过或已免修），不能再转入。",
+    unknown_course: "不是本项目带学分的课程。",
+    bad_credits: "学分须在 0 到 30 之间。",
+    over_cap: "超过转入学分上限。",
+    already_revoked: "这笔转入已经撤回过了。",
   };
 
   const d = (v) => (v ? String(v).slice(0, 10) : "待定");
@@ -142,10 +147,46 @@
     ".meter{height:12px;border-radius:99px;background:#eceae3;overflow:hidden}.meter i{display:block;height:100%;background:var(--navy)}" +
     ".stat{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.stat div{border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px;text-align:center}" +
     ".stat b{display:block;font-size:22px;color:var(--navy)}.stat span{font-size:12px;color:var(--muted)}" +
-    "@media(max-width:640px){.grid2{grid-template-columns:1fr}}";
+    "@media(max-width:640px){.grid2{grid-template-columns:1fr}}" +
+    ".tr{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;color:#111}" +
+    ".tr-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;border-bottom:2px solid #10305a;padding-bottom:8px;margin-bottom:10px;font-size:14px}" +
+    ".tr table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}" +
+    ".tr th,.tr td{border:1px solid #cfcac0;padding:6px 8px;text-align:left;vertical-align:top}" +
+    ".tr th{background:#f4f1ea;font-weight:700;white-space:nowrap}.tr-c td:nth-child(n+3){white-space:nowrap}" +
+    ".tr-note{font-size:12px;color:#555;margin:10px 0 0}" +
+    "@media print{.pn,.portal-shell>header,.ph,.no-print,.toast{display:none!important}body{background:#fff!important}" +
+    ".tr{border:0;padding:0}main{padding:0!important;margin:0!important}}";
   const style = document.createElement("style");
   style.textContent = CSS;
   document.head.appendChild(style);
 
-  window.AmasSis = { MODE, OST, ATT, GST, SST, ERR, UNKNOWN_TEXT, d, span, today, write, ask, gradeScale };
+  /* 成绩单（my_transcript / admin_transcript 的结果）。只排版，不加任何印章或「正式」字样：
+     由清迈中心还是 AMAS 总校出具尚未决定，这里只说明以学院出具的为准。 */
+  function transcriptHtml(t) {
+    const e = UI.esc;
+    const courses = t.courses || [], transfers = t.transfers || [], prac = (t.practicum || []).filter((p) => p.done);
+    const num = (v) => (v == null ? "—" : Number(v).toFixed(2));
+    return '<div class="tr">' +
+      '<div class="tr-head"><b>AMAS 亚洲宣教神学院 · 学习记录</b><span>打印日期 ' + today() + '</span></div>' +
+      '<table class="tr-id"><tr><th>姓名</th><td>' + e(t.name || "—") + '</td><th>学号</th><td>' + e(t.student_number || "—") + '</td></tr>' +
+      '<tr><th>项目</th><td>' + e(t.program_name || t.program_code || "—") + '</td><th>学籍状态</th><td>' + e(SST[t.status] || t.status || "—") + '</td></tr>' +
+      '<tr><th>入学（正式注册）</th><td>' + d(t.activated_at) + '</td><th>毕业</th><td>' + (t.graduation ? d(t.graduation.graduated_on) : "—") + '</td></tr></table>' +
+      '<table class="tr-c"><thead><tr><th>学年</th><th>课程</th><th>学分</th><th>等级</th><th>绩点</th></tr></thead><tbody>' +
+      (courses.length ? courses.map((c) => '<tr><td>' + e(c.academic_year) + '</td><td>' + e(c.title_zh) + '</td><td>' + (c.credits ?? "—") +
+          '</td><td>' + e(c.grade) + '</td><td>' + Number(c.points).toFixed(1) + '</td></tr>').join("")
+        : '<tr><td colspan="5">尚无已发布的课程成绩</td></tr>') + '</tbody></table>' +
+      (transfers.length ? '<table class="tr-c"><thead><tr><th colspan="2">外校转入 / 免修</th><th>学分</th><th colspan="2">依据</th></tr></thead><tbody>' +
+        transfers.map((x) => '<tr><td colspan="2">' + e(x.title_zh || "一般转入学分") + '</td><td>' + x.credits + '</td><td colspan="2">' + e(x.evidence || x.reason || "") + '</td></tr>').join("") +
+        '</tbody></table>' : "") +
+      (prac.length ? '<table class="tr-c"><thead><tr><th colspan="2">实践训练</th><th>学分</th><th colspan="2">完成日期</th></tr></thead><tbody>' +
+        prac.map((p) => '<tr><td colspan="2">' + e(p.title_zh) + '</td><td>' + p.credits + '</td><td colspan="2">' + d(p.completed_on) + '</td></tr>').join("") +
+        '</tbody></table>' : "") +
+      '<table class="tr-id"><tr><th>课程学分</th><td>' + (t.course_credits || 0) + '</td><th>实践训练学分</th><td>' + (t.practicum_credits || 0) + '</td></tr>' +
+      '<tr><th>转入学分</th><td>' + (t.transfer_credits || 0) + '</td><th>合计 / 毕业要求</th><td><b>' + (t.credits_earned || 0) +
+        (t.credits_required ? ' / ' + t.credits_required : "") + '</b></td></tr>' +
+      '<tr><th>平均绩点 GPA</th><td><b>' + num(t.gpa) + '</b></td><th>计分方式</th><td>A+ 至 F，4.0 制；转入学分不计 GPA</td></tr></table>' +
+      '<p class="tr-note">本页为系统生成的学习记录。正式成绩单以 AMAS 出具并盖章的版本为准。</p></div>';
+  }
+
+  window.AmasSis = { MODE, OST, ATT, GST, SST, ERR, UNKNOWN_TEXT, d, span, today, write, ask, gradeScale, transcriptHtml };
 })();

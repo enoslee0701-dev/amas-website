@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>角色管理 | AMAS</title>
+<link rel="icon" href="../../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610231348">
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610231348"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610231348"></script>
+<script src="../../../assets/js/portal/api.js?v=202610231348"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610231348"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610231348"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610231348"></script>
+<script>
+/* 角色管理（0033）：只有超级管理员能用。只管教务 / 教学主管 / 导师三种；
+   超级管理员仍只能由数据库手工授予，教授走认证流程，学员走招生与建档。
+   不能改自己。每次授予 / 撤销写审计。按邮箱**精确**查人，不提供用户全名单浏览。 */
+(async function(){
+  const UI = window.AmasUI, Api = window.AmasApi, Shell = window.AmasShell, S = window.AmasSis;
+  const mounted = await Shell.mount({ space: "admin", title: "管理后台", allow: ["super_admin"], requireAal2: true });
+  if (!mounted) return;
+  const { main, ctx } = mounted;
+  const me = ctx.session.user.id;
+  const LABEL = { registrar: "教务", academic_admin: "教学主管", mentor: "导师", super_admin: "超级管理员", teacher: "教授",
+                  student: "学员", applicant: "申请者", finance: "财务", content_admin: "内容管理" };
+  const MANAGED = ["registrar", "academic_admin", "mentor"];
+  let found = null;
+
+  main.innerHTML = '<h1>角色管理</h1><p class="lead">授予或撤销教务、教学主管、导师身份。超级管理员身份不能在这里授予；教授身份经教师认证取得。</p>' +
+    '<div class="msg err" id="err" role="alert" tabindex="-1"></div>' +
+    '<form class="card" id="ff" novalidate><div class="f"><label for="em">按邮箱查找账号</label>' +
+    '<div class="bar"><input id="em" type="email" autocomplete="off" placeholder="name@example.com" style="flex:1;min-width:200px">' +
+    '<button class="btn" type="submit" style="width:auto;padding:0 18px">查找</button></div></div><div id="hit"></div></form>' +
+    '<div class="card" style="margin-top:14px"><h2 style="font-size:16px;margin:0 0 6px">现有同工</h2><div id="staff"></div></div>';
+  const errBox = main.querySelector("#err");
+  const say = (m) => { errBox.textContent = m; errBox.classList.add("show"); errBox.focus(); };
+  const clear = () => errBox.classList.remove("show");
+  Object.assign(S.ERR, { role_not_manageable: "这个身份不能在这里管理。", cannot_change_self: "不能修改自己的身份。",
+                         not_assigned: "这个账号现在没有这个身份。", already_assigned: "这个账号已经有这个身份了。" });
+
+  const chips = (roles) => (roles || []).map(r => '<span class="chip">' + UI.esc(LABEL[r] || r) + '</span>').join(" ");
+  function personHtml(u){
+    const self = u.user_id === me;
+    return '<div class="row"><span><b>' + UI.esc(u.display_name || "未登记姓名") + '</b> <small>' + UI.esc(u.email || "") + '</small><br>' + chips(u.roles) + '</span>' +
+      (self ? '<small>（你自己）</small>' : '<span class="bar">' + MANAGED.map(r => (u.roles || []).includes(r)
+          ? '<button type="button" class="sbtn" data-u="' + u.user_id + '" data-r="' + r + '" data-g="0" data-n="' + UI.esc(u.display_name || u.email || "") + '">撤销' + LABEL[r] + '</button>'
+          : '<button type="button" class="sbtn pri" data-u="' + u.user_id + '" data-r="' + r + '" data-g="1" data-n="' + UI.esc(u.display_name || u.email || "") + '">设为' + LABEL[r] + '</button>').join("") + '</span>') + '</div>';
+  }
+  function bind(box){
+    box.querySelectorAll("[data-u]").forEach(b => b.addEventListener("click", async () => {
+      clear();
+      const grant = b.dataset.g === "1", role = LABEL[b.dataset.r];
+      const v = await S.ask({ title: (grant ? "授予" : "撤销") + "「" + b.dataset.n + "」的" + role + "身份",
+        text: grant ? "授予后对方下次登录即可使用相应功能。" : "撤销立即生效。",
+        fields: [{ id: "reason", label: "原因", type: "textarea", required: true }], confirmLabel: grant ? "确认授予" : "确认撤销", danger: !grant });
+      if (!v) return;
+      const r = await S.write({ lock: "role-" + b.dataset.u, fn: "sis-admin", say,
+        args: { action: "set_staff_role", user_id: b.dataset.u, role: b.dataset.r, grant, reason: v.reason } });
+      if (r) { UI.toast("已" + (grant ? "授予" : "撤销")); await refreshFound(); loadStaff(); }
+    }));
+  }
+  async function refreshFound(){
+    if (!found) return;
+    const { data } = await Api.rpc("admin_find_user", { p_email: found });
+    const box = main.querySelector("#hit");
+    box.innerHTML = Array.isArray(data) && data.length ? data.map(personHtml).join("") : "";
+    bind(box);
+  }
+  main.querySelector("#ff").addEventListener("submit", async (e) => {
+    e.preventDefault(); clear();
+    const em = main.querySelector("#em").value.trim();
+    const box = main.querySelector("#hit");
+    if (!/^[^@\s]+@[^@\s]+$/.test(em)) return say("请输入完整的邮箱地址。");
+    box.innerHTML = UI.skeleton(1);
+    const { data, error } = await Api.rpc("admin_find_user", { p_email: em });
+    if (error || !Array.isArray(data)) { box.innerHTML = ""; return say("这一次没能查询，请重试。"); }
+    found = em;
+    box.innerHTML = data.length ? data.map(personHtml).join("") : '<p class="who">没有找到这个邮箱的账号。对方需要先在网站注册。</p>';
+    bind(box);
+  });
+  async function loadStaff(){
+    const box = main.querySelector("#staff");
+    box.innerHTML = UI.skeleton(2);
+    const { data, error } = await Api.rpc("admin_list_staff");
+    if (error || !Array.isArray(data)) return box.innerHTML = '<p class="who">这一次没能读到同工名单。这不表示没有同工，请刷新。</p>';
+    box.innerHTML = data.length ? data.map(personHtml).join("") : '<p class="who">还没有教务或导师。</p>';
+    bind(box);
+  }
+  loadStaff();
+})();
+</script>
+</body>
+</html>

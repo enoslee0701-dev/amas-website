@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>学员学习记录 | AMAS</title>
+<link rel="icon" href="../../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610231348">
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610231348"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610231348"></script>
+<script src="../../../assets/js/portal/api.js?v=202610231348"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610231348"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610231348"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610231348"></script>
+<script>
+/* 学员管理系统：教务打印某名学员的学习记录（admin_transcript，0033）。 */
+(async function(){
+  const A = window.AmasAuth, UI = window.AmasUI, Api = window.AmasApi, Shell = window.AmasShell, S = window.AmasSis;
+  const mounted = await Shell.mount({ space: "admin", title: "管理后台",
+    allow: ["registrar","academic_admin","super_admin"], requireAal2: true });
+  if (!mounted) return;
+  const { main } = mounted;
+  const id = new URLSearchParams(location.search).get("id") || "";
+  async function load(){
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return main.innerHTML = UI.box("❓", "没有指定学员", "请从学员学业总览进入。");
+    UI.loading(main, 5);
+    const { data, error } = await Api.rpc("admin_transcript", { p_student: id });
+    if (error) return UI.error(main, { message: "这一次没能读到学习记录，请重试。", onRetry: load });
+    if (!data) return main.innerHTML = UI.box("❓", "找不到这名学员", "");
+    main.innerHTML = '<div class="bar no-print" style="margin-bottom:12px"><a class="link" href="' + A.ROOT + 'portal/admin/student/?id=' + id + '">← 返回学业总览</a>' +
+      '<button class="sbtn pri" id="print">打印 / 存为 PDF</button></div>' + S.transcriptHtml(data);
+    main.querySelector("#print").addEventListener("click", () => window.print());
+  }
+  load();
+})();
+</script>
+</body>
+</html>

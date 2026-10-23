@@ -6,23 +6,23 @@
 <meta name="robots" content="noindex">
 <title>成绩与进度 | AMAS 学员中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610231327">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610231348">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202610231327"></script>
-<script src="../../../assets/js/portal/auth.js?v=202610231327"></script>
-<script src="../../../assets/js/portal/api.js?v=202610231327"></script>
-<script src="../../../assets/js/portal/ui.js?v=202610231327"></script>
-<script src="../../../assets/js/portal/shell.js?v=202610231327"></script>
-<script src="../../../assets/js/portal/sis.js?v=202610231327"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610231348"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610231348"></script>
+<script src="../../../assets/js/portal/api.js?v=202610231348"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610231348"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610231348"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610231348"></script>
 <script>
 /* 学员管理系统第三期：学员的成绩与毕业进度。
    my_progress()：已得学分（课程 + 实践训练）/ 毕业要求、GPA、未修课程、实践训练；my_grades()：已发布总评。
    实践训练由学员自行填报完成（Enos 2026-10-23 决定），填报即计学分，可撤回。
    这里显示的是**学习记录**，不是正式成绩单；正式成绩单的出具方式待定。 */
 (async function(){
-  const UI = window.AmasUI, Api = window.AmasApi, Shell = window.AmasShell, S = window.AmasSis;
+  const A = window.AmasAuth, UI = window.AmasUI, Api = window.AmasApi, Shell = window.AmasShell, S = window.AmasSis;
   const mounted = await Shell.mount({ space: "student", title: "成绩与进度", allow: ["student"] });
   if (!mounted) return;
   const { main } = mounted;
@@ -41,13 +41,14 @@
     const missing = pr.missing_courses || [];
 
     main.innerHTML = '<h1>成绩与进度</h1>' +
-      '<p class="lead">这是你的学习记录（非正式成绩单）。成绩以教务发布为准。</p>' +
+      '<p class="lead">这是你的学习记录（非正式成绩单）。成绩以教务发布为准。 <a class="link" href="' + A.ROOT + 'portal/student/transcript/">打印学习记录</a></p>' +
       '<div class="msg err" id="err" role="alert" tabindex="-1"></div>' +
       '<div class="stat"><div><b>' + got + (req ? ' / ' + req : "") + '</b><span>已得学分</span></div>' +
         '<div><b>' + (pr.gpa == null ? "—" : Number(pr.gpa).toFixed(2)) + '</b><span>平均绩点 GPA</span></div>' +
         '<div><b>' + missing.length + '</b><span>未修必修课</span></div></div>' +
       (req ? '<div class="meter" style="margin:12px 0 4px" role="progressbar" aria-valuemin="0" aria-valuemax="' + req + '" aria-valuenow="' + got + '"><i style="width:' + pct + '%"></i></div>' +
-        '<p class="who">课程 ' + (pr.course_credits || 0) + ' 学分 + 实践训练 ' + (pr.practicum_credits || 0) + ' 学分。' +
+        '<p class="who">课程 ' + (pr.course_credits || 0) + ' 学分 + 实践训练 ' + (pr.practicum_credits || 0) + ' 学分' +
+        (Number(pr.transfer_credits) ? ' + 外校转入 ' + pr.transfer_credits + ' 学分' : "") + '。' +
         (pr.status === "graduated" ? "<b>已毕业。</b>" : pr.eligible ? "<b>已满足毕业条件</b>，教务审核后登记毕业。" :
           "毕业需修满 " + req + " 学分" + (pr.min_gpa ? "、GPA 不低于 " + Number(pr.min_gpa).toFixed(1) : "") + "。") + '</p>' : "") +
 

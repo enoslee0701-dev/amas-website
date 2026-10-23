@@ -53,6 +53,7 @@
       { href: "portal/admin/students/", icon: "🎓", label: "学籍管理" },
       { href: "portal/admin/offerings/", icon: "📚", label: "开课与编班" },
       { href: "portal/admin/grades/", icon: "📝", label: "成绩审核" },
+      { href: "portal/admin/roles/", icon: "🔑", label: "角色管理" },
       { href: "portal/admin/teachers/", icon: "🏫", label: "教师验证" },
       { href: "help/", icon: "💬", label: "帮助" },
     ],

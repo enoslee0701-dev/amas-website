@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>学员学业总览 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610231327">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610231348">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202610231327"></script>
-<script src="../../../assets/js/portal/auth.js?v=202610231327"></script>
-<script src="../../../assets/js/portal/api.js?v=202610231327"></script>
-<script src="../../../assets/js/portal/ui.js?v=202610231327"></script>
-<script src="../../../assets/js/portal/shell.js?v=202610231327"></script>
-<script src="../../../assets/js/portal/sis.js?v=202610231327"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610231348"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610231348"></script>
+<script src="../../../assets/js/portal/api.js?v=202610231348"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610231348"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610231348"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610231348"></script>
 <script>
 /* 学员管理系统第三、四期：教务看单个学员的学业 —— 学分、GPA、未修课程、实践训练、导师、毕业登记。
    读：admin_student_overview（0032，含毕业审核结果）；写：sis-admin（assign_mentor / end_mentor / graduate）。
@@ -48,7 +48,9 @@
         '<div><b>' + (o.gpa == null ? "—" : Number(o.gpa).toFixed(2)) + '</b><span>GPA' + (o.min_gpa ? '（门槛 ' + o.min_gpa + '）' : "") + '</span></div>' +
         '<div><b>' + missing.length + '</b><span>未修必修课</span></div></div>' +
       (req ? '<div class="meter" style="margin:12px 0 4px"><i style="width:' + Math.min(100, Math.round(got / req * 100)) + '%"></i></div>' : "") +
-      '<p class="who">课程 ' + (o.course_credits || 0) + ' 学分 + 实践训练 ' + (o.practicum_credits || 0) + ' 学分。</p>' +
+      '<p class="who">课程 ' + (o.course_credits || 0) + ' 学分 + 实践训练 ' + (o.practicum_credits || 0) + ' 学分' +
+        (Number(o.transfer_credits) ? ' + 外校转入 ' + o.transfer_credits + ' 学分' : "") + '。' +
+        ' <a class="link" href="' + A.ROOT + 'portal/admin/transcript/?id=' + id + '">打印学习记录</a></p>' +
 
       '<div class="card" style="margin-top:14px"><h2 style="font-size:16px;margin:0 0 6px">毕业审核</h2>' +
         (o.graduation ? '<div class="msg info show">已于 ' + S.d(o.graduation.graduated_on) + ' 登记毕业，毕业学分 ' + o.graduation.total_credits +
@@ -70,6 +72,15 @@
         (o.practicum || []).map(i => '<div class="row"><span>' + UI.esc(i.title_zh) + ' <small>' + i.credits + ' 学分</small></span>' +
           (i.done ? '<span class="chip published">已完成 ' + S.d(i.completed_on) + '</span>' : '<span class="chip">未填报</span>') + '</div>').join("") + '</div>' +
 
+      '<div class="card" style="margin-top:14px"><h2 style="font-size:16px;margin:0 0 6px">外校转入学分</h2>' +
+        '<p class="who">免修对应必修课按该课学分计；一般转入只计学分。转入学分不计 GPA。</p>' +
+        ((o.transfers || []).length ? o.transfers.map(x => '<div class="row"><span>' + UI.esc(x.title_zh || "一般转入学分") + ' <small>' + x.credits + ' 学分 · ' +
+            UI.esc(x.evidence || x.reason || "") + '</small></span>' +
+            (x.revoked ? '<span class="chip withdrawn">已撤回</span>' : live ? '<button class="sbtn" data-rv="' + x.ledger_id + '" data-n="' + UI.esc(x.title_zh || "一般转入学分") + '">撤回</button>' : "") +
+            '</div>').join("") : '<p class="who">没有转入记录。</p>') +
+        (live ? '<div class="bar" style="margin-top:8px">' + (missing.length ? '<button class="sbtn pri" id="tx1">免修一门必修课</button>' : "") +
+          '<button class="sbtn" id="tx2">一般转入学分</button></div>' : "") + '</div>' +
+
       (missing.length ? '<div class="card" style="margin-top:14px"><h2 style="font-size:16px;margin:0 0 6px">未修必修课</h2>' +
         missing.map(c => '<div class="row"><span>' + UI.esc(c.title_zh) + '</span><small>' + c.credits + ' 学分</small></div>').join("") + '</div>' : "");
 
@@ -81,6 +92,27 @@
       if (!v) return;
       if (await S.write({ lock: "grad", fn: "sis-admin", args: { action: "graduate", student_id: id, graduated_on: v.on }, say })) { UI.toast("已登记毕业"); load(); }
     });
+    main.querySelector("#tx1")?.addEventListener("click", async () => {
+      const v = await S.ask({ title: "免修一门必修课", text: "按该课学分计入，并从「未修必修课」中移除。",
+        fields: [{ id: "c", label: "课程", type: "select", required: true, options: [["", "请选择"]].concat(missing.map(m => [m.code, m.title_zh + "（" + m.credits + " 学分）"])) },
+                 { id: "reason", label: "原因", type: "textarea", required: true }, { id: "ev", label: "依据（原校、成绩单编号等）" }], confirmLabel: "确认免修" });
+      if (!v) return;
+      if (await S.write({ lock: "tx", fn: "sis-admin", args: { action: "add_transfer", student_id: id, course_code: v.c, reason: v.reason, evidence: v.ev || null }, say })) { UI.toast("已记入"); load(); }
+    });
+    main.querySelector("#tx2")?.addEventListener("click", async () => {
+      const v = await S.ask({ title: "一般转入学分", text: "不对应本校课程，只计学分。",
+        fields: [{ id: "cr", label: "学分", type: "number", required: true }, { id: "reason", label: "原因", type: "textarea", required: true },
+                 { id: "ev", label: "依据（原校、成绩单编号等）" }], confirmLabel: "确认转入" });
+      if (!v) return;
+      const cr = Number(v.cr);
+      if (!(cr > 0 && cr <= 30)) return say("学分须在 0 到 30 之间。");
+      if (await S.write({ lock: "tx", fn: "sis-admin", args: { action: "add_transfer", student_id: id, credits: cr, reason: v.reason, evidence: v.ev || null }, say })) { UI.toast("已记入"); load(); }
+    });
+    main.querySelectorAll("[data-rv]").forEach(b => b.addEventListener("click", async () => {
+      const v = await S.ask({ title: "撤回转入：" + b.dataset.n, text: "撤回后学分扣回，原记录保留。", fields: [{ id: "reason", label: "撤回原因", type: "textarea", required: true }], confirmLabel: "确认撤回", danger: true });
+      if (!v) return;
+      if (await S.write({ lock: "rv-" + b.dataset.rv, fn: "sis-admin", args: { action: "revoke_transfer", ledger_id: Number(b.dataset.rv), reason: v.reason }, say })) { UI.toast("已撤回"); load(); }
+    }));
     main.querySelector("#addm")?.addEventListener("click", async () => {
       const { data: ms, error: e2 } = await Api.rpc("admin_list_mentors");
       if (e2 || !Array.isArray(ms)) return say("这一次没能读到导师名单，请重试。");

@@ -91,7 +91,7 @@ export async function startHarness({ profilePrefix = "amas-h-", shotPrefix = "h"
 
   let pass = 0, fails = 0, scriptId = null;
   const h = {
-    sleep, ev,
+    sleep, ev, send,
     ok(name, cond, detail) { if (cond) { pass++; console.log("  PASS  " + name); }
       else { fails++; console.log("  FAIL  " + name + (detail ? "  ← " + detail : "")); } },
     async open(page, scen, wait = 1800) {

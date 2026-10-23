@@ -83,7 +83,15 @@ cp assets/js/supabase-config.local.example.js assets/js/supabase-config.local.js
 本地没有 psql 时，用 `scripts/run-sql-local.mjs` 在一次性 PGlite 内存库里跑（装 `scripts/verify-g1/prelude.sql` + Supabase 默认授权 + 全部迁移），
 不连任何真实库；PGlite 装在仓库外，用法见脚本文件头。
 
-Edge Function `sis-admin` 尚无 HTTP 级用例（需要 deno 与测试库），部署到测试库后补。
+## 学员管理系统补全（0033：外校转入学分、学习记录打印、授课次数、角色管理）
+
+| 文件 | 层 | 断言 | 运行方式 |
+|---|---|---|---|
+| `sis3_acceptance.sql` | 数据库（转入与本校成绩互不干扰 / 上限 / 撤回 / 成绩单可见范围 / 授课次数 / 角色管理门禁与审计） | 6 组 | 同上 |
+| `scripts/test-sis3-pages.mjs` | 浏览器（学习记录与打印样式、角色管理、转入学分、授课次数） | 29 | `node scripts/test-sis3-pages.mjs` |
+| `scripts/test-sis-admin-edge.mjs` | Edge 入口：真 `index.ts` 在 Node 里跑（类型擦除），假客户端；身份 / aal2 / 角色、每个动作的参数形状、actor 只取自令牌、错误码映射 | 48 | `node scripts/test-sis-admin-edge.mjs`（Node 22.18+） |
+
+`sis-admin` 已有入口级用例；连真实 Supabase 的 HTTP 端到端仍要等测试库上库后补。
 
 ## 环境文件
 
