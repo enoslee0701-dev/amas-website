@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>学员学业总览 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610231348">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610231620">
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202610231348"></script>
-<script src="../../../assets/js/portal/auth.js?v=202610231348"></script>
-<script src="../../../assets/js/portal/api.js?v=202610231348"></script>
-<script src="../../../assets/js/portal/ui.js?v=202610231348"></script>
-<script src="../../../assets/js/portal/shell.js?v=202610231348"></script>
-<script src="../../../assets/js/portal/sis.js?v=202610231348"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610231620"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610231620"></script>
+<script src="../../../assets/js/portal/api.js?v=202610231620"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610231620"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610231620"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610231620"></script>
 <script>
 /* 学员管理系统第三、四期：教务看单个学员的学业 —— 学分、GPA、未修课程、实践训练、导师、毕业登记。
    读：admin_student_overview（0032，含毕业审核结果）；写：sis-admin（assign_mentor / end_mentor / graduate）。
@@ -50,7 +50,7 @@
       (req ? '<div class="meter" style="margin:12px 0 4px"><i style="width:' + Math.min(100, Math.round(got / req * 100)) + '%"></i></div>' : "") +
       '<p class="who">课程 ' + (o.course_credits || 0) + ' 学分 + 实践训练 ' + (o.practicum_credits || 0) + ' 学分' +
         (Number(o.transfer_credits) ? ' + 外校转入 ' + o.transfer_credits + ' 学分' : "") + '。' +
-        ' <a class="link" href="' + A.ROOT + 'portal/admin/transcript/?id=' + id + '">打印学习记录</a></p>' +
+        ' <a class="link" href="' + A.ROOT + 'portal/admin/transcript/?id=' + id + '">打印成绩单</a></p>' +
 
       '<div class="card" style="margin-top:14px"><h2 style="font-size:16px;margin:0 0 6px">毕业审核</h2>' +
         (o.graduation ? '<div class="msg info show">已于 ' + S.d(o.graduation.graduated_on) + ' 登记毕业，毕业学分 ' + o.graduation.total_credits +

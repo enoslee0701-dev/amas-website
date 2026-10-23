@@ -176,7 +176,7 @@ try {
   t = await txt();
   ok("R1 学分 30 / 77、GPA 3.25、未修 1 门", t.includes("30 / 77") && t.includes("3.25") && t.includes("尚未修过的必修课（1）"));
   ok("R2 不及格标出须重修", t.includes("须重修"));
-  ok("R3 标明是学习记录而非正式成绩单", t.includes("非正式成绩单"));
+  ok("R3 说明正式成绩单由清迈教学中心出具", t.includes("正式成绩单由 AMAS 神学院·清迈教学中心出具"));
   await shot("student-records");
   await click('[data-rep="p_reading"]'); await sleep(200);
   ok("R4 填报日期默认今天", (await ev(`document.querySelector("#ask-on").value`)) === today);

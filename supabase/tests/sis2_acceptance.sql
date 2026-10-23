@@ -242,8 +242,15 @@ begin
     raise exception 'FAIL G07d 修满 77 学分应可毕业 %', r;
   end if;
   update public.program_catalog set min_gpa = 3.5 where code = 'bth';
-  if (public.graduation_audit(s1)->>'eligible')::boolean then raise exception 'FAIL G07e GPA 门槛没起作用'; end if;
-  update public.program_catalog set min_gpa = 2.0 where code = 'bth';
+  if (public.graduation_audit(s1)->>'eligible')::boolean then raise exception 'FAIL G07e 设了 GPA 门槛时没起作用'; end if;
+  update public.program_catalog set min_gpa = null where code = 'bth';
+  -- B.Th 不设 GPA 门槛（0034）：全部 D- 及格、GPA 0.7，修满 77 学分照样可毕业
+  update public.final_grades g set grade = 'D-' from public.course_enrollments e
+   where e.id = g.enrollment_id and e.student_id = s1 and g.status = 'published';
+  r := public.graduation_audit(s1);
+  if not (r->>'eligible')::boolean or (r->>'gpa')::numeric <> 0.7 then
+    raise exception 'FAIL G07e2 不设 GPA 门槛时，77 学分应可毕业（GPA 照常算出 0.7）%', r;
+  end if;
   r := public.sis_graduate(s1, v_a, '2027-06-30');
   if r->>'status' <> 'graduated' then raise exception 'FAIL G07f 毕业登记失败 %', r; end if;
   if not exists (select 1 from public.graduation_records where student_id = s1 and total_credits = 77) then
@@ -264,7 +271,7 @@ begin
   select count(*) into n from public.my_grades();
   if n < 27 then raise exception 'FAIL G07j 毕业学员应仍能看到成绩'; end if;
   execute 'reset role';
-  raise notice 'PASS G07 毕业：学分 / 课程 / 实践训练 / GPA 四项齐才可毕业，毕业后登记、成绩留存、学号进入不可逆';
+  raise notice 'PASS G07 毕业：学分 / 课程 / 实践训练齐才可毕业；GPA 门槛可配、B.Th 不设；毕业后登记、成绩留存、学号进入不可逆';
 
   -- ---------- G08 导师 ----------
   r := public.sis_assign_mentor(s2, v_a, v_t2);

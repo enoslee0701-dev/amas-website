@@ -168,6 +168,14 @@ begin
   end if;
   raise notice 'PASS X06 角色管理：只限超管、须原因、不能授超管与教授、不能改自己、审计、查人只限超管';
 
+  -- ---------- X07 B.Th 毕业政策（0034） ----------
+  if (select min_gpa from public.program_catalog where code = 'bth') is not null
+     or (select max_transfer_credits from public.program_catalog where code = 'bth') is not null
+     or (select credits_required from public.program_catalog where code = 'bth') <> 77 then
+    raise exception 'FAIL X07 B.Th 应为 77 学分、无 GPA 门槛、转入不设上限';
+  end if;
+  raise notice 'PASS X07 B.Th 毕业政策：77 学分、无 GPA 门槛、转入不设上限';
+
   raise notice '=== SIS COMPLETION ACCEPTANCE PASSED ===';
 end $$;
 

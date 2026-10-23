@@ -26,7 +26,7 @@ try {
   ok("P1 身份、课程、转入、实践训练齐全", t.includes("张学一") && t.includes("B26-001") && t.includes("马太福音") && t.includes("A-") &&
      t.includes("四福音概论") && t.includes("原校成绩单") && t.includes("祷告训练") && !t.includes("读经训练"));
   ok("P2 合计与 GPA", t.includes("11 / 77") && t.includes("3.15"));
-  ok("P3 不冒充正式成绩单", t.includes("正式成绩单以 AMAS 出具并盖章的版本为准"));
+  ok("P3 出具单位为清迈教学中心，留签章栏、不印电子章", t.includes("AMAS 神学院 · 清迈教学中心") && t.includes("教务签章") && t.includes("加盖教务章后为正式成绩单"));
   await ev(`window.__printed = 0; window.print = function(){ window.__printed++; }; true`);
   await click("#print");
   ok("P4 打印按钮调用浏览器打印", (await ev("window.__printed")) === 1);
@@ -35,7 +35,7 @@ try {
   await send("Emulation.setEmulatedMedia", { media: "" });
   await shot("transcript");
   await open("portal/student/transcript/", Object.assign({}, STU, { rpc: { my_roles: { data: [{ role: "student" }] }, my_transcript: { error: { message: "x" } } } }));
-  ok("P6 读失败如实说", (await txt()).includes("没能读到你的学习记录"));
+  ok("P6 读失败如实说", (await txt()).includes("没能读到你的成绩单"));
   await open("portal/admin/transcript/?id=" + SID, Object.assign({}, ADMIN, { rpc: { my_roles: { data: [{ role: "registrar" }] }, admin_transcript: { data: TR } } }));
   const c0 = await rpcCalls("admin_transcript");
   ok("P7 教务打印指定学员", (await txt()).includes("张学一") && c0[0]?.args.p_student === SID);
