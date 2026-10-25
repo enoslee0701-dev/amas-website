@@ -4,9 +4,12 @@
    ⚠ 这个文件会被提交，而 master 推送即公开发布（GitHub Pages 从 master 直发、
      无构建、无闸门）。所以**本地联调不要填这里** —— 填了等于把配置公开。
      本地联调用下面那个旁路：assets/js/supabase-config.local.js（已 gitignore）。 */
+/* 2026-10-26 Enos 决定：线上网站先连测试库 amas-staging 用于验收（方案 A）。
+   anon key 按设计可公开（行级权限由数据库强制）；service_role 绝不放在这里。
+   正式招生前另建正式项目，把这里换成正式库。 */
 window.SUPA = {
-  url: "",
-  anonKey: ""
+  url: "https://sdrwyebizfdwldlfjyim.supabase.co",
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkcnd5ZWJpemZkd2xkbGZqeWltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzOTgxNDQsImV4cCI6MjEwMzk3NDE0NH0.TYNqXL8ViZJP4H4t7tUkBesGOiLE8KBYlrlgrhB0OJE"
 };
 
 /* ── 本地联调旁路 ────────────────────────────────────────────────────

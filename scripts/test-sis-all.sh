@@ -37,7 +37,7 @@ run "补全页面"                  node scripts/test-sis3-pages.mjs
 if [ "${1:-}" = "--full" ]; then
   echo "== 既有门户回归"
   for t in test-portal-pages test-admin-writes test-admin-read-boundary test-admin-dialog-race test-admin-confirm-race \
-           test-admin-keyboard test-admin-keyboard-journey test-portal-degraded test-aal-unknown; do
+           test-admin-keyboard test-admin-keyboard-journey test-portal-degraded test-noconfig-degraded test-aal-unknown; do
     run "$t" node "scripts/$t.mjs"
   done
   run "verify.sh" bash scripts/verify.sh

@@ -58,6 +58,17 @@ const server = http.createServer((req, res) => {
     return;
   }
   if (p.indexOf("/rest/v1/submissions") > -1) { submissionHits++; res.writeHead(404); res.end("nf"); return; }
+  /* 2026-10-26 起仓库里的 supabase-config.js 已填（线上先连测试库，Enos 方案 A）。
+     本套要量的是「出厂没配置」时的降级 —— 所以把这份**真文件**里的 url / anonKey 抹成空串再交给页面，
+     文件其余部分（本地旁路、SUPA_IS_FILLED 判据）一字不动地照用真代码。 */
+  if (p === "/assets/js/supabase-config.js") {
+    const real = fs.readFileSync(path.join(ROOT, "assets/js/supabase-config.js"), "utf8");
+    const blank = real.replace(/(window\.SUPA\s*=\s*\{\s*url:\s*)"[^"]*"(,\s*anonKey:\s*)"[^"]*"/, '$1""$2""');
+    if (blank === real && !/url:\s*""/.test(real)) { res.writeHead(500); res.end("cannot blank config"); return; }
+    res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "no-store" });
+    res.end(blank);
+    return;
+  }
   if (p.endsWith("/")) p += "index.html";
   if (p.indexOf("..") > -1) { res.writeHead(400); res.end("no"); return; }
   const abs = path.join(ROOT, p);
@@ -136,6 +147,10 @@ const PORTAL_WHOLE_PAGE = [
   "portal/teacher/", "portal/teacher/profile/",
   "portal/admin/", "portal/admin/admissions/", "portal/admin/students/", "portal/admin/teachers/",
   "portal/mfa/", "auth/callback/",
+  // 学员管理系统（0030–0035）新增的 11 页：同样走 Shell.mount，缺配置时整页降级
+  "portal/admin/offerings/", "portal/admin/grades/", "portal/admin/student/", "portal/admin/roles/", "portal/admin/transcript/",
+  "portal/teacher/classes/", "portal/teacher/class/", "portal/teacher/mentees/",
+  "portal/student/classes/", "portal/student/records/", "portal/student/transcript/",
 ];
 const INLINE_NOTICE = { "login/": "btnLogin", "register/": "btnReg", "forgot-password/": "btnGo", "faculty/verify/": "btnCode" };
 const RECOVERY = "auth/recovery/";
