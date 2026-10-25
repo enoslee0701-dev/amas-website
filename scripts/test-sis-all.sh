@@ -33,6 +33,7 @@ echo "== 页面（本机 stub 浏览器）"
 run "第一期页面"                node scripts/test-sis-pages.mjs
 run "第二至四期页面"            node scripts/test-sis2-pages.mjs
 run "补全页面"                  node scripts/test-sis3-pages.mjs
+run "官网报名收件箱"            node scripts/test-inbox-page.mjs
 
 if [ "${1:-}" = "--full" ]; then
   echo "== 既有门户回归"

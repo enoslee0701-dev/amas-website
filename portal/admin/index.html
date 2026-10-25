@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>管理后台 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202610260556">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202610260620">
 <style>
 table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 .list th,.list td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top}
@@ -40,6 +40,7 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
   <div class="card" style="margin-bottom:14px">
     <h2 style="margin:0 0 10px">工作入口</h2>
     <div class="hub">
+      <a href="inbox/"><b>报名收件箱</b><span id="hubInbox">官网报名表与留言</span></a>
       <a href="admissions/"><b>招生审核</b><span>审核入学申请</span></a>
       <a href="students/"><b>学籍管理</b><span id="hubStu">建档、注册、休学 / 退学</span></a>
       <a href="offerings/"><b>开课与编班</b><span>课程班、排教授、编班</span></a>
@@ -53,7 +54,7 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
   <div class="card">
     <div class="pagehead">
       <div><h2 style="margin:0">教师验证管理 <span class="badge">Phase 2</span></h2><div class="who" id="who"></div></div>
-      <span><a class="link" href="../../admin.html" style="margin-right:12px">表单收件箱</a><button class="link" id="btnOut">退出登录</button></span>
+      <span><a class="link" href="inbox/" style="margin-right:12px">报名收件箱</a><button class="link" id="btnOut">退出登录</button></span>
     </div>
 
     <h3 style="color:var(--navy)">① 创建教师邀请</h3>
@@ -85,8 +86,8 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202610260556"></script>
-<script src="../../assets/js/portal/auth.js?v=202610260556"></script>
+<script src="../../assets/js/supabase-config.js?v=202610260620"></script>
+<script src="../../assets/js/portal/auth.js?v=202610260620"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
@@ -110,6 +111,10 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
         const pub = g.data.filter(o => Number(o.submitted) > 0).length;
         document.getElementById("hubGrades").innerHTML = pub || c.data.length
           ? '<em>' + pub + ' 个班待发布 · ' + c.data.length + ' 条更正待审批</em>' : "没有待处理的成绩";
+      }
+      const ib = await A.client.from("submissions").select("id", { count: "exact", head: true }).eq("status", "待处理");
+      if (!A.sessionEnded() && !ib.error && typeof ib.count === "number" && ib.count) {
+        document.getElementById("hubInbox").innerHTML = '<em>' + ib.count + ' 条待处理</em>';
       }
       if (!q.error && Array.isArray(q.data) && q.data.length) {
         document.getElementById("hubStu").innerHTML = '<em>' + q.data.length + ' 名已录取学员待建档</em>';

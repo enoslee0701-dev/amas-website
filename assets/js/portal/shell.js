@@ -49,6 +49,7 @@
     ],
     admin: [
       { href: "portal/admin/", icon: "🏠", label: "总览" },
+      { href: "portal/admin/inbox/", icon: "📬", label: "报名收件箱" },
       { href: "portal/admin/admissions/", icon: "📥", label: "招生审核" },
       { href: "portal/admin/students/", icon: "🎓", label: "学籍管理" },
       { href: "portal/admin/offerings/", icon: "📚", label: "开课与编班" },
