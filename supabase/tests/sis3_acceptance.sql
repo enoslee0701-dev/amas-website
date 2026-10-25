@@ -203,6 +203,31 @@ begin
   if not public.mfa_required() then raise exception 'FAIL X08g 开关缺行时应按「要求」处理'; end if;
   raise notice 'PASS X08 两步验证开关：默认要求、客户端改不了、只有明确 false 才放行、不放松任课门禁、异常值按要求';
 
+  -- ---------- X09 官网报名收件箱只给教务（0036） ----------
+  execute 'set role anon';
+  insert into public.submissions (type, name, contact, program) values ('application', '访客甲', 'guest@example.invalid', 'bth');
+  begin
+    select count(*) into n from public.submissions;
+    raise exception 'FAIL X09 匿名访客能回读收件箱';
+  exception when insufficient_privilege then null;
+  end;
+  execute 'reset role';
+  perform set_config('amas.test.uid', v_u1::text, true);
+  execute 'set role authenticated';
+  select count(*) into n from public.submissions;
+  if n <> 0 then raise exception 'FAIL X09b 普通登录用户（学员 / 申请人）能读到报名收件箱 % 条', n; end if;
+  update public.submissions set status = '已联系' where name = '访客甲';
+  execute 'reset role';
+  if (select status from public.submissions where name = '访客甲') <> '待处理' then raise exception 'FAIL X09c 普通用户能改报名状态'; end if;
+  perform set_config('amas.test.uid', v_a::text, true);
+  execute 'set role authenticated';
+  select count(*) into n from public.submissions where name = '访客甲';
+  if n <> 1 then raise exception 'FAIL X09d 教务读不到报名'; end if;
+  update public.submissions set status = '已联系', note = '已电话' where name = '访客甲';
+  execute 'reset role';
+  if (select status from public.submissions where name = '访客甲') <> '已联系' then raise exception 'FAIL X09e 教务改不了报名状态'; end if;
+  raise notice 'PASS X09 报名收件箱：访客可投递不可回读，普通用户看不到也改不了，教务可读可改';
+
   raise notice '=== SIS COMPLETION ACCEPTANCE PASSED ===';
 end $$;
 
