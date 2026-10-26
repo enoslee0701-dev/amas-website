@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>官网报名收件箱 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610261249">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610261554">
 <style>
 .kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;font-size:13.5px;border-top:1px solid var(--line);padding-top:8px;margin-top:4px}
 .kv dt{color:var(--muted)}.kv dd{margin:0;word-break:break-word;white-space:pre-wrap}
@@ -45,12 +45,12 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202610261249"></script>
-<script src="../../../assets/js/portal/auth.js?v=202610261249"></script>
-<script src="../../../assets/js/portal/api.js?v=202610261249"></script>
-<script src="../../../assets/js/portal/ui.js?v=202610261249"></script>
-<script src="../../../assets/js/portal/shell.js?v=202610261249"></script>
-<script src="../../../assets/js/portal/sis.js?v=202610261249"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610261554"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610261554"></script>
+<script src="../../../assets/js/portal/api.js?v=202610261554"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610261554"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610261554"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610261554"></script>
 <script>
 /* 官网报名收件箱：官网表单（入学申请 / 咨询 / 奉献 / 客服留言）由 main.js logToDB 写进 public.submissions，
    本页给教务查看、改跟进状态、写备注。0036 起只有教务类角色能读写；访客只能投递。
@@ -223,6 +223,9 @@
   main.querySelector("#q").addEventListener("input", render);
 
   list.innerHTML = UI.skeleton(3);
+  /* 报名与班级两份数据同时读（原来一条等一条） */
+  const csP = Api.select("submission_cohorts", { columns: "name,starts_on,progress,sort,updated_at",
+                                                 order: [{ column: "sort", asc: true }, { column: "name", asc: true }] });
   const { data, error } = await Api.select("submissions", {
     columns: "id,created_at,type,name,contact,program,lang,status,note,cohort,school_form,data",
     order: [{ column: "created_at" }, { column: "id" }], limit: 1000 });
@@ -231,8 +234,7 @@
   }
   rows = data.map(r => Object.assign(r, { cohort: r.cohort || "" }));
   /* 班级档案读不到时不挡收件箱：只用报名里出现过的班名，进度区说明读不到。 */
-  const cs = await Api.select("submission_cohorts", { columns: "name,starts_on,progress,sort,updated_at",
-                                                      order: [{ column: "sort", asc: true }, { column: "name", asc: true }] });
+  const cs = await csP;
   CINFO = !cs.error && Array.isArray(cs.data) ? cs.data : [];
   COHORTS = CINFO.map(c => c.name);
   rows.forEach(r => { if (r.cohort && !COHORTS.includes(r.cohort)) COHORTS.push(r.cohort); });

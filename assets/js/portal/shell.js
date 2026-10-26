@@ -106,16 +106,21 @@
   };
 
   /** 渲染门户外壳；返回 { ctx, main } */
+  /* 顶栏上的名字与身份：上一页读到过就先拿来画（只是显示，不做任何权限判断），
+     新页读到真实资料后再覆盖。缓存只在本标签页（sessionStorage），退出登录即作废。 */
+  const WHO_KEY = "amas.shell-who";   // "amas." 前缀：退出登录时 auth.js 一并清掉
+  const readWho = () => { try { return JSON.parse(sessionStorage.getItem(WHO_KEY) || "null"); } catch (e) { return null; } };
+  const saveWho = (w) => { try { sessionStorage.setItem(WHO_KEY, JSON.stringify(w)); } catch (e) {} };
+  const whoHtml = (w) => w ? `<b>${U.esc(w.name || "")}</b>${w.badge ? `<span class="badge">${U.esc(w.badge)}</span>` : ""}` : "";
+
+  /** 渲染门户外壳；返回 { ctx, main }
+      提速（2026-10-26）：外壳（顶栏 + 左侧菜单）**先画出来**，主区放骨架，同时去确认身份；
+      身份确认不通过时（跳登录 / 停靠页）把外壳拿掉，行为与原来一致。 */
   async function mount(opts) {
     const { space, title, allow, requireAal2 } = opts;
-    const ctx = requireAal2 ? await A.requireRoleAal2(allow) : await A.requireRole(allow);
-    if (!ctx) return null;
-
-    const profile = await A.getProfile();
-    const roles = ctx.roles || [];
-    const primary = ["super_admin", "academic_admin", "registrar", "finance", "content_admin", "teacher", "mentor", "student", "applicant"].find((r) => roles.includes(r));
     const items = NAV[space] || [];
     const here = location.pathname.replace(/\/index\.html$/, "/");
+    const cached = readWho();
 
     const nav = items.map((it) => {
       const href = A.ROOT + it.href;
@@ -137,11 +142,8 @@
           </a>
         </div>
         <div class="ph-right">
-          <span class="ph-who">
-            <b>${U.esc(profile?.display_name || profile?.email || "")}</b>
-            ${primary ? `<span class="badge">${U.esc(ROLE_LABEL[primary] || primary)}</span>` : ""}
-          </span>
-          ${roles.length > 1 ? `<a class="link ph-act" href="${A.ROOT}portal/">${icon("swap", 16)}<span>切换空间</span></a>` : ""}
+          <span class="ph-who">${whoHtml(cached)}</span>
+          <a class="link ph-act" id="shellSwitch" href="${A.ROOT}portal/"${cached && cached.multi ? "" : " hidden"}>${icon("swap", 16)}<span>切换空间</span></a>
           <button class="link ph-act" id="shellOut">${icon("logout", 16)}<span>退出</span></button>
         </div>
       </header>
@@ -151,10 +153,38 @@
           <div class="pn-foot" aria-hidden="true"><span>EQUIPPING<br>SERVING<br>TRANSFORMING</span><small>AMAS · 清迈分院</small></div>
         </nav>
         <div class="pn-backdrop" id="shellBackdrop" hidden></div>
-        <main id="main" class="pm" tabindex="-1"></main>
+        <main id="main" class="pm" tabindex="-1" aria-busy="true">${U.skeleton(4)}</main>
         <div class="pm-deco" aria-hidden="true"><span>真理装备生命<br>服事教会群体<br>影响这个世界</span></div>
       </div>`;
-    document.body.prepend(shell);
+    if (A.CONFIGURED) document.body.prepend(shell);
+
+    /* 资料与身份确认同时发出，不再等身份确认完才去读资料 */
+    const profP = A.CONFIGURED ? A.getProfile().catch(() => null) : Promise.resolve(null);
+    const ctx = requireAal2 ? await A.requireRoleAal2(allow) : await A.requireRole(allow);
+    if (!ctx) { if (shell.isConnected) shell.remove(); return null; }
+
+    const profile = await profP;
+    const roles = ctx.roles || [];
+    const primary = ["super_admin", "academic_admin", "registrar", "finance", "content_admin", "teacher", "mentor", "student", "applicant"].find((r) => roles.includes(r));
+    const who = { name: profile?.display_name || profile?.email || "", badge: primary ? (ROLE_LABEL[primary] || primary) : "", multi: roles.length > 1 };
+    shell.querySelector(".ph-who").innerHTML = whoHtml(who);
+    shell.querySelector("#shellSwitch").hidden = !who.multi;
+    saveWho(who);
+    const mainEl = shell.querySelector("#main");
+    mainEl.innerHTML = ""; mainEl.removeAttribute("aria-busy");
+    if (!shell.isConnected) document.body.prepend(shell);
+
+    /* 手指 / 鼠标一落到菜单项上就先把那一页取回来，点下去时页面已经在本机缓存里 */
+    const fetched = new Set();
+    const warm = (a) => {
+      const href = a && a.href;
+      if (!href || fetched.has(href) || a.classList.contains("on")) return;
+      fetched.add(href);
+      const l = document.createElement("link"); l.rel = "prefetch"; l.href = href; document.head.appendChild(l);
+    };
+    shell.querySelectorAll(".pn a.nv").forEach((a) => {
+      ["pointerenter", "touchstart", "focus"].forEach((t) => a.addEventListener(t, () => warm(a), { passive: true, once: true }));
+    });
     /* 菜单键：宽屏收起 / 展开侧栏（只留图标）；窄屏是抽屉，点遮罩或 Esc 关闭 */
     const menuBtn = document.getElementById("shellMenu"), backdrop = document.getElementById("shellBackdrop");
     const narrow = () => window.matchMedia("(max-width:860px)").matches;

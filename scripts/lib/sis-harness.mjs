@@ -32,9 +32,11 @@ window.supabase = { createClient: function(){
       onAuthStateChange:function(){ return { data: { subscription: { unsubscribe:function(){} } } }; },
       signOut:function(){ return reply({}); } },
     from: table,
-    rpc: function(name, args){ window.__rpc = window.__rpc || []; window.__rpc.push({ name: name, args: args });
+    rpc: function(name, args){ window.__rpc = window.__rpc || []; window.__rpc.push({ name: name, args: args, t: performance.now() });
       var r = S().rpc && S().rpc[name]; if (!r) r = { data: null, error: null };
-      return reply({ data: r.data, error: r.error || null, status: r.error ? 500 : 200 }); },
+      var out = { data: r.data, error: r.error || null, status: r.error ? 500 : 200 };
+      if (r.delay) return new Promise(function(ok){ setTimeout(function(){ ok(out); }, r.delay); });
+      return reply(out); },
     functions: { invoke:function(){ return reply({ data: null, error: null }); } }
   }; } };`;
 
