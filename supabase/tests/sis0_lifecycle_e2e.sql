@@ -38,10 +38,15 @@ begin
   insert into public.applications (applicant_id, pathway, status, form_data)
   values (v_app_user, 'bth', 'draft', v_form) returning id into v_app;
   execute 'reset role';
-  if (select form_data ?| array['church_type','family','health'] from public.applications where id = v_app) then
-    raise exception 'FAIL E01b 教会类型 / 家庭 / 健康字段应被服务端剥离（D-4/5/6）';
+  /* 2026-10-26 起以总校申请表为准（0043）：教会种类 / 家庭 / 健康照收，只剥离详细医疗资料 */
+  if not (select form_data ?& array['church_type','family','health'] from public.applications where id = v_app) then
+    raise exception 'FAIL E01b 教会类型 / 家庭 / 健康字段应保留（总校格式，0043）';
   end if;
-  raise notice 'PASS E01 注册即为申请者；草稿入库时 D-4/D-5/D-6 字段被剥离';
+  update public.applications set form_data = form_data || '{"medical":"病历","diagnosis":"x"}' where id = v_app;
+  if (select form_data ?| array['medical','diagnosis'] from public.applications where id = v_app) then
+    raise exception 'FAIL E01c 详细医疗资料应被服务端剥离';
+  end if;
+  raise notice 'PASS E01 注册即为申请者；总校格式栏位入库，详细医疗资料被剥离';
 
   -- ---------- E02 提交与审核 ----------
   perform set_config('amas.test.uid', v_app_user::text, true);

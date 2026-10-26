@@ -68,10 +68,11 @@ try {
   rec("P1-H05", "不能直接以 submitted 状态创建", crSub.status >= 400, `status=${crSub.status}`);
 
   // ---------- D-4/5/6 服务端剥离 ----------
-  await rest(`/applications?id=eq.${appId}`, jwts.ap, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ form_data: { ...GOOD, church_type: "家庭", health: "高血压", family: [{ name: "母亲" }] } }) });
+  // 2026-10-26 起以总校申请表为准（0043）：教会种类 / 家庭 / 健康照收，只剥离详细医疗资料
+  await rest(`/applications?id=eq.${appId}`, jwts.ap, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ form_data: { ...GOOD, church_type: "家庭", health: "良好", family: [{ name: "母亲" }], medical: "病历" } }) });
   const chk = await (await rest(`/applications?id=eq.${appId}&select=form_data`, jwts.ap)).json();
   const fd = chk[0]?.form_data || {};
-  rec("P1-H06", "D-4/5/6 禁止字段被服务端剥离（前端篡改无效）", !("church_type" in fd) && !("health" in fd) && !("family" in fd), Object.keys(fd).join(","));
+  rec("P1-H06", "总校格式栏位保留、详细医疗资料被服务端剥离（0043）", ("church_type" in fd) && ("health" in fd) && ("family" in fd) && !("medical" in fd), Object.keys(fd).join(","));
 
   // ---------- 跨用户读写 ----------
   const cross = await (await rest(`/applications?select=id`, jwts.ap2)).json();
