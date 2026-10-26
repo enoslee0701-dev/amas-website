@@ -61,7 +61,8 @@ for (const f of servers) {
   const s = SRC(f);
   if (ALLOW[f]) { if (!ALLOW[f].verify(s)) allowBad.push(f); continue; }
   const call = s.search(/if \(refuseLocalConfig\(\w+, res\)\) return;/);
-  if (call < 0 || !/import \{ refuseLocalConfig \} from "\.\/lib\/no-local-config\.mjs";/.test(s)) { missing.push(f); continue; }
+  /* scripts/lib/ 里的共用夹具与 no-local-config.mjs 同目录，相对路径是 ./no-local-config.mjs */
+  if (call < 0 || !/import \{ refuseLocalConfig \} from "\.\/(lib\/)?no-local-config\.mjs";/.test(s)) { missing.push(f); continue; }
   const decode = s.search(/decodeURIComponent\(req\.url/);
   const disk = s.search(/path\.join\((ROOT|MIRROR),\s*p\)/);
   if (!(decode > -1 && call > decode && (disk < 0 || call < disk))) misplaced.push(f);

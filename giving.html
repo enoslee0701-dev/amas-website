@@ -6,9 +6,9 @@
 <meta name="robots" content="noindex,nofollow">
 <title>与我们同工 | AMAS</title>
 <link rel="icon" href="assets/img/favicon.png">
-<script src="assets/js/supabase-config.js?v=202610261146"></script>
+<script src="assets/js/supabase-config.js?v=202610261210"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- 字体表不阻塞首屏：大陆连不上 Google 时页面照常用系统宋体立即显示，连上了再换字体 --><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&display=swap" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&display=swap"></noscript>
-<link rel="stylesheet" href="assets/css/main.css?v=202610261146">
+<link rel="stylesheet" href="assets/css/main.css?v=202610261210">
 <style>
   body{background:var(--bg,#f7f1e6)}
   .gv-wrap{max-width:760px;margin:0 auto;padding:34px 18px 70px}
@@ -286,6 +286,23 @@ $("#gvForm").addEventListener("submit",async e=>{
   const ctl=typeof AbortController==="function"?new AbortController():null;
   let timedOut=false;
   const timer=setTimeout(()=>{timedOut=true;if(ctl)ctl.abort();},GIVING_TIMEOUT);
+  /* 先存后台再发邮件（与 main.js logToDB 同一做法，Enos 2026-10-26）：邮件发不出去时后台也有这份。
+     重交会再写一次，按内容算 dedupeKey，数据库同一指纹只收一次（0039）。 */
+  (async()=>{
+    try{
+      const S=window.SUPA||{};
+      if(!(window.SUPA_IS_FILLED&&window.SUPA_IS_FILLED())) return;
+      const rec={purpose:pname,message:data.message||""};
+      let key="";
+      try{
+        const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("giving|"+JSON.stringify([data.name||"",data.contact||"",purpose||"",rec.message])));
+        key=[...new Uint8Array(buf)].slice(0,12).map(b=>b.toString(16).padStart(2,"0")).join("");
+      }catch(e){}
+      if(key) rec.dedupeKey=key;
+      fetch(S.url+"/rest/v1/submissions",{method:"POST",headers:{apikey:S.anonKey,Authorization:"Bearer "+S.anonKey,"Content-Type":"application/json",Prefer:"return=minimal"},
+        body:JSON.stringify({type:"giving",name:String(data.name||""),contact:String(data.contact||""),program:purpose||"",lang:lang,data:rec})}).catch(()=>{});
+    }catch(e){}
+  })();
   try{
     let res;
     try{
@@ -312,15 +329,6 @@ $("#gvForm").addEventListener("submit",async e=>{
       e3.kind=(res.status>=400 && res.status<500 && res.status!==408) ? "fail" : "unsure";
       throw e3;
     }
-    try{
-      const S=window.SUPA||{};
-      /* 与 main.js 的 logToDB 同一判据：占位配置不写库（见 supabase-config.js 的 SUPA_IS_FILLED） */
-      if(window.SUPA_IS_FILLED&&window.SUPA_IS_FILLED()){
-        fetch(S.url+"/rest/v1/submissions",{method:"POST",headers:{apikey:S.anonKey,Authorization:"Bearer "+S.anonKey,"Content-Type":"application/json",Prefer:"return=minimal"},
-          body:JSON.stringify({type:"giving",name:String(data.name||""),contact:String(data.contact||""),program:purpose||"",lang:lang,
-            data:{purpose:pname,message:data.message||""}})}).catch(()=>{});
-      }
-    }catch(e){}
     st.textContent=LT("ok"); st.dataset.state="ok"; form.reset();
     $$("#purposeOpts .opt").forEach(x=>x.classList.remove("sel")); purpose=null;
   }catch(e){

@@ -272,6 +272,20 @@ begin
   execute 'reset role';
   raise notice 'PASS X11 班级档案与入学申请表：只有教务能读写';
 
+  -- ---------- X12 官网提交去重（0039） ----------
+  execute 'set role anon';
+  insert into public.submissions (type, name, data) values ('application', '重交甲', '{"dedupeKey":"k-1"}');
+  begin
+    insert into public.submissions (type, name, data) values ('application', '重交甲', '{"dedupeKey":"k-1"}');
+    raise exception 'FAIL X12a 同一指纹存了两次';
+  exception when unique_violation then null;
+  end;
+  insert into public.submissions (type, name, data) values ('application', '无指纹', '{}');
+  insert into public.submissions (type, name, data) values ('application', '无指纹', '{}');
+  execute 'reset role';
+  if (select count(*) from public.submissions where name = '无指纹') <> 2 then raise exception 'FAIL X12b 没有指纹的旧格式提交被误拦'; end if;
+  raise notice 'PASS X12 官网提交：同一指纹只存一次，无指纹不受影响';
+
   raise notice '=== SIS COMPLETION ACCEPTANCE PASSED ===';
 end $$;
 

@@ -17,8 +17,9 @@ let pass = 0, fails = 0;
 const ok = (n, c, d) => { if (c) { pass++; console.log("  PASS  " + n); } else { fails++; console.log("  FAIL  " + n + (d ? "  ← " + d : "")); } };
 
 // ---------- 静态 ----------
-for (const p of PAGES) {
-  const html = fs.readFileSync(path.join(ROOT, p), "utf8");
+for (const page of PAGES) {
+  const p = page;
+  const html = fs.readFileSync(path.join(ROOT, page), "utf8");
   const blocking = [...html.matchAll(/<link\b[^>]*rel="stylesheet"[^>]*>/gi)].map((m) => m[0])
     .filter((t) => /href="https?:\/\//.test(t) && !/media="print"/.test(t));
   const outsideNoscript = blocking.filter((t) => !html.includes("<noscript>" + t));
