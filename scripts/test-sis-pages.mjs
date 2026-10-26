@@ -86,7 +86,7 @@ let external = 0;
 handlers.set("Fetch.requestPaused", async (p) => {
   const u = p.request.url;
   try {
-    if (u.includes("cdn.jsdelivr.net") && u.includes("supabase-js")) {
+    if (u.includes("supabase-js") && (u.includes("cdn.jsdelivr.net") || u.includes("/assets/vendor/"))) {
       return void await send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: 200,
         responseHeaders: [{ name: "Content-Type", value: "application/javascript" }], body: b64(STUB) });
     }

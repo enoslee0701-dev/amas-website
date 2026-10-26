@@ -32,7 +32,9 @@ function htmlFiles(dir, out = []) {
   return out;
 }
 
-const SDK_RE = /https:\/\/cdn\.jsdelivr\.net\/npm\/@supabase\/supabase-js@([^/"']+)\/dist\/umd\/supabase\.min\.js/g;
+/* 两种载入法都认：CDN 写法，以及 2026-10-26 起放进仓库的本地副本
+   assets/vendor/supabase-js@<版本>/supabase.min.js（大陆连 jsdelivr 不稳，改为同站取） */
+const SDK_RE = /(?:https:\/\/cdn\.jsdelivr\.net\/npm\/@supabase\/supabase-js@([^/"']+)\/dist\/umd\/supabase\.min\.js|assets\/vendor\/supabase-js@([^/"']+)\/supabase\.min\.js)/g;
 /** 浮动写法：@2、@^2、@latest、@2.x —— 只要不是完整的 x.y.z 就算浮动 */
 const isPinned = (v) => /^\d+\.\d+\.\d+$/.test(v);
 
@@ -40,7 +42,7 @@ const files = htmlFiles(ROOT);
 const loaders = [];
 for (const f of files) {
   const text = fs.readFileSync(f, "utf8");
-  const vs = [...text.matchAll(SDK_RE)].map((m) => m[1]);
+  const vs = [...text.matchAll(SDK_RE)].map((m) => m[1] || m[2]);
   if (vs.length) loaders.push({ rel: path.relative(ROOT, f).replace(/\\/g, "/"), text, versions: vs });
 }
 
@@ -77,8 +79,14 @@ ok("S4 每个用 auth.js 的页面，SDK 都排在它前面", order.length === 0
 
 /* 对照：把浮动写法喂给同一套判据，必须被认出来 —— 否则上面那几条可能是空转。 */
 const probe = `<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>`;
-const probeV = [...probe.matchAll(SDK_RE)].map((m) => m[1]);
+const probeV = [...probe.matchAll(SDK_RE)].map((m) => m[1] || m[2]);
 ok("S5 对照：浮动写法能被这套判据认出来", probeV.length === 1 && !isPinned(probeV[0]), JSON.stringify(probeV));
+
+/* 本地副本必须真的在仓库里，而且就是那个版本的官方产物（npm 包 dist/umd/supabase.js 原样拷贝） */
+const vendor = all.length === 1 ? path.join(ROOT, "assets/vendor/supabase-js@" + all[0] + "/supabase.min.js") : "";
+const vtext = vendor && fs.existsSync(vendor) ? fs.readFileSync(vendor, "utf8") : "";
+ok("S6 本地副本存在且是 UMD 产物（定义 window.supabase.createClient）",
+   vtext.length > 100000 && /^var supabase=/.test(vtext) && vtext.includes("createClient"), vendor + " " + vtext.length);
 
 console.log(`\n  PASS ${pass}  FAIL ${fail}`);
 console.log("本套件只读仓库文件：未联网、未下载、未安装、未开浏览器。");

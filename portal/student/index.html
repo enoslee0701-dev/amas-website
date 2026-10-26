@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>学员中心 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202610261950">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202610262031">
 <style>
 .idcard{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);color:#fff;border-radius:16px;padding:20px 22px;margin-bottom:18px}
 .idcard h2{margin:0;font-size:19px;color:#fff}
@@ -30,12 +30,12 @@
 </style>
 </head>
 <body>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202610261950"></script>
-<script src="../../assets/js/portal/auth.js?v=202610261950"></script>
-<script src="../../assets/js/portal/api.js?v=202610261950"></script>
-<script src="../../assets/js/portal/ui.js?v=202610261950"></script>
-<script src="../../assets/js/portal/shell.js?v=202610261950"></script>
+<script src="../../assets/vendor/supabase-js@2.116.0/supabase.min.js"></script>
+<script src="../../assets/js/supabase-config.js?v=202610262031"></script>
+<script src="../../assets/js/portal/auth.js?v=202610262031"></script>
+<script src="../../assets/js/portal/api.js?v=202610262031"></script>
+<script src="../../assets/js/portal/ui.js?v=202610262031"></script>
+<script src="../../assets/js/portal/shell.js?v=202610262031"></script>
 <script>
 /* PORTAL-2 学员中心（V1）
    原则：状态机与 DB 是权威源，UI 不模拟业务状态；没有真实数据就显示真实空态，绝不填充假数据。
@@ -62,7 +62,8 @@
      一个正被教务要求补件的学员会以为没事要做；my_learning 挂掉时写
      「AMAS 正式课程共 0 门」，而学校有 68 门。 */
   const [{ data: recRows, error }, { data: tl, error: tlErr }, { data: pc, error: pcErr }, { data: acts, error: actsErr },
-         { data: cap }, { data: learn, error: learnErr }, { data: myc, error: mycErr }, { data: myProg, error: progErr }] =
+         { data: cap }, { data: learn, error: learnErr }, { data: myc, error: mycErr }, { data: myProg, error: progErr },
+         { data: board }] =
     await Promise.all([
       Api.rpc("my_student_record"),
       Api.rpc("my_student_timeline"),
@@ -72,6 +73,7 @@
       Api.rpc("my_learning"),
       Api.rpc("my_courses"),
       Api.rpc("my_progress"),
+      Api.rpc("portal_board"),          // 公告、线上课堂、开学导言（0041）；读不到就不显示这一块
     ]);
   if (error) return UI.error(main, { message: error.message, onRetry: () => location.reload() });
   /* 「没读到」和「学校还没给你建档」是两件事。my_student_record returns table，正常是数组；
@@ -88,6 +90,30 @@
   const catalogUnknown = !!pcErr || !Array.isArray(pc);
   const pcMap = Object.fromEntries((catalogUnknown ? [] : pc).map(p => [p.code, p]));
   const prog = rec && rec.program_code ? pcMap[rec.program_code] : null;
+
+  /* 公告与课堂（0041 portal_board）：线上课堂入口、开学导言视频、已发布的公告。没有内容 / 读不到就整块不出现。 */
+  function boardHtml(b){
+    if (!b || typeof b !== "object") return "";
+    const https = (u) => /^https:\/\//i.test(u || "") ? u : "";
+    const lv = b.live_class || {}, vd = b.intro_video || {}, an = Array.isArray(b.announcements) ? b.announcements.slice(0, 5) : [];
+    const parts = [];
+    if (lv.enabled && https(lv.url)) parts.push('<div class="card" style="margin-bottom:14px;border-left:4px solid #d23b2f">' +
+      '<h3 style="font-size:15px;color:var(--navy);margin:0 0 6px">🔴 线上课堂' + (lv.title ? " · " + UI.esc(lv.title) : "") + '</h3>' +
+      (lv.schedule ? '<p class="none" style="margin:0 0 4px">' + UI.esc(lv.schedule) + '</p>' : "") +
+      ((lv.meeting_id || lv.passcode) ? '<p class="none" style="margin:0 0 8px">' + (lv.meeting_id ? "会议号：" + UI.esc(lv.meeting_id) + "　" : "") + (lv.passcode ? "密码：" + UI.esc(lv.passcode) : "") + '</p>' : "") +
+      '<a class="btn" style="width:auto;padding:0 22px;margin-top:4px" target="_blank" rel="noopener" href="' + UI.esc(https(lv.url)) + '">进入线上课堂 →</a></div>');
+    if (vd.enabled && (https(vd.youtube) || https(vd.china))) parts.push('<div class="card" style="margin-bottom:14px">' +
+      '<h3 style="font-size:15px;color:var(--navy);margin:0 0 6px">🎬 ' + UI.esc(vd.title || "课程介绍 · 开学导言") + '</h3>' +
+      (vd.desc ? '<p class="none" style="margin:0 0 8px;white-space:pre-line">' + UI.esc(vd.desc) + '</p>' : "") +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+        (https(vd.youtube) ? '<a class="btn ghost" style="width:auto;padding:0 18px;margin-top:0" target="_blank" rel="noopener" href="' + UI.esc(vd.youtube) + '">YouTube 观看</a>' : "") +
+        (https(vd.china) ? '<a class="btn ghost" style="width:auto;padding:0 18px;margin-top:0" target="_blank" rel="noopener" href="' + UI.esc(vd.china) + '">国内观看</a>' : "") + '</div></div>');
+    if (an.length) parts.push('<div class="card" style="margin-bottom:14px"><h3 style="font-size:15px;color:var(--navy);margin:0 0 8px">📢 通知公告</h3>' +
+      an.map((a) => '<div style="border-top:1px dashed var(--line);padding:8px 0"><b style="color:var(--navy)">' + (a.pinned ? "📌 " : "") + UI.esc(a.title) + '</b>' +
+        '<small style="color:var(--muted);margin-left:8px">' + new Date(a.created_at).toLocaleDateString("zh-CN") + '</small>' +
+        (a.body ? '<div style="white-space:pre-line;font-size:14px">' + UI.esc(a.body) + '</div>' : "") + '</div>').join("") + '</div>');
+    return parts.join("");
+  }
 
   // 有 student 角色但查不到学籍记录：这是数据异常，如实说明并给出求助路径，不臆造状态
   if (!rec) {
@@ -170,6 +196,8 @@
         (rec.activated_at ? '<div><span>正式注册</span><b>' + new Date(rec.activated_at).toLocaleDateString("zh-CN") + '</b></div>' : "") +
       '</div>' +
     '</div>' +
+
+    boardHtml(board) +
 
     '<div class="card" style="margin-bottom:14px"><h3 style="font-size:15px;color:var(--navy);margin:0 0 6px">学籍状态</h3>' +
       '<p class="none">' + UI.esc(s.d) + '</p></div>' +

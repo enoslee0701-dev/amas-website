@@ -19,10 +19,13 @@ window.supabase = { createClient: function(){
   var S = function(){ return window.__SCEN || {}; };
   var reply = function(v){ return Promise.resolve(v); };
   function table(name){ var q = { select:function(){return q;}, eq:function(){return q;}, in:function(){return q;},
+    is:function(){return q;}, neq:function(){return q;}, gte:function(){return q;}, lte:function(){return q;}, gt:function(){return q;}, lt:function(){return q;},
     order:function(){return q;}, range:function(){return q;}, limit:function(){return q;}, maybeSingle:function(){return q;},
     single:function(){return q;},
     update:function(p){ window.__upd = window.__upd || []; window.__upd.push({ table: name, patch: p }); q._u = ":update"; return q; },
     insert:function(p){ window.__upd = window.__upd || []; window.__upd.push({ table: name, insert: p }); q._u = ":insert"; return q; },
+    upsert:function(p, o){ window.__upd = window.__upd || []; window.__upd.push({ table: name, upsert: p, opts: o }); q._u = ":upsert"; return q; },
+    delete:function(){ window.__upd = window.__upd || []; window.__upd.push({ table: name, del: true }); q._u = ":delete"; return q; },
     then:function(res, rej){ var t = (S().tables && S().tables[q._u ? name + q._u : name]) || { data: [], error: null };
       return Promise.resolve({ data: t.data, error: t.error || null, status: t.error ? 500 : 200 }).then(res, rej); } };
     return q; }
@@ -30,7 +33,10 @@ window.supabase = { createClient: function(){
     auth: { getSession:function(){ return reply({ data: { session: S().session || null } }); },
       mfa: { getAuthenticatorAssuranceLevel:function(){ return reply({ data: { currentLevel: S().aal || "aal1", nextLevel: S().aal || "aal1" } }); } },
       onAuthStateChange:function(){ return { data: { subscription: { unsubscribe:function(){} } } }; },
-      signOut:function(){ return reply({}); } },
+      signOut:function(){ return reply({}); },
+      updateUser:function(attrs){ window.__upd = window.__upd || []; window.__upd.push({ table: "auth.user", patch: attrs });
+        try { sessionStorage.setItem("__updUser", JSON.stringify(attrs)); } catch (e) {}
+        var w = S().updateUser || { data: { user: {} }, error: null }; return reply({ data: w.data || null, error: w.error || null }); } },
     from: table,
     rpc: function(name, args){ window.__rpc = window.__rpc || []; window.__rpc.push({ name: name, args: args, t: performance.now() });
       var r = S().rpc && S().rpc[name]; if (!r) r = { data: null, error: null };
@@ -80,7 +86,7 @@ export async function startHarness({ profilePrefix = "amas-h-", shotPrefix = "h"
   handlers.set("Fetch.requestPaused", async (p) => {
     const u = p.request.url;
     try {
-      if (u.includes("cdn.jsdelivr.net") && u.includes("supabase-js")) {
+      if (u.includes("supabase-js") && (u.includes("cdn.jsdelivr.net") || u.includes("/assets/vendor/"))) {
         return void await send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: 200,
           responseHeaders: [{ name: "Content-Type", value: "application/javascript" }], body: b64(STUB) });
       }

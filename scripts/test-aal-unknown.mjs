@@ -235,7 +235,7 @@ try {
   cdp.on("Fetch.requestPaused", async (ev) => {
     const u = ev.request.url;
     try {
-      if (u.indexOf("cdn.jsdelivr.net") > -1 && u.indexOf("supabase-js") > -1) {
+      if (u.indexOf("supabase-js") > -1 && (u.indexOf("cdn.jsdelivr.net") > -1 || u.indexOf("/assets/vendor/") > -1)) {
         await cdp.send("Fetch.fulfillRequest", { requestId: ev.requestId, responseCode: 200,
           responseHeaders: [{ name:"Content-Type", value:"application/javascript" },
                             { name:"Cache-Control", value:"no-store" }], body: b64(STUB) }); return;

@@ -1453,3 +1453,26 @@ html[data-theme="night"] .footer{background:linear-gradient(180deg,#0a1220,#060b
 /* 首屏「开课」格：两个班各占一行（10月班已开课 / 11月班招生中），窄屏缩小一点不在词中间断行 */
 .hm-two{white-space:pre-line;word-break:keep-all}
 @media(max-width:520px){.hm-two{font-size:.86em;line-height:1.45}}
+
+/* 线上课堂 · 开学导言 · 通知公告（0041） */
+.live-board{background:#f6f1e6;border-bottom:1px solid var(--line);padding:22px 0}
+.live-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.live-card{display:flex;flex-direction:column;gap:6px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:0 6px 18px rgba(16,40,72,.06)}
+.live-card[hidden]{display:none}
+.live-kicker{display:flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.12em;color:#8a6a2a;font-weight:700}
+.live-kicker em{font-style:normal;letter-spacing:0;background:#e6f4ea;color:#1f6b4f;border-radius:6px;padding:1px 8px;font-weight:600}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#d23b2f;box-shadow:0 0 0 4px rgba(210,59,47,.15)}
+.live-card b{font-size:17px;color:#10305a}
+.live-card small{font-size:13px;color:#5f5a4f;line-height:1.7;white-space:pre-line}
+.live-join{align-self:flex-start;margin-top:6px}
+.live-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.live-ann{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.live-ann li{font-size:14px;color:#2b2a25;border-top:1px dashed var(--line);padding-top:8px}
+.live-ann li:first-child{border-top:0;padding-top:0}
+.live-ann li b{display:block;font-size:14.5px;color:#10305a}
+.live-ann li span{white-space:pre-line;color:#5f5a4f;font-size:13px}
+html[data-theme="night"] .live-board{background:var(--surface)}
+html[data-theme="night"] .live-card{background:var(--surface);border-color:var(--line)}
+html[data-theme="night"] .live-card b,html[data-theme="night"] .live-ann li b{color:var(--ink)}
+@media(prefers-reduced-motion:no-preference){.live-dot{animation:livepulse 1.6s ease-in-out infinite}}
+@keyframes livepulse{50%{box-shadow:0 0 0 7px rgba(210,59,47,0)}}

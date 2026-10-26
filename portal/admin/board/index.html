@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>公告与课堂 | AMAS</title>
+<link rel="icon" href="../../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610262031">
+<style>
+.frm{display:grid;gap:10px}
+.frm label{display:grid;gap:4px;font-size:13px;color:#4b5567}
+.frm input,.frm select,.frm textarea{min-height:42px;padding:8px 10px;border:1px solid #cfd5df;border-radius:9px;font:inherit;background:#fff;color:var(--ink)}
+.frm textarea{min-height:110px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sw{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink)}.sw input{width:20px;height:20px;min-height:0}
+.ann .body{white-space:pre-wrap;font-size:14px}
+.chip.public{background:#e6f4ea;color:#1f6b4f}.chip.students{background:#e8eef7;color:#1d3b66}.chip.draft{background:#f1efe8;color:#6b6352}
+.howto{font-size:13px;line-height:1.9;color:#4b5567}.howto b{color:var(--navy)}
+@media(max-width:640px){.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<script src="../../../assets/vendor/supabase-js@2.116.0/supabase.min.js"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/api.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610262031"></script>
+<script>
+/* 公告与课堂（0041）：通知公告、线上课堂入口（Zoom，允许旁听）、开学导言视频、官网上各班状态。
+   公开的内容官网经 site_public() 读，学员登录后经 portal_board() 读；这里只有教务能改。 */
+(async function(){
+  const A = window.AmasAuth, UI = window.AmasUI, Api = window.AmasApi, Shell = window.AmasShell, I = Shell.icon;
+  const mounted = await Shell.mount({ space: "admin", title: "管理后台", allow: ["registrar", "academic_admin", "super_admin"], requireAal2: true });
+  if (!mounted) return;
+  const { main } = mounted;
+  const PH = { enrolling: "招生中", in_session: "已开课", finished: "已结业" };
+  let anns = [], live = {}, video = {}, cohorts = [], busy = false;
+
+  UI.loading(main, 4);
+  const [ra, rs, rc] = await Promise.all([
+    Api.select("site_announcements", { columns: "id,title,body,audience,pinned,published,created_at", order: [{ column: "pinned" }, { column: "created_at" }] }),
+    Api.select("site_settings", { columns: "key,value" }),
+    Api.select("submission_cohorts", { columns: "name,phase,show_on_site,sort", order: [{ column: "sort", asc: true }, { column: "name", asc: true }] }),
+  ]);
+  if ([ra, rs, rc].some((r) => r.error || !Array.isArray(r.data))) {
+    return UI.error(main, { message: "这一次没能读到公告与课堂设置，请稍后刷新。", onRetry: () => location.reload() });
+  }
+  anns = ra.data; cohorts = rc.data;
+  rs.data.forEach((r) => { if (r.key === "live_class") live = r.value || {}; if (r.key === "intro_video") video = r.value || {}; });
+
+  const say = (m, ok) => { const e = main.querySelector("#err"); e.className = "msg " + (ok ? "ok" : "err") + " show"; e.textContent = m; if (!ok) e.focus(); };
+  const val = (id) => main.querySelector("#" + id).value.trim();
+  const chk = (id) => main.querySelector("#" + id).checked;
+  const when = (v) => v ? new Date(v).toLocaleString("zh-CN", { hour12: false }).slice(0, 16) : "";
+
+  function render(){
+    main.innerHTML =
+      '<h1>公告与课堂</h1><p class="lead">发通知公告、放线上课堂入口和开学导言视频；官网首页的各班状态也在这里改。</p>' +
+      '<div class="msg" id="err" role="alert" tabindex="-1"></div>' +
+
+      // ── 线上课堂
+      '<h2 class="sec-h" style="font-size:17px;color:var(--navy)">' + I("headset", 19) + ' 线上课堂入口</h2>' +
+      '<div class="of frm"><label class="sw"><input type="checkbox" id="lvOn"' + (live.enabled ? " checked" : "") + '>显示「进入线上课堂」按钮</label>' +
+      '<label class="sw"><input type="checkbox" id="lvGuest"' + (live.allow_guests !== false ? " checked" : "") + '>允许旁听（官网首页也显示入口；不勾则只有登录的学员看得到）</label>' +
+      '<label>会议链接（Zoom 里点「复制邀请链接」粘贴过来）<input id="lvUrl" type="url" placeholder="https://zoom.us/j/…" value="' + UI.esc(live.url || "") + '"></label>' +
+      '<div class="two"><label>会议号<input id="lvId" value="' + UI.esc(live.meeting_id || "") + '"></label>' +
+      '<label>会议密码（可不填）<input id="lvPw" value="' + UI.esc(live.passcode || "") + '"></label></div>' +
+      '<div class="two"><label>标题<input id="lvTitle" maxlength="60" placeholder="例如：周三晚上神学课" value="' + UI.esc(live.title || "") + '"></label>' +
+      '<label>时间说明<input id="lvWhen" maxlength="80" placeholder="例如：每周三 20:00（泰国 / 北京时间 21:00）" value="' + UI.esc(live.schedule || "") + '"></label></div>' +
+      '<div class="bar"><button class="sbtn pri" type="button" id="lvSave">' + I("save", 16) + '保存课堂入口</button></div></div>' +
+
+      // ── 开学导言视频
+      '<h2 class="sec-h" style="font-size:17px;color:var(--navy);margin-top:22px">' + I("bookopen", 19) + ' 课程介绍与开学导言视频</h2>' +
+      '<div class="of frm"><label class="sw"><input type="checkbox" id="vdOn"' + (video.enabled ? " checked" : "") + '>在官网和学员中心显示</label>' +
+      '<label>标题<input id="vdTitle" maxlength="80" placeholder="例如：开学导言 · 第一课" value="' + UI.esc(video.title || "") + '"></label>' +
+      '<div class="two"><label>视频链接（YouTube，泰国 / 海外看）<input id="vdYt" type="url" placeholder="https://youtu.be/…" value="' + UI.esc(video.youtube || "") + '"></label>' +
+      '<label>视频链接（B 站 / 腾讯视频等，国内看）<input id="vdCn" type="url" placeholder="https://www.bilibili.com/video/…" value="' + UI.esc(video.china || "") + '"></label></div>' +
+      '<label>简介（可不填）<textarea id="vdDesc" maxlength="1000">' + UI.esc(video.desc || "") + '</textarea></label>' +
+      '<p class="howto"><b>怎么上传视频：</b>视频文件很大，不放在网站里，而是放到视频网站再把链接贴到上面。' +
+        '① <b>YouTube</b>：登录 → 右上角「创建 → 上传视频」→ 可见性选「不公开」（有链接的人才能看）→ 复制链接。' +
+        '② <b>国内学员</b>：YouTube 在国内打不开，同一个视频再传一份到 <b>哔哩哔哩</b>（投稿）或 <b>腾讯视频</b>，把链接贴到右边。' +
+        '两个都填时，网站会同时给出两个按钮，学员点能打开的那个。</p>' +
+      '<div class="bar"><button class="sbtn pri" type="button" id="vdSave">' + I("save", 16) + '保存视频</button></div></div>' +
+
+      // ── 官网各班状态
+      '<h2 class="sec-h" style="font-size:17px;color:var(--navy);margin-top:22px">' + I("bars", 19) + ' 官网首页的开课状态</h2>' +
+      '<div class="of">' + (cohorts.length ? cohorts.map((c) => '<div class="row"><span><b>' + UI.esc(c.name) + '</b></span><span class="bar">' +
+          '<select data-ph="' + UI.esc(c.name) + '" class="sbtn">' + Object.entries(PH).map(([k, t]) => '<option value="' + k + '"' + (c.phase === k ? " selected" : "") + '>' + t + '</option>').join("") + '</select>' +
+          '<label class="sw"><input type="checkbox" data-show="' + UI.esc(c.name) + '"' + (c.show_on_site ? " checked" : "") + '>在首页显示</label></span></div>').join("") +
+        '<p class="who" style="margin:10px 0 0">首页会自动写成「' + UI.esc(cohorts.filter((c) => c.show_on_site).map((c) => c.name + PH[c.phase]).join(" · ") || "（没有要显示的班）") + '」，改了马上生效。</p>'
+        : '<p class="who">还没有班级。在报名收件箱里新建班级后会出现在这里。</p>') + '</div>' +
+
+      // ── 通知公告
+      '<h2 class="sec-h" style="font-size:17px;color:var(--navy);margin-top:22px">' + I("message", 19) + ' 通知公告</h2>' +
+      '<div class="of frm" id="annForm"><label>标题<input id="anTitle" maxlength="120"></label>' +
+      '<label>内容<textarea id="anBody" maxlength="5000"></textarea></label>' +
+      '<div class="two"><label>给谁看<select id="anAud"><option value="students">只给学员（登录后看到）</option><option value="public">公开（官网首页也显示）</option></select></label>' +
+      '<label class="sw" style="align-self:end"><input type="checkbox" id="anPin">置顶</label></div>' +
+      '<div class="bar"><button class="sbtn pri" type="button" id="anSave">' + I("plus", 16) + '发布公告</button></div></div>' +
+      '<div class="ofs" style="margin-top:12px">' + (anns.length ? anns.map((a) => '<div class="of ann"><div class="top"><h3>' + (a.pinned ? "📌 " : "") + UI.esc(a.title) + '</h3><span class="bar">' +
+          '<span class="chip ' + (a.published ? a.audience : "draft") + '">' + (a.published ? (a.audience === "public" ? "公开" : "仅学员") : "已撤下") + '</span></span></div>' +
+          '<div class="meta"><span>' + when(a.created_at) + '</span></div>' + (a.body ? '<div class="body">' + UI.esc(a.body) + '</div>' : "") +
+          '<div class="bar"><button class="sbtn" type="button" data-pub="' + a.id + '">' + (a.published ? "撤下" : "重新发布") + '</button>' +
+          '<button class="sbtn" type="button" data-pin="' + a.id + '">' + (a.pinned ? "取消置顶" : "置顶") + '</button></div></div>').join("")
+        : UI.box("📢", "还没有公告", "在上面写好标题和内容，点「发布公告」。")) + '</div>';
+
+    main.querySelector("#lvSave").addEventListener("click", () => saveSetting("live_class", {
+      enabled: chk("lvOn"), allow_guests: chk("lvGuest"), url: val("lvUrl"), meeting_id: val("lvId"), passcode: val("lvPw"), title: val("lvTitle"), schedule: val("lvWhen") }));
+    main.querySelector("#vdSave").addEventListener("click", () => saveSetting("intro_video", {
+      enabled: chk("vdOn"), title: val("vdTitle"), youtube: val("vdYt"), china: val("vdCn"), desc: val("vdDesc") }));
+    main.querySelectorAll("[data-ph]").forEach((s) => s.addEventListener("change", () => saveCohort(s.dataset.ph, { phase: s.value })));
+    main.querySelectorAll("[data-show]").forEach((s) => s.addEventListener("change", () => saveCohort(s.dataset.show, { show_on_site: s.checked })));
+    main.querySelector("#anSave").addEventListener("click", addAnn);
+    main.querySelectorAll("[data-pub]").forEach((b) => b.addEventListener("click", () => { const a = anns.find((x) => x.id === b.dataset.pub); patchAnn(a, { published: !a.published }); }));
+    main.querySelectorAll("[data-pin]").forEach((b) => b.addEventListener("click", () => { const a = anns.find((x) => x.id === b.dataset.pin); patchAnn(a, { pinned: !a.pinned }); }));
+  }
+
+  const okUrl = (u) => !u || /^https:\/\/[^\s]+$/i.test(u);
+  async function run(fn){ if (busy) return; busy = true; try { await fn(); } finally { busy = false; } }
+
+  function saveSetting(key, value){
+    return run(async () => {
+      if (key === "live_class" && value.enabled && !value.url) return say("要显示课堂入口，请先贴上会议链接。");
+      if (key === "intro_video" && value.enabled && !value.youtube && !value.china) return say("要显示视频，请至少贴一个视频链接。");
+      if (![value.url, value.youtube, value.china].every(okUrl)) return say("链接要以 https:// 开头，请检查一下。");
+      const { data, error } = await Api.update("site_settings", { key }, { value });
+      if (error || !Array.isArray(data) || !data.length) return say("这一次没有保存成功，请再试一次。");
+      if (key === "live_class") live = value; else video = value;
+      render(); say("已保存，官网和学员中心马上看得到。", true);
+    });
+  }
+  function saveCohort(name, patch){
+    return run(async () => {
+      const { data, error } = await Api.update("submission_cohorts", { name }, patch);
+      if (error || !Array.isArray(data) || !data.length) { render(); return say("这一次没有保存成功，请再试一次。"); }
+      Object.assign(cohorts.find((c) => c.name === name), patch);
+      render(); say("已保存，官网首页已更新。", true);
+    });
+  }
+  function addAnn(){
+    return run(async () => {
+      const title = val("anTitle");
+      if (!title) return say("请写公告标题。");
+      const row = { title, body: val("anBody"), audience: main.querySelector("#anAud").value, pinned: chk("anPin"), published: true };
+      const { data, error } = await Api.insert("site_announcements", row);
+      if (error || !data) return say("这一次没有发布成功，请再试一次。");
+      anns.unshift(data); anns.sort((a, b) => (b.pinned - a.pinned) || (a.created_at < b.created_at ? 1 : -1));
+      render(); say("公告已发布。", true);
+    });
+  }
+  function patchAnn(a, patch){
+    return run(async () => {
+      const { data, error } = await Api.update("site_announcements", { id: a.id }, patch);
+      if (error || !Array.isArray(data) || !data.length) return say("这一次没有保存成功，请再试一次。");
+      Object.assign(a, data[0]); anns.sort((x, y) => (y.pinned - x.pinned) || (x.created_at < y.created_at ? 1 : -1));
+      render(); say("已更新。", true);
+    });
+  }
+  render();
+})();
+</script>
+</body>
+</html>

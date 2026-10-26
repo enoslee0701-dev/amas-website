@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>官网报名收件箱 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610261950">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610262031">
 <style>
 .kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;font-size:13.5px;border-top:1px solid var(--line);padding-top:8px;margin-top:4px}
 .kv dt{color:var(--muted)}.kv dd{margin:0;word-break:break-word;white-space:pre-wrap}
@@ -44,19 +44,19 @@
 </style>
 </head>
 <body>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202610261950"></script>
-<script src="../../../assets/js/portal/auth.js?v=202610261950"></script>
-<script src="../../../assets/js/portal/api.js?v=202610261950"></script>
-<script src="../../../assets/js/portal/ui.js?v=202610261950"></script>
-<script src="../../../assets/js/portal/shell.js?v=202610261950"></script>
-<script src="../../../assets/js/portal/sis.js?v=202610261950"></script>
+<script src="../../../assets/vendor/supabase-js@2.116.0/supabase.min.js"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/api.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610262031"></script>
 <script>
 /* 官网报名收件箱：官网表单（入学申请 / 咨询 / 奉献 / 客服留言）由 main.js logToDB 写进 public.submissions，
    本页给教务查看、改跟进状态、写备注。0036 起只有教务类角色能读写；访客只能投递。
    这里是「报名意向」，正式录取仍走「招生审核」（申请者在门户提交的入学申请）。 */
 (async function(){
-  const UI = window.AmasUI, Api = window.AmasApi, Shell = window.AmasShell, I = Shell.icon;
+  const A = window.AmasAuth, UI = window.AmasUI, Api = window.AmasApi, Shell = window.AmasShell, I = Shell.icon;
   const mounted = await Shell.mount({ space: "admin", title: "管理后台",
                                       allow: ["registrar", "academic_admin", "super_admin"], requireAal2: true });
   if (!mounted) return;
@@ -116,7 +116,9 @@
         (c.updated_at ? '<span>进度更新于 ' + when(c.updated_at) + '</span>' : "") + '</div>' +
       '<div class="prog">' + (c.starts_on && c.starts_on > today ? '<span class="ic-circle cal">' + I("calendar", 18) + '</span>' : '<span class="ic-circle">' + I("check", 18) + '</span>') +
         '<span>' + (c.progress ? UI.esc(c.progress) : '<span class="who">还没有记录课程进度</span>') + '</span></div>' +
-      '<div class="bar"><button type="button" class="sbtn pri" data-cname="' + UI.esc(c.name) + '">' + I("refresh", 16) + '更新进度</button></div></div>').join("") +
+      '<div class="bar"><button type="button" class="sbtn pri" data-cname="' + UI.esc(c.name) + '">' + I("refresh", 16) + '更新进度</button>' +
+        '<a class="sbtn" href="' + A.ROOT + 'portal/admin/cohort/?name=' + encodeURIComponent(c.name) + '">' + I("calendar", 16) + '上课记录</a>' +
+        '<a class="sbtn" href="' + A.ROOT + 'portal/admin/inbox/forms/?cohort=' + encodeURIComponent(c.name) + '">' + I("print", 16) + '全班申请表</a></div></div>').join("") +
       '<div class="newc"><button type="button" class="sbtn" id="newCohort">' + I("plus", 16) + '新建班级</button></div>';
     box.querySelectorAll("[data-cname]").forEach(b => b.addEventListener("click", () => editCohort(CINFO.find(c => c.name === b.dataset.cname))));
     box.querySelector("#newCohort").addEventListener("click", () => editCohort(null));

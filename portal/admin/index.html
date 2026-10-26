@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>管理后台 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202610261950">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202610262031">
 <style>
 table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 .list th,.list td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top}
@@ -29,6 +29,13 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 .in-shell .card{border-radius:16px;border-color:#e6e2d8;box-shadow:0 8px 24px rgba(16,40,72,.06)}
 .in-shell .hub a{border-radius:14px;padding:16px;border-color:#e6e2d8;box-shadow:0 4px 14px rgba(16,40,72,.05);transition:border-color .15s,transform .15s}
 .in-shell .hub a:hover{border-color:var(--navy2);transform:translateY(-1px)}
+.dash{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:0 0 12px}
+.dash div{background:#fff;border:1px solid #e6e2d8;border-radius:14px;padding:14px 16px;box-shadow:0 6px 18px rgba(16,40,72,.05)}
+.dash b{display:block;font-size:24px;color:var(--navy);font-variant-numeric:tabular-nums}.dash span{font-size:12.5px;color:var(--muted)}
+.dash-cohorts{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.dash-cohorts a{display:inline-flex;gap:6px;align-items:center;padding:6px 12px;border:1px solid #e6e2d8;border-radius:999px;background:#fff;font-size:13px;color:var(--ink);text-decoration:none}
+.dash-cohorts a b{color:var(--navy)}
+@media(max-width:700px){.dash{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -41,10 +48,21 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 
   <!-- 教务登录后落在本页（auth.js homeForRoles）。这一页不走 Shell、没有导航条，
        所以必须在这里给出全部工作入口，否则开课、成绩、学籍这些页面无路可进。 -->
+  <!-- 数据总览（2026-10-26）：读到才显示数字，读不到写「—」，不写 0 -->
+  <div class="dash" id="dash" aria-label="数据总览">
+    <div><b id="dStu">—</b><span>在读学员</span></div>
+    <div><b id="dNew">—</b><span>本月新报名</span></div>
+    <div><b id="dAtt">—</b><span id="dAttL">最近一次上课出勤</span></div>
+    <div><b id="dOwe">—</b><span>未收学费（泰铢）</span></div>
+  </div>
+  <div class="dash-cohorts" id="dCoh"></div>
+
   <div class="card" style="margin-bottom:14px">
     <h2 style="margin:0 0 10px">工作入口</h2>
     <div class="hub">
       <a href="inbox/"><b>报名收件箱</b><span id="hubInbox">官网报名表与留言</span></a>
+      <a href="board/"><b>公告与课堂</b><span>通知公告、线上课堂入口、开学导言</span></a>
+      <a href="finance/"><b>费用管理</b><span>应收、已收、欠款明细</span></a>
       <a href="admissions/"><b>招生审核</b><span>审核入学申请</span></a>
       <a href="students/"><b>学籍管理</b><span id="hubStu">建档、注册、休学 / 退学</span></a>
       <a href="offerings/"><b>开课与编班</b><span>课程班、排教授、编班</span></a>
@@ -89,11 +107,11 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
   <div class="foot"><a href="../">工作空间</a> · <a href="../../index.html">返回官网</a></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202610261950"></script>
-<script src="../../assets/js/portal/auth.js?v=202610261950"></script>
-<script src="../../assets/js/portal/ui.js?v=202610261950"></script>
-<script src="../../assets/js/portal/shell.js?v=202610261950"></script>
+<script src="../../assets/vendor/supabase-js@2.116.0/supabase.min.js"></script>
+<script src="../../assets/js/supabase-config.js?v=202610262031"></script>
+<script src="../../assets/js/portal/auth.js?v=202610262031"></script>
+<script src="../../assets/js/portal/ui.js?v=202610262031"></script>
+<script src="../../assets/js/portal/shell.js?v=202610262031"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
@@ -124,6 +142,41 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
   if (A.sessionEnded()) return;            // 晚返回的渲染让位，不拿死会话摆出管理界面
   document.getElementById("who").textContent = (p && (p.display_name || p.email)) || "";
   document.getElementById("btnOut").addEventListener("click", () => A.signOut());
+  /* 数据总览：每一项各读各的，哪项读不到那项就留「—」，不连累别的、也不挡下面的功能。 */
+  (async () => {
+    const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+    const safe = (f) => Promise.resolve().then(f).catch(() => ({ error: true }));
+    const month = new Date(); month.setDate(1); month.setHours(0, 0, 0, 0);
+    const [stu, neu, sess, fin, subs] = await Promise.all([
+      safe(() => A.client.from("student_records").select("id", { count: "exact", head: true }).eq("status", "active")),
+      safe(() => A.client.from("submissions").select("id", { count: "exact", head: true }).eq("type", "application").gte("created_at", month.toISOString())),
+      safe(() => A.client.from("cohort_sessions").select("id,cohort,held_on,title").order("held_on", { ascending: false }).limit(1)),
+      safe(() => A.client.from("finance_entries").select("kind,amount,currency").is("voided_at", null).eq("currency", "THB")),
+      safe(() => A.client.from("submissions").select("cohort").eq("type", "application").neq("cohort", "")),
+    ]);
+    if (A.sessionEnded()) return;
+    if (!stu.error && typeof stu.count === "number") set("dStu", stu.count);
+    if (!neu.error && typeof neu.count === "number") set("dNew", neu.count);
+    if (!fin.error && Array.isArray(fin.data)) {
+      const owe = fin.data.reduce((t, e) => t + (e.kind === "charge" || e.kind === "refund" ? 1 : -1) * Number(e.amount), 0);
+      set("dOwe", "฿" + owe.toLocaleString("zh-CN", { maximumFractionDigits: 2 }));
+    }
+    if (!subs.error && Array.isArray(subs.data) && subs.data.length) {
+      const cnt = {}; subs.data.forEach((r) => { cnt[r.cohort] = (cnt[r.cohort] || 0) + 1; });
+      document.getElementById("dCoh").innerHTML = Object.keys(cnt).map((c) => '<a href="cohort/?name=' + encodeURIComponent(c) + '">' +
+        esc(c) + ' <b>' + cnt[c] + ' 人</b></a>').join("");
+    }
+    if (!sess.error && Array.isArray(sess.data) && sess.data[0]) {
+      const s0 = sess.data[0];
+      const m = await safe(() => A.client.from("cohort_marks").select("attendance").eq("session_id", s0.id));
+      if (!m.error && Array.isArray(m.data) && m.data.length) {
+        const ok = m.data.filter((x) => x.attendance === "present" || x.attendance === "late").length;
+        set("dAtt", Math.round(ok / m.data.length * 100) + "%");
+        set("dAttL", "最近上课出勤 · " + s0.cohort + " " + s0.held_on.slice(5));
+      }
+    }
+  })();
+
   /* 待办数量：读到才显示数字；读不到就保持原说明，不写「0」。 */
   (async () => {
     try {

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- AMAS 数据库每日备份（scripts/backup-db.py）。安装：复制到 ~/Library/LaunchAgents/ 后 launchctl load。
+     每天 03:15 跑一次；电脑当时睡着的话，醒来后补跑。日志在 ~/Documents/AMAS数据备份/_备份日志.txt -->
+<plist version="1.0"><dict>
+  <key>Label</key><string>org.amas.db-backup</string>
+  <key>ProgramArguments</key><array>
+    <string>/usr/bin/python3</string>
+    <string>/Users/macpro/Projects/amas-migration/restored-package-20260912-192006/amas-web/main/scripts/backup-db.py</string>
+  </array>
+  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>3</integer><key>Minute</key><integer>15</integer></dict>
+  <key>StandardOutPath</key><string>/Users/macpro/Documents/AMAS数据备份/_备份日志.txt</string>
+  <key>StandardErrorPath</key><string>/Users/macpro/Documents/AMAS数据备份/_备份日志.txt</string>
+</dict></plist>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>设置你的密码 | AMAS</title>
+<link rel="icon" href="../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202610262031">
+</head>
+<body>
+<div class="wrap">
+  <div class="brandbar">
+    <img src="../../assets/img/school-seal.webp" alt="AMAS">
+    <h1>设置你的密码</h1>
+    <div class="en">SET YOUR OWN PASSWORD</div>
+  </div>
+  <div class="card" id="card">
+    <h2>第一次登录，请先改密码</h2>
+    <p class="sub">你现在用的是学校统一发的初始密码，别人也可能猜到。请设置一个只有你自己知道的新密码（至少 8 位），改好就能进入学习中心。</p>
+    <form id="f" novalidate>
+      <div class="field"><label for="p1">新密码</label><input id="p1" type="password" autocomplete="new-password" minlength="8" maxlength="72" required></div>
+      <div class="field"><label for="p2">再输入一次</label><input id="p2" type="password" autocomplete="new-password" minlength="8" maxlength="72" required></div>
+      <div class="hint">建议用一句好记的话加数字，例如「我爱读经2026」的拼音。</div>
+      <button class="btn" id="go" type="submit">保存新密码并进入</button>
+      <div class="msg" id="msg" role="status"></div>
+    </form>
+  </div>
+  <div class="foot"><button class="link" id="out" type="button">退出登录</button></div>
+</div>
+<script src="../../assets/vendor/supabase-js@2.116.0/supabase.min.js"></script>
+<script src="../../assets/js/supabase-config.js?v=202610262031"></script>
+<script src="../../assets/js/portal/auth.js?v=202610262031"></script>
+<script>
+/* 强制改密码（Enos 2026-10-26）：学校统一开的学员账号初始密码有规律（拼音+123），
+   账号上带 user_metadata.must_change_password=true；auth.js 的 requireRole 见到它就把人送到这里。
+   改完把标记清掉（同一次 updateUser），再回到原来要去的页面。 */
+(async function(){
+  const A = window.AmasAuth;
+  const msg = document.getElementById("msg"), btn = document.getElementById("go");
+  const show = (cls, t) => { msg.className = "msg " + cls + " show"; msg.textContent = t; };
+  document.getElementById("out").addEventListener("click", () => A.signOut());
+  /* 没有后端配置时与其他门户页一样整页给出友好提示（requireRole 内部负责渲染） */
+  if (!A.CONFIGURED) { await A.requireRole([]); return; }
+  const session = await A.getSession().catch(() => null);
+  if (!session) { location.replace(A.withNext("login/")); return; }
+  A.watchSession();
+
+  document.getElementById("f").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (btn.disabled) return;
+    const p1 = document.getElementById("p1").value, p2 = document.getElementById("p2").value;
+    if (p1.length < 8) return show("err", "新密码至少 8 位。");
+    if (p1 !== p2) return show("err", "两次输入的密码不一样，请再核对一下。");
+    btn.disabled = true; show("info", "正在保存…");
+    try {
+      const { error } = await A.client.auth.updateUser({ password: p1, data: { must_change_password: false } });
+      if (error) {
+        const m = String(error.code || error.message || "");
+        return show("err", /same_password|should be different/i.test(m) ? "新密码不能和初始密码一样，请换一个。"
+                         : /weak|short/i.test(m) ? "这个密码太简单了，请换一个更长或更复杂的。"
+                         : "这一次没有保存成功，请再试一次。");
+      }
+      show("ok", "密码已设置好，正在进入…");
+      const roles = await A.getRoles().catch(() => []);
+      location.replace(A.nextFromQuery() || A.homeForRoles(roles));
+    } catch (x) {
+      show("err", "没能连上服务器，不确定是否保存成功。请重新登录试试新密码；登不上就还用原来的密码。");
+    } finally { btn.disabled = false; }
+  });
+})();
+</script>
+</body>
+</html>

@@ -36,6 +36,10 @@ run "补全页面"                  node scripts/test-sis3-pages.mjs
 run "官网报名收件箱"            node scripts/test-inbox-page.mjs
 run "官网提交先存后台"          node scripts/test-submit-db-first.mjs
 run "门户外壳提速"              node scripts/test-shell-speed.mjs
+run "班级上课记录"              node scripts/test-cohort-page.mjs
+run "费用与公告"                node scripts/test-finance-board.mjs
+run "官网课堂与公告"            node scripts/test-site-board.mjs
+run "改密码·桌面·总览"           node scripts/test-password-pwa.mjs
 
 if [ "${1:-}" = "--full" ]; then
   echo "== 既有门户回归"

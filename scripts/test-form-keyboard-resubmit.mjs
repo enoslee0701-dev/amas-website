@@ -127,7 +127,7 @@ try {
           body: b64(JSON.stringify({ success: "true", message: "fixture" })) });
         return;
       }
-      if (u.indexOf("cdn.jsdelivr.net") > -1 && u.indexOf("supabase-js") > -1) {
+      if (u.indexOf("supabase-js") > -1 && (u.indexOf("cdn.jsdelivr.net") > -1 || u.indexOf("/assets/vendor/") > -1)) {
         await cdp.send("Fetch.fulfillRequest", { requestId: ev.requestId, responseCode: 200,
           responseHeaders: [{ name: "Content-Type", value: "application/javascript" }], body: b64(STUB) }); return;
       }

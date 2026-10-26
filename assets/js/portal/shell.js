@@ -50,6 +50,8 @@
     admin: [
       { href: "portal/admin/", icon: "home", label: "总览" },
       { href: "portal/admin/inbox/", icon: "inbox", label: "报名收件箱" },
+      { href: "portal/admin/board/", icon: "message", label: "公告与课堂" },
+      { href: "portal/admin/finance/", icon: "bars", label: "费用管理" },
       { href: "portal/admin/admissions/", icon: "usercheck", label: "招生审核" },
       { href: "portal/admin/students/", icon: "cap", label: "学籍管理" },
       { href: "portal/admin/offerings/", icon: "book", label: "开课与编班" },
@@ -173,6 +175,9 @@
     const mainEl = shell.querySelector("#main");
     mainEl.innerHTML = ""; mainEl.removeAttribute("aria-busy");
     if (!shell.isConnected) document.body.prepend(shell);
+
+    /* 「加到手机桌面」引导（assets/js/pwa-guide.js）：门户每页都挂，手机上第一次进来时提示一次 */
+    if (!window.AmasPwaGuide) { const g = document.createElement("script"); g.src = A.ROOT + "assets/js/pwa-guide.js"; g.defer = true; document.head.appendChild(g); }
 
     /* 手指 / 鼠标一落到菜单项上就先把那一页取回来，点下去时页面已经在本机缓存里 */
     const fetched = new Set();

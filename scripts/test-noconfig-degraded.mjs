@@ -148,7 +148,7 @@ const PORTAL_WHOLE_PAGE = [
   "portal/admin/", "portal/admin/admissions/", "portal/admin/students/", "portal/admin/teachers/",
   "portal/mfa/", "auth/callback/",
   // 学员管理系统（0030–0035）新增的 11 页：同样走 Shell.mount，缺配置时整页降级
-  "portal/admin/offerings/", "portal/admin/grades/", "portal/admin/student/", "portal/admin/roles/", "portal/admin/transcript/", "portal/admin/inbox/", "portal/admin/inbox/form/",
+  "portal/admin/offerings/", "portal/admin/grades/", "portal/admin/student/", "portal/admin/roles/", "portal/admin/transcript/", "portal/admin/inbox/", "portal/admin/inbox/form/", "portal/admin/inbox/forms/", "portal/admin/cohort/", "portal/admin/board/", "portal/admin/finance/", "portal/password/",
   "portal/teacher/classes/", "portal/teacher/class/", "portal/teacher/mentees/",
   "portal/student/classes/", "portal/student/records/", "portal/student/transcript/",
 ];
@@ -178,7 +178,7 @@ try {
   cdp.on("Fetch.requestPaused", async (ev) => {
     const u = ev.request.url;
     try {
-      if (u.indexOf("cdn.jsdelivr.net") > -1 && u.indexOf("supabase-js") > -1) {
+      if (u.indexOf("supabase-js") > -1 && (u.indexOf("cdn.jsdelivr.net") > -1 || u.indexOf("/assets/vendor/") > -1)) {
         await cdp.send("Fetch.fulfillRequest", { requestId: ev.requestId, responseCode: 200,
           responseHeaders: [{ name: "Content-Type", value: "application/javascript" }, { name: "Cache-Control", value: "no-store" }],
           body: b64(SDK_STUB) });

@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>成绩与进度 | AMAS 学员中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610261950">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610262031">
 </head>
 <body>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202610261950"></script>
-<script src="../../../assets/js/portal/auth.js?v=202610261950"></script>
-<script src="../../../assets/js/portal/api.js?v=202610261950"></script>
-<script src="../../../assets/js/portal/ui.js?v=202610261950"></script>
-<script src="../../../assets/js/portal/shell.js?v=202610261950"></script>
-<script src="../../../assets/js/portal/sis.js?v=202610261950"></script>
+<script src="../../../assets/vendor/supabase-js@2.116.0/supabase.min.js"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/api.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610262031"></script>
 <script>
 /* 学员管理系统第三期：学员的成绩与毕业进度。
    my_progress()：已得学分（课程 + 实践训练）/ 毕业要求、GPA、未修课程、实践训练；my_grades()：已发布总评。
@@ -29,9 +29,41 @@
 
   async function load(){
     UI.loading(main, 5);
-    const [p, g] = await Promise.all([Api.rpc("my_progress"), Api.rpc("my_grades")]);
+    const [p, g, att, fin] = await Promise.all([Api.rpc("my_progress"), Api.rpc("my_grades"), Api.rpc("my_cohort_record"), Api.rpc("my_finance")]);
     if (p.error || g.error || !Array.isArray(g.data)) {
       return UI.error(main, { message: "这一次没能读到你的成绩与进度。这不表示你没有记录，请稍后重试。", onRetry: load });
+    }
+    /* 班级上课出勤与作业（0040 my_cohort_record）。读不到就说读不到，不说成「没有记录」。 */
+    function attHtml(r){
+      const AT = { present: "出席", late: "迟到", absent: "缺席", excused: "请假", "": "—" };
+      const HW = { excellent: "优秀", done: "已交", partial: "部分", missing: "未交", "": "—" };
+      const SRC = { zoom: "Zoom", whatsapp: "WhatsApp", onsite: "线下", other: "" };
+      if (r.error || !Array.isArray(r.data)) return '<div class="card" style="margin-top:16px"><h2 style="font-size:16px;margin:0 0 6px">上课出勤与作业</h2>' +
+        '<p class="who">这一次没能读到你的出勤与作业记录，请稍后刷新。</p></div>';
+      const rows = r.data;
+      if (!rows.length) return "";
+      const att = rows.filter((x) => x.attendance === "present" || x.attendance === "late").length;
+      const hw = rows.filter((x) => x.homework === "excellent" || x.homework === "done").length;
+      return '<div class="card" style="margin-top:16px"><h2 style="font-size:16px;margin:0 0 6px">上课出勤与作业 · ' + UI.esc(rows[0].cohort) + '</h2>' +
+        '<p class="who">出勤 ' + att + ' / ' + rows.length + ' 次，作业完成 ' + hw + ' / ' + rows.length + ' 次。</p>' +
+        rows.map((x) => '<div class="row"><span>' + UI.esc(S.d(x.held_on)) + (x.title ? ' · ' + UI.esc(x.title) : "") +
+          (SRC[x.source] ? ' <small>' + SRC[x.source] + '</small>' : "") + '</span><span class="bar">' +
+          '<span class="chip ' + (x.attendance === "absent" ? "absent" : x.attendance === "late" ? "late" : x.attendance === "present" ? "present" : "") + '">' + (AT[x.attendance] || "—") + '</span>' +
+          '<span class="chip ' + (x.homework === "missing" ? "absent" : x.homework ? "published" : "") + '">作业 ' + (HW[x.homework] || "—") + '</span></span></div>').join("") + '</div>';
+    }
+    /* 我的费用（0042 my_finance）：按币种的欠款与每笔明细。没有账就不显示；读不到如实说。 */
+    function finHtml(r){
+      const K = { charge: "应收", payment: "已付", waiver: "减免", refund: "退款" };
+      const money = (n, c) => (c === "THB" ? "฿" : c === "CNY" ? "¥" : "$") + Number(n).toLocaleString("zh-CN", { maximumFractionDigits: 2 });
+      if (r.error || !r.data || typeof r.data !== "object") return '<div class="card" style="margin-top:16px"><h2 style="font-size:16px;margin:0 0 6px">我的费用</h2>' +
+        '<p class="who">这一次没能读到你的费用记录，请稍后刷新。</p></div>';
+      const es = Array.isArray(r.data.entries) ? r.data.entries : [];
+      if (!es.length) return "";
+      const bal = r.data.balance || {};
+      return '<div class="card" style="margin-top:16px"><h2 style="font-size:16px;margin:0 0 6px">我的费用</h2>' +
+        '<p class="who">' + Object.keys(bal).map((c) => Number(bal[c]) > 0 ? "待缴 <b>" + money(bal[c], c) + "</b>" : Number(bal[c]) < 0 ? "多缴 " + money(-bal[c], c) : "已结清（" + c + "）").join("　") + '。如有疑问请联系教务同工。</p>' +
+        es.map((e) => '<div class="row"><span>' + UI.esc(S.d(e.occurred_on)) + ' · ' + UI.esc(e.category) + ' <small>' + K[e.kind] + (e.reference ? " · " + UI.esc(e.reference) : "") + '</small></span>' +
+          '<b>' + (e.kind === "payment" || e.kind === "waiver" ? "−" : "") + money(e.amount, e.currency) + '</b></div>').join("") + '</div>';
     }
     const pr = p.data;
     if (!pr) return main.innerHTML = '<h1>成绩与进度</h1>' + UI.box("🎓", "还没有学籍记录", "建档后这里会显示你的学分与成绩。");
@@ -52,6 +84,7 @@
         (pr.status === "graduated" ? "<b>已毕业。</b>" : pr.eligible ? "<b>已满足毕业条件</b>，教务审核后登记毕业。" :
           "毕业需修满 " + req + " 学分" + (pr.min_gpa ? "、GPA 不低于 " + Number(pr.min_gpa).toFixed(1) : "") + "。") + '</p>' : "") +
 
+      attHtml(att) + finHtml(fin) +
       '<div class="card" style="margin-top:16px"><h2 style="font-size:16px;margin:0 0 6px">实践训练</h2>' +
         '<p class="who">完成后由你自己填报，填报即计学分；填错可以撤回。</p>' +
         (pr.practicum || []).map(i => '<div class="row"><span>' + UI.esc(i.title_zh) + ' <small>' + i.credits + ' 学分</small></span>' +

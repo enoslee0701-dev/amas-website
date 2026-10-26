@@ -512,6 +512,13 @@
       location.replace(withNext("login/"));
       return null;
     }
+    /* 学校统一开的账号带 must_change_password（Enos 2026-10-26）：先去设自己的密码，改完再回来。
+       标记在登录凭据里（user_metadata），本地就能读到，不多一次请求。 */
+    if (session.user && session.user.user_metadata && session.user.user_metadata.must_change_password === true &&
+        !/\/portal\/password\/?(index\.html)?$/.test(location.pathname)) {
+      location.replace(withNext("portal/password/"));
+      return null;
+    }
     const { roles, failed } = await fetchRoles();
 
     // 读不到角色 ≠ 没有角色。这时候什么都不能断定，更不能把人弹走。
