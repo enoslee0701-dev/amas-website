@@ -242,6 +242,36 @@ begin
   if (select cohort from public.submissions where name = '访客甲') <> '第二班' then raise exception 'FAIL X10c 教务分不了班'; end if;
   raise notice 'PASS X10 报名分班：默认未分班，只有教务能分';
 
+  -- ---------- X11 班级档案与入学申请表（0038） ----------
+  perform set_config('amas.test.uid', v_u1::text, true);
+  execute 'set role authenticated';
+  select count(*) into n from public.submission_cohorts;
+  begin
+    insert into public.submission_cohorts (name) values ('学员自建班');
+    raise exception 'FAIL X11a 普通用户能建班';
+  exception when insufficient_privilege then null;
+  end;
+  update public.submissions set school_form = '{"address":"x"}' where name = '访客甲';
+  execute 'reset role';
+  if (select school_form from public.submissions where name = '访客甲') <> '{}'::jsonb then raise exception 'FAIL X11b 普通用户能改申请表'; end if;
+  perform set_config('amas.test.uid', v_a::text, true);
+  execute 'set role authenticated';
+  insert into public.submission_cohorts (name, progress) values ('测试班', '第 1 课');
+  update public.submission_cohorts set progress = '已学完第 4 课' where name = '测试班';
+  update public.submissions set school_form = '{"address":"清迈"}' where name = '访客甲';
+  select count(*) into n from public.submission_cohorts where name = '测试班' and progress = '已学完第 4 课';
+  execute 'reset role';
+  if n <> 1 then raise exception 'FAIL X11c 教务建不了班或记不了进度'; end if;
+  if (select school_form->>'address' from public.submissions where name = '访客甲') <> '清迈' then raise exception 'FAIL X11d 教务存不了申请表'; end if;
+  execute 'set role anon';
+  begin
+    select count(*) into n from public.submission_cohorts;
+    raise exception 'FAIL X11e 匿名访客能读班级';
+  exception when insufficient_privilege then null;
+  end;
+  execute 'reset role';
+  raise notice 'PASS X11 班级档案与入学申请表：只有教务能读写';
+
   raise notice '=== SIS COMPLETION ACCEPTANCE PASSED ===';
 end $$;
 
