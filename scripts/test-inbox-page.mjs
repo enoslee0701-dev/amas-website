@@ -163,6 +163,15 @@ try {
   await open("portal/admin/inbox/form/?id=3", fscen(null, { submissions: { data: null, error: { message: "x" } } }));
   ok("F13 读失败如实说", (await txt()).includes("没能读到这份报名"));
 
+  // 官网新表（与总校表同栏位名）原样带入
+  const NROW = Object.assign({}, FROW, { school_form: {}, data: Object.assign({}, FROW.data, { program: "missionary", eduLevel: "master",
+    phone_fixed: "053-111111", health: "良好", vision: "回乡宣教", fam0_rel: "配偶", fam0_name: "王弟兄",
+    edu0_school: "神学院", edu1_school: "清迈大学", work0_org: "恩典堂", work0_title: "传道" }) });
+  await open("portal/admin/inbox/form/?id=3", fscen(NROW));
+  ok("F14 官网新栏位直接带入申请表", (await fv("phone_fixed")) === "053-111111" && (await fv("health")) === "良好" && (await fv("vision")) === "回乡宣教" &&
+     (await fv("fam0_name")) === "王弟兄" && (await fv("edu1_school")) === "清迈大学" && (await fv("edu0_degree")) === "硕士及以上" &&
+     (await fv("work0_title")) === "传道" && (await pressed()).startsWith("course=宣教士训练"));
+
   ok("O1 全程没有请求离开本机", h.external() === 0);
 } catch (e) {
   h.fail("测试过程抛错：" + e.message);

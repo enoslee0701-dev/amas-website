@@ -283,6 +283,21 @@ try {
     "A7 复核页逐字段回显：枚举值译成中文，选填未填显示「—」",
     `条目=${review.n} 姓名=${review.name} 性别=${review.gender} 未填的英文姓名=${review.optional}`);
 
+  // A7b 与总校申请表对齐的新栏位（家庭、学历多行、健康）回显在复核页
+  await cdp.ev(`(() => { const set = (n, v) => { document.querySelector('[name="' + n + '"]').value = v; };
+    set("fam0_rel", "配偶"); set("fam0_name", "王弟兄"); set("edu0_school", "清迈大学"); set("edu0_end", "2019-06"); set("health", "良好"); })()`);
+  await cdp.ev(`document.querySelector('#prevStep').click()`); await sleep(300);
+  await cdp.ev(`document.querySelector('#nextStep').click()`); await sleep(400);
+  const review2 = await cdp.ev(`(() => {
+    const dts = [...document.querySelectorAll('#applicationReview dt')];
+    const pair = (label) => { const dt = dts.find(d => d.textContent === label); return dt ? dt.nextElementSibling.textContent : null; };
+    return { fam: pair('家庭成员'), edu: pair('学历'), health: pair('健康状况'), work: pair('工作 / 事奉简历'),
+             step: document.querySelector('.app-step.active').dataset.step };
+  })()`);
+  check(review2.step === "4" && review2.fam === "配偶 · 王弟兄" && review2.edu === "清迈大学 · 2019-06" && review2.health === "良好" && review2.work === "—",
+    "A7b 总校表新栏位（家庭 / 学历多行 / 健康）在复核页回显，空的显示「—」",
+    JSON.stringify(review2));
+
   // A8 未勾同意不许提交，焦点落到勾选框
   await cdp.ev(`document.querySelector('#submitApplication').click()`);
   await sleep(600);

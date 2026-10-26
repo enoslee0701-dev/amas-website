@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>入学申请表 | AMAS</title>
 <link rel="icon" href="../../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../../assets/css/portal.css?v=202610261048">
+<link rel="stylesheet" href="../../../../assets/css/portal.css?v=202610261106">
 <style>
 .af-wrap{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;overflow-x:auto}
 .af-head{display:flex;align-items:center;gap:14px;margin-bottom:10px}
@@ -33,12 +33,12 @@ table.af{width:100%;min-width:640px;border-collapse:collapse;table-layout:fixed;
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../../assets/js/supabase-config.js?v=202610261048"></script>
-<script src="../../../../assets/js/portal/auth.js?v=202610261048"></script>
-<script src="../../../../assets/js/portal/api.js?v=202610261048"></script>
-<script src="../../../../assets/js/portal/ui.js?v=202610261048"></script>
-<script src="../../../../assets/js/portal/shell.js?v=202610261048"></script>
-<script src="../../../../assets/js/portal/sis.js?v=202610261048"></script>
+<script src="../../../../assets/js/supabase-config.js?v=202610261106"></script>
+<script src="../../../../assets/js/portal/auth.js?v=202610261106"></script>
+<script src="../../../../assets/js/portal/api.js?v=202610261106"></script>
+<script src="../../../../assets/js/portal/ui.js?v=202610261106"></script>
+<script src="../../../../assets/js/portal/shell.js?v=202610261106"></script>
+<script src="../../../../assets/js/portal/sis.js?v=202610261106"></script>
 <script>
 /* 总校《神学校入学申请表》（Enos 2026-10-26 提供的 Word 表格）的网页版。
    第一次打开时按官网报名资料预填；教务补填后「保存」写进 submissions.school_form（0038），
@@ -53,7 +53,10 @@ table.af{width:100%;min-width:640px;border-collapse:collapse;table-layout:fixed;
   const back = A.ROOT + "portal/admin/inbox/";
 
   const COURSES = ["牧会者进修", "讲道学校", "大学（DIP）", "大学（B.TH）", "研究生院（G/DIP）", "研究生院（M.DIV）", "道学,宣教博士（D.MIN/D.MISS）", "宣教士训练"];
-  const PROG = { bth: "大学（B.TH）", gdip: "研究生院（G/DIP）", mdiv: "研究生院（M.DIV）", dmin: "道学,宣教博士（D.MIN/D.MISS）" };
+  const PROG = { bth: "大学（B.TH）", pastor: "牧会者进修", preaching: "讲道学校", dip: "大学（DIP）", gdip: "研究生院（G/DIP）",
+                 mdiv: "研究生院（M.DIV）", dmin: "道学,宣教博士（D.MIN/D.MISS）", missionary: "宣教士训练" };
+  /* 官网报名表 2026-10-26 起直接用本表的栏位名（固定电话、家庭、学历 / 工作多行等），原样带入。 */
+  const SAME = /^(phone_fixed|phone_church|family_status|health|personality|vision|(edu|work)[0-3]_(school|city|start|end|degree|org|title)|fam[0-5]_(rel|name|birth|faith))$/;
   const EDU = { secondary: "高中及以下", college: "大专", bachelor: "本科", master: "硕士及以上" };
   const NAT = { C: "中国", China: "中国", Myanmar: "缅甸" };
   const ROWS = 4, FAM = 6;
@@ -75,6 +78,12 @@ table.af{width:100%;min-width:640px;border-collapse:collapse;table-layout:fixed;
     };
     if (d.eduSchool || d.eduLevel) { f.edu0_school = d.eduSchool || ""; f.edu0_degree = EDU[d.eduLevel] || d.eduLevel || ""; }
     if (d.role && d.church) { f.work0_org = d.church; f.work0_title = d.role; }
+    const hasRows = (p) => Object.keys(d).some(k => k.startsWith(p) && SAME.test(k) && d[k]);
+    if (hasRows("edu")) { delete f.edu0_school; delete f.edu0_degree; }
+    if (hasRows("work")) { delete f.work0_org; delete f.work0_title; }
+    for (const k of Object.keys(d)) if (SAME.test(k) && d[k]) f[k] = d[k];
+    /* 新表只填了学历行、没写学位时，用「最高学历」补第一行的学位 */
+    if (hasRows("edu") && !f.edu0_degree && d.eduLevel) f.edu0_degree = EDU[d.eduLevel] || d.eduLevel;
     return f;
   }
 

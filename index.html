@@ -83,9 +83,9 @@
 })();
 </script>
 <script>(function(){var l=document.createElement("link");l.rel="preload";l.as="image";l.href="assets/img/hero-"+(document.documentElement.dataset.theme==="night"?"night":"day")+".webp";document.head.appendChild(l);})();</script>
-<script src="assets/js/supabase-config.js?v=202610261048"></script>
+<script src="assets/js/supabase-config.js?v=202610261106"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- 字体表不阻塞首屏：大陆连不上 Google 时页面照常用系统宋体立即显示，连上了再换字体 --><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&display=swap" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&display=swap"></noscript>
-<link rel="stylesheet" href="assets/css/main.css?v=202610261048">
+<link rel="stylesheet" href="assets/css/main.css?v=202610261106">
 </head>
 <body>
 <a class="skip-link" href="#main" data-i18n="actions.skip">跳到主要内容</a>
@@ -217,7 +217,8 @@
         </div>
         <div class="hero-meta">
           <div class="hero-meta-item"><span data-i18n="herometa.program">项目</span><b data-i18n="herometa.programVal">神学学士 B.Th</b></div>
-          <div class="hero-meta-item"><span data-i18n="herometa.start">2026 届</span><b data-i18n="herometa.startVal">已开课</b></div>
+          <div class="hero-meta-item"><span data-i18n="herometa.start">2026 届</span><b class="hm-two" data-i18n="herometa.startVal">10月班已开课
+11月班招生中</b></div>
           <div class="hero-meta-item"><span data-i18n="herometa.mode">学习</span><b data-i18n="herometa.modeVal">线上 + 线下</b></div>
         </div>
       </div>
@@ -691,7 +692,7 @@
             <p data-i18n="programs.degree.sub">学分制逐科修读，修满规定学分即毕业；学籍由 AMAS 总校审核建立</p>
           </header>
           <ul class="program-list">
-            <li class="program-featured"><span class="program-badge">B.Th</span><div><b data-i18n="programs.items.bth.name">神学学士</b><span data-i18n="programs.items.bth.desc">2026 年 10 月已开课 · 招生进行中 · 77 学分 · 按科修读、线上 + 线下</span></div></li>
+            <li class="program-featured"><span class="program-badge">B.Th</span><div><b data-i18n="programs.items.bth.name">神学学士</b><span data-i18n="programs.items.bth.desc">10月班已开课 · 11月班招生中 · 77 学分 · 按科修读、线上 + 线下</span></div></li>
             <li><span class="program-badge">G.DIP</span><div><b data-i18n="programs.items.gdip.name">教牧学研究硕士</b><span data-i18n="programs.items.gdip.desc">90 学分 · 按科修读 · 补修学分可衔接 M.Div</span></div></li>
             <li><span class="program-badge">M.DIV</span><div><b data-i18n="programs.items.mdiv.name">道学硕士</b><span data-i18n="programs.items.mdiv.desc">90 学分 · 按科修读 · 面向全职事奉的完整神学与教牧装备</span></div></li>
             <li><span class="program-badge">D.MIN</span><div><b data-i18n="programs.items.dmin.name">教牧学博士</b><span data-i18n="programs.items.dmin.desc">D.Min / D.Miss · 48 学分（含论文）· 按学分完成研究与实践</span></div></li>
@@ -714,7 +715,7 @@
         <p data-i18n="admissions.desc">为愿意认真装备、持续成长并参与服事的人提供灵活、实践导向的神学教育路径。</p>
         <p class="sec-verse"><span data-i18n="verse.adm">“来跟从我，我要叫你们得人如得鱼一样。”</span><small data-i18n="verse.admRef">— 马太福音 4:19</small></p>
         <div class="admission-facts">
-          <div class="fact"><span data-i18n="admissions.facts.startLabel">开课</span><b data-i18n="admissions.facts.startValue">2026 年 10 月已开课 · 持续招生</b></div>
+          <div class="fact"><span data-i18n="admissions.facts.startLabel">开课</span><b data-i18n="admissions.facts.startValue">10月班已开课 · 11月班招生中</b></div>
           <div class="fact"><span data-i18n="admissions.facts.feeLabel">费用</span><b data-i18n="admissions.facts.feeValue">欢迎咨询招生同工</b></div>
           <div class="fact"><span data-i18n="admissions.facts.modeLabel">模式</span><b data-i18n="admissions.facts.modeValue">线上 + 线下</b></div>
           <div class="fact"><span data-i18n="admissions.facts.statusLabel">学籍</span><b data-i18n="admissions.facts.statusValue">总校审核建立</b></div>
@@ -1119,7 +1120,8 @@
           </label>
           <label><span data-i18n="application.fields.phone">手机</span><input type="tel" name="phone" required autocomplete="tel"></label>
           <label><span data-i18n="application.fields.email">Email / QQ / 微信</span><input name="email" required autocomplete="email"></label>
-          <label class="full"><span data-i18n="application.fields.city">目前所在城市 / 国家</span><input name="location" required autocomplete="address-level2"></label>
+          <label class="full"><span data-i18n="application.fields.city">居住地址</span><input name="location" required autocomplete="street-address"></label>
+          <label><span data-i18n="application.fields.phoneFixed">固定电话（选填）</span><input type="tel" name="phone_fixed" autocomplete="off"></label>
         </div>
       </section>
 
@@ -1139,6 +1141,11 @@
           <label><span data-i18n="application.fields.baptism">受洗日期（约）</span><input type="month" name="baptismDate"></label>
           <label><span data-i18n="application.fields.role">目前服事 / 角色</span><input name="role" autocomplete="organization-title"></label>
           <label><span data-i18n="application.fields.referrer">介绍人及联系电话</span><input name="referrer"></label>
+          <label><span data-i18n="application.fields.churchPhone">教会电话（选填）</span><input type="tel" name="phone_church" autocomplete="off"></label>
+          <fieldset class="full rowset"><legend data-i18n="application.fields.family">家庭状况（选填）</legend><div class="rowset-row c4"><input name="fam0_rel" data-i18n-ph="application.ph.rel" placeholder="关系" aria-label="关系 1"><input name="fam0_name" data-i18n-ph="application.ph.name" placeholder="姓名" aria-label="姓名 1"><input name="fam0_birth" data-i18n-ph="application.ph.birth" placeholder="出生年月" aria-label="出生年月 1"><input name="fam0_faith" data-i18n-ph="application.ph.faith" placeholder="信仰" aria-label="信仰 1"></div><div class="rowset-row c4"><input name="fam1_rel" data-i18n-ph="application.ph.rel" placeholder="关系" aria-label="关系 2"><input name="fam1_name" data-i18n-ph="application.ph.name" placeholder="姓名" aria-label="姓名 2"><input name="fam1_birth" data-i18n-ph="application.ph.birth" placeholder="出生年月" aria-label="出生年月 2"><input name="fam1_faith" data-i18n-ph="application.ph.faith" placeholder="信仰" aria-label="信仰 2"></div><div class="rowset-row c4"><input name="fam2_rel" data-i18n-ph="application.ph.rel" placeholder="关系" aria-label="关系 3"><input name="fam2_name" data-i18n-ph="application.ph.name" placeholder="姓名" aria-label="姓名 3"><input name="fam2_birth" data-i18n-ph="application.ph.birth" placeholder="出生年月" aria-label="出生年月 3"><input name="fam2_faith" data-i18n-ph="application.ph.faith" placeholder="信仰" aria-label="信仰 3"></div></fieldset>
+          <label class="full"><span data-i18n="application.fields.familyStatus">家庭状况说明（选填）</span><input name="family_status"></label>
+          <label><span data-i18n="application.fields.health">健康状况（选填）</span><input name="health"></label>
+          <label><span data-i18n="application.fields.personality">性格（选填）</span><input name="personality"></label>
         </div>
       </section>
 
@@ -1147,10 +1154,15 @@
         <div class="form-grid">
           <label class="full"><span data-i18n="application.fields.program">申请修读项目</span>
             <select name="program" required>
+              <!-- 与总校《神学校入学申请表》「申请修读课程」同一清单、同一顺序（Enos 2026-10-26：以总校为基准） -->
               <option value="bth" data-i18n="application.programs.bth">神学学士 B.Th（2026 届招生）</option>
+              <option value="pastor" data-i18n="application.programs.pastor">牧会者进修</option>
+              <option value="preaching" data-i18n="application.programs.preaching">讲道学校</option>
+              <option value="dip" data-i18n="application.programs.dip">大学 DIP</option>
               <option value="gdip" data-i18n="application.programs.gdip">教牧学研究硕士 G.DIP</option>
               <option value="mdiv" data-i18n="application.programs.mdiv">道学硕士 M.DIV</option>
-              <option value="dmin" data-i18n="application.programs.dmin">教牧学博士 D.MIN</option>
+              <option value="dmin" data-i18n="application.programs.dmin">道学 / 宣教博士 D.MIN / D.MISS</option>
+              <option value="missionary" data-i18n="application.programs.missionary">宣教士训练</option>
             </select>
           </label>
           <label><span data-i18n="application.fields.eduLevel">最高学历</span>
@@ -1162,7 +1174,8 @@
               <option value="master" data-i18n="application.edu.master">硕士及以上</option>
             </select>
           </label>
-          <label><span data-i18n="application.fields.eduSchool">毕业学校（选填）</span><input name="eduSchool"></label>
+          <fieldset class="full rowset"><legend data-i18n="application.fields.eduRows">学历（从最高学历填起，选填）</legend><div class="rowset-row c5"><input name="edu0_school" data-i18n-ph="application.ph.school" placeholder="学校" aria-label="学校 1"><input name="edu0_city" data-i18n-ph="application.ph.city" placeholder="城市" aria-label="城市 1"><input name="edu0_start" data-i18n-ph="application.ph.start" placeholder="入学年月" aria-label="入学年月 1"><input name="edu0_end" data-i18n-ph="application.ph.end" placeholder="毕业年月" aria-label="毕业年月 1"><input name="edu0_degree" data-i18n-ph="application.ph.degree" placeholder="学位或文凭" aria-label="学位或文凭 1"></div><div class="rowset-row c5"><input name="edu1_school" data-i18n-ph="application.ph.school" placeholder="学校" aria-label="学校 2"><input name="edu1_city" data-i18n-ph="application.ph.city" placeholder="城市" aria-label="城市 2"><input name="edu1_start" data-i18n-ph="application.ph.start" placeholder="入学年月" aria-label="入学年月 2"><input name="edu1_end" data-i18n-ph="application.ph.end" placeholder="毕业年月" aria-label="毕业年月 2"><input name="edu1_degree" data-i18n-ph="application.ph.degree" placeholder="学位或文凭" aria-label="学位或文凭 2"></div></fieldset>
+          <fieldset class="full rowset"><legend data-i18n="application.fields.workRows">工作 / 事奉简历（选填）</legend><div class="rowset-row c5"><input name="work0_org" data-i18n-ph="application.ph.org" placeholder="教会或机构名" aria-label="教会或机构名 1"><input name="work0_city" data-i18n-ph="application.ph.city" placeholder="城市" aria-label="城市 1"><input name="work0_start" data-i18n-ph="application.ph.from" placeholder="开始年月" aria-label="开始年月 1"><input name="work0_end" data-i18n-ph="application.ph.to" placeholder="离职年月" aria-label="离职年月 1"><input name="work0_title" data-i18n-ph="application.ph.title" placeholder="职位" aria-label="职位 1"></div><div class="rowset-row c5"><input name="work1_org" data-i18n-ph="application.ph.org" placeholder="教会或机构名" aria-label="教会或机构名 2"><input name="work1_city" data-i18n-ph="application.ph.city" placeholder="城市" aria-label="城市 2"><input name="work1_start" data-i18n-ph="application.ph.from" placeholder="开始年月" aria-label="开始年月 2"><input name="work1_end" data-i18n-ph="application.ph.to" placeholder="离职年月" aria-label="离职年月 2"><input name="work1_title" data-i18n-ph="application.ph.title" placeholder="职位" aria-label="职位 2"></div></fieldset>
           <label class="full"><span data-i18n="application.fields.mode">偏好的学习方式</span>
             <select name="mode">
               <option value="online" data-i18n="application.modes.online">线上为主</option>
@@ -1171,7 +1184,8 @@
             </select>
           </label>
           <label class="full"><span data-i18n="application.fields.gifts">恩赐（选填）</span><input name="gifts"></label>
-          <label class="full"><span data-i18n="application.fields.motivation">异象与蒙召 / 信仰见证</span><textarea name="motivation" rows="6" required data-i18n-ph="application.ph.motivation" placeholder="可以从这四点写起，写多写少都可以，真实即可，不需要华丽的文字：&#10;1. 你是怎么信主的？生命中有过什么转折？&#10;2. 目前在教会或工场有哪些服事？&#10;3. 为什么在这个阶段想接受神学装备？&#10;4. 盼望日后如何服事神与人？"></textarea></label>
+          <label class="full"><span data-i18n="application.fields.vision">异象（选填）</span><input name="vision"></label>
+          <label class="full"><span data-i18n="application.fields.motivation">自我介绍及信仰见证</span><textarea name="motivation" rows="6" required data-i18n-ph="application.ph.motivation" placeholder="可以从这四点写起，写多写少都可以，真实即可，不需要华丽的文字：&#10;1. 你是怎么信主的？生命中有过什么转折？&#10;2. 目前在教会或工场有哪些服事？&#10;3. 为什么在这个阶段想接受神学装备？&#10;4. 盼望日后如何服事神与人？"></textarea></label>
         </div>
         <div class="honeypot" aria-hidden="true"><label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
       </section>
@@ -1203,7 +1217,7 @@
   <button class="promo-close" id="promoClose" type="button" aria-label="关闭" data-i18n-aria="actions.close">×</button>
   <div class="promo-eyebrow">ADMISSIONS 2026</div>
   <b class="promo-title" data-i18n="promo.title">2026 届神学学士 B.Th 招生中</b>
-  <p class="promo-desc" data-i18n="promo.desc">线上 + 清迈线下 · 按科修读 · 10 月已开课，现阶段仍在招生。想先了解一下？招生助手随时为你解答。</p>
+  <p class="promo-desc" data-i18n="promo.desc">线上 + 清迈线下 · 按科修读 · 10月班已开课，11月班正在招生。想先了解一下？招生助手随时为你解答。</p>
   <div class="promo-actions">
     <button class="btn primary" type="button" id="promoAsk" data-i18n="promo.ask">立即咨询</button>
     <button class="btn secondary" type="button" id="promoApply" data-open-application data-i18n="promo.apply">申请入学</button>
@@ -1243,6 +1257,6 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="assets/js/main.js?v=202610261048"></script>
+<script src="assets/js/main.js?v=202610261106"></script>
 </body>
 </html>

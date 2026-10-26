@@ -651,7 +651,7 @@ html[data-theme="night"] .chat-chips button:hover{color:#0a0c10}
 .seal-large{width:min(380px,72vw);height:auto}
 .seal-caption{margin:26px 0 0;font-family:"Noto Serif SC",Georgia,serif;font-size:20px;font-weight:600;letter-spacing:.04em}
 .seal-caption-sub{margin:6px 0 0;font-size:12.5px;letter-spacing:.18em;color:var(--muted)}
-.application-card{width:min(820px,calc(100% - 32px));padding:34px 40px}.app-head h2{font-family:"Noto Serif SC",Georgia,serif;font-size:38px;font-weight:700;margin:0}.app-hint{margin:10px 0 0;font-size:12.5px;line-height:1.7;color:var(--muted);max-width:640px}.steps{display:flex;align-items:center;margin:25px 0 30px}.steps span{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);color:#6f695c}.steps span.active{background:linear-gradient(135deg,#10305a,#0a1d38);color:white;border-color:var(--olive-dark)}.steps i{width:70px;height:1px;background:var(--line)}.app-step{display:none}.app-step.active{display:block}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.form-grid label{color:#5f5a4f}.form-grid input,.form-grid textarea,.form-grid select{background:#fff;color:#1f1e19;border-color:var(--line)}.app-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:28px}.hidden{display:none!important}.review-box{background:var(--paper2);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:18px}
+.application-card{width:min(820px,calc(100% - 32px));padding:34px 40px}.app-head h2{font-family:"Noto Serif SC",Georgia,serif;font-size:38px;font-weight:700;margin:0}.app-hint{margin:10px 0 0;font-size:12.5px;line-height:1.7;color:var(--muted);max-width:640px}.steps{display:flex;align-items:center;margin:25px 0 30px}.steps span{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);color:#6f695c}.steps span.active{background:linear-gradient(135deg,#10305a,#0a1d38);color:white;border-color:var(--olive-dark)}.steps i{width:70px;height:1px;background:var(--line)}.app-step{display:none}.app-step.active{display:block}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.form-grid label{color:#5f5a4f}.form-grid input,.form-grid textarea,.form-grid select{background:#fff;color:#1f1e19;border-color:var(--line)}.app-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:28px}.rowset{border:1px solid var(--line);border-radius:8px;padding:10px 12px 12px;margin:0;display:grid;gap:8px;min-width:0}.rowset legend{font-size:12px;color:#5f5a4f;padding:0 4px}.rowset-row{display:grid;gap:6px;grid-template-columns:2fr 1fr 1fr 1fr 1.3fr}.rowset-row.c4{grid-template-columns:1fr 1.3fr 1fr 1fr}.rowset-row input{padding:9px 10px;font-size:13px;min-width:0}.hidden{display:none!important}.review-box{background:var(--paper2);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:18px}
 /* 复核框只接受程序化聚焦（换到第 4 步时），不进 Tab 顺序；
    给容器画一圈焦点框反而会让人以为它可编辑，所以这里去掉。
    紧随其后的同意勾选框有自己的焦点圈，键盘可见性不受影响。 */
@@ -714,7 +714,7 @@ html[data-theme="night"] .chat-chips button:hover{color:#0a0c10}
  .tuition-motto{font-size:17px}.tuition-principles{position:static;padding:28px 22px}
  .life-rhythm-steps{grid-template-columns:1fr}.life-step{border-right:0;margin:0;padding:10px 0;border-top:1px dashed var(--line)}.life-step:first-child{border-top:0}
  .resource-row{align-items:flex-start;gap:16px}.resource-row>div{gap:10px}.resource-row h3{font-size:16px}
- .form-grid{grid-template-columns:1fr}.form-grid .full{grid-column:1}.application-card{padding:28px 18px}.steps i{width:40px}.review-box dl{grid-template-columns:1fr;gap:4px}.review-box dd{margin-bottom:8px}
+ .form-grid{grid-template-columns:1fr}.form-grid .full{grid-column:1}.rowset-row,.rowset-row.c4{grid-template-columns:1fr 1fr}.rowset-row input:first-child{grid-column:1/-1}.rowset-row+.rowset-row{border-top:1px dashed var(--line);padding-top:8px}.application-card{padding:28px 18px}.steps i{width:40px}.review-box dl{grid-template-columns:1fr;gap:4px}.review-box dd{margin-bottom:8px}
 }
 
 
@@ -773,7 +773,7 @@ html[data-theme="night"] .form-grid select{background:var(--surface);color:var(-
 html[data-theme="night"] .form-grid input:focus,
 html[data-theme="night"] .form-grid textarea:focus,
 html[data-theme="night"] .form-grid select:focus{border-color:var(--olive)}
-html[data-theme="night"] .form-grid label{color:#a9a79c}
+html[data-theme="night"] .form-grid label,html[data-theme="night"] .rowset legend{color:#a9a79c}
 html[data-theme="night"] .consent{color:#a9a79c}
 html[data-theme="night"] .review-box dt{color:#918e83}
 html[data-theme="night"] .steps span:not(.active){color:#8d8a7e}
@@ -1449,3 +1449,7 @@ html[data-theme="night"] .footer{background:linear-gradient(180deg,#0a1220,#060b
   .course-content{padding:0 14px}
   .course-meta span{white-space:nowrap}
 }
+
+/* 首屏「开课」格：两个班各占一行（10月班已开课 / 11月班招生中），窄屏缩小一点不在词中间断行 */
+.hm-two{white-space:pre-line;word-break:keep-all}
+@media(max-width:520px){.hm-two{font-size:.86em;line-height:1.45}}
