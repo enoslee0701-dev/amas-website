@@ -6,29 +6,57 @@
 <meta name="robots" content="noindex">
 <title>官网报名收件箱 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610261106">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610261146">
 <style>
 .kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;font-size:13.5px;border-top:1px solid var(--line);padding-top:8px;margin-top:4px}
 .kv dt{color:var(--muted)}.kv dd{margin:0;word-break:break-word;white-space:pre-wrap}
 .chip.s0{background:#fdf4e3;color:#7a5a12}.chip.s1{background:#eaf0f8;color:#10305a}
 .chip.s2{background:#e9f3ee;color:var(--ok)}.chip.s3{background:#f3e9e9;color:#8a2c2c}
 .note{font-size:13px;color:var(--ink);background:var(--wash);border-radius:8px;padding:6px 10px}
+/* 2026-10-26 界面稿 */
+.sec-h{display:flex;align-items:center;gap:8px;font-size:17px;color:var(--navy);margin:6px 0 12px}.sec-h .ico{color:var(--gold)}
+#cohorts{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.coh .top h3{display:flex;align-items:center;gap:12px}
+.ic-circle{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:#eef1f6;color:var(--navy);flex:none}
+.cnt{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:8px;background:#eaf0f8;color:#1d3b66;font-size:12.5px;font-weight:600}
+.of.coh .meta{display:block;line-height:1.9}.of.coh .meta span{display:block}
+.prog{display:flex;align-items:center;gap:12px;border-top:1px solid #ece8de;padding-top:12px;margin-top:4px;font-size:14px}
+.prog .ic-circle{width:38px;height:38px;background:#e8f3ee;color:var(--ok)}.prog .ic-circle.cal{background:#eef1f6;color:var(--navy)}
+.newc{grid-column:1/-1}
+.filters{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin:0 0 16px;font-size:13.5px}
+.filters label{color:#4b5567}
+.filters select{min-height:42px;min-width:120px;padding:0 12px;border:1px solid #cfd5df;border-radius:9px;background:#fff;font:inherit;font-size:13.5px;color:var(--ink)}
+.srch{flex:1;min-width:200px;display:flex;align-items:center;gap:8px;min-height:42px;padding:0 12px;border:1px solid #cfd5df;border-radius:9px;background:#fff;color:#7a8394}
+.srch input{flex:1;min-width:0;border:0;outline:none;font:inherit;font-size:13.5px;background:none;color:var(--ink)}
+.srch:focus-within{border-color:var(--navy2);box-shadow:0 0 0 3px rgba(23,63,112,.1)}
+.app .top{align-items:flex-start}
+.who-h{display:flex;align-items:center;gap:14px;min-width:0}
+.avatar{display:grid;place-items:center;width:46px;height:46px;border-radius:50%;background:#e9edf3;color:#7d8aa0;flex:none}
+.who-h h3{font-size:18px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.chip.s1,.chip.s2,.chip.s0,.chip.s3{border-radius:8px;padding:4px 11px;font-size:12.5px}
+.app .meta{padding-left:60px;font-size:13px}
+.app details,.app .note{margin-left:60px}
+.app summary{font-size:13.5px;color:var(--navy2);font-weight:600;cursor:pointer;gap:6px;list-style:none}
+.app summary::-webkit-details-marker{display:none}
+.app .bar{border-top:1px solid #ece8de;padding-top:12px;margin-top:4px}
+@media(max-width:560px){.app .meta,.app details,.app .note{padding-left:0;margin-left:0}.app .top{flex-wrap:wrap}.chips{justify-content:flex-start}}
 </style>
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202610261106"></script>
-<script src="../../../assets/js/portal/auth.js?v=202610261106"></script>
-<script src="../../../assets/js/portal/api.js?v=202610261106"></script>
-<script src="../../../assets/js/portal/ui.js?v=202610261106"></script>
-<script src="../../../assets/js/portal/shell.js?v=202610261106"></script>
-<script src="../../../assets/js/portal/sis.js?v=202610261106"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610261146"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610261146"></script>
+<script src="../../../assets/js/portal/api.js?v=202610261146"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610261146"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610261146"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610261146"></script>
 <script>
 /* 官网报名收件箱：官网表单（入学申请 / 咨询 / 奉献 / 客服留言）由 main.js logToDB 写进 public.submissions，
    本页给教务查看、改跟进状态、写备注。0036 起只有教务类角色能读写；访客只能投递。
    这里是「报名意向」，正式录取仍走「招生审核」（申请者在门户提交的入学申请）。 */
 (async function(){
-  const UI = window.AmasUI, Api = window.AmasApi, Shell = window.AmasShell;
+  const UI = window.AmasUI, Api = window.AmasApi, Shell = window.AmasShell, I = Shell.icon;
   const mounted = await Shell.mount({ space: "admin", title: "管理后台",
                                       allow: ["registrar", "academic_admin", "super_admin"], requireAal2: true });
   if (!mounted) return;
@@ -68,25 +96,28 @@
   main.innerHTML = '<h1>官网报名收件箱</h1>' +
     '<p class="lead">网站上填写的报名表和留言会自动存到这里（同时仍会发到招生邮箱）。可以在这里标记跟进状态、分班、写备注。</p>' +
     '<div class="msg err" id="err" role="alert" tabindex="-1"></div>' +
-    '<h2 style="font-size:16px;margin:4px 0 8px">班级与课程进度</h2><div class="ofs" id="cohorts" style="margin-bottom:16px"></div>' +
+    '<h2 class="sec-h">' + I("bars", 20) + '班级与课程进度</h2><div class="ofs" id="cohorts" style="margin-bottom:22px"></div>' +
     '<div class="tabs" id="ft" role="tablist"></div>' +
-    '<div class="bar" style="margin-bottom:12px"><label for="fs" style="font-size:13px">状态</label>' +
-      '<select id="fs" class="sbtn"><option value="">全部</option>' + STATUS.map(s => '<option>' + s + '</option>').join("") + '</select>' +
-      '<label for="fc" style="font-size:13px">班级</label><select id="fc" class="sbtn"></select>' +
-      '<input id="q" type="search" class="sbtn" placeholder="搜姓名 / 电话 / 邮箱" style="flex:1;min-width:160px"></div>' +
+    '<div class="filters"><label for="fs">状态</label>' +
+      '<select id="fs"><option value="">全部</option>' + STATUS.map(s => '<option>' + s + '</option>').join("") + '</select>' +
+      '<label for="fc">班级</label><select id="fc"></select>' +
+      '<label class="srch">' + I("search", 17) + '<input id="q" type="search" placeholder="搜姓名 / 电话 / 邮箱" aria-label="搜索"></label></div>' +
     '<div id="list"></div>';
   const errBox = main.querySelector("#err"), list = main.querySelector("#list");
   const say = (m) => { errBox.textContent = m; errBox.classList.add("show"); errBox.focus(); };
 
   function cohortPanel(){
     const box = main.querySelector("#cohorts");
-    box.innerHTML = CINFO.map(c => '<div class="of"><div class="top"><h3>' + UI.esc(c.name) + '</h3><span class="chip s1">' +
-        rows.filter(r => r.cohort === c.name).length + ' 人</span></div>' +
+    /* 已开课的班显示对勾，还没开课的显示日历 */
+    const today = new Date().toISOString().slice(0, 10);
+    box.innerHTML = CINFO.map(c => '<div class="of coh"><div class="top"><h3><span class="ic-circle">' + I("bookopen", 20) + '</span>' + UI.esc(c.name) + '</h3>' +
+        '<span class="cnt">' + I("users", 15) + rows.filter(r => r.cohort === c.name).length + ' 人</span></div>' +
       '<div class="meta"><span>开课：' + (c.starts_on ? UI.esc(c.starts_on) : "未填") + '</span>' +
         (c.updated_at ? '<span>进度更新于 ' + when(c.updated_at) + '</span>' : "") + '</div>' +
-      '<div>' + (c.progress ? UI.esc(c.progress) : '<span class="who">还没有记录课程进度</span>') + '</div>' +
-      '<div class="bar"><button type="button" class="sbtn" data-cname="' + UI.esc(c.name) + '">更新进度</button></div></div>').join("") +
-      '<div class="bar"><button type="button" class="sbtn" id="newCohort">＋ 新建班级</button></div>';
+      '<div class="prog">' + (c.starts_on && c.starts_on > today ? '<span class="ic-circle cal">' + I("calendar", 18) + '</span>' : '<span class="ic-circle">' + I("check", 18) + '</span>') +
+        '<span>' + (c.progress ? UI.esc(c.progress) : '<span class="who">还没有记录课程进度</span>') + '</span></div>' +
+      '<div class="bar"><button type="button" class="sbtn pri" data-cname="' + UI.esc(c.name) + '">' + I("refresh", 16) + '更新进度</button></div></div>').join("") +
+      '<div class="newc"><button type="button" class="sbtn" id="newCohort">' + I("plus", 16) + '新建班级</button></div>';
     box.querySelectorAll("[data-cname]").forEach(b => b.addEventListener("click", () => editCohort(CINFO.find(c => c.name === b.dataset.cname))));
     box.querySelector("#newCohort").addEventListener("click", () => editCohort(null));
   }
@@ -113,9 +144,10 @@
 
   function tabs(){
     const types = ["application", "contact", "giving", "chat", ""];
+    const TIC = { application: "file", contact: "message", giving: "heart", chat: "headset", "": "grid" };
     main.querySelector("#ft").innerHTML = types.map(t => {
       const n = rows.filter(r => (!t || r.type === t || (t === "contact" && r.type === "inquiry")) && r.status === "待处理").length;
-      return '<button role="tab" data-t="' + t + '" aria-selected="' + (t === fType) + '">' + (t ? TYPE[t] : "全部") +
+      return '<button role="tab" data-t="' + t + '" aria-selected="' + (t === fType) + '">' + I(TIC[t], 17) + (t ? TYPE[t] : "全部") +
         (n ? '（' + n + ' 待处理）' : "") + '</button>';
     }).join("");
     main.querySelectorAll("#ft button").forEach(b => b.addEventListener("click", () => { fType = b.dataset.t; tabs(); render(); }));
@@ -129,21 +161,21 @@
     const d = r.data || {};
     const kv = Object.keys(d).filter(k => !SKIP.has(k) && d[k] !== "" && d[k] != null)
       .map(k => '<dt>' + UI.esc(label(k)) + '</dt><dd>' + UI.esc(show(k, String(d[k]))) + '</dd>').join("");
-    return '<div class="of" id="s-' + r.id + '"><div class="top"><h3>' + UI.esc(r.name || "未填姓名") + '</h3>' +
-        '<span>' + (r.cohort ? '<span class="chip s1">' + UI.esc(r.cohort) + '</span> ' : "") +
+    return '<div class="of app" id="s-' + r.id + '"><div class="top"><div class="who-h"><span class="avatar">' + I("user", 22) + '</span><h3>' + UI.esc(r.name || "未填姓名") + '</h3></div>' +
+        '<span class="chips">' + (r.cohort ? '<span class="chip s1">' + UI.esc(r.cohort) + '</span>' : "") +
         '<span class="chip s' + sIdx(r.status) + '">' + UI.esc(r.status) + '</span></span></div>' +
       '<div class="meta"><span>' + UI.esc(TYPE[r.type] || r.type) + '</span>' +
         (r.program ? '<span>' + UI.esc(PROG[r.program] || r.program) + '</span>' : "") +
         '<span>' + UI.esc(r.contact) + '</span><span>' + when(r.created_at) + '</span>' +
         (d._source === "email_import" ? '<span>从邮箱补录</span>' : "") + '</div>' +
       (r.note ? '<div class="note">备注：' + UI.esc(r.note) + '</div>' : "") +
-      '<details><summary style="cursor:pointer;font-size:13px;color:var(--navy)">查看全部资料</summary><dl class="kv">' + kv + '</dl></details>' +
+      '<details><summary>查看全部资料 ' + I("arrow", 15) + '</summary><dl class="kv">' + kv + '</dl></details>' +
       '<div class="bar">' + STATUS.filter(s => s !== r.status).map(s =>
           '<button type="button" class="sbtn" data-id="' + r.id + '" data-s="' + s + '">标为' + s + '</button>').join("") +
         '<button type="button" class="sbtn" data-id="' + r.id + '" data-cohort="1">分班</button>' +
-        (r.type === "application" ? '<a class="sbtn pri" style="display:inline-flex;align-items:center;text-decoration:none" href="form/?id=' + r.id + '">入学申请表' +
+        (r.type === "application" ? '<a class="sbtn pri" href="form/?id=' + r.id + '">' + I("file", 16) + '入学申请表' +
           (r.school_form && Object.keys(r.school_form).length ? '（已填）' : '') + '</a>' : "") +
-        '<button type="button" class="sbtn" data-id="' + r.id + '" data-note="1">写备注</button></div></div>';
+        '<button type="button" class="sbtn" data-id="' + r.id + '" data-note="1">' + I("edit", 16) + '写备注</button></div></div>';
   }
 
   function render(){
