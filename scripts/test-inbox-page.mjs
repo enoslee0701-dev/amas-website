@@ -9,10 +9,10 @@ const ADMIN = { session: { user: { id: "u-admin", email: "a@example.invalid" } }
 const STU = { session: { user: { id: "s-u1", email: "st@example.invalid" } }, aal: "aal1" };
 const ROWS = [
   { id: 3, created_at: "2026-10-20T08:00:00Z", type: "application", name: "陈恩典", contact: "en@example.invalid", program: "bth", lang: "zh",
-    status: "待处理", note: "", data: { fullName: "陈恩典", gender: "female", churchType: "house", program: "bth", phone: "+86 138 0000 0000",
+    status: "待处理", note: "", cohort: "", data: { fullName: "陈恩典", gender: "female", churchType: "house", program: "bth", phone: "+86 138 0000 0000",
     motivation: "蒙召服事", _autoresponse: "感谢", _subject: "AMAS 入学申请 [bth] — 陈恩典" } },
   { id: 2, created_at: "2026-10-01T08:00:00Z", type: "application", name: "<img src=x onerror=window.__x=1>", contact: "x@example.invalid",
-    program: "mdiv", lang: "zh", status: "已联系", note: "已电话联系", data: { fullName: "<img src=x onerror=window.__x=1>", _source: "email_import" } },
+    program: "mdiv", lang: "zh", status: "已联系", note: "已电话联系", cohort: "第一班", data: { fullName: "<img src=x onerror=window.__x=1>", _source: "email_import" } },
   { id: 1, created_at: "2026-09-21T08:00:00Z", type: "contact", name: "李弟兄", contact: "13900000000", program: "", lang: "zh",
     status: "待处理", note: "", data: { name: "李弟兄", message: "想了解学费" } },
 ];
@@ -60,6 +60,21 @@ try {
   await setVal("#ask-note", "下周面谈"); await click(".portal-modal [data-ok]"); await sleep(400);
   u = await upd();
   ok("I10 写备注只改 note", JSON.stringify(u[u.length - 1].patch) === '{"note":"下周面谈"}' && (await txt()).includes("备注：下周面谈"));
+
+  // 分班（0037）
+  t = await txt();
+  const fc = await ev(`[...document.querySelectorAll("#fc option")].map(o => o.textContent).join("|")`);
+  ok("I16 卡片显示班级，班级筛选带人数", t.includes("第一班") && fc === "全部|第一班（1）|第二班（0）|未分班（2）", fc);
+  await setVal("#fc", "第一班"); await ev(`document.querySelector("#fc").dispatchEvent(new Event("change")); true`); await sleep(150);
+  t = await txt();
+  ok("I17 按班级筛选", !t.includes("陈恩典") && (await ev(`document.querySelectorAll(".of").length`)) === 1);
+  await setVal("#fc", ""); await ev(`document.querySelector("#fc").dispatchEvent(new Event("change")); true`); await sleep(150);
+  await ev(`window.__SCEN.tables["submissions:update"] = { data: [Object.assign({}, window.__SCEN.tables.submissions.data[0], { status: "已联系", note: "下周面谈", cohort: "第二班" })] }; true`);
+  await click('[data-id="3"][data-cohort]'); await sleep(200);
+  await setVal("#ask-cohort", "第二班"); await click(".portal-modal [data-ok]"); await sleep(400);
+  u = await upd();
+  ok("I18 分班只改 cohort，页面随之更新", JSON.stringify(u[u.length - 1].patch) === '{"cohort":"第二班"}' &&
+     (await ev(`document.querySelector("#s-3").textContent.includes("第二班")`)));
 
   await shot("inbox");
   await send("Emulation.setDeviceMetricsOverride", { width: 360, height: 780, deviceScaleFactor: 1, mobile: true });

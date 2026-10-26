@@ -228,6 +228,20 @@ begin
   if (select status from public.submissions where name = '访客甲') <> '已联系' then raise exception 'FAIL X09e 教务改不了报名状态'; end if;
   raise notice 'PASS X09 报名收件箱：访客可投递不可回读，普通用户看不到也改不了，教务可读可改';
 
+  -- ---------- X10 报名分班（0037） ----------
+  if (select cohort from public.submissions where name = '访客甲') <> '' then raise exception 'FAIL X10a 新报名默认应为未分班'; end if;
+  perform set_config('amas.test.uid', v_u1::text, true);
+  execute 'set role authenticated';
+  update public.submissions set cohort = '第一班' where name = '访客甲';
+  execute 'reset role';
+  if (select cohort from public.submissions where name = '访客甲') <> '' then raise exception 'FAIL X10b 普通用户能给报名分班'; end if;
+  perform set_config('amas.test.uid', v_a::text, true);
+  execute 'set role authenticated';
+  update public.submissions set cohort = '第二班' where name = '访客甲';
+  execute 'reset role';
+  if (select cohort from public.submissions where name = '访客甲') <> '第二班' then raise exception 'FAIL X10c 教务分不了班'; end if;
+  raise notice 'PASS X10 报名分班：默认未分班，只有教务能分';
+
   raise notice '=== SIS COMPLETION ACCEPTANCE PASSED ===';
 end $$;
 
