@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>官网报名收件箱 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610260620">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610261035">
 <style>
 .kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;font-size:13.5px;border-top:1px solid var(--line);padding-top:8px;margin-top:4px}
 .kv dt{color:var(--muted)}.kv dd{margin:0;word-break:break-word;white-space:pre-wrap}
@@ -17,12 +17,12 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202610260620"></script>
-<script src="../../../assets/js/portal/auth.js?v=202610260620"></script>
-<script src="../../../assets/js/portal/api.js?v=202610260620"></script>
-<script src="../../../assets/js/portal/ui.js?v=202610260620"></script>
-<script src="../../../assets/js/portal/shell.js?v=202610260620"></script>
-<script src="../../../assets/js/portal/sis.js?v=202610260620"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610261035"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610261035"></script>
+<script src="../../../assets/js/portal/api.js?v=202610261035"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610261035"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610261035"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610261035"></script>
 <script>
 /* 官网报名收件箱：官网表单（入学申请 / 咨询 / 奉献 / 客服留言）由 main.js logToDB 写进 public.submissions，
    本页给教务查看、改跟进状态、写备注。0036 起只有教务类角色能读写；访客只能投递。
@@ -36,6 +36,8 @@
 
   const TYPE = { application: "入学申请", contact: "咨询留言", inquiry: "咨询留言", giving: "奉献意向", chat: "客服留言", upload: "上传登记" };
   const STATUS = ["待处理", "已联系", "已录取", "不合适"];
+  /* 分班（0037）。第一班已开课（新信徒教材），第二班 2026-10-28 开课。空串 = 未分班。 */
+  const COHORTS = ["第一班", "第二班"];
   const PROG = { bth: "神学学士 B.Th", gdip: "教牧学研究硕士 G.DIP", mdiv: "道学硕士 M.DIV", dmin: "教牧学博士 D.MIN" };
   const VAL = { male: "男", female: "女", tspm: "三自教会", house: "家庭教会", other: "其他",
                 secondary: "高中及以下", college: "大专", bachelor: "本科", master: "硕士及以上",
@@ -48,18 +50,19 @@
                 submittedAt: "提交时间", lang: "网页语言", consent: "同意条款" };
   const SKIP = new Set(["_form", "_subject", "_autoresponse", "_template", "_captcha", "website", "attachment"]);
   const busy = new Set();
-  let rows = [], fType = "application", fStatus = "";
+  let rows = [], fType = "application", fStatus = "", fCohort = "";
 
   const when = (v) => v ? new Date(v).toLocaleString("zh-CN", { hour12: false }).slice(0, 16) : "";
   const sIdx = (s) => Math.max(0, STATUS.indexOf(s));
   const show = (k, v) => k === "program" ? (PROG[v] || v) : k === "submittedAt" ? when(v) : (VAL[v] || v);
 
   main.innerHTML = '<h1>官网报名收件箱</h1>' +
-    '<p class="lead">网站上填写的报名表和留言会自动存到这里（同时仍会发到招生邮箱）。可以在这里标记跟进状态、写备注。</p>' +
+    '<p class="lead">网站上填写的报名表和留言会自动存到这里（同时仍会发到招生邮箱）。可以在这里标记跟进状态、分班、写备注。</p>' +
     '<div class="msg err" id="err" role="alert" tabindex="-1"></div>' +
     '<div class="tabs" id="ft" role="tablist"></div>' +
     '<div class="bar" style="margin-bottom:12px"><label for="fs" style="font-size:13px">状态</label>' +
       '<select id="fs" class="sbtn"><option value="">全部</option>' + STATUS.map(s => '<option>' + s + '</option>').join("") + '</select>' +
+      '<label for="fc" style="font-size:13px">班级</label><select id="fc" class="sbtn"></select>' +
       '<input id="q" type="search" class="sbtn" placeholder="搜姓名 / 电话 / 邮箱" style="flex:1;min-width:160px"></div>' +
     '<div id="list"></div>';
   const errBox = main.querySelector("#err"), list = main.querySelector("#list");
@@ -73,6 +76,10 @@
         (n ? '（' + n + ' 待处理）' : "") + '</button>';
     }).join("");
     main.querySelectorAll("#ft button").forEach(b => b.addEventListener("click", () => { fType = b.dataset.t; tabs(); render(); }));
+    const n = (c) => rows.filter(r => r.cohort === c).length;
+    main.querySelector("#fc").innerHTML = '<option value="">全部</option>' +
+      COHORTS.concat([""]).map(c => '<option value="' + (c || "-") + '"' + ((fCohort === (c || "-")) ? " selected" : "") + '>' +
+        (c || "未分班") + '（' + n(c) + '）</option>').join("");
   }
 
   function card(r){
@@ -80,7 +87,8 @@
     const kv = Object.keys(d).filter(k => !SKIP.has(k) && d[k] !== "" && d[k] != null)
       .map(k => '<dt>' + UI.esc(KEY[k] || k) + '</dt><dd>' + UI.esc(show(k, String(d[k]))) + '</dd>').join("");
     return '<div class="of" id="s-' + r.id + '"><div class="top"><h3>' + UI.esc(r.name || "未填姓名") + '</h3>' +
-        '<span class="chip s' + sIdx(r.status) + '">' + UI.esc(r.status) + '</span></div>' +
+        '<span>' + (r.cohort ? '<span class="chip s1">' + UI.esc(r.cohort) + '</span> ' : "") +
+        '<span class="chip s' + sIdx(r.status) + '">' + UI.esc(r.status) + '</span></span></div>' +
       '<div class="meta"><span>' + UI.esc(TYPE[r.type] || r.type) + '</span>' +
         (r.program ? '<span>' + UI.esc(PROG[r.program] || r.program) + '</span>' : "") +
         '<span>' + UI.esc(r.contact) + '</span><span>' + when(r.created_at) + '</span>' +
@@ -89,6 +97,7 @@
       '<details><summary style="cursor:pointer;font-size:13px;color:var(--navy)">查看全部资料</summary><dl class="kv">' + kv + '</dl></details>' +
       '<div class="bar">' + STATUS.filter(s => s !== r.status).map(s =>
           '<button type="button" class="sbtn" data-id="' + r.id + '" data-s="' + s + '">标为' + s + '</button>').join("") +
+        '<button type="button" class="sbtn" data-id="' + r.id + '" data-cohort="1">分班</button>' +
         '<button type="button" class="sbtn" data-id="' + r.id + '" data-note="1">写备注</button></div></div>';
   }
 
@@ -96,6 +105,7 @@
     const q = main.querySelector("#q").value.trim().toLowerCase();
     const shown = rows.filter(r => (!fType || r.type === fType || (fType === "contact" && r.type === "inquiry")) &&
       (!fStatus || r.status === fStatus) &&
+      (!fCohort || r.cohort === (fCohort === "-" ? "" : fCohort)) &&
       (!q || [r.name, r.contact, (r.data || {}).phone, (r.data || {}).email].some(v => String(v || "").toLowerCase().includes(q))));
     list.innerHTML = shown.length ? '<div class="ofs">' + shown.map(card).join("") + '</div>'
       : UI.box("📭", "这里还没有记录", rows.length ? "换一个筛选条件看看。" : "网站上有人提交报名后，会自动出现在这里。");
@@ -112,6 +122,12 @@
         fields: [{ id: "note", label: "备注（例如：已电话联系，下周面谈）", type: "textarea", value: r.note }] });
       if (!v) return;
       patch = { note: v.note };
+    } else if (b.dataset.cohort) {
+      const v = await window.AmasSis.ask({ title: "分班 · " + (r.name || ""), confirmLabel: "保存",
+        fields: [{ id: "cohort", label: "班级", type: "select", value: r.cohort,
+                   options: COHORTS.map(c => [c, c]).concat([["", "未分班"]]) }] });
+      if (!v) return;
+      patch = { cohort: v.cohort };
     } else patch = { status: b.dataset.s };
     busy.add(r.id);
     try {
@@ -126,16 +142,17 @@
   }
 
   main.querySelector("#fs").addEventListener("change", (e) => { fStatus = e.target.value; render(); });
+  main.querySelector("#fc").addEventListener("change", (e) => { fCohort = e.target.value; render(); });
   main.querySelector("#q").addEventListener("input", render);
 
   list.innerHTML = UI.skeleton(3);
   const { data, error } = await Api.select("submissions", {
-    columns: "id,created_at,type,name,contact,program,lang,status,note,data",
+    columns: "id,created_at,type,name,contact,program,lang,status,note,cohort,data",
     order: [{ column: "created_at" }, { column: "id" }], limit: 1000 });
   if (error || !Array.isArray(data)) {
     return UI.error(list, { message: "这一次没能读到收件箱。这不表示没有报名，请稍后刷新。", onRetry: () => location.reload() });
   }
-  rows = data;
+  rows = data.map(r => Object.assign(r, { cohort: r.cohort || "" }));
   if (rows.length >= 1000) say("只显示了最近 1000 条。");
   tabs(); render();
 })();
