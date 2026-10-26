@@ -69,6 +69,9 @@ try {
         log.push({ kind: "mail-done" });
         return send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: 500, responseHeaders: cors, body: b64("{}") });
       }
+      /* 首页还会读官网公告与开课状态（0041 site_public），回一个空结果即可 */
+      if (u.includes(".supabase.co/rest/v1/rpc/site_public"))
+        return send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: 200, responseHeaders: cors.concat([{ name: "Content-Type", value: "application/json" }]), body: b64("{}") });
       if (u.includes(".supabase.co/rest/v1/submissions")) {
         log.push({ kind: "db", body: JSON.parse(p.request.postData || "{}") });
         return send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: 201, responseHeaders: cors });
