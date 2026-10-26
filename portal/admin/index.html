@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>管理后台 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202610261249">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202610261554">
 <style>
 table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 .list th,.list td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top}
@@ -90,10 +90,10 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202610261249"></script>
-<script src="../../assets/js/portal/auth.js?v=202610261249"></script>
-<script src="../../assets/js/portal/ui.js?v=202610261249"></script>
-<script src="../../assets/js/portal/shell.js?v=202610261249"></script>
+<script src="../../assets/js/supabase-config.js?v=202610261554"></script>
+<script src="../../assets/js/portal/auth.js?v=202610261554"></script>
+<script src="../../assets/js/portal/ui.js?v=202610261554"></script>
+<script src="../../assets/js/portal/shell.js?v=202610261554"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
@@ -101,36 +101,43 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
      本轮查出它是同一缺口的第三处，而且是权限最高的那一页）。
      监听自己挂，否则管理员的会话失效在这里是完全静默的（§5.6）。 */
   A.watchSession();
-  const ctx = await A.requireRoleAal2(["academic_admin","super_admin","registrar"]);  // 角色 + MFA
-  if (!ctx) return;
   /* 2026-10-26 界面统一：总览也套上门户外壳（顶栏 + 左侧导航），原有内容整块搬进主区，
-     顶上的大校徽与页脚由外壳取代。外壳挂不上（例如读角色失败）时保持原样，不影响下面的功能。 */
+     顶上的大校徽与页脚由外壳取代。外壳自己就做身份确认（角色 + 两步验证），
+     所以有外壳时不再先验一次 —— 原来同一页要等两遍。没有 shell.js 时照旧自己验。 */
+  let ctx, shellProfile;
   if (window.AmasShell) {
     const m = await window.AmasShell.mount({ space: "admin", title: "管理后台", allow: ["academic_admin","super_admin","registrar"], requireAal2: true });
+    if (!m) return;
+    ctx = m.ctx; shellProfile = m.profile;
     const wrap = document.querySelector(".wrap.wide");
-    if (m && wrap) {
+    if (wrap) {
       wrap.querySelector(".brandbar")?.remove(); wrap.querySelector(".foot")?.remove();
       wrap.classList.add("in-shell");
       m.main.innerHTML = '<h1>总览</h1><p class="lead">常用工作入口与待办数量；左侧菜单可进入各项管理。</p>';
       m.main.appendChild(wrap);
     }
+  } else {
+    ctx = await A.requireRoleAal2(["academic_admin","super_admin","registrar"]);  // 角色 + MFA
+    if (!ctx) return;
   }
-  const p = await A.getProfile();
+  const p = shellProfile !== undefined ? shellProfile : await A.getProfile();   // 外壳已读过就不再读一遍
   if (A.sessionEnded()) return;            // 晚返回的渲染让位，不拿死会话摆出管理界面
   document.getElementById("who").textContent = (p && (p.display_name || p.email)) || "";
   document.getElementById("btnOut").addEventListener("click", () => A.signOut());
   /* 待办数量：读到才显示数字；读不到就保持原说明，不写「0」。 */
   (async () => {
     try {
-      const [g, c, q] = await Promise.all([A.client.rpc("admin_grade_queue"), A.client.rpc("admin_pending_corrections"),
-                                           A.client.rpc("admissions_ready_for_enrollment")]);
+      const [g, c, q, ib] = await Promise.all([A.client.rpc("admin_grade_queue"), A.client.rpc("admin_pending_corrections"),
+                                           A.client.rpc("admissions_ready_for_enrollment"),
+                                           /* 收件箱数读不到不连累其他三项 */
+                                           Promise.resolve().then(() => A.client.from("submissions").select("id", { count: "exact", head: true }).eq("status", "待处理"))
+                                             .catch(() => ({ error: true }))]);
       if (A.sessionEnded()) return;
       if (!g.error && Array.isArray(g.data) && !c.error && Array.isArray(c.data)) {
         const pub = g.data.filter(o => Number(o.submitted) > 0).length;
         document.getElementById("hubGrades").innerHTML = pub || c.data.length
           ? '<em>' + pub + ' 个班待发布 · ' + c.data.length + ' 条更正待审批</em>' : "没有待处理的成绩";
       }
-      const ib = await A.client.from("submissions").select("id", { count: "exact", head: true }).eq("status", "待处理");
       if (!A.sessionEnded() && !ib.error && typeof ib.count === "number" && ib.count) {
         document.getElementById("hubInbox").innerHTML = '<em>' + ib.count + ' 条待处理</em>';
       }

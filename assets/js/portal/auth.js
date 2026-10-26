@@ -717,13 +717,18 @@
   /** 敏感角色（教师/管理员）页面守卫：requireRole 之上强制 aal2（甲方审查 #8 前端层）。
       未注册 MFA 或未完成挑战时跳 /portal/mfa/，完成后回跳。数据面仍由 Edge/DB 双重校验。 */
   async function requireRoleAal2(allowedRoles) {
+    /* 提速（2026-10-26）：认证等级是本地读的，先读；需要时把 mfa_required 和 my_roles **同时**发出去，
+       不再一条等一条（数据库在新加坡，每条约 0.13 秒）。判定顺序与原来一字不差：
+       先看会话与角色，再看认证等级，最后看开关 —— 只是请求提前并行发出。 */
+    const aalP = fetchAal();
+    const mfaP = aalP.then((a) => (!a.failed && a.current !== "aal2") ? mfaRequired() : false);
     const ctx = await requireRole(allowedRoles);
     if (!ctx) return null;
-    const aal = await fetchAal();
+    const aal = await aalP;
     /* 读不出就停下来说清楚：**不放行**（他可能确实还没做），
        也**不把人弹去做两步验证**（他可能早就做过了）。给重试。 */
     if (aal.failed) { renderBlocked("aal-unavailable"); return null; }
-    if (aal.current !== "aal2" && await mfaRequired()) {
+    if (aal.current !== "aal2" && await mfaP) {
       location.replace(withNext("portal/mfa/"));
       return null;
     }
