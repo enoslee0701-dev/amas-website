@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>登录 | AMAS 亚洲宣教神学院</title>
 <link rel="icon" href="../assets/img/favicon.png">
-<link rel="stylesheet" href="../assets/css/portal.css?v=202610261210">
+<link rel="stylesheet" href="../assets/css/portal.css?v=202610261216">
 </head>
 <body>
 <div class="wrap">
@@ -28,12 +28,12 @@
     </div>
 
     <h2>登录</h2>
-    <p class="sub">使用电子邮箱或学号登录你的 AMAS 账号</p>
+    <p class="sub">使用电子邮箱、学号或账号名（例如 zhaijinli2026）登录你的 AMAS 账号</p>
 
     <form id="loginForm" novalidate>
       <div class="field">
-        <label for="fId">电子邮箱 / 学号</label>
-        <input id="fId" name="identifier" autocomplete="username" placeholder="请输入邮箱地址或学号" required>
+        <label for="fId">电子邮箱 / 学号 / 账号名</label>
+        <input id="fId" name="identifier" autocomplete="username" placeholder="邮箱、学号或账号名" required>
       </div>
       <div class="field">
         <label for="fPw">密码</label>
@@ -61,8 +61,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../assets/js/supabase-config.js?v=202610261210"></script>
-<script src="../assets/js/portal/auth.js?v=202610261210"></script>
+<script src="../assets/js/supabase-config.js?v=202610261216"></script>
+<script src="../assets/js/portal/auth.js?v=202610261216"></script>
 <script>
 (function(){
   const A = window.AmasAuth;
