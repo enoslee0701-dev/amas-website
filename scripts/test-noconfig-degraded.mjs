@@ -148,7 +148,7 @@ const PORTAL_WHOLE_PAGE = [
   "portal/admin/", "portal/admin/admissions/", "portal/admin/students/", "portal/admin/teachers/",
   "portal/mfa/", "auth/callback/",
   // 学员管理系统（0030–0035）新增的 11 页：同样走 Shell.mount，缺配置时整页降级
-  "portal/admin/offerings/", "portal/admin/grades/", "portal/admin/student/", "portal/admin/roles/", "portal/admin/transcript/", "portal/admin/inbox/",
+  "portal/admin/offerings/", "portal/admin/grades/", "portal/admin/student/", "portal/admin/roles/", "portal/admin/transcript/", "portal/admin/inbox/", "portal/admin/inbox/form/",
   "portal/teacher/classes/", "portal/teacher/class/", "portal/teacher/mentees/",
   "portal/student/classes/", "portal/student/records/", "portal/student/transcript/",
 ];

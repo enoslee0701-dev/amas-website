@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>官网报名收件箱 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610261035">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610261048">
 <style>
 .kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;font-size:13.5px;border-top:1px solid var(--line);padding-top:8px;margin-top:4px}
 .kv dt{color:var(--muted)}.kv dd{margin:0;word-break:break-word;white-space:pre-wrap}
@@ -17,12 +17,12 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202610261035"></script>
-<script src="../../../assets/js/portal/auth.js?v=202610261035"></script>
-<script src="../../../assets/js/portal/api.js?v=202610261035"></script>
-<script src="../../../assets/js/portal/ui.js?v=202610261035"></script>
-<script src="../../../assets/js/portal/shell.js?v=202610261035"></script>
-<script src="../../../assets/js/portal/sis.js?v=202610261035"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610261048"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610261048"></script>
+<script src="../../../assets/js/portal/api.js?v=202610261048"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610261048"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610261048"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610261048"></script>
 <script>
 /* 官网报名收件箱：官网表单（入学申请 / 咨询 / 奉献 / 客服留言）由 main.js logToDB 写进 public.submissions，
    本页给教务查看、改跟进状态、写备注。0036 起只有教务类角色能读写；访客只能投递。
@@ -36,8 +36,8 @@
 
   const TYPE = { application: "入学申请", contact: "咨询留言", inquiry: "咨询留言", giving: "奉献意向", chat: "客服留言", upload: "上传登记" };
   const STATUS = ["待处理", "已联系", "已录取", "不合适"];
-  /* 分班（0037）。第一班已开课（新信徒教材），第二班 2026-10-28 开课。空串 = 未分班。 */
-  const COHORTS = ["第一班", "第二班"];
+  /* 分班（0037）：submissions.cohort 按名称引用 submission_cohorts（0038，含开课日与课程进度）。空串 = 未分班。 */
+  let COHORTS = [], CINFO = [];
   const PROG = { bth: "神学学士 B.Th", gdip: "教牧学研究硕士 G.DIP", mdiv: "道学硕士 M.DIV", dmin: "教牧学博士 D.MIN" };
   const VAL = { male: "男", female: "女", tspm: "三自教会", house: "家庭教会", other: "其他",
                 secondary: "高中及以下", college: "大专", bachelor: "本科", master: "硕士及以上",
@@ -59,6 +59,7 @@
   main.innerHTML = '<h1>官网报名收件箱</h1>' +
     '<p class="lead">网站上填写的报名表和留言会自动存到这里（同时仍会发到招生邮箱）。可以在这里标记跟进状态、分班、写备注。</p>' +
     '<div class="msg err" id="err" role="alert" tabindex="-1"></div>' +
+    '<h2 style="font-size:16px;margin:4px 0 8px">班级与课程进度</h2><div class="ofs" id="cohorts" style="margin-bottom:16px"></div>' +
     '<div class="tabs" id="ft" role="tablist"></div>' +
     '<div class="bar" style="margin-bottom:12px"><label for="fs" style="font-size:13px">状态</label>' +
       '<select id="fs" class="sbtn"><option value="">全部</option>' + STATUS.map(s => '<option>' + s + '</option>').join("") + '</select>' +
@@ -67,6 +68,39 @@
     '<div id="list"></div>';
   const errBox = main.querySelector("#err"), list = main.querySelector("#list");
   const say = (m) => { errBox.textContent = m; errBox.classList.add("show"); errBox.focus(); };
+
+  function cohortPanel(){
+    const box = main.querySelector("#cohorts");
+    box.innerHTML = CINFO.map(c => '<div class="of"><div class="top"><h3>' + UI.esc(c.name) + '</h3><span class="chip s1">' +
+        rows.filter(r => r.cohort === c.name).length + ' 人</span></div>' +
+      '<div class="meta"><span>开课：' + (c.starts_on ? UI.esc(c.starts_on) : "未填") + '</span>' +
+        (c.updated_at ? '<span>进度更新于 ' + when(c.updated_at) + '</span>' : "") + '</div>' +
+      '<div>' + (c.progress ? UI.esc(c.progress) : '<span class="who">还没有记录课程进度</span>') + '</div>' +
+      '<div class="bar"><button type="button" class="sbtn" data-cname="' + UI.esc(c.name) + '">更新进度</button></div></div>').join("") +
+      '<div class="bar"><button type="button" class="sbtn" id="newCohort">＋ 新建班级</button></div>';
+    box.querySelectorAll("[data-cname]").forEach(b => b.addEventListener("click", () => editCohort(CINFO.find(c => c.name === b.dataset.cname))));
+    box.querySelector("#newCohort").addEventListener("click", () => editCohort(null));
+  }
+
+  async function editCohort(c){
+    errBox.classList.remove("show");
+    const v = await window.AmasSis.ask({ title: c ? "课程进度 · " + c.name : "新建班级", confirmLabel: "保存",
+      fields: (c ? [] : [{ id: "name", label: "班级名称（例如：12月班）", required: true }]).concat([
+        { id: "starts_on", label: "开课日期", type: "date", value: c ? c.starts_on || "" : "" },
+        { id: "progress", label: "课程进度（例如：新信徒教材已学完第 4 课）", type: "textarea", value: c ? c.progress : "" }]) });
+    if (!v || busy.has("cohort")) return;
+    busy.add("cohort");
+    try {
+      const patch = { starts_on: v.starts_on || null, progress: v.progress || "" };
+      const { data, error } = c ? await Api.update("submission_cohorts", { name: c.name }, patch)
+                                : await Api.insert("submission_cohorts", Object.assign({ name: v.name.trim(), sort: CINFO.length + 1 }, patch));
+      const row = Array.isArray(data) ? data[0] : data;
+      if (error || !row) return say(error && error.code === "23505" ? "已经有同名的班级了。" : "这一次没有保存成功，请重试。");
+      if (c) Object.assign(c, row); else { CINFO.push(row); COHORTS.push(row.name); }
+      UI.toast("已保存");
+      cohortPanel(); tabs();
+    } finally { busy.delete("cohort"); }
+  }
 
   function tabs(){
     const types = ["application", "contact", "giving", "chat", ""];
@@ -98,6 +132,8 @@
       '<div class="bar">' + STATUS.filter(s => s !== r.status).map(s =>
           '<button type="button" class="sbtn" data-id="' + r.id + '" data-s="' + s + '">标为' + s + '</button>').join("") +
         '<button type="button" class="sbtn" data-id="' + r.id + '" data-cohort="1">分班</button>' +
+        (r.type === "application" ? '<a class="sbtn pri" style="display:inline-flex;align-items:center;text-decoration:none" href="form/?id=' + r.id + '">入学申请表' +
+          (r.school_form && Object.keys(r.school_form).length ? '（已填）' : '') + '</a>' : "") +
         '<button type="button" class="sbtn" data-id="' + r.id + '" data-note="1">写备注</button></div></div>';
   }
 
@@ -147,12 +183,20 @@
 
   list.innerHTML = UI.skeleton(3);
   const { data, error } = await Api.select("submissions", {
-    columns: "id,created_at,type,name,contact,program,lang,status,note,cohort,data",
+    columns: "id,created_at,type,name,contact,program,lang,status,note,cohort,school_form,data",
     order: [{ column: "created_at" }, { column: "id" }], limit: 1000 });
   if (error || !Array.isArray(data)) {
     return UI.error(list, { message: "这一次没能读到收件箱。这不表示没有报名，请稍后刷新。", onRetry: () => location.reload() });
   }
   rows = data.map(r => Object.assign(r, { cohort: r.cohort || "" }));
+  /* 班级档案读不到时不挡收件箱：只用报名里出现过的班名，进度区说明读不到。 */
+  const cs = await Api.select("submission_cohorts", { columns: "name,starts_on,progress,sort,updated_at",
+                                                      order: [{ column: "sort", asc: true }, { column: "name", asc: true }] });
+  CINFO = !cs.error && Array.isArray(cs.data) ? cs.data : [];
+  COHORTS = CINFO.map(c => c.name);
+  rows.forEach(r => { if (r.cohort && !COHORTS.includes(r.cohort)) COHORTS.push(r.cohort); });
+  if (cs.error || !Array.isArray(cs.data)) main.querySelector("#cohorts").innerHTML = '<p class="who">这一次没能读到班级进度，请稍后刷新。</p>';
+  else cohortPanel();
   if (rows.length >= 1000) say("只显示了最近 1000 条。");
   tabs(); render();
 })();

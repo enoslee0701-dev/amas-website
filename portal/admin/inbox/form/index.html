@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>入学申请表 | AMAS</title>
+<link rel="icon" href="../../../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../../../assets/css/portal.css?v=202610261048">
+<style>
+.af-wrap{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;overflow-x:auto}
+.af-head{display:flex;align-items:center;gap:14px;margin-bottom:10px}
+.af-head img{height:44px}
+.af-head h2{flex:1;text-align:center;margin:0;font-size:22px;letter-spacing:.3em;color:#111}
+table.af{width:100%;min-width:640px;border-collapse:collapse;table-layout:fixed;font-size:13px;color:#111}
+.af td{border:1px solid #333;padding:4px 6px;vertical-align:middle;word-break:break-word}
+.af td.l{background:#f6f4ee;text-align:center;font-weight:700;white-space:nowrap}
+.af .sec td{background:#ece8dc;text-align:center;font-weight:700;letter-spacing:.2em}
+.v{min-height:22px;outline:none;white-space:pre-wrap}
+.v:focus{background:#fff8e1}
+.v.big{min-height:120px}
+.ck{display:inline-flex;align-items:center;gap:3px;margin:2px 10px 2px 0;border:0;background:none;font:inherit;font-size:13px;cursor:pointer;padding:2px 0;color:#111}
+.ck::before{content:"☐";font-size:15px}.ck[aria-pressed=true]::before{content:"☑"}
+.af-acts{position:sticky;bottom:0;background:var(--wash,#f7f5ef);padding:10px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+@media print{
+  @page{size:A4;margin:12mm}
+  .af-wrap{border:0;padding:0;overflow:visible}
+  table.af{min-width:0;font-size:11.5px}
+  .v:focus{background:none}.v:empty::after{content:"\00a0"}
+  .ck:not([aria-pressed=true])::before{content:"☐"}
+}
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
+<script src="../../../../assets/js/supabase-config.js?v=202610261048"></script>
+<script src="../../../../assets/js/portal/auth.js?v=202610261048"></script>
+<script src="../../../../assets/js/portal/api.js?v=202610261048"></script>
+<script src="../../../../assets/js/portal/ui.js?v=202610261048"></script>
+<script src="../../../../assets/js/portal/shell.js?v=202610261048"></script>
+<script src="../../../../assets/js/portal/sis.js?v=202610261048"></script>
+<script>
+/* 总校《神学校入学申请表》（Enos 2026-10-26 提供的 Word 表格）的网页版。
+   第一次打开时按官网报名资料预填；教务补填后「保存」写进 submissions.school_form（0038），
+   之后以保存的内容为准。「打印」按 A4 排版，可直接打印或存成 PDF 递交总校。 */
+(async function(){
+  const UI = window.AmasUI, Api = window.AmasApi, Shell = window.AmasShell, A = window.AmasAuth;
+  const mounted = await Shell.mount({ space: "admin", title: "管理后台",
+                                      allow: ["registrar", "academic_admin", "super_admin"], requireAal2: true });
+  if (!mounted) return;
+  const { main } = mounted;
+  const id = new URLSearchParams(location.search).get("id");
+  const back = A.ROOT + "portal/admin/inbox/";
+
+  const COURSES = ["牧会者进修", "讲道学校", "大学（DIP）", "大学（B.TH）", "研究生院（G/DIP）", "研究生院（M.DIV）", "道学,宣教博士（D.MIN/D.MISS）", "宣教士训练"];
+  const PROG = { bth: "大学（B.TH）", gdip: "研究生院（G/DIP）", mdiv: "研究生院（M.DIV）", dmin: "道学,宣教博士（D.MIN/D.MISS）" };
+  const EDU = { secondary: "高中及以下", college: "大专", bachelor: "本科", master: "硕士及以上" };
+  const NAT = { C: "中国", China: "中国", Myanmar: "缅甸" };
+  const ROWS = 4, FAM = 6;
+
+  /* 报名资料 → 表格栏位。只填有的，没有的留空给教务补。 */
+  function prefill(d){
+    const f = {
+      course: PROG[d.program] || "", name_zh: d.fullName || "", name_en: d.englishName || "",
+      gender: d.gender === "male" ? "男" : d.gender === "female" ? "女" : "",
+      nationality: NAT[d.nationality] || d.nationality || "", birth: d.birth || "",
+      language: d.language === "mandarin" ? "普通话" : d.language === "cantonese" ? "广东话" : d.language ? "其他" : "",
+      language_other: d.language && !["mandarin", "cantonese"].includes(d.language) ? d.language : "",
+      address: d.location || "", church: d.church || "",
+      church_type: d.churchType === "tspm" ? "三自" : d.churchType === "house" ? "家庭" : d.churchType ? "其它" : "",
+      mobile: d.phone || "", email: d.email || "",
+      apply_date: (d.submittedAt || "").slice(0, 10),
+      first_faith: d.conversionDate || "", baptism: d.baptismDate || "", referrer: d.referrer || "",
+      gifts: d.gifts || "", testimony: d.motivation || "",
+    };
+    if (d.eduSchool || d.eduLevel) { f.edu0_school = d.eduSchool || ""; f.edu0_degree = EDU[d.eduLevel] || d.eduLevel || ""; }
+    if (d.role && d.church) { f.work0_org = d.church; f.work0_title = d.role; }
+    return f;
+  }
+
+  if (!id) return UI.error(main, { message: "没有指定报名记录。请从报名收件箱进入。" });
+  UI.loading(main, 4);
+  const { data: r, error } = await Api.select("submissions", { columns: "id,name,type,cohort,school_form,data", eq: { id }, single: true });
+  if (error) return UI.error(main, { message: "这一次没能读到这份报名，请稍后刷新。", onRetry: () => location.reload() });
+  if (!r) return UI.error(main, { message: "找不到这份报名，可能已被删除。" });
+
+  const saved = r.school_form && Object.keys(r.school_form).length ? r.school_form : null;
+  const V = Object.assign(prefill(r.data || {}), saved || {});
+
+  const e = (k, cls) => '<div class="v' + (cls ? " " + cls : "") + '" contenteditable="plaintext-only" data-k="' + k + '" aria-label="' + k + '">' + UI.esc(V[k] || "") + '</div>';
+  const ck = (k, opts) => opts.map(o => '<button type="button" class="ck" data-ck="' + k + '" data-v="' + UI.esc(o) + '" aria-pressed="' + (V[k] === o) + '">' + UI.esc(o) + '</button>').join("");
+  const l = (t, span, rows) => '<td class="l"' + (span ? ' colspan="' + span + '"' : "") + (rows ? ' rowspan="' + rows + '"' : "") + '>' + t + '</td>';
+  const c = (inner, span) => '<td' + (span ? ' colspan="' + span + '"' : "") + '>' + inner + '</td>';
+  const rep = (n, f) => Array.from({ length: n }, (_, i) => f(i)).join("");
+
+  /* 8 列网格，对应纸本表的栏位顺序。 */
+  const table =
+    '<table class="af"><colgroup>' + rep(8, () => '<col>') + '</colgroup>' +
+    '<tr>' + l("申请修读课程", 2) + c(ck("course", COURSES), 6) + '</tr>' +
+    '<tr>' + l("姓名", 1, 2) + l("中文") + c(e("name_zh"), 2) + c('性别：' + ck("gender", ["男", "女"]), 2) + l("国籍") + c(e("nationality")) + '</tr>' +
+    '<tr>' + l("英文") + c(e("name_en"), 2) + l("出生年月") + c(e("birth"), 3) + '</tr>' +
+    '<tr>' + l("使用语言", 2) + c(ck("language", ["普通话", "广东话", "其他"]) + '<span style="display:inline-block;min-width:80px;vertical-align:middle">' + e("language_other") + '</span>', 6) + '</tr>' +
+    '<tr>' + l("地址", 2) + c(e("address"), 6) + '</tr>' +
+    '<tr>' + l("教会名", 2) + c(e("church"), 2) + l("教会种类") + c(ck("church_type", ["三自", "家庭", "其它"]), 3) + '</tr>' +
+    '<tr>' + l("联系处", 1, 2) + l("固定电话") + c(e("phone_fixed"), 2) + l("教会") + c(e("phone_church"), 3) + '</tr>' +
+    '<tr>' + l("手机") + c(e("mobile"), 2) + l("Email/QQ") + c(e("email"), 3) + '</tr>' +
+    '<tr>' + l("学历", 1, ROWS + 1) + l("学校", 2) + l("城市") + l("入学日期") + l("毕业日期") + l("学位或文凭", 2) + '</tr>' +
+    rep(ROWS, i => '<tr>' + c(e("edu" + i + "_school"), 2) + c(e("edu" + i + "_city")) + c(e("edu" + i + "_start")) + c(e("edu" + i + "_end")) + c(e("edu" + i + "_degree"), 2) + '</tr>') +
+    '<tr>' + l("工作简历", 1, ROWS + 1) + l("教会或机构名", 2) + l("城市") + l("开始日期") + l("离职日期") + l("职位", 2) + '</tr>' +
+    rep(ROWS, i => '<tr>' + c(e("work" + i + "_org"), 2) + c(e("work" + i + "_city")) + c(e("work" + i + "_start")) + c(e("work" + i + "_end")) + c(e("work" + i + "_title"), 2) + '</tr>') +
+    '<tr>' + c('<div style="display:flex;gap:10px;align-items:center;justify-content:flex-end"><span>日期</span><span style="min-width:110px">' + e("apply_date") +
+      '</span><span>申请人签署：</span><span style="min-width:140px">' + e("signature") + '</span></div>', 8) + '</tr>' +
+    '<tr class="sec"><td colspan="8">家庭状况</td></tr>' +
+    '<tr>' + l("关系") + l("姓名") + l("出生年月") + l("信仰") + l("关系") + l("姓名") + l("出生年月") + l("信仰") + '</tr>' +
+    rep(FAM / 2, i => '<tr>' + ["rel", "name", "birth", "faith"].map(k => c(e("fam" + (i * 2) + "_" + k))).join("") +
+                                 ["rel", "name", "birth", "faith"].map(k => c(e("fam" + (i * 2 + 1) + "_" + k))).join("") + '</tr>') +
+    '<tr class="sec"><td colspan="8">特记事项</td></tr>' +
+    '<tr>' + l("初信日期") + c(e("first_faith")) + l("受洗日期") + c(e("baptism")) + l("健康状况") + c(e("health")) + l("性格") + c(e("personality")) + '</tr>' +
+    '<tr>' + l("介绍人及电话") + c(e("referrer"), 3) + l("家庭状况") + c(e("family_status"), 3) + '</tr>' +
+    '<tr>' + l("恩赐") + c(e("gifts"), 3) + l("异象") + c(e("vision"), 3) + '</tr>' +
+    '<tr class="sec"><td colspan="8">自我介绍及信仰见证</td></tr>' +
+    '<tr>' + c(e("testimony", "big"), 8) + '</tr></table>';
+
+  main.innerHTML =
+    '<p class="no-print"><a class="link" href="' + back + '">← 返回报名收件箱</a></p>' +
+    '<div class="msg info show no-print">' + (saved ? "这是已保存的申请表。" : "已按官网报名资料预填，空白处请补填后点「保存」。") +
+      ' 点格子即可修改；打印时可选「另存为 PDF」递交总校。</div>' +
+    '<div class="msg err" id="err" role="alert" tabindex="-1"></div>' +
+    '<div class="af-wrap"><div class="af-head"><img src="' + A.ROOT + 'assets/img/ama-form-logo.jpg" alt="AMA Theological Seminary"><h2>神学校入学申请表</h2>' +
+      '<span style="width:44px"></span></div>' + table + '</div>' +
+    '<div class="af-acts no-print"><button class="btn" id="save" style="width:auto;padding:0 22px">保存</button>' +
+      '<button class="btn ghost" id="print" style="width:auto;padding:0 22px">打印 / 存 PDF</button><span class="who" id="st"></span></div>';
+
+  const errBox = main.querySelector("#err"), st = main.querySelector("#st");
+  let dirty = false, busy = false;
+  main.querySelectorAll(".v").forEach(x => x.addEventListener("input", () => { dirty = true; st.textContent = "有未保存的修改"; }));
+  main.querySelectorAll(".ck").forEach(b => b.addEventListener("click", () => {
+    const on = b.getAttribute("aria-pressed") !== "true";
+    main.querySelectorAll('[data-ck="' + b.dataset.ck + '"]').forEach(x => x.setAttribute("aria-pressed", "false"));
+    b.setAttribute("aria-pressed", String(on));
+    dirty = true; st.textContent = "有未保存的修改";
+  }));
+  window.addEventListener("beforeunload", (ev) => { if (dirty) { ev.preventDefault(); ev.returnValue = ""; } });
+
+  function collect(){
+    const f = {};
+    main.querySelectorAll(".v").forEach(x => { const t = x.innerText.replace(/\n+$/, ""); if (t.trim()) f[x.dataset.k] = t; });
+    main.querySelectorAll('.ck[aria-pressed="true"]').forEach(b => { f[b.dataset.ck] = b.dataset.v; });
+    return f;
+  }
+
+  main.querySelector("#save").addEventListener("click", async () => {
+    if (busy) return;
+    errBox.classList.remove("show");
+    busy = true; st.textContent = "正在保存…";
+    try {
+      const { data, error: e2 } = await Api.update("submissions", { id: r.id }, { school_form: collect() });
+      if (e2 || !Array.isArray(data) || !data.length) {
+        st.textContent = "";
+        errBox.textContent = "这一次没有保存成功，修改还在页面上，请再点一次「保存」。"; errBox.classList.add("show"); errBox.focus();
+        return;
+      }
+      dirty = false; st.textContent = "已保存 " + new Date().toLocaleTimeString("zh-CN", { hour12: false });
+      UI.toast("申请表已保存");
+    } finally { busy = false; }
+  });
+  main.querySelector("#print").addEventListener("click", () => window.print());
+})();
+</script>
+</body>
+</html>
