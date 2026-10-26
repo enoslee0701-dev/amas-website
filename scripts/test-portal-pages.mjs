@@ -589,8 +589,9 @@ try {
      /S-2026-001/.test(s7) && /在读/.test(s7) && /神学本科/.test(s7), s7.slice(0, 200));
   ok("S7 标注由教务维护", /由教务维护/.test(s7));
   ok("S7 教务字段区没有可编辑控件",
-     (await cdp.ev(`(()=>{const f=document.getElementById("f");
-       return [...document.querySelectorAll("input,textarea")].every(el => f.contains(el));})()`)) === true);
+     /* 可编辑控件只能在学员自己维护的两张表单里：资料（#f）与修改密码（#pwf，2026-10-26） */
+     (await cdp.ev(`(()=>{const f=document.getElementById("f"), pw=document.getElementById("pwf");
+       return [...document.querySelectorAll("input,textarea")].every(el => f.contains(el) || (pw && pw.contains(el)));})()`)) === true);
 
   // S8 学生资料保存走白名单
   await cdp.ev(`(()=>{const i=document.getElementById("ph"); i.value="0877777777";

@@ -121,7 +121,12 @@ window.supabase = {
         mfa: { getAuthenticatorAssuranceLevel: function(){
           var a = S().aal || "aal2"; return reply({ data:{ currentLevel:a, nextLevel:"aal2" }, error:null }); } },
         onAuthStateChange: function(){ return { data:{ subscription:{ unsubscribe:function(){} } } }; },
-        signOut: function(){ return reply({}); }
+        signOut: function(){ return reply({}); },
+        updateUser: function(attrs){
+          try { var m=JSON.parse(sessionStorage.getItem("pwCalls")||"[]"); m.push(attrs); sessionStorage.setItem("pwCalls", JSON.stringify(m)); } catch(e){}
+          var w = S().pw || { data:{ user:{ id:"u-fx" } }, error:null };
+          return reply({ data:w.data||null, error:w.error||null });
+        }
       },
       from: table,
       rpc: function(name){
@@ -134,6 +139,7 @@ window.supabase = {
         }
         /* 形状按契约（0017_student_experience.sql:67）。原来是 { profile, student }，与契约不符 ——
            页面对它默默画出空表单，本套只测保存所以一直没暴露；学员页补上契约形状守卫（T-025）后改正。 */
+        if (name === "my_student_profile" && S().sp) return reply({ data:S().sp, error:null, status:200 });
         if (name === "my_student_profile") return reply({ data:{
           self_editable:{ display_name:PROF.display_name, phone:PROF.phone, contact_note:PROF.contact_note },
           registrar_managed:{ email:PROF.email, student_number:"S-FX", status:"active", program_code:"bth" },
@@ -454,6 +460,36 @@ try {
          after - before === 1, JSON.stringify({ before, after }));
     }
   }
+
+  console.log("\n=== P 学员自己改密码（统一发的初始密码）===");
+  const STU = { roles:["student"], aal:"aal1" };
+  const pwCalls = () => cdp.ev(`JSON.parse(sessionStorage.getItem("pwCalls")||"[]")`);
+  const pwMsg = () => cdp.ev(`(document.getElementById("pwMsg")||{}).textContent||""`);
+  const setPw = (a, b) => cdp.ev(`(()=>{document.getElementById("pw1").value=${JSON.stringify(a)};document.getElementById("pw2").value=${JSON.stringify(b)};
+    document.getElementById("pwf").requestSubmit(); return true;})()`);
+  await open("portal/student/profile/", { ...STU, sp: { self_editable:{ display_name:"翟金丽", phone:"", contact_note:"" },
+    registrar_managed:{ email:"zhaijinli2026@student.amas.invalid", student_number:null, status:"pre_enrolled", program_code:"bth" }, has_student_record:true } });
+  for (let i = 0; i < 40 && !(await cdp.ev(`!!document.getElementById("pwf")`)); i++) await sleep(100);
+  await cdp.ev(`sessionStorage.removeItem("pwCalls"); true`);
+  const body = await cdp.ev(`document.body.innerText`);
+  ok("P1 统一账号显示「登录账号名」而不是内部邮箱", body.includes("登录账号名") && body.includes("zhaijinli2026") && !body.includes("amas.invalid"));
+  await setPw("abc", "abc"); await sleep(200);
+  ok("P2 少于 8 位不提交", (await pwCalls()).length === 0 && (await pwMsg()).includes("至少 8 位"));
+  await setPw("newpass2026", "newpass2027"); await sleep(200);
+  ok("P3 两次不一致不提交", (await pwCalls()).length === 0 && (await pwMsg()).includes("不一样"));
+  await setPw("newpass2026", "newpass2026"); await sleep(400);
+  const pc = await pwCalls();
+  ok("P4 一致时改密码，只送新密码", pc.length === 1 && JSON.stringify(pc[0]) === '{"password":"newpass2026"}' && (await pwMsg()).includes("密码已修改"),
+     JSON.stringify(pc));
+  ok("P5 改完清空输入框", (await cdp.ev(`document.getElementById("pw1").value + document.getElementById("pw2").value`)) === "");
+  await open("portal/student/profile/", { ...STU, pw: { error: { code: "same_password", message: "New password should be different from the old password." } } });
+  for (let i = 0; i < 40 && !(await cdp.ev(`!!document.getElementById("pwf")`)); i++) await sleep(100);
+  await setPw("amas2026", "amas2026"); await sleep(400);
+  ok("P6 和原密码一样时说清楚", (await pwMsg()).includes("不能和现在的密码一样"));
+  await open("portal/student/profile/", { ...STU, pw: { error: { message: "boom" } } });
+  for (let i = 0; i < 40 && !(await cdp.ev(`!!document.getElementById("pwf")`)); i++) await sleep(100);
+  await setPw("newpass2026", "newpass2026"); await sleep(400);
+  ok("P7 失败时说原密码仍有效", (await pwMsg()).includes("原来的密码仍然有效"));
 
   console.log("\n=== G 外发 ===");
   ok("G1 全程没有一个请求到达真实 supabase 域名", externalHits === 0, "命中 " + externalHits + " 次");

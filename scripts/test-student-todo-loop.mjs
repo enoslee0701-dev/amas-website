@@ -386,6 +386,8 @@ catch (e) { console.error("  " + e.message); await shutdown(EXIT.FAIL, "取不�
 const READONLY_RPC = new Set([
   "my_roles", "my_profile", "my_student_record", "my_student_timeline",
   "my_action_items", "my_student_capabilities", "my_learning", "my_student_profile",
+  /* 学员首页的「我的课程 / 学分进度」（0030 my_courses、0032 my_progress，均为只读查询） */
+  "my_courses", "my_progress",
 ]);
 const WRITE_RPC = new Set(["update_my_contact"]);     // 这一条是**有意**要发的写入
 

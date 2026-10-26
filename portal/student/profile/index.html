@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>我的资料 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610261216">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610261249">
 <style>
 .sec{margin-bottom:18px}
 .sec h2{font-size:16px;color:var(--navy);margin:0 0 4px}
@@ -27,11 +27,11 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202610261216"></script>
-<script src="../../../assets/js/portal/auth.js?v=202610261216"></script>
-<script src="../../../assets/js/portal/api.js?v=202610261216"></script>
-<script src="../../../assets/js/portal/ui.js?v=202610261216"></script>
-<script src="../../../assets/js/portal/shell.js?v=202610261216"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610261249"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610261249"></script>
+<script src="../../../assets/js/portal/api.js?v=202610261249"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610261249"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610261249"></script>
 <script>
 /* PORTAL-2B 学生资料页（2B-1）
    Single Person Model：人物主数据在 profiles，学籍数据在 student_records，
@@ -107,7 +107,8 @@
     '<div class="card sec">' +
       '<h2>学籍资料<span class="lock">🔒 由教务维护</span></h2>' +
       '<p class="note">以下内容由 AMAS 教务处按总校记录维护，学生无法自行修改。如发现错误，请联系教务同工更正。</p>' +
-      ro("登录邮箱", reg.email) +
+      /* 2026-10-26 统一开的学员账号用内部邮箱（…@student.amas.invalid），学员实际用「账号名」登录，这里显示账号名 */
+      (/@student\.amas\.invalid$/i.test(reg.email || "") ? ro("登录账号名", String(reg.email).split("@")[0]) : ro("登录邮箱", reg.email)) +
       ro("学号", reg.student_number || "待教务录入") +
       ro("学籍状态", ST[reg.status] || (prof.has_student_record ? reg.status : "尚无学籍记录")) +
       ro("修读项目", prog ? prog.name_zh + (prog.short_label ? "（" + prog.short_label + "）" : "")
@@ -124,9 +125,44 @@
       ro("确认时间", d(hq.confirmed_at)) +
       (hq.reference ? ro("批文编号", hq.reference) : "") +
       (hq.note ? ro("说明", hq.note) : "") +
-    '</div>' : "");
+    '</div>' : "") +
+
+    /* 修改密码：统一开的学员账号初始密码相同（Enos 2026-10-26），第一次进来就该改。
+       项目设置不要求重新验证（security_update_password_require_reauthentication=false），登录状态下直接改。 */
+    '<form class="card sec" id="pwf" novalidate>' +
+      '<h2>修改密码</h2>' +
+      '<p class="note">如果你用的是学校统一发的初始密码，请尽快改成只有你自己知道的密码（至少 8 位）。</p>' +
+      '<div class="fld"><label for="pw1">新密码</label><input id="pw1" type="password" autocomplete="new-password" minlength="8" maxlength="72"></div>' +
+      '<div class="fld"><label for="pw2">再输入一次</label><input id="pw2" type="password" autocomplete="new-password" minlength="8" maxlength="72"></div>' +
+      '<button class="btn" id="pwSave" type="submit" style="width:auto;padding:0 26px">修改密码</button>' +
+      '<div class="msg" id="pwMsg" role="status"></div>' +
+    '</form>';
 
   const err = document.getElementById("err");
+
+  document.getElementById("pwf").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("pwSave"), box = document.getElementById("pwMsg");
+    if (btn.disabled) return;
+    const p1 = document.getElementById("pw1").value, p2 = document.getElementById("pw2").value;
+    const show = (cls, t) => { box.className = "msg " + cls + " show"; box.textContent = t; };
+    if (p1.length < 8) return show("err", "新密码至少 8 位。");
+    if (p1 !== p2) return show("err", "两次输入的密码不一样，请再核对一下。");
+    btn.disabled = true; show("info", "正在修改…");
+    try {
+      const { error } = await A.client.auth.updateUser({ password: p1 });
+      if (error) {
+        const m = String(error.code || error.message || "");
+        return show("err", /same_password|should be different/i.test(m) ? "新密码不能和现在的密码一样。"
+                         : /weak|short/i.test(m) ? "这个密码太简单了，请换一个更长或更复杂的。"
+                         : "这一次没有改成功，请稍后再试。原来的密码仍然有效。");
+      }
+      document.getElementById("pw1").value = document.getElementById("pw2").value = "";
+      show("ok", "密码已修改。下次登录请用新密码。");
+    } catch (x) {
+      show("err", "没能连上服务器，不确定是否改成功。请用新密码试着重新登录；登不上就还用原来的密码。");
+    } finally { btn.disabled = false; }
+  });
   /* 这一块有两个状态：还没填 / 已经填好（刚存完）。
      「已经填好」那一版同时给出**完成出口** —— 待办是从学员中心点过来的，
      做完了得有一条路回去，而不是让他自己在导航里找。 */
