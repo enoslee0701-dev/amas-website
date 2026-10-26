@@ -197,7 +197,8 @@ const i18n = {
   "application.okDemo":"申请已保存在本机演示数据中。正式上线时需要接入后端/数据库。","application.ok":"申请已送出，招生同工会尽快与你联络。","application.error":"服务器拒绝了这次提交（资料可能不符合要求），没有送达。请检查填写内容后重试，或用下方联系方式联络我们。","application.unsure":"没能拿到服务器的回应，无法确认申请是否已送达。你填的内容都还在，弹窗也没有关闭。建议先用下方联系方式向招生同工核实是否收到，确认没收到再重新提交，以免重复递交同一份申请。","application.timeout":"等待服务器回应超时，无法确认申请是否已送达。你填的内容都还在，弹窗也没有关闭。建议先用下方联系方式向招生同工核实是否收到，确认没收到再重新提交，以免重复递交同一份申请。",
   "application.stepOf":"第 {n} 步，共 4 步",
   "review.fullName":"中文姓名","review.englishName":"英文姓名","review.gender":"性别","review.birth":"出生年月","review.nationality":"国籍","review.language":"使用语言","review.phone":"手机","review.email":"Email / QQ / 微信","review.location":"居住地址","review.church":"教会","review.churchType":"教会类型","review.conversionDate":"初信日期","review.baptismDate":"受洗日期","review.role":"服事 / 角色","review.referrer":"介绍人","review.program":"申请项目","review.eduLevel":"最高学历","review.eduSchool":"毕业学校","review.mode":"学习方式","review.gifts":"恩赐","review.motivation":"自我介绍及信仰见证",
-  "application.fields.phoneFixed":"固定电话（选填）","application.fields.churchPhone":"教会电话（选填）","application.fields.family":"家庭状况（选填）","application.fields.familyStatus":"家庭状况说明（选填）","application.fields.health":"健康状况（选填）","application.fields.personality":"性格（选填）","application.fields.eduRows":"学历（从最高学历填起，选填）","application.fields.workRows":"工作 / 事奉简历（选填）","application.fields.vision":"异象（选填）","application.programs.dip":"大学 DIP","application.ph.school":"学校","application.ph.city":"城市","application.ph.start":"入学年月","application.ph.end":"毕业年月","application.ph.degree":"学位或文凭","application.ph.org":"教会或机构名","application.ph.from":"开始年月","application.ph.to":"离职年月","application.ph.title":"职位","application.ph.rel":"关系","application.ph.name":"姓名","application.ph.birth":"出生年月","application.ph.faith":"信仰","review.phone_fixed":"固定电话","review.phone_church":"教会电话","review.family":"家庭成员","review.family_status":"家庭状况","review.health":"健康状况","review.personality":"性格","review.edu":"学历","review.work":"工作 / 事奉简历","review.vision":"异象"
+  "application.fields.phoneFixed":"固定电话（选填）","application.fields.churchPhone":"教会电话（选填）","application.fields.family":"家庭状况（选填）","application.fields.familyStatus":"家庭状况说明（选填）","application.fields.health":"健康状况（选填）","application.fields.personality":"性格（选填）","application.fields.eduRows":"学历（从最高学历填起，选填）","application.fields.workRows":"工作 / 事奉简历（选填）","application.fields.vision":"异象（选填）","application.programs.dip":"大学 DIP","application.ph.school":"学校","application.ph.city":"城市","application.ph.start":"入学年月","application.ph.end":"毕业年月","application.ph.degree":"学位或文凭","application.ph.org":"教会或机构名","application.ph.from":"开始年月","application.ph.to":"离职年月","application.ph.title":"职位","application.ph.rel":"关系","application.ph.name":"姓名","application.ph.birth":"出生年月","application.ph.faith":"信仰","review.phone_fixed":"固定电话","review.phone_church":"教会电话","review.family":"家庭成员","review.family_status":"家庭状况","review.health":"健康状况","review.personality":"性格","review.edu":"学历","review.work":"工作 / 事奉简历","review.vision":"异象",
+  "board.aria":"线上课堂与通知","board.live":"线上课堂","board.guest":"欢迎旁听","board.join":"进入线上课堂","board.id":"会议号","board.pw":"密码","board.video":"课程介绍 · 开学导言","board.yt":"YouTube 观看","board.cn":"国内观看","board.ann":"通知公告"
  },
  en: {
   "chat.open":"Open live chat","chat.title":"Admissions Assistant","chat.subtitle":"Instant answers · leave a message","chat.placeholder":"Type a question…","chat.send":"Send","chat.note":"Auto-replies are based on this site; messages are forwarded to the admissions team.",
@@ -297,7 +298,8 @@ const i18n = {
   "application.okDemo":"Application saved locally for demo. Connect a backend/database for production.","application.ok":"Application sent. Our admissions team will contact you soon.","application.error":"The server rejected this submission (the details may not meet requirements), so it did not go through. Please check what you entered and retry, or reach us with the contact details below.","application.unsure":"We did not get a reply from the server, so we cannot confirm whether your application arrived. Everything you filled in is still here and this window stays open. Please check with the admissions team using the contact details below before submitting again, so you do not send the same application twice.","application.timeout":"Timed out waiting for the server, so we cannot confirm whether your application arrived. Everything you filled in is still here and this window stays open. Please check with the admissions team using the contact details below before submitting again, so you do not send the same application twice.",
   "application.stepOf":"Step {n} of 4",
   "review.fullName":"Name (Chinese)","review.englishName":"Name (English)","review.gender":"Gender","review.birth":"Date of Birth","review.nationality":"Nationality","review.language":"Language","review.phone":"Mobile","review.email":"Email / QQ / WeChat","review.location":"Address","review.church":"Church","review.churchType":"Church Type","review.conversionDate":"Conversion","review.baptismDate":"Baptism","review.role":"Ministry / Role","review.referrer":"Referrer","review.program":"Program","review.eduLevel":"Highest Education","review.eduSchool":"School","review.mode":"Study Mode","review.gifts":"Gifts","review.motivation":"About Yourself & Testimony",
-  "application.fields.phoneFixed":"Landline (optional)","application.fields.churchPhone":"Church Phone (optional)","application.fields.family":"Family Members (optional)","application.fields.familyStatus":"Family Situation (optional)","application.fields.health":"Health (optional)","application.fields.personality":"Personality (optional)","application.fields.eduRows":"Education, highest first (optional)","application.fields.workRows":"Work / Ministry History (optional)","application.fields.vision":"Vision (optional)","application.programs.dip":"Diploma (DIP)","application.ph.school":"School","application.ph.city":"City","application.ph.start":"Start (YYYY-MM)","application.ph.end":"End (YYYY-MM)","application.ph.degree":"Degree / Diploma","application.ph.org":"Church / Organization","application.ph.from":"From (YYYY-MM)","application.ph.to":"To (YYYY-MM)","application.ph.title":"Position","application.ph.rel":"Relation","application.ph.name":"Name","application.ph.birth":"Born (YYYY-MM)","application.ph.faith":"Faith","review.phone_fixed":"Landline","review.phone_church":"Church Phone","review.family":"Family Members","review.family_status":"Family Situation","review.health":"Health","review.personality":"Personality","review.edu":"Education","review.work":"Work / Ministry","review.vision":"Vision"
+  "application.fields.phoneFixed":"Landline (optional)","application.fields.churchPhone":"Church Phone (optional)","application.fields.family":"Family Members (optional)","application.fields.familyStatus":"Family Situation (optional)","application.fields.health":"Health (optional)","application.fields.personality":"Personality (optional)","application.fields.eduRows":"Education, highest first (optional)","application.fields.workRows":"Work / Ministry History (optional)","application.fields.vision":"Vision (optional)","application.programs.dip":"Diploma (DIP)","application.ph.school":"School","application.ph.city":"City","application.ph.start":"Start (YYYY-MM)","application.ph.end":"End (YYYY-MM)","application.ph.degree":"Degree / Diploma","application.ph.org":"Church / Organization","application.ph.from":"From (YYYY-MM)","application.ph.to":"To (YYYY-MM)","application.ph.title":"Position","application.ph.rel":"Relation","application.ph.name":"Name","application.ph.birth":"Born (YYYY-MM)","application.ph.faith":"Faith","review.phone_fixed":"Landline","review.phone_church":"Church Phone","review.family":"Family Members","review.family_status":"Family Situation","review.health":"Health","review.personality":"Personality","review.edu":"Education","review.work":"Work / Ministry","review.vision":"Vision",
+  "board.aria":"Live class and announcements","board.live":"LIVE CLASS","board.guest":"Guests welcome","board.join":"Join the live class","board.id":"Meeting ID","board.pw":"Passcode","board.video":"COURSE INTRO · ORIENTATION","board.yt":"Watch on YouTube","board.cn":"Watch (China)","board.ann":"ANNOUNCEMENTS"
  },
  ko: {
   "chat.open":"온라인 상담 열기","chat.title":"입학 상담 도우미","chat.subtitle":"즉시 답변 · 입학처에 메시지 남기기 가능","chat.placeholder":"질문을 입력하세요…","chat.send":"보내기","chat.note":"자동 응답은 본 사이트 정보를 기반으로 하며, 메시지는 입학 담당자에게 전달됩니다.",
@@ -397,7 +399,8 @@ const i18n = {
   "application.okDemo":"지원서가 데모 데이터로 저장되었습니다. 정식 오픈 시 백엔드 연동이 필요합니다.","application.ok":"지원서가 전송되었습니다. 입학 담당자가 곧 연락드리겠습니다.","application.error":"서버가 이 제출을 거부하여 전달되지 않았습니다(입력 내용이 요건에 맞지 않을 수 있습니다). 입력 내용을 확인한 뒤 다시 시도하시거나 아래 연락처로 문의해 주세요.","application.unsure":"서버 응답을 받지 못해 지원서가 접수되었는지 확인할 수 없습니다. 입력하신 내용은 그대로 남아 있고 창도 닫히지 않았습니다. 같은 지원서를 두 번 보내지 않도록, 다시 제출하기 전에 아래 연락처로 입학 담당자에게 접수 여부를 확인해 주세요.","application.timeout":"서버 응답 대기 시간이 초과되어 지원서가 접수되었는지 확인할 수 없습니다. 입력하신 내용은 그대로 남아 있고 창도 닫히지 않았습니다. 같은 지원서를 두 번 보내지 않도록, 다시 제출하기 전에 아래 연락처로 입학 담당자에게 접수 여부를 확인해 주세요.",
   "application.stepOf":"4단계 중 {n}단계",
   "review.fullName":"이름(중문)","review.englishName":"이름(영문)","review.gender":"성별","review.birth":"생년월","review.nationality":"국적","review.language":"사용 언어","review.phone":"휴대전화","review.email":"Email / QQ / 위챗","review.location":"주소","review.church":"교회","review.churchType":"교회 유형","review.conversionDate":"신앙 시작","review.baptismDate":"세례","review.role":"섬김 / 역할","review.referrer":"추천인","review.program":"지원 과정","review.eduLevel":"최종 학력","review.eduSchool":"출신 학교","review.mode":"학습 방식","review.gifts":"은사","review.motivation":"자기소개 및 간증",
-  "application.fields.phoneFixed":"유선 전화(선택)","application.fields.churchPhone":"교회 전화(선택)","application.fields.family":"가족 사항(선택)","application.fields.familyStatus":"가정 상황(선택)","application.fields.health":"건강 상태(선택)","application.fields.personality":"성격(선택)","application.fields.eduRows":"학력 – 최종 학력부터(선택)","application.fields.workRows":"경력 / 사역 이력(선택)","application.fields.vision":"비전(선택)","application.programs.dip":"대학 DIP","application.ph.school":"학교","application.ph.city":"도시","application.ph.start":"입학 연월","application.ph.end":"졸업 연월","application.ph.degree":"학위 / 졸업장","application.ph.org":"교회 / 기관","application.ph.from":"시작 연월","application.ph.to":"종료 연월","application.ph.title":"직위","application.ph.rel":"관계","application.ph.name":"이름","application.ph.birth":"생년월","application.ph.faith":"신앙","review.phone_fixed":"유선 전화","review.phone_church":"교회 전화","review.family":"가족","review.family_status":"가정 상황","review.health":"건강 상태","review.personality":"성격","review.edu":"학력","review.work":"경력 / 사역","review.vision":"비전"
+  "application.fields.phoneFixed":"유선 전화(선택)","application.fields.churchPhone":"교회 전화(선택)","application.fields.family":"가족 사항(선택)","application.fields.familyStatus":"가정 상황(선택)","application.fields.health":"건강 상태(선택)","application.fields.personality":"성격(선택)","application.fields.eduRows":"학력 – 최종 학력부터(선택)","application.fields.workRows":"경력 / 사역 이력(선택)","application.fields.vision":"비전(선택)","application.programs.dip":"대학 DIP","application.ph.school":"학교","application.ph.city":"도시","application.ph.start":"입학 연월","application.ph.end":"졸업 연월","application.ph.degree":"학위 / 졸업장","application.ph.org":"교회 / 기관","application.ph.from":"시작 연월","application.ph.to":"종료 연월","application.ph.title":"직위","application.ph.rel":"관계","application.ph.name":"이름","application.ph.birth":"생년월","application.ph.faith":"신앙","review.phone_fixed":"유선 전화","review.phone_church":"교회 전화","review.family":"가족","review.family_status":"가정 상황","review.health":"건강 상태","review.personality":"성격","review.edu":"학력","review.work":"경력 / 사역","review.vision":"비전",
+  "board.aria":"온라인 수업과 공지","board.live":"온라인 수업","board.guest":"청강 환영","board.join":"온라인 수업 입장","board.id":"회의 ID","board.pw":"암호","board.video":"과정 소개 · 개강 안내","board.yt":"YouTube에서 보기","board.cn":"중국에서 보기","board.ann":"공지사항"
  },
  th: {
   "chat.open":"เปิดแชทสอบถาม","chat.title":"ผู้ช่วยรับสมัคร","chat.subtitle":"ตอบทันที · ฝากข้อความถึงฝ่ายรับสมัครได้","chat.placeholder":"พิมพ์คำถาม…","chat.send":"ส่ง","chat.note":"คำตอบอัตโนมัติอ้างอิงข้อมูลในเว็บไซต์นี้ ข้อความจะถูกส่งต่อให้ฝ่ายรับสมัคร",
@@ -497,7 +500,8 @@ const i18n = {
   "application.okDemo":"ใบสมัครถูกบันทึกเป็นข้อมูลสาธิตในเครื่องนี้ เวอร์ชันจริงต้องเชื่อมระบบหลังบ้าน","application.ok":"ส่งใบสมัครแล้ว ฝ่ายรับสมัครจะติดต่อกลับโดยเร็ว","application.error":"เซิร์ฟเวอร์ปฏิเสธการส่งครั้งนี้ (ข้อมูลอาจไม่ตรงเงื่อนไข) จึงยังไม่ถึงเรา กรุณาตรวจสอบข้อมูลแล้วลองใหม่ หรือติดต่อตามช่องทางด้านล่าง","application.unsure":"ไม่ได้รับการตอบกลับจากเซิร์ฟเวอร์ จึงยืนยันไม่ได้ว่าใบสมัครส่งถึงหรือไม่ ข้อมูลที่กรอกไว้ยังอยู่ครบและหน้าต่างยังไม่ปิด กรุณาติดต่อฝ่ายรับสมัครตามช่องทางด้านล่างเพื่อตรวจสอบก่อนส่งใหม่ เพื่อไม่ให้ส่งใบสมัครซ้ำ","application.timeout":"หมดเวลารอการตอบกลับจากเซิร์ฟเวอร์ จึงยืนยันไม่ได้ว่าใบสมัครส่งถึงหรือไม่ ข้อมูลที่กรอกไว้ยังอยู่ครบและหน้าต่างยังไม่ปิด กรุณาติดต่อฝ่ายรับสมัครตามช่องทางด้านล่างเพื่อตรวจสอบก่อนส่งใหม่ เพื่อไม่ให้ส่งใบสมัครซ้ำ",
   "application.stepOf":"ขั้นตอนที่ {n} จาก 4",
   "review.fullName":"ชื่อ (จีน)","review.englishName":"ชื่อ (อังกฤษ)","review.gender":"เพศ","review.birth":"เดือน/ปีเกิด","review.nationality":"สัญชาติ","review.language":"ภาษาที่ใช้","review.phone":"มือถือ","review.email":"Email / QQ / WeChat","review.location":"ที่อยู่","review.church":"คริสตจักร","review.churchType":"ประเภทคริสตจักร","review.conversionDate":"เริ่มเชื่อ","review.baptismDate":"บัพติศมา","review.role":"งานรับใช้","review.referrer":"ผู้แนะนำ","review.program":"หลักสูตร","review.eduLevel":"วุฒิสูงสุด","review.eduSchool":"สถาบัน","review.mode":"รูปแบบเรียน","review.gifts":"ของประทาน","review.motivation":"แนะนำตัวและคำพยาน",
-  "application.fields.phoneFixed":"โทรศัพท์บ้าน (ไม่บังคับ)","application.fields.churchPhone":"โทรศัพท์คริสตจักร (ไม่บังคับ)","application.fields.family":"สมาชิกในครอบครัว (ไม่บังคับ)","application.fields.familyStatus":"สภาพครอบครัว (ไม่บังคับ)","application.fields.health":"สุขภาพ (ไม่บังคับ)","application.fields.personality":"บุคลิกภาพ (ไม่บังคับ)","application.fields.eduRows":"ประวัติการศึกษา เริ่มจากสูงสุด (ไม่บังคับ)","application.fields.workRows":"ประวัติการทำงาน / พันธกิจ (ไม่บังคับ)","application.fields.vision":"นิมิต (ไม่บังคับ)","application.programs.dip":"อนุปริญญา DIP","application.ph.school":"สถานศึกษา","application.ph.city":"เมือง","application.ph.start":"เข้าศึกษา (ปี-เดือน)","application.ph.end":"จบ (ปี-เดือน)","application.ph.degree":"วุฒิ","application.ph.org":"คริสตจักร / องค์กร","application.ph.from":"เริ่ม (ปี-เดือน)","application.ph.to":"สิ้นสุด (ปี-เดือน)","application.ph.title":"ตำแหน่ง","application.ph.rel":"ความสัมพันธ์","application.ph.name":"ชื่อ","application.ph.birth":"เกิด (ปี-เดือน)","application.ph.faith":"ความเชื่อ","review.phone_fixed":"โทรศัพท์บ้าน","review.phone_church":"โทรศัพท์คริสตจักร","review.family":"ครอบครัว","review.family_status":"สภาพครอบครัว","review.health":"สุขภาพ","review.personality":"บุคลิกภาพ","review.edu":"การศึกษา","review.work":"การทำงาน / พันธกิจ","review.vision":"นิมิต"
+  "application.fields.phoneFixed":"โทรศัพท์บ้าน (ไม่บังคับ)","application.fields.churchPhone":"โทรศัพท์คริสตจักร (ไม่บังคับ)","application.fields.family":"สมาชิกในครอบครัว (ไม่บังคับ)","application.fields.familyStatus":"สภาพครอบครัว (ไม่บังคับ)","application.fields.health":"สุขภาพ (ไม่บังคับ)","application.fields.personality":"บุคลิกภาพ (ไม่บังคับ)","application.fields.eduRows":"ประวัติการศึกษา เริ่มจากสูงสุด (ไม่บังคับ)","application.fields.workRows":"ประวัติการทำงาน / พันธกิจ (ไม่บังคับ)","application.fields.vision":"นิมิต (ไม่บังคับ)","application.programs.dip":"อนุปริญญา DIP","application.ph.school":"สถานศึกษา","application.ph.city":"เมือง","application.ph.start":"เข้าศึกษา (ปี-เดือน)","application.ph.end":"จบ (ปี-เดือน)","application.ph.degree":"วุฒิ","application.ph.org":"คริสตจักร / องค์กร","application.ph.from":"เริ่ม (ปี-เดือน)","application.ph.to":"สิ้นสุด (ปี-เดือน)","application.ph.title":"ตำแหน่ง","application.ph.rel":"ความสัมพันธ์","application.ph.name":"ชื่อ","application.ph.birth":"เกิด (ปี-เดือน)","application.ph.faith":"ความเชื่อ","review.phone_fixed":"โทรศัพท์บ้าน","review.phone_church":"โทรศัพท์คริสตจักร","review.family":"ครอบครัว","review.family_status":"สภาพครอบครัว","review.health":"สุขภาพ","review.personality":"บุคลิกภาพ","review.edu":"การศึกษา","review.work":"การทำงาน / พันธกิจ","review.vision":"นิมิต",
+  "board.aria":"ห้องเรียนออนไลน์และประกาศ","board.live":"ห้องเรียนออนไลน์","board.guest":"ยินดีต้อนรับผู้เข้าฟัง","board.join":"เข้าห้องเรียนออนไลน์","board.id":"รหัสประชุม","board.pw":"รหัสผ่าน","board.video":"แนะนำหลักสูตร · ปฐมนิเทศ","board.yt":"ดูบน YouTube","board.cn":"ดู (จีน)","board.ann":"ประกาศ"
  }
 };
 
@@ -532,6 +536,8 @@ function applyLanguage(lang){
   applyTheme(currentTheme, { persist:false });          // 刷新主题按钮的 aria/title 文案
   // 公告条按钮的文案随暂停状态变化，无法用 data-i18n-aria 静态绑定，这里手动刷新
   if(typeof syncAnnounceToggle === "function") syncAnnounceToggle();
+  const ids = document.getElementById("liveIds");
+  if(ids && ids.dataset.tpl) ids.textContent = ids.dataset.tpl.replace("{id}", t("board.id")).replace("{pw}", t("board.pw"));
   refreshStepsLabel();
   renderContactMeta();
   if(appModal?.classList.contains("open") && appStep === 3) buildReview();
@@ -1892,3 +1898,87 @@ chatText.addEventListener("keydown", e => { if(e.key === "Enter") chatAsk(chatTe
 $("#copyrightYear").textContent = Math.max(2026, new Date().getFullYear());
 if(window.matchMedia("(min-width:700px)").matches) $(".faq-item")?.setAttribute("open","");
 applyLanguage(currentLang);
+
+
+/* ===== 官网动态内容：线上课堂、开学导言、公开公告、各班开课状态（0041 site_public，2026-10-26）=====
+   读不到（没配置 / 网络不通 / 超时）就什么都不改：页面保持写死的文字，不出现半截的块。 */
+(function siteBoard(){
+  if(!(window.SUPA_IS_FILLED && window.SUPA_IS_FILLED())) return;
+  const S = window.SUPA;
+  const ctl = typeof AbortController === "function" ? new AbortController() : null;
+  const timer = setTimeout(() => ctl && ctl.abort(), 8000);
+  fetch(S.url + "/rest/v1/rpc/site_public", { method: "POST", signal: ctl ? ctl.signal : undefined,
+    headers: { apikey: S.anonKey, Authorization: "Bearer " + S.anonKey, "Content-Type": "application/json" }, body: "{}" })
+    .then(r => r.ok ? r.json() : null)
+    .then(d => { clearTimeout(timer); if(d && typeof d === "object") renderSiteBoard(d); })
+    .catch(() => clearTimeout(timer));
+})();
+
+/* 「10月班」→ 各语言的班名；认不出的原样用 */
+const PHASE = { zh:{ enrolling:"招生中", in_session:"已开课", finished:"已结业" },
+                en:{ enrolling:"enrolling", in_session:"in session", finished:"completed" },
+                ko:{ enrolling:"모집 중", in_session:"개강", finished:"수료" },
+                th:{ enrolling:"รับสมัคร", in_session:"เปิดเรียนแล้ว", finished:"จบแล้ว" } };
+function cohortName(name, lang){
+  const m = /^(\d{1,2})月班$/.exec(name || "");
+  if(!m) return name;
+  const n = Number(m[1]);
+  if(lang === "en") return ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][n - 1] + " class";
+  if(lang === "ko") return n + "월반";
+  if(lang === "th") return "รุ่น " + ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."][n - 1];
+  return name;
+}
+function cohortLine(c, lang){
+  const ph = (PHASE[lang] || PHASE.zh)[c.phase] || c.phase;
+  return lang === "zh" ? cohortName(c.name, lang) + ph : lang === "en" ? cohortName(c.name, lang) + ": " + ph : cohortName(c.name, lang) + " " + ph;
+}
+let STATIC_BTH_DESC = null;
+function renderSiteBoard(d){
+  /* 1) 开课状态：改四种语言的词条，再按当前语言重刷一遍 */
+  const cs = Array.isArray(d.cohorts) ? d.cohorts : [];
+  if(cs.length){
+    if(!STATIC_BTH_DESC){ STATIC_BTH_DESC = {}; Object.keys(i18n).forEach(l => { STATIC_BTH_DESC[l] = i18n[l]["programs.items.bth.desc"] || ""; }); }
+    Object.keys(i18n).forEach(lang => {
+      const lines = cs.map(c => cohortLine(c, lang));
+      const one = lines.join(" · ");
+      i18n[lang]["herometa.startVal"] = lines.join("\n");
+      i18n[lang]["admissions.facts.startValue"] = one;
+      i18n[lang]["admissions.started"] = one;
+      i18n[lang]["admissions.countdown"] = one;
+      /* 项目卡：写死的版本前两段是开课状态，换掉它们，后面「77 学分 · …」保留 */
+      const rest = STATIC_BTH_DESC[lang].split(" · ").slice(2).join(" · ");
+      i18n[lang]["programs.items.bth.desc"] = rest ? one + " · " + rest : one;
+    });
+  }
+  /* 2) 线上课堂 */
+  const lv = d.live_class || {}, lc = $("#liveClass");
+  if(lc && lv.enabled && /^https:\/\//i.test(lv.url || "")){
+    $("#liveTitle").textContent = lv.title || "";
+    $("#liveWhen").textContent = lv.schedule || "";
+    const ids = [lv.meeting_id ? "{id}: " + lv.meeting_id : "", lv.passcode ? "{pw}: " + lv.passcode : ""].filter(Boolean).join("   ");
+    $("#liveIds").dataset.tpl = ids;
+    $("#liveJoin").href = lv.url;
+    $("#liveGuest").hidden = !lv.allow_guests;
+    lc.hidden = false;
+  }
+  /* 3) 开学导言视频 */
+  const vd = d.intro_video || {}, vc = $("#liveVideo");
+  const yt = /^https:\/\//i.test(vd.youtube || "") ? vd.youtube : "", cn = /^https:\/\//i.test(vd.china || "") ? vd.china : "";
+  if(vc && vd.enabled && (yt || cn)){
+    $("#videoTitle").textContent = vd.title || "";
+    $("#videoDesc").textContent = vd.desc || "";
+    if(yt){ $("#videoYt").href = yt; $("#videoYt").hidden = false; }
+    if(cn){ $("#videoCn").href = cn; $("#videoCn").hidden = false; }
+    vc.hidden = false;
+  }
+  /* 4) 公开公告（最多 3 条） */
+  const an = Array.isArray(d.announcements) ? d.announcements.slice(0, 3) : [], ac = $("#liveAnn");
+  if(ac && an.length){
+    $("#annList").innerHTML = an.map(a => "<li><b>" + (a.pinned ? "📌 " : "") + escapeHTML(a.title || "") + "</b>" +
+      (a.body ? "<span>" + escapeHTML(a.body) + "</span>" : "") + "</li>").join("");
+    ac.hidden = false;
+  }
+  const board = $("#liveBoard");
+  if(board) board.hidden = !$$(".live-card", board).some(x => !x.hidden);
+  applyLanguage(currentLang);
+}

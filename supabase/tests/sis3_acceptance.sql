@@ -286,6 +286,140 @@ begin
   if (select count(*) from public.submissions where name = '无指纹') <> 2 then raise exception 'FAIL X12b 没有指纹的旧格式提交被误拦'; end if;
   raise notice 'PASS X12 官网提交：同一指纹只存一次，无指纹不受影响';
 
+  -- ---------- X13 班级上课记录：考勤与作业（0040） ----------
+  update public.submissions set cohort = '测试班', student_user_id = v_u1 where name = '访客甲';
+  perform set_config('amas.test.uid', v_a::text, true);
+  execute 'set role authenticated';
+  insert into public.cohort_sessions (cohort, held_on, title, source) values ('测试班', '2026-10-20', '第 4 课', 'zoom');
+  insert into public.cohort_marks (session_id, submission_id, attendance, homework)
+    select cs.id, s.id, 'present', 'done' from public.cohort_sessions cs, public.submissions s
+     where cs.cohort = '测试班' and s.name = '访客甲';
+  execute 'reset role';
+  perform set_config('amas.test.sess', (select id::text from public.cohort_sessions where cohort = '测试班'), true);
+  perform set_config('amas.test.uid', v_u2::text, true);
+  execute 'set role authenticated';
+  select count(*) into n from public.cohort_marks;
+  if n <> 0 then raise exception 'FAIL X13a 普通用户能直接读考勤表 % 行', n; end if;
+  if jsonb_array_length(public.my_cohort_record()) <> 0 then raise exception 'FAIL X13b 别的学员看到了不属于自己的考勤'; end if;
+  execute 'reset role';
+  perform set_config('amas.test.uid', v_u1::text, true);
+  execute 'set role authenticated';
+  if (public.my_cohort_record()->0->>'attendance') is distinct from 'present'
+     or (public.my_cohort_record()->0->>'title') is distinct from '第 4 课' then
+    raise exception 'FAIL X13c 学员看不到自己的考勤 %', public.my_cohort_record();
+  end if;
+  begin
+    insert into public.cohort_marks (session_id, submission_id, attendance)
+      values (current_setting('amas.test.sess')::uuid, (select max(id) from public.submissions), 'present');
+    raise exception 'FAIL X13d 学员能自己写考勤';
+  exception when insufficient_privilege then null;
+  end;
+  execute 'reset role';
+  begin
+    insert into public.cohort_marks (session_id, submission_id, attendance)
+      select cs.id, s.id, 'sleeping' from public.cohort_sessions cs, public.submissions s where s.name = '访客甲' limit 1;
+    raise exception 'FAIL X13e 非法出勤值被收下';
+  exception when check_violation or unique_violation then null;
+  end;
+  raise notice 'PASS X13 班级考勤与作业：教务记、学员只看自己、外人看不到';
+
+  -- ---------- X14 公告、线上课堂、开学导言、首页班级状态（0041） ----------
+  perform set_config('amas.test.uid', v_a::text, true);
+  execute 'set role authenticated';
+  insert into public.site_announcements (title, body, audience) values ('公开公告甲', '大家好', 'public'), ('学员公告乙', '作业提醒', 'students');
+  insert into public.site_announcements (title, audience, published) values ('草稿丙', 'public', false);
+  update public.site_settings set value = '{"enabled":true,"allow_guests":true,"url":"https://zoom.example/j/1","title":"周三晚课"}' where key = 'live_class';
+  update public.submission_cohorts set phase = 'in_session' where name = '测试班';
+  execute 'reset role';
+  execute 'set role anon';
+  if (public.site_public()->'announcements'->0->>'title') is distinct from '公开公告甲'
+     or jsonb_array_length(public.site_public()->'announcements') <> 1 then
+    raise exception 'FAIL X14a 官网公告应只有已发布的公开公告 %', public.site_public()->'announcements';
+  end if;
+  if (public.site_public()->'live_class'->>'url') is distinct from 'https://zoom.example/j/1' then raise exception 'FAIL X14b 允许旁听时官网应有会议入口'; end if;
+  if not exists (select 1 from jsonb_array_elements(public.site_public()->'cohorts') c where c->>'name' = '测试班' and c->>'phase' = 'in_session') then
+    raise exception 'FAIL X14c 官网读不到班级状态';
+  end if;
+  begin
+    select count(*) into n from public.site_announcements;
+    raise exception 'FAIL X14d 匿名访客能直接读公告表';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    perform public.portal_board();
+    raise exception 'FAIL X14e 匿名访客能读门户公告板';
+  exception when insufficient_privilege then null;
+  end;
+  execute 'reset role';
+  perform set_config('amas.test.uid', v_a::text, true);
+  execute 'set role authenticated';
+  update public.site_settings set value = value || '{"allow_guests":false}' where key = 'live_class';
+  execute 'reset role';
+  execute 'set role anon';
+  if (public.site_public()->'live_class'->>'enabled') <> 'false' then raise exception 'FAIL X14f 不允许旁听时官网不该露出会议入口'; end if;
+  execute 'reset role';
+  perform set_config('amas.test.uid', v_u1::text, true);
+  execute 'set role authenticated';
+  if jsonb_array_length(public.portal_board()->'announcements') <> 2 or (public.portal_board()->'live_class'->>'url') is null then
+    raise exception 'FAIL X14g 学员应看到两条已发布公告和课堂入口 %', public.portal_board();
+  end if;
+  begin
+    insert into public.site_announcements (title) values ('学员乱发');
+    raise exception 'FAIL X14h 学员能发公告';
+  exception when insufficient_privilege then null;
+  end;
+  execute 'reset role';
+  raise notice 'PASS X14 公告 / 线上课堂 / 开学导言 / 班级状态：官网只见公开的，学员见全部，只有教务能改';
+
+  -- ---------- X15 费用管理（0042） ----------
+  perform set_config('amas.test.uid', v_fin::text, true);
+  execute 'set role authenticated';
+  insert into public.finance_entries (submission_id, kind, category, amount, currency, created_by)
+    select id, 'charge', '学费', 3000, 'THB', v_fin from public.submissions where name = '访客甲';
+  insert into public.finance_entries (submission_id, kind, amount, currency, method, reference, created_by)
+    select id, 'payment', 1000, 'THB', 'bank', 'TX-001', v_fin from public.submissions where name = '访客甲';
+  insert into public.finance_entries (submission_id, kind, amount, currency, created_by)
+    select id, 'payment', 999, 'THB', v_fin from public.submissions where name = '访客甲';
+  begin
+    update public.finance_entries set amount = 1 where amount = 999;
+    raise exception 'FAIL X15a 能改金额';
+  exception when raise_exception then
+    if sqlerrm like 'FAIL%' then raise; end if;
+  end;
+  begin
+    update public.finance_entries set voided_at = now() where amount = 999;
+    raise exception 'FAIL X15b 作废不写原因也行';
+  exception when raise_exception then
+    if sqlerrm like 'FAIL%' then raise; end if;
+  end;
+  update public.finance_entries set voided_at = now(), void_reason = '重复录入' where amount = 999;
+  select count(*) into n from public.finance_entries where amount = 999 and voided_at is not null and voided_by = v_fin;
+  if n <> 1 then raise exception 'FAIL X15c 作废没留下谁作废的'; end if;
+  begin
+    delete from public.finance_entries where amount = 999;
+    select count(*) into n from public.finance_entries where amount = 999;
+    if n <> 1 then raise exception 'FAIL X15d 账目被删掉了'; end if;
+  exception when insufficient_privilege then null;
+  end;
+  execute 'reset role';
+  perform set_config('amas.test.uid', v_u1::text, true);
+  execute 'set role authenticated';
+  if (public.my_finance()->'balance'->>'THB')::numeric <> 2000 then raise exception 'FAIL X15e 学员余额应为 2000（作废的不算）%', public.my_finance(); end if;
+  if jsonb_array_length(public.my_finance()->'entries') <> 2 then raise exception 'FAIL X15f 学员明细应为 2 笔'; end if;
+  select count(*) into n from public.finance_entries;
+  if n <> 0 then raise exception 'FAIL X15g 学员能直接读账本'; end if;
+  begin
+    insert into public.finance_entries (submission_id, kind, amount, created_by) values ((select max(id) from public.submissions), 'payment', 1, v_u1);
+    raise exception 'FAIL X15h 学员能自己记账';
+  exception when insufficient_privilege or not_null_violation then null;
+  end;
+  execute 'reset role';
+  perform set_config('amas.test.uid', v_u2::text, true);
+  execute 'set role authenticated';
+  if jsonb_array_length(public.my_finance()->'entries') <> 0 then raise exception 'FAIL X15i 别的学员看到了不属于自己的账'; end if;
+  execute 'reset role';
+  raise notice 'PASS X15 费用流水：财务可记可作废（须原因）、不能改不能删，学员只看自己的余额与明细';
+
   raise notice '=== SIS COMPLETION ACCEPTANCE PASSED ===';
 end $$;
 

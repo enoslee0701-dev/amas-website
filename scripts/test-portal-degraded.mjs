@@ -126,7 +126,7 @@ try {
   cdp.on("Fetch.requestPaused", async (ev) => {
     const u = ev.request.url;
     try {
-      if (u.indexOf("cdn.jsdelivr.net") > -1) {
+      if (u.indexOf("cdn.jsdelivr.net") > -1 || u.indexOf("/assets/vendor/supabase-js") > -1) {
         if (mode === "offline") { await cdp.send("Fetch.failRequest", { requestId: ev.requestId, errorReason: "ConnectionRefused" }); return; }
         await cdp.send("Fetch.continueRequest", { requestId: ev.requestId }); return;
       }

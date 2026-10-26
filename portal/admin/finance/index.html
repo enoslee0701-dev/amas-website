@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>费用管理 | AMAS</title>
+<link rel="icon" href="../../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610262031">
+<style>
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+.kpi div{background:#fff;border:1px solid #e6e2d8;border-radius:14px;padding:14px 16px;box-shadow:0 6px 18px rgba(16,40,72,.05)}
+.kpi b{display:block;font-size:22px;color:var(--navy);font-variant-numeric:tabular-nums}.kpi span{font-size:12.5px;color:var(--muted)}
+.kpi .owe b{color:#a23a32}
+.tw{overflow-x:auto;border:1px solid #e6e2d8;border-radius:14px;background:#fff;box-shadow:0 8px 24px rgba(16,40,72,.06)}
+table.ft{width:100%;border-collapse:collapse;font-size:13.5px}
+.ft th,.ft td{padding:9px 10px;border-bottom:1px solid #ece8de;text-align:left;white-space:nowrap}
+.ft th{background:#f6f4ee;color:#4b5567;font-weight:600}
+.ft td.n{text-align:right;font-variant-numeric:tabular-nums}
+.ft tr.void td{color:#a3a09a;text-decoration:line-through}
+.ft td.owe{color:#a23a32;font-weight:700}
+.frm{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.frm label{display:grid;gap:4px;font-size:13px;color:#4b5567}
+.frm input,.frm select{min-height:42px;padding:8px 10px;border:1px solid #cfd5df;border-radius:9px;font:inherit;background:#fff;color:var(--ink)}
+.kind-charge{color:#7a5a12}.kind-payment{color:var(--ok)}.kind-waiver{color:#1d3b66}.kind-refund{color:#a23a32}
+</style>
+</head>
+<body>
+<script src="../../../assets/vendor/supabase-js@2.116.0/supabase.min.js"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/api.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610262031"></script>
+<script>
+/* 费用管理（0042）：一笔一行的流水账。应收 / 已收 / 减免 / 退款，按币种算每人欠款。
+   账目只增不删、不改金额：记错了点「作废」并写原因。可给整个班一次加一笔应收（例如学费）。
+   学员名单 = 报名收件箱里的入学申请（已分班的按班列出）。 */
+(async function(){
+  const A = window.AmasAuth, UI = window.AmasUI, Api = window.AmasApi, Shell = window.AmasShell, I = Shell.icon;
+  const mounted = await Shell.mount({ space: "admin", title: "管理后台", allow: ["finance", "registrar", "academic_admin", "super_admin"], requireAal2: true });
+  if (!mounted) return;
+  const { main } = mounted;
+  const KIND = { charge: "应收", payment: "已收", waiver: "减免", refund: "退款" };
+  const METHOD = { "": "—", cash: "现金", bank: "银行转账", promptpay: "PromptPay", wechat: "微信", alipay: "支付宝", other: "其他" };
+  const CUR = ["THB", "CNY", "USD"];
+  const CATS = ["学费", "报名费", "教材费", "住宿费", "其他"];
+  let people = [], entries = [], fCohort = "", fPerson = "", busy = false;
+
+  UI.loading(main, 4);
+  const [rp, re] = await Promise.all([
+    Api.select("submissions", { columns: "id,name,cohort,student_user_id,created_at", eq: { type: "application" }, order: [{ column: "created_at", asc: true }, { column: "id", asc: true }] }),
+    Api.select("finance_entries", { columns: "id,submission_id,kind,category,amount,currency,occurred_on,method,reference,note,batch_id,created_at,voided_at,void_reason",
+                                    order: [{ column: "occurred_on" }, { column: "created_at" }], limit: 5000 }),
+  ]);
+  if (rp.error || !Array.isArray(rp.data) || re.error || !Array.isArray(re.data)) {
+    return UI.error(main, { message: "这一次没能读到费用记录。这不表示没有记录，请稍后刷新。", onRetry: () => location.reload() });
+  }
+  people = rp.data; entries = re.data;
+  const cohorts = [...new Set(people.map((p) => p.cohort).filter(Boolean))];
+  const pname = (id) => (people.find((p) => p.id === id) || {}).name || "（报名 #" + id + "）";
+  const money = (n, c) => (c === "THB" ? "฿" : c === "CNY" ? "¥" : "$") + Number(n).toLocaleString("zh-CN", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  const sign = (e) => (e.kind === "charge" || e.kind === "refund" ? 1 : -1) * Number(e.amount);
+  const live = () => entries.filter((e) => !e.voided_at);
+
+  function totals(list){
+    const t = {};
+    list.forEach((e) => { const c = (t[e.currency] = t[e.currency] || { charge: 0, payment: 0, waiver: 0, refund: 0 }); c[e.kind] += Number(e.amount); });
+    return t;
+  }
+  const owe = (c) => c.charge - c.payment - c.waiver + c.refund;
+
+  function render(){
+    const inScope = (pid) => !fCohort || (people.find((p) => p.id === pid) || {}).cohort === fCohort;
+    const scoped = live().filter((e) => inScope(e.submission_id));
+    const T = totals(scoped);
+    const curs = Object.keys(T).length ? Object.keys(T) : ["THB"];
+    const ppl = people.filter((p) => !fCohort || p.cohort === fCohort);
+    const rows = ppl.map((p) => ({ p, t: totals(live().filter((e) => e.submission_id === p.id)) }));
+    const list = entries.filter((e) => inScope(e.submission_id) && (!fPerson || String(e.submission_id) === fPerson));
+
+    main.innerHTML =
+      '<h1>费用管理</h1><p class="lead">一笔一行的流水账：应收、已收、减免、退款。记错了点「作废」并写原因，原记录保留可查。</p>' +
+      '<div class="msg" id="err" role="alert" tabindex="-1"></div>' +
+      '<div class="bar" style="margin-bottom:14px"><label for="fc" style="font-size:13px">班级</label><select id="fc" class="sbtn"><option value="">全部</option>' +
+        cohorts.map((c) => '<option' + (c === fCohort ? " selected" : "") + '>' + UI.esc(c) + '</option>').join("") + '</select>' +
+        '<button class="sbtn" type="button" id="csv">' + I("file", 16) + '导出表格（CSV）</button></div>' +
+      curs.map((c) => { const x = T[c] || { charge: 0, payment: 0, waiver: 0, refund: 0 };
+        return '<div class="kpi"><div><b>' + money(x.charge, c) + '</b><span>应收合计（' + c + '）</span></div><div><b>' + money(x.payment, c) + '</b><span>已收</span></div>' +
+          '<div><b>' + money(x.waiver, c) + '</b><span>减免</span></div><div class="owe"><b>' + money(owe(x), c) + '</b><span>未收（欠款）</span></div></div>'; }).join("") +
+
+      '<h2 style="font-size:17px;color:var(--navy);margin:6px 0 10px">记一笔</h2>' +
+      '<div class="of"><div class="frm">' +
+        '<label>对象<select id="who"><option value="">请选择学员…</option>' + cohorts.map((c) => '<option value="cohort:' + UI.esc(c) + '">【整个' + UI.esc(c) + '】每人一笔</option>').join("") +
+          people.map((p) => '<option value="' + p.id + '">' + UI.esc(p.name || "未填姓名") + (p.cohort ? "（" + UI.esc(p.cohort) + "）" : "") + '</option>').join("") + '</select></label>' +
+        '<label>类型<select id="kind">' + Object.entries(KIND).map(([k, t]) => '<option value="' + k + '">' + t + '</option>').join("") + '</select></label>' +
+        '<label>项目<input id="cat" list="cats" value="学费" maxlength="30"><datalist id="cats">' + CATS.map((c) => '<option value="' + c + '">').join("") + '</datalist></label>' +
+        '<label>金额<input id="amt" type="number" min="0.01" step="0.01" inputmode="decimal"></label>' +
+        '<label>币种<select id="cur">' + CUR.map((c) => '<option>' + c + '</option>').join("") + '</select></label>' +
+        '<label>日期<input id="day" type="date" value="' + new Date().toISOString().slice(0, 10) + '"></label>' +
+        '<label>方式<select id="met">' + Object.entries(METHOD).map(([k, t]) => '<option value="' + k + '">' + t + '</option>').join("") + '</select></label>' +
+        '<label>收据号 / 转账单号<input id="ref" maxlength="80"></label>' +
+        '<label>备注<input id="note" maxlength="500"></label>' +
+      '</div><div class="bar" style="margin-top:12px"><button class="sbtn pri" type="button" id="add">' + I("save", 16) + '记账</button></div></div>' +
+
+      '<h2 style="font-size:17px;color:var(--navy);margin:20px 0 10px">每位学员</h2>' +
+      (rows.length ? '<div class="tw"><table class="ft"><thead><tr><th>学员</th><th>班级</th>' + curs.map((c) => '<th class="n">应收 ' + c + '</th><th class="n">已收</th><th class="n">欠款</th>').join("") + '<th></th></tr></thead><tbody>' +
+        rows.map(({ p, t }) => '<tr><td>' + UI.esc(p.name || "未填姓名") + '</td><td>' + UI.esc(p.cohort || "—") + '</td>' +
+          curs.map((c) => { const x = t[c]; if (!x) return '<td class="n">—</td><td class="n">—</td><td class="n">—</td>';
+            const o = owe(x); return '<td class="n">' + money(x.charge, c) + '</td><td class="n">' + money(x.payment, c) + '</td><td class="n' + (o > 0 ? " owe" : "") + '">' + money(o, c) + '</td>'; }).join("") +
+          '<td><button class="sbtn" type="button" data-only="' + p.id + '">明细</button></td></tr>').join("") + '</tbody></table></div>'
+        : UI.box("👥", "还没有学员", "报名收件箱里有入学申请后会出现在这里。")) +
+
+      '<h2 style="font-size:17px;color:var(--navy);margin:20px 0 10px">流水明细' + (fPerson ? " · " + UI.esc(pname(Number(fPerson))) + ' <button class="link" type="button" id="allp">看全部</button>' : "") + '</h2>' +
+      (list.length ? '<div class="tw"><table class="ft"><thead><tr><th>日期</th><th>学员</th><th>类型</th><th>项目</th><th class="n">金额</th><th>方式</th><th>单号</th><th>备注</th><th></th></tr></thead><tbody>' +
+        list.map((e) => '<tr' + (e.voided_at ? ' class="void" title="已作废：' + UI.esc(e.void_reason || "") + '"' : "") + '><td>' + UI.esc(e.occurred_on) + '</td><td>' + UI.esc(pname(e.submission_id)) + '</td>' +
+          '<td class="kind-' + e.kind + '">' + KIND[e.kind] + '</td><td>' + UI.esc(e.category) + '</td><td class="n">' + money(e.amount, e.currency) + '</td>' +
+          '<td>' + (METHOD[e.method] || "—") + '</td><td>' + UI.esc(e.reference || "") + '</td><td>' + UI.esc(e.voided_at ? "已作废：" + (e.void_reason || "") : e.note || "") + '</td>' +
+          '<td>' + (e.voided_at ? "" : '<button class="sbtn" type="button" data-void="' + e.id + '">作废</button>') + '</td></tr>').join("") + '</tbody></table></div>'
+        : UI.box("🧾", "还没有记账", "在上面「记一笔」开始。"));
+
+    main.querySelector("#fc").addEventListener("change", (ev) => { fCohort = ev.target.value; fPerson = ""; render(); });
+    main.querySelector("#add").addEventListener("click", add);
+    main.querySelector("#csv").addEventListener("click", csv);
+    main.querySelector("#allp")?.addEventListener("click", () => { fPerson = ""; render(); });
+    main.querySelectorAll("[data-only]").forEach((b) => b.addEventListener("click", () => { fPerson = b.dataset.only; render(); }));
+    main.querySelectorAll("[data-void]").forEach((b) => b.addEventListener("click", () => voidIt(entries.find((e) => e.id === b.dataset.void))));
+  }
+
+  const say = (m, ok) => { const e = main.querySelector("#err"); e.className = "msg " + (ok ? "ok" : "err") + " show"; e.textContent = m; if (!ok) e.focus(); };
+  const v = (id) => main.querySelector("#" + id).value.trim();
+
+  async function add(){
+    if (busy) return;
+    const who = v("who"), amount = Number(v("amt"));
+    if (!who) return say("请选择学员（或整个班）。");
+    if (!(amount > 0)) return say("请填写大于 0 的金额。");
+    if (!v("day")) return say("请填写日期。");
+    const targets = who.startsWith("cohort:") ? people.filter((p) => p.cohort === who.slice(7)).map((p) => p.id) : [Number(who)];
+    if (!targets.length) return say("这个班里还没有学员。");
+    if (targets.length > 1 && !(await UI.confirmDialog({ title: "给整个班记账", text: "给「" + who.slice(7) + "」" + targets.length + " 位学员每人记一笔" + KIND[v("kind")] + " " + money(amount, v("cur")) + "，确定吗？", confirmLabel: "确定" }))) return;
+    const batch = targets.length > 1 && window.crypto && crypto.randomUUID ? crypto.randomUUID() : null;
+    const me = mounted.ctx.session.user.id;
+    const rows = targets.map((sid) => ({ submission_id: sid, kind: v("kind"), category: v("cat") || "其他", amount, currency: v("cur"),
+      occurred_on: v("day"), method: v("met"), reference: v("ref"), note: v("note"), batch_id: batch, created_by: me }));
+    busy = true;
+    try {
+      const { data, error } = await A.client.from("finance_entries").insert(rows).select();
+      if (error || !Array.isArray(data) || data.length !== rows.length) return say("这一次没有记上，请再试一次。");
+      entries = data.concat(entries).sort((a, b) => (a.occurred_on < b.occurred_on ? 1 : a.occurred_on > b.occurred_on ? -1 : (a.created_at < b.created_at ? 1 : -1)));
+      render(); say("已记账 " + data.length + " 笔。", true);
+    } finally { busy = false; }
+  }
+
+  async function voidIt(e){
+    if (!e || busy) return;
+    const r = await window.AmasSis.ask({ title: "作废这笔账", text: pname(e.submission_id) + " · " + KIND[e.kind] + " " + money(e.amount, e.currency) + "（" + e.occurred_on + "）。作废后不计入余额，记录保留可查。",
+      fields: [{ id: "reason", label: "作废原因（例如：重复录入、金额写错）", type: "textarea", required: true }], confirmLabel: "作废", danger: true });
+    if (!r) return;
+    busy = true;
+    try {
+      const { data, error } = await Api.update("finance_entries", { id: e.id }, { voided_at: new Date().toISOString(), void_reason: r.reason });
+      if (error || !Array.isArray(data) || !data.length) return say("这一次没有作废成功，请再试一次。");
+      Object.assign(e, data[0]); render(); say("已作废。", true);
+    } finally { busy = false; }
+  }
+
+  function csv(){
+    const q = (x) => '"' + String(x == null ? "" : x).replace(/"/g, '""') + '"';
+    const head = ["日期", "学员", "班级", "类型", "项目", "金额", "币种", "方式", "单号", "备注", "状态"];
+    const lines = entries.filter((e) => !fCohort || (people.find((p) => p.id === e.submission_id) || {}).cohort === fCohort).map((e) =>
+      [e.occurred_on, pname(e.submission_id), (people.find((p) => p.id === e.submission_id) || {}).cohort || "", KIND[e.kind], e.category, sign(e) < 0 ? -e.amount : e.amount,
+       e.currency, METHOD[e.method] || "", e.reference, e.note, e.voided_at ? "已作废：" + (e.void_reason || "") : ""].map(q).join(","));
+    const blob = new Blob(["﻿" + [head.map(q).join(",")].concat(lines).join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = "AMAS费用明细" + (fCohort ? "-" + fCohort : "") + "-" + new Date().toISOString().slice(0, 10) + ".csv";
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>

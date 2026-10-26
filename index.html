@@ -83,9 +83,9 @@
 })();
 </script>
 <script>(function(){var l=document.createElement("link");l.rel="preload";l.as="image";l.href="assets/img/hero-"+(document.documentElement.dataset.theme==="night"?"night":"day")+".webp";document.head.appendChild(l);})();</script>
-<script src="assets/js/supabase-config.js?v=202610261950"></script>
+<script src="assets/js/supabase-config.js?v=202610262031"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- 字体表不阻塞首屏：大陆连不上 Google 时页面照常用系统宋体立即显示，连上了再换字体 --><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&display=swap" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&display=swap"></noscript>
-<link rel="stylesheet" href="assets/css/main.css?v=202610261950">
+<link rel="stylesheet" href="assets/css/main.css?v=202610262031">
 </head>
 <body>
 <a class="skip-link" href="#main" data-i18n="actions.skip">跳到主要内容</a>
@@ -234,6 +234,31 @@
       <div class="hero-band-item"><span>LOCATION</span><b>Chiang Mai, Thailand</b></div>
     </div>
   </div>
+
+  <!-- 线上课堂 · 开学导言 · 通知公告（内容在管理后台「公告与课堂」里填，经 site_public() 读；
+       没有内容时整块不显示，读不到时也不显示 —— 页面其余部分不受影响。0041，2026-10-26） -->
+  <section class="live-board" id="liveBoard" hidden aria-label="线上课堂与通知" data-i18n-aria="board.aria">
+    <div class="shell live-grid">
+      <div class="live-card" id="liveClass" hidden>
+        <span class="live-kicker"><i class="live-dot" aria-hidden="true"></i><span data-i18n="board.live">线上课堂</span><em id="liveGuest" data-i18n="board.guest" hidden>欢迎旁听</em></span>
+        <b id="liveTitle"></b>
+        <small id="liveWhen"></small>
+        <small id="liveIds"></small>
+        <a class="btn primary live-join" id="liveJoin" href="#" target="_blank" rel="noopener"><span data-i18n="board.join">进入线上课堂</span><span>→</span></a>
+      </div>
+      <div class="live-card" id="liveVideo" hidden>
+        <span class="live-kicker"><span data-i18n="board.video">课程介绍 · 开学导言</span></span>
+        <b id="videoTitle"></b>
+        <small id="videoDesc"></small>
+        <span class="live-btns"><a class="btn secondary" id="videoYt" href="#" target="_blank" rel="noopener" hidden data-i18n="board.yt">YouTube 观看</a>
+          <a class="btn secondary" id="videoCn" href="#" target="_blank" rel="noopener" hidden data-i18n="board.cn">国内观看</a></span>
+      </div>
+      <div class="live-card" id="liveAnn" hidden>
+        <span class="live-kicker"><span data-i18n="board.ann">通知公告</span></span>
+        <ul class="live-ann" id="annList"></ul>
+      </div>
+    </div>
+  </section>
 
   <!-- 定制化神学测评入口条 -->
   <a class="ai-strip" href="discover.html">
@@ -1257,6 +1282,6 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="assets/js/main.js?v=202610261950"></script>
+<script src="assets/js/main.js?v=202610262031"></script>
 </body>
 </html>

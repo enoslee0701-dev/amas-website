@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>上课记录 | AMAS</title>
+<link rel="icon" href="../../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610262031">
+<style>
+.sum{width:100%;border-collapse:collapse;font-size:13.5px;background:#fff;border-radius:14px;overflow:hidden}
+.sum th,.sum td{padding:9px 10px;border-bottom:1px solid #ece8de;text-align:left;white-space:nowrap}
+.sum th{background:#f6f4ee;color:#4b5567;font-weight:600}
+.sum td.n{font-variant-numeric:tabular-nums}
+.tw{overflow-x:auto;border:1px solid #e6e2d8;border-radius:14px;box-shadow:0 8px 24px rgba(16,40,72,.06)}
+.seg{display:inline-flex;border:1px solid #cfd5df;border-radius:9px;overflow:hidden;background:#fff}
+.seg button{min-height:38px;min-width:46px;padding:0 9px;border:0;border-right:1px solid #e3e6ec;background:none;font:inherit;font-size:13px;cursor:pointer;color:#4b5567}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed=true]{background:var(--navy);color:#fff;font-weight:600}
+.seg button[data-v=absent][aria-pressed=true],.seg button[data-v=missing][aria-pressed=true]{background:#a23a32}
+.seg button[data-v=late][aria-pressed=true],.seg button[data-v=partial][aria-pressed=true],.seg button[data-v=excused][aria-pressed=true]{background:#8a6418}
+.grid{display:grid;gap:8px}
+.gr{display:grid;grid-template-columns:minmax(120px,1fr) auto auto;gap:8px 12px;align-items:center;padding:10px 12px;border:1px solid #ece8de;border-radius:12px;background:#fff}
+.gr .nm b{display:block;color:var(--navy)}.gr .nm small{color:var(--muted)}
+.gr .lab{font-size:11.5px;color:var(--muted);display:block;margin-bottom:2px}
+.ed{border:1px solid #e6e2d8;border-radius:16px;background:#fbfaf6;padding:16px;margin:0 0 18px}
+.ed .row3{display:grid;grid-template-columns:150px 1fr 150px;gap:10px;margin-bottom:12px}
+.ed label{font-size:12.5px;color:#4b5567;display:grid;gap:4px}
+.ed input,.ed select,.ed textarea{min-height:42px;padding:8px 10px;border:1px solid #cfd5df;border-radius:9px;font:inherit;background:#fff}
+.chip.zoom{background:#e8eef7;color:#1d3b66}.chip.whatsapp{background:#e6f4ea;color:#1f6b4f}.chip.onsite{background:#fdf4e3;color:#7a5a12}
+@media(max-width:700px){.gr{grid-template-columns:1fr}.ed .row3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<script src="../../../assets/vendor/supabase-js@2.116.0/supabase.min.js"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/api.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610262031"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610262031"></script>
+<script>
+/* 班级上课记录（0040）：每次上课记日期、第几课、在哪里（Zoom / WhatsApp / 线下），
+   每位学员一行：出勤与作业。Enos 2026-10-26：作业在 Zoom、考勤在 WhatsApp，在这里汇总。
+   学员名单 = 报名收件箱里分到这个班的入学申请。 */
+(async function(){
+  const A = window.AmasAuth, UI = window.AmasUI, Api = window.AmasApi, Shell = window.AmasShell, I = Shell.icon;
+  const mounted = await Shell.mount({ space: "admin", title: "管理后台", allow: ["registrar", "academic_admin", "super_admin"], requireAal2: true });
+  if (!mounted) return;
+  const { main } = mounted;
+  const cohort = new URLSearchParams(location.search).get("name") || "";
+  const back = A.ROOT + "portal/admin/inbox/";
+  const ATT = [["present", "出席"], ["late", "迟到"], ["absent", "缺席"], ["excused", "请假"]];
+  const HW = [["excellent", "优秀"], ["done", "已交"], ["partial", "部分"], ["missing", "未交"]];
+  const SRC = { zoom: "Zoom", whatsapp: "WhatsApp", onsite: "线下", other: "其他", "": "" };
+  const label = (list, v) => (list.find((x) => x[0] === v) || [, "—"])[1];
+  let roster = [], numbers = {}, sessions = [], marks = [], busy = false;
+
+  if (!cohort) return UI.error(main, { message: "没有指定班级。请从报名收件箱的班级卡片进入。" });
+  UI.loading(main, 4);
+  const [r1, r2] = await Promise.all([
+    Api.select("submissions", { columns: "id,name,student_user_id,created_at", eq: { cohort, type: "application" }, order: [{ column: "created_at", asc: true }, { column: "id", asc: true }] }),
+    Api.select("cohort_sessions", { columns: "id,held_on,title,source,note", eq: { cohort }, order: [{ column: "held_on" }, { column: "created_at" }] }),
+  ]);
+  if (r1.error || !Array.isArray(r1.data) || r2.error || !Array.isArray(r2.data)) {
+    return UI.error(main, { message: "这一次没能读到这个班的记录。这不表示没有记录，请稍后刷新。", onRetry: () => location.reload() });
+  }
+  roster = r1.data; sessions = r2.data;
+  const uids = roster.map((x) => x.student_user_id).filter(Boolean);
+  const [r3, r4] = await Promise.all([
+    uids.length ? Api.select("student_records", { columns: "user_id,student_number", in: { user_id: uids } }) : { data: [] },
+    sessions.length ? Api.select("cohort_marks", { columns: "session_id,submission_id,attendance,homework,note", in: { session_id: sessions.map((x) => x.id) } }) : { data: [] },
+  ]);
+  (r3.data || []).forEach((x) => { numbers[x.user_id] = x.student_number; });
+  if (r4.error) return UI.error(main, { message: "这一次没能读到考勤明细，请稍后刷新。", onRetry: () => location.reload() });
+  marks = r4.data || [];
+
+  const mark = (sid, pid) => marks.find((m) => m.session_id === sid && m.submission_id === pid) || {};
+  const sno = (p) => numbers[p.student_user_id] || "";
+
+  function render(){
+    const rate = (p, key, good) => {
+      const n = sessions.filter((s) => mark(s.id, p.id)[key]).length;
+      const g = sessions.filter((s) => good.includes(mark(s.id, p.id)[key])).length;
+      return n ? g + " / " + n : "—";
+    };
+    main.innerHTML =
+      '<p class="no-print"><a class="link" href="' + back + '">← 返回报名收件箱</a></p>' +
+      '<h1>' + UI.esc(cohort) + ' · 上课记录</h1>' +
+      '<p class="lead">每次上课记一笔：出勤（WhatsApp 签到）和作业（Zoom 提交）。共 ' + roster.length + ' 位学员、' + sessions.length + ' 次上课。</p>' +
+      '<div class="msg err" id="err" role="alert" tabindex="-1"></div>' +
+      '<div class="bar" style="margin-bottom:16px"><button class="sbtn pri" id="add" type="button">' + I("plus", 16) + '记录一次上课</button></div>' +
+      '<div id="editor"></div>' +
+      '<h2 class="sec-h" style="font-size:17px;color:var(--navy);margin:8px 0 10px">每位学员汇总</h2>' +
+      (roster.length ? '<div class="tw"><table class="sum"><thead><tr><th>学员</th><th>学号</th><th>出勤（出席+迟到）</th><th>作业（优秀+已交）</th></tr></thead><tbody>' +
+        roster.map((p) => '<tr><td>' + UI.esc(p.name || "未填姓名") + '</td><td>' + UI.esc(sno(p) || "—") + '</td><td class="n">' +
+          rate(p, "attendance", ["present", "late"]) + '</td><td class="n">' + rate(p, "homework", ["excellent", "done"]) + '</td></tr>').join("") +
+        '</tbody></table></div>' : UI.box("👥", "这个班还没有学员", "在报名收件箱里把学员分到「" + cohort + "」后会出现在这里。")) +
+      '<h2 style="font-size:17px;color:var(--navy);margin:22px 0 10px">历次上课</h2>' +
+      (sessions.length ? '<div class="ofs">' + sessions.map((s) => {
+        const ms = roster.map((p) => mark(s.id, p.id));
+        const att = ms.filter((m) => m.attendance === "present" || m.attendance === "late").length;
+        const hw = ms.filter((m) => m.homework === "excellent" || m.homework === "done").length;
+        return '<div class="of"><div class="top"><h3>' + UI.esc(s.held_on) + (s.title ? ' · ' + UI.esc(s.title) : "") + '</h3>' +
+          (s.source ? '<span class="chip ' + s.source + '">' + UI.esc(SRC[s.source]) + '</span>' : "") + '</div>' +
+          '<div class="meta"><span>出勤 ' + att + ' / ' + roster.length + '</span><span>作业 ' + hw + ' / ' + roster.length + '</span></div>' +
+          (s.note ? '<div class="note">' + UI.esc(s.note) + '</div>' : "") +
+          '<div class="bar"><button class="sbtn" type="button" data-edit="' + s.id + '">' + I("edit", 16) + '修改</button>' +
+          '<button class="sbtn" type="button" data-del="' + s.id + '">删除</button></div></div>';
+      }).join("") + '</div>' : UI.box("🗓️", "还没有上课记录", "点上面的「记录一次上课」开始。"));
+    main.querySelector("#add").addEventListener("click", () => editor(null));
+    main.querySelectorAll("[data-edit]").forEach((b) => b.addEventListener("click", () => editor(sessions.find((s) => s.id === b.dataset.edit))));
+    main.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", () => del(sessions.find((s) => s.id === b.dataset.del))));
+  }
+
+  const say = (m) => { const e = main.querySelector("#err"); e.textContent = m; e.classList.add("show"); e.focus(); };
+  const seg = (kind, list, v, pid) => '<span class="seg" role="group" aria-label="' + (kind === "a" ? "出勤" : "作业") + '">' +
+    list.map(([k, t]) => '<button type="button" data-k="' + kind + '" data-p="' + pid + '" data-v="' + k + '" aria-pressed="' + (v === k) + '">' + t + '</button>').join("") + '</span>';
+
+  function editor(s){
+    const box = main.querySelector("#editor");
+    const next = "第 " + (sessions.length + 1) + " 课";
+    box.innerHTML = '<div class="ed" id="ed"><h2 style="font-size:16px;margin:0 0 12px;color:var(--navy)">' + (s ? "修改上课记录" : "记录一次上课") + '</h2>' +
+      '<div class="row3"><label>日期<input type="date" id="d" value="' + UI.esc(s ? s.held_on : new Date().toISOString().slice(0, 10)) + '"></label>' +
+      '<label>第几课 / 主题<input id="t" maxlength="120" value="' + UI.esc(s ? s.title : next) + '"></label>' +
+      '<label>在哪里<select id="src">' + Object.entries(SRC).filter(([k]) => k).map(([k, t]) => '<option value="' + k + '"' + ((s ? s.source : "zoom") === k ? " selected" : "") + '>' + t + '</option>').join("") + '</select></label></div>' +
+      '<div class="bar" style="margin-bottom:10px"><button class="sbtn" type="button" id="allP">全部出席</button><button class="sbtn" type="button" id="allH">全部已交作业</button></div>' +
+      '<div class="grid">' + roster.map((p) => { const m = s ? mark(s.id, p.id) : {};
+        return '<div class="gr"><span class="nm"><b>' + UI.esc(p.name || "未填姓名") + '</b><small>' + UI.esc(sno(p)) + '</small></span>' +
+          '<span><span class="lab">出勤</span>' + seg("a", ATT, m.attendance || "", p.id) + '</span>' +
+          '<span><span class="lab">作业</span>' + seg("h", HW, m.homework || "", p.id) + '</span></div>'; }).join("") + '</div>' +
+      '<label style="display:grid;gap:4px;margin-top:12px;font-size:12.5px;color:#4b5567">备注（可不填）<textarea id="nt" rows="2" maxlength="1000">' + UI.esc(s ? s.note : "") + '</textarea></label>' +
+      '<div class="bar" style="margin-top:12px"><button class="sbtn pri" type="button" id="save">' + I("save", 16) + '保存</button><button class="sbtn" type="button" id="cancel">取消</button></div></div>';
+    box.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => {
+      const on = b.getAttribute("aria-pressed") !== "true";
+      b.parentElement.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", "false"));
+      b.setAttribute("aria-pressed", String(on));
+    }));
+    const all = (k, v) => box.querySelectorAll('.seg button[data-k="' + k + '"]').forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === v)));
+    box.querySelector("#allP").addEventListener("click", () => all("a", "present"));
+    box.querySelector("#allH").addEventListener("click", () => all("h", "done"));
+    box.querySelector("#cancel").addEventListener("click", () => { box.innerHTML = ""; });
+    box.querySelector("#save").addEventListener("click", () => save(s, box));
+    box.querySelector("#ed").scrollIntoView({ block: "start", behavior: "smooth" });
+  }
+
+  async function save(s, box){
+    if (busy) return;
+    const held_on = box.querySelector("#d").value;
+    if (!held_on) return say("请填上课日期。");
+    const row = { cohort, held_on, title: box.querySelector("#t").value.trim(), source: box.querySelector("#src").value, note: box.querySelector("#nt").value.trim() };
+    const pick = (k, pid) => (box.querySelector('.seg button[data-k="' + k + '"][data-p="' + pid + '"][aria-pressed="true"]') || {}).dataset?.v || "";
+    busy = true;
+    try {
+      let sid = s && s.id;
+      if (s) {
+        const { data, error } = await Api.update("cohort_sessions", { id: s.id }, row);
+        if (error || !Array.isArray(data) || !data.length) return say("这一次没有保存成功，请再点一次「保存」。");
+        Object.assign(s, data[0]);
+      } else {
+        const { data, error } = await Api.insert("cohort_sessions", row);
+        if (error || !data) return say("这一次没有保存成功，请再点一次「保存」。");
+        sessions.unshift(data); sid = data.id;
+      }
+      const rows = roster.map((p) => ({ session_id: sid, submission_id: p.id, attendance: pick("a", p.id), homework: pick("h", p.id) }));
+      if (rows.length) {
+        const { data, error } = await A.client.from("cohort_marks").upsert(rows, { onConflict: "session_id,submission_id" }).select();
+        if (error || !Array.isArray(data) || data.length !== rows.length) {
+          return say("上课记录已保存，但学员的出勤 / 作业这一次没存全，请点「修改」再保存一次。");
+        }
+        marks = marks.filter((m) => m.session_id !== sid).concat(data);
+      }
+      sessions.sort((a, b) => (a.held_on < b.held_on ? 1 : a.held_on > b.held_on ? -1 : 0));
+      UI.toast("已保存");
+      render();
+    } finally { busy = false; }
+  }
+
+  async function del(s){
+    if (!s || busy) return;
+    if (!(await UI.confirmDialog({ title: "删除这次上课记录", text: s.held_on + (s.title ? " · " + s.title : "") + "，连同每位学员的出勤与作业一起删除。", confirmLabel: "删除" }))) return;
+    busy = true;
+    try {
+      /* 权限不够时数据库不报错、只是删了 0 行，所以要回读删掉的那一行来确认 */
+      const { data, error } = await A.client.from("cohort_sessions").delete().eq("id", s.id).select("id");
+      if (error || !Array.isArray(data) || !data.length) return say("这一次没有删除成功，请稍后再试。");
+      sessions = sessions.filter((x) => x.id !== s.id); marks = marks.filter((m) => m.session_id !== s.id);
+      UI.toast("已删除"); render();
+    } finally { busy = false; }
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>

@@ -172,6 +172,26 @@ try {
      (await fv("fam0_name")) === "王弟兄" && (await fv("edu1_school")) === "清迈大学" && (await fv("edu0_degree")) === "硕士及以上" &&
      (await fv("work0_title")) === "传道" && (await pressed()).startsWith("course=宣教士训练"));
 
+  // 全班申请表一次打印
+  console.log("\n=== B 全班申请表 ===");
+  const BROWS = [Object.assign({}, FROW, { id: 21, school_form: { name_zh: "已保存者", health: "良好" } }),
+                 Object.assign({}, NROW, { id: 22, name: "预填者" })];
+  await open("portal/admin/inbox/forms/?cohort=" + encodeURIComponent("10月班"), fscen(BROWS));
+  const bt = await ev(`document.body.innerText`);
+  ok("B1 一人一页，份数对", (await ev(`document.querySelectorAll(".af-page").length`)) === 2 && bt.includes("共 2 份"));
+  ok("B2 已保存的用保存的，没保存的按报名资料预填，并提示", (await ev(`document.querySelector('[data-id="21"] [data-k="health"]').innerText`)) === "良好" &&
+     (await ev(`document.querySelector('[data-id="22"] [data-k="phone_fixed"]').innerText`)) === "053-111111" && bt.includes("其中 1 份还没"));
+  ok("B3 批量页只读（没有可编辑格子）", (await ev(`document.querySelectorAll('[contenteditable]').length`)) === 0);
+  await ev(`window.__printed = 0; window.print = function(){ window.__printed++; }; true`);
+  await click("#print");
+  ok("B4 打印按钮调用浏览器打印", (await ev("window.__printed")) === 1);
+  await send("Emulation.setEmulatedMedia", { media: "print" });
+  ok("B5 打印时每份分页、隐藏导航与按钮", (await ev(`getComputedStyle(document.querySelector(".af-page")).breakAfter`)) === "page" &&
+     (await ev(`["nav.pn","header.ph",".no-print"].every(s => { const e = document.querySelector(s); return !e || getComputedStyle(e).display === "none"; })`)));
+  await send("Emulation.setEmulatedMedia", { media: "" });
+  await open("portal/admin/inbox/forms/", fscen([]));
+  ok("B6 没给班级时说明从哪里进", (await txt()).includes("没有指定班级"));
+
   ok("O1 全程没有请求离开本机", h.external() === 0);
 } catch (e) {
   h.fail("测试过程抛错：" + e.message);

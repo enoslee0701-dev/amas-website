@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>全班入学申请表 | AMAS</title>
+<link rel="icon" href="../../../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../../../assets/css/portal.css?v=202610262031">
+<style>
+.af-page{margin-bottom:22px}
+.bar-top{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+</style>
+</head>
+<body>
+<script src="../../../../assets/vendor/supabase-js@2.116.0/supabase.min.js"></script>
+<script src="../../../../assets/js/supabase-config.js?v=202610262031"></script>
+<script src="../../../../assets/js/portal/auth.js?v=202610262031"></script>
+<script src="../../../../assets/js/portal/api.js?v=202610262031"></script>
+<script src="../../../../assets/js/portal/ui.js?v=202610262031"></script>
+<script src="../../../../assets/js/portal/shell.js?v=202610262031"></script>
+<script src="../../../../assets/js/portal/sis.js?v=202610262031"></script>
+<script src="../../../../assets/js/portal/school-form.js?v=202610262031"></script>
+<script>
+/* 一个班的入学申请表一次打印（Enos 2026-10-26：递交总校）。每人一页 A4，
+   内容与单份编辑页同一套（assets/js/portal/school-form.js）：已保存的为准，没保存的按报名资料预填。
+   打印时选「另存为 PDF」就得到一个合成的文件。 */
+(async function(){
+  const A = window.AmasAuth, UI = window.AmasUI, Api = window.AmasApi, Shell = window.AmasShell, F = window.AmasSchoolForm, I = Shell.icon;
+  const mounted = await Shell.mount({ space: "admin", title: "管理后台", allow: ["registrar", "academic_admin", "super_admin"], requireAal2: true });
+  if (!mounted) return;
+  const { main } = mounted;
+  const cohort = new URLSearchParams(location.search).get("cohort") || "";
+  if (!cohort) return UI.error(main, { message: "没有指定班级。请从报名收件箱的班级卡片进入。" });
+  UI.loading(main, 4);
+  const { data, error } = await Api.select("submissions", { columns: "id,name,school_form,data,created_at",
+    eq: { cohort, type: "application" }, order: [{ column: "created_at", asc: true }, { column: "id", asc: true }] });
+  if (error || !Array.isArray(data)) return UI.error(main, { message: "这一次没能读到这个班的申请表，请稍后刷新。", onRetry: () => location.reload() });
+  const notSaved = data.filter((r) => !F.saved(r)).length;
+  main.innerHTML =
+    '<div class="no-print"><p><a class="link" href="' + A.ROOT + 'portal/admin/inbox/">← 返回报名收件箱</a></p>' +
+    '<h1>' + UI.esc(cohort) + ' · 入学申请表</h1>' +
+    '<p class="lead">共 ' + data.length + ' 份，每人一页 A4。点「打印 / 存 PDF」，在打印窗口里选「另存为 PDF」，就得到一个合成文件交总校。</p>' +
+    (notSaved ? '<div class="msg info show">其中 ' + notSaved + ' 份还没在单份页面里补填保存过，这里按报名资料预填；家庭、健康等空白栏位会是空的。</div>' : "") +
+    '<div class="bar-top"><button class="sbtn pri" id="print" type="button">' + I("print", 16) + '打印 / 存 PDF</button></div></div>' +
+    (data.length ? data.map((r) => '<section class="af-page" data-id="' + r.id + '">' + F.html(F.values(r), { editable: false }) + '</section>').join("")
+                 : UI.box("📄", "这个班还没有学员", "在报名收件箱里把学员分到「" + cohort + "」后会出现在这里。"));
+  main.querySelector("#print").addEventListener("click", () => window.print());
+})();
+</script>
+</body>
+</html>
