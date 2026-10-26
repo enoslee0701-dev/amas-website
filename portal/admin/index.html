@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>管理后台 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202610261106">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202610261146">
 <style>
 table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 .list th,.list td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top}
@@ -25,6 +25,10 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 .hub a{display:block;border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px 14px;text-decoration:none;color:var(--ink)}
 .hub a b{display:block;color:var(--navy);font-size:15px}.hub a span{font-size:12px;color:var(--muted)}
 .hub a em{font-style:normal;font-weight:700;color:#8a5a12}
+.wrap.in-shell{width:auto;margin:0;padding:0}
+.in-shell .card{border-radius:16px;border-color:#e6e2d8;box-shadow:0 8px 24px rgba(16,40,72,.06)}
+.in-shell .hub a{border-radius:14px;padding:16px;border-color:#e6e2d8;box-shadow:0 4px 14px rgba(16,40,72,.05);transition:border-color .15s,transform .15s}
+.in-shell .hub a:hover{border-color:var(--navy2);transform:translateY(-1px)}
 </style>
 </head>
 <body>
@@ -86,8 +90,10 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202610261106"></script>
-<script src="../../assets/js/portal/auth.js?v=202610261106"></script>
+<script src="../../assets/js/supabase-config.js?v=202610261146"></script>
+<script src="../../assets/js/portal/auth.js?v=202610261146"></script>
+<script src="../../assets/js/portal/ui.js?v=202610261146"></script>
+<script src="../../assets/js/portal/shell.js?v=202610261146"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
@@ -97,6 +103,18 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
   A.watchSession();
   const ctx = await A.requireRoleAal2(["academic_admin","super_admin","registrar"]);  // 角色 + MFA
   if (!ctx) return;
+  /* 2026-10-26 界面统一：总览也套上门户外壳（顶栏 + 左侧导航），原有内容整块搬进主区，
+     顶上的大校徽与页脚由外壳取代。外壳挂不上（例如读角色失败）时保持原样，不影响下面的功能。 */
+  if (window.AmasShell) {
+    const m = await window.AmasShell.mount({ space: "admin", title: "管理后台", allow: ["academic_admin","super_admin","registrar"], requireAal2: true });
+    const wrap = document.querySelector(".wrap.wide");
+    if (m && wrap) {
+      wrap.querySelector(".brandbar")?.remove(); wrap.querySelector(".foot")?.remove();
+      wrap.classList.add("in-shell");
+      m.main.innerHTML = '<h1>总览</h1><p class="lead">常用工作入口与待办数量；左侧菜单可进入各项管理。</p>';
+      m.main.appendChild(wrap);
+    }
+  }
   const p = await A.getProfile();
   if (A.sessionEnded()) return;            // 晚返回的渲染让位，不拿死会话摆出管理界面
   document.getElementById("who").textContent = (p && (p.display_name || p.email)) || "";
