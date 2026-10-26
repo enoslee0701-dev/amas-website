@@ -10,7 +10,7 @@
 import { startHarness, sleep } from "./lib/sis-harness.mjs";
 
 const h = await startHarness({ profilePrefix: "amas-speed-", shotPrefix: "speed" });
-const { ok, open, ev, txt } = h;
+const { ok, open, ev, txt, send } = h;
 const U = { session: { user: { id: "u-a", email: "a@example.invalid" } } };
 const ROLES = { data: [{ role: "registrar" }] };
 const PROFILE = { data: { display_name: "AMAS清迈分院院长", email: "a@example.invalid" } };
@@ -57,6 +57,20 @@ try {
   ok("S6 悬停菜单项即预取那一页", await ev(`[...document.querySelectorAll('link[rel=prefetch]')].some(l => l.href.includes("/portal/admin/offerings/"))`));
   await ev(`window.AmasAuth.signOut(); true`); await sleep(600);
   ok("S5c 退出登录后清掉记住的名字", (await ev(`sessionStorage.getItem("amas.shell-who")`)) === null);
+
+  console.log("\n=== 层叠 ===");
+  await send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
+  await open("portal/admin/inbox/", base({}));
+  const top = await ev(`(()=>{ const d=document.createElement("div"); d.id="probeDrawer";
+    d.style.cssText="position:fixed;right:0;top:0;bottom:0;width:400px;z-index:50;background:#fff";
+    document.getElementById("main").appendChild(d);
+    const e=document.elementFromPoint(window.innerWidth-200, 20); return e && (e.id || e.className || e.tagName); })()`);
+  ok("S7 主区里的右侧抽屉（z 50）盖得住顶栏，不被遮住", top === "probeDrawer", top);
+  const deco = await ev(`(()=>{ document.getElementById("probeDrawer").remove();
+    const h=document.querySelector("#main h1").getBoundingClientRect(); const e=document.elementFromPoint(h.left+10, h.top+h.height/2);
+    return !!(e && e.closest("#main")); })()`);
+  ok("S7b 教堂插画在内容后面，不挡标题", deco);
+  await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 820, deviceScaleFactor: 1, mobile: true });
 
   ok("O1 全程没有请求离开本机", h.external() === 0);
 } catch (e) {
