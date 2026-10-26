@@ -1010,13 +1010,26 @@ $$("[data-close-video]").forEach(x => x.addEventListener("click", () => closeLay
 
 
 /* ===== 提交到后端（未配置 endpoint 时回退到本地演示）===== */
-/* 数据库通道：SUPA 配置后，每次成功提交同时写入 Supabase（静默失败，绝不影响邮件通道） */
-function logToDB(kind, payload){
+/* 数据库通道：SUPA 配置后，每次提交**先**写入 Supabase，再发邮件（Enos 2026-10-26）。
+   原来是邮件成功后才写库：邮件服务连不上（大陆网络常见）时，邮箱和后台两边都没有这份报名。
+   先写库后，邮件失败访客重交会再写一次，所以按内容算一个指纹 dedupeKey，
+   数据库对同一指纹只收一次（0039 唯一索引，重复的那次 409 静默忽略）。静默失败，绝不影响邮件通道。 */
+async function dedupeKey(kind, data){
+  try{
+    const o = {};
+    Object.keys(data).sort().forEach(k => { if(k !== "submittedAt") o[k] = data[k]; });
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(kind + "|" + JSON.stringify(o)));
+    return [...new Uint8Array(buf)].slice(0, 12).map(b => b.toString(16).padStart(2, "0")).join("");
+  }catch(e){ return ""; }
+}
+async function logToDB(kind, payload){
   const S = window.SUPA || {};
   /* 只判非空挡不住占位串：英文模板值会把表单内容 POST 到占位地址。用 supabase-config.js 的统一判据。 */
   if(!(window.SUPA_IS_FILLED && window.SUPA_IS_FILLED())) return;
   const data = {};
   for(const k in payload){ if(!k.startsWith("_")) data[k] = payload[k]; }
+  const key = await dedupeKey(kind, data);
+  if(key) data.dedupeKey = key;
   const rec = {
     type: kind,
     name: String(payload.fullName || payload.name || payload["姓名"] || ""),
@@ -1047,6 +1060,7 @@ async function sendPayload(kind, payload){
     logToDB(kind, payload);
     return { ok:true, demo:true };
   }
+  logToDB(kind, payload);                    // 先存后台，邮件成不成都不丢（不等它，静默失败）
   /* 提交必须有超时上限。没有的话，服务器一挂住，按钮就永远停在「提交中…」，
      访客辛苦填完的一整份资料既送不出去也拿不回来 —— 这正是 AMAS 学员所在的
      泰国 / 中国大陆常见的网络状况。 */
@@ -1087,7 +1101,6 @@ async function sendPayload(kind, payload){
     e2.kind = (res.status >= 400 && res.status < 500 && res.status !== 408) ? "rejected" : "server";
     throw e2;
   }
-  logToDB(kind, payload);
   return { ok:true, demo:false };
 }
 
