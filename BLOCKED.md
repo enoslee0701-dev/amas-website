@@ -10,7 +10,7 @@
 - 更新 2026-09-14（Claude 追加，未改上面条目状态，留给 Luna 处置）：
   · T-003：本轮 `./scripts/verify.sh` 已能执行，拦截未复现。首轮退出码 1（index.html JSON-LD 误报），已在 T-005 修复，现退出码 0。
   · T-000：Enos 本轮在真实对话轮直接指示「读根目录 CLAUDE.md，按工作循环从队列取第一条未完成任务开始执行」，据此进入循环。
-- [ ] T-014 | UNCLEAR | 验收写「window.onerror 收集存在且不泄漏敏感值」，但**生产代码里没有任何页面异常采集**：
+- [x] T-014 | UNCLEAR | 验收写「window.onerror 收集存在且不泄漏敏感值」，但**生产代码里没有任何页面异常采集**：
   `git grep` 全部 13 个本地/远端分支的 *.html 与 assets/**/*.js，无 `window.onerror`、无 `addEventListener("error")`、无 `unhandledrejection`。
   现有的只有测试侧：21 支探针用 CDP `Runtime.exceptionThrown` 收集，1 支（test-profile-writes.mjs）在 stub 里挂 `window.addEventListener("error")` 只存 message。
   「补一条静态检查」无法对着不存在的采集器成立；要新建采集器则涉及：装在哪些页面（公开站 main.js / 门户 shell.js / 全部）、
@@ -45,3 +45,4 @@
   · 未测：auth/recovery（需要 recovery 令牌）、faculty/verify 的 tvForm（需要邀请码与会话）—— 两者同样没有这行守卫（读源码）。
   · 更新 2026-09-16（T-031 期间）：本机 supabase-config.local.js 指向的项目 ref **与文档记录的预发项目 `amas-staging`（sdrwyebizfdwldlfjyim，HO:928）相同**
     （进程内比对，只输出布尔值，未打印任何配置值）。文档记录生产环境 NOT ESTABLISHED（HO:929）。因此测试行若已写入，落在**预发库**的 submissions 表。
+- 更新 2026-10-26（Claude 追加）：T-014 由 Enos 选 (c) 撤掉，已在 QUEUE.md 标注，此条关闭。
