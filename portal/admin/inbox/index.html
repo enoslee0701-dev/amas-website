@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>官网报名收件箱 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610261048">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610261106">
 <style>
 .kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;font-size:13.5px;border-top:1px solid var(--line);padding-top:8px;margin-top:4px}
 .kv dt{color:var(--muted)}.kv dd{margin:0;word-break:break-word;white-space:pre-wrap}
@@ -17,12 +17,12 @@
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202610261048"></script>
-<script src="../../../assets/js/portal/auth.js?v=202610261048"></script>
-<script src="../../../assets/js/portal/api.js?v=202610261048"></script>
-<script src="../../../assets/js/portal/ui.js?v=202610261048"></script>
-<script src="../../../assets/js/portal/shell.js?v=202610261048"></script>
-<script src="../../../assets/js/portal/sis.js?v=202610261048"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610261106"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610261106"></script>
+<script src="../../../assets/js/portal/api.js?v=202610261106"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610261106"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610261106"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610261106"></script>
 <script>
 /* 官网报名收件箱：官网表单（入学申请 / 咨询 / 奉献 / 客服留言）由 main.js logToDB 写进 public.submissions，
    本页给教务查看、改跟进状态、写备注。0036 起只有教务类角色能读写；访客只能投递。
@@ -38,7 +38,8 @@
   const STATUS = ["待处理", "已联系", "已录取", "不合适"];
   /* 分班（0037）：submissions.cohort 按名称引用 submission_cohorts（0038，含开课日与课程进度）。空串 = 未分班。 */
   let COHORTS = [], CINFO = [];
-  const PROG = { bth: "神学学士 B.Th", gdip: "教牧学研究硕士 G.DIP", mdiv: "道学硕士 M.DIV", dmin: "教牧学博士 D.MIN" };
+  const PROG = { bth: "神学学士 B.Th", pastor: "牧会者进修", preaching: "讲道学校", dip: "大学 DIP", gdip: "教牧学研究硕士 G.DIP",
+                 mdiv: "道学硕士 M.DIV", dmin: "道学 / 宣教博士 D.MIN / D.MISS", missionary: "宣教士训练" };
   const VAL = { male: "男", female: "女", tspm: "三自教会", house: "家庭教会", other: "其他",
                 secondary: "高中及以下", college: "大专", bachelor: "本科", master: "硕士及以上",
                 online: "线上为主", onsite: "线下为主", hybrid: "线上 + 线下" };
@@ -47,7 +48,15 @@
                 conversionDate: "信主时间", baptismDate: "受洗时间", role: "教会服事", referrer: "推荐人",
                 program: "申请课程", mode: "上课方式", eduLevel: "最高学历", eduSchool: "毕业学校", gifts: "恩赐 / 专长",
                 motivation: "报读动机", name: "姓名", contact: "联系方式", message: "留言", language: "语言",
-                submittedAt: "提交时间", lang: "网页语言", consent: "同意条款" };
+                submittedAt: "提交时间", lang: "网页语言", consent: "同意条款",
+                phone_fixed: "固定电话", phone_church: "教会电话", family_status: "家庭状况", health: "健康状况",
+                personality: "性格", vision: "异象" };
+  /* 与总校申请表对齐的多行栏位：edu0_school → 学历1·学校 */
+  const ROWK = { edu: ["学历", { school: "学校", city: "城市", start: "入学", end: "毕业", degree: "学位" }],
+                 work: ["工作简历", { org: "机构", city: "城市", start: "开始", end: "离职", title: "职位" }],
+                 fam: ["家庭成员", { rel: "关系", name: "姓名", birth: "出生年月", faith: "信仰" }] };
+  const label = (k) => { const m = /^(edu|work|fam)(\d)_(\w+)$/.exec(k);
+    return m && ROWK[m[1]] ? ROWK[m[1]][0] + (Number(m[2]) + 1) + "·" + (ROWK[m[1]][1][m[3]] || m[3]) : (KEY[k] || k); };
   const SKIP = new Set(["_form", "_subject", "_autoresponse", "_template", "_captcha", "website", "attachment"]);
   const busy = new Set();
   let rows = [], fType = "application", fStatus = "", fCohort = "";
@@ -119,7 +128,7 @@
   function card(r){
     const d = r.data || {};
     const kv = Object.keys(d).filter(k => !SKIP.has(k) && d[k] !== "" && d[k] != null)
-      .map(k => '<dt>' + UI.esc(KEY[k] || k) + '</dt><dd>' + UI.esc(show(k, String(d[k]))) + '</dd>').join("");
+      .map(k => '<dt>' + UI.esc(label(k)) + '</dt><dd>' + UI.esc(show(k, String(d[k]))) + '</dd>').join("");
     return '<div class="of" id="s-' + r.id + '"><div class="top"><h3>' + UI.esc(r.name || "未填姓名") + '</h3>' +
         '<span>' + (r.cohort ? '<span class="chip s1">' + UI.esc(r.cohort) + '</span> ' : "") +
         '<span class="chip s' + sIdx(r.status) + '">' + UI.esc(r.status) + '</span></span></div>' +
