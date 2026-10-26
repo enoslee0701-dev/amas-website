@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>管理后台 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202610262051">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202610262114">
 <style>
 table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 .list th,.list td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top}
@@ -108,10 +108,10 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 </div>
 
 <script src="../../assets/vendor/supabase-js@2.116.0/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202610262051"></script>
-<script src="../../assets/js/portal/auth.js?v=202610262051"></script>
-<script src="../../assets/js/portal/ui.js?v=202610262051"></script>
-<script src="../../assets/js/portal/shell.js?v=202610262051"></script>
+<script src="../../assets/js/supabase-config.js?v=202610262114"></script>
+<script src="../../assets/js/portal/auth.js?v=202610262114"></script>
+<script src="../../assets/js/portal/ui.js?v=202610262114"></script>
+<script src="../../assets/js/portal/shell.js?v=202610262114"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
@@ -143,7 +143,7 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
   document.getElementById("who").textContent = (p && (p.display_name || p.email)) || "";
   document.getElementById("btnOut").addEventListener("click", () => A.signOut());
   /* 数据总览：每一项各读各的，哪项读不到那项就留「—」，不连累别的、也不挡下面的功能。 */
-  (async () => {
+  (async () => { try {
     const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
     const safe = (f) => Promise.resolve().then(f).catch(() => ({ error: true }));
     const month = new Date(); month.setDate(1); month.setHours(0, 0, 0, 0);
@@ -172,10 +172,10 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
       if (!m.error && Array.isArray(m.data) && m.data.length) {
         const ok = m.data.filter((x) => x.attendance === "present" || x.attendance === "late").length;
         set("dAtt", Math.round(ok / m.data.length * 100) + "%");
-        set("dAttL", "最近上课出勤 · " + s0.cohort + " " + s0.held_on.slice(5));
+        set("dAttL", "最近上课出勤 · " + (s0.cohort || "") + " " + String(s0.held_on || "").slice(5));
       }
     }
-  })();
+  } catch (e) { /* 总览数字只是参考：任何一处出错都只留「—」，不影响下面的功能 */ } })();
 
   /* 待办数量：读到才显示数字；读不到就保持原说明，不写「0」。 */
   (async () => {
