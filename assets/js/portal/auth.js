@@ -34,6 +34,7 @@
 
   const ROOT = siteRoot();
   const ROLE_HOME = {
+    attendance_clerk: "portal/attendance/",
     super_admin: "portal/admin/",
     academic_admin: "portal/admin/",
     registrar: "portal/admin/",
@@ -44,7 +45,7 @@
     student: "portal/student/",
     applicant: "portal/applicant/",
   };
-  const ROLE_RANK = ["super_admin","academic_admin","registrar","content_admin","finance","teacher","mentor","student","applicant"];
+  const ROLE_RANK = ["attendance_clerk","super_admin","academic_admin","registrar","content_admin","finance","teacher","mentor","student","applicant"];
 
   let client = null;
   if (CONFIGURED) client = window.supabase.createClient(SUPA.url, SUPA.anonKey);
@@ -94,6 +95,7 @@
   }
 
   function homeForRoles(roles) {
+    if (roles.includes("attendance_clerk")) return ROOT + "portal/attendance/";
     const distinct = ROLE_RANK.filter((r) => roles.includes(r));
     if (distinct.length === 0) return ROOT + "portal/applicant/";
     // 多“工作空间”角色 → 选择页；否则直达
@@ -527,7 +529,9 @@
     // 读到了，确实一个角色都没有：如实说，给出口，**不跳转**。
     if (roles.length === 0) { renderBlocked("no-roles"); return null; }
 
-    const ok = allowedRoles.some((r) => roles.includes(r));
+    // Attendance assignment takes precedence even when an old client retains student roles.
+    const attendanceOnly = roles.includes("attendance_clerk") && !allowedRoles.includes("attendance_clerk");
+    const ok = !attendanceOnly && allowedRoles.some((r) => roles.includes(r));
     if (!ok) {
       /* 有角色但不匹配：回自己的首页。
          但**跳向自己就是死循环**，所以先比一次目标和当前位置；
