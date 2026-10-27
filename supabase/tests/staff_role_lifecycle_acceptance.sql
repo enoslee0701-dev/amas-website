@@ -82,6 +82,8 @@ begin
  perform set_config('amas.test.uid',admin::text,true);
  perform set_config('request.jwt.claims',jsonb_build_object('sub',admin,'aal','aal2')::text,true);
  execute 'set role authenticated';
+ update public.profiles set account_status='disabled',email='self-bypass@example.invalid' where id=admin;
+ if not public.has_active_role(admin,'super_admin') or (select email from public.profiles where id=admin)<>'roles-root@example.invalid' then raise exception 'R09 direct self update bypasses protected account fields';end if;
  r:=public.admin_set_account_access(other,false,'保护管理员');
  if r->>'error'<>'protected_account' then raise exception 'R09 root account not protected';end if;
  execute 'reset role';
