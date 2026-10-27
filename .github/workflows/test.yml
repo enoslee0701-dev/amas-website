@@ -15,7 +15,6 @@ jobs:
     timeout-minutes: 30
     env:
       TEST_OUT: logs/evidence/ci
-      PGLITE_DIR: ${{ runner.temp }}/amas-pglite
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -24,7 +23,10 @@ jobs:
       - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
         with:
           deno-version: 'v2.9.6'
-      - run: npm install --prefix "$PGLITE_DIR" --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.3.7
+      - name: Prepare isolated database dependency
+        run: |
+          echo "PGLITE_DIR=$RUNNER_TEMP/amas-pglite" >> "$GITHUB_ENV"
+          npm install --prefix "$RUNNER_TEMP/amas-pglite" --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.3.7
       - name: Unit and static checks
         run: TEST_OUT=logs/evidence/ci-fast node scripts/test-all.mjs --group fast
       - name: Database and roles
