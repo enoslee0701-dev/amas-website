@@ -293,7 +293,7 @@ html[data-theme="night"] .digital-section::after{background:linear-gradient(105d
    分类退到次一级（小一档、灰色实心），纵向节奏也收紧。 */
 .filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
 .filter-label{flex:0 0 auto;margin-right:4px;font-size:11px;letter-spacing:.14em;color:#8a8478;white-space:nowrap}
-.filter{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 16px;font-size:13px;color:#514d43;transition:border-color .18s,background .18s,color .18s}
+.filter{min-height:44px;min-width:44px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 16px;font-size:13px;color:#514d43;transition:border-color .18s,background .18s,color .18s}
 .filter:hover{border-color:var(--olive-dark)}
 .filter.active{background:linear-gradient(135deg,#10305a,#0a1d38);color:#fff;border-color:#10305a}
 /* 分类是次一级：小一档、换一个更安静的选中色，免得和层级抢 */
