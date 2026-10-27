@@ -42,38 +42,38 @@ try {
 
   // ═══ R 角色管理 ═══
   console.log("\n=== R 角色管理 ===");
+  const staffRow=(user_id,display_name,email,roles)=>({user_id,display_name,email,roles,account_status:'active',grants:roles.map(role=>({role,expires_at:null})),attendance_only:false});
+  const staffRows=[staffRow('u-super','我','s@example.invalid',['super_admin']),staffRow('u-reg','王教务','w@example.invalid',['registrar'])];
+  const newStaff=staffRow('u-new','新同工','n@example.invalid',['applicant']);
   const roleScen = (rpc = {}) => Object.assign({}, SUPER, { rpc: Object.assign({ my_roles: { data: [{ role: "super_admin" }] },
-    admin_list_staff: { data: [{ user_id: "u-super", display_name: "我", email: "s@example.invalid", roles: ["super_admin"] },
-                               { user_id: "u-reg", display_name: "王教务", email: "w@example.invalid", roles: ["registrar"] }] },
-    admin_find_user: { data: [{ user_id: "u-new", display_name: "新同工", email: "n@example.invalid", roles: ["applicant"] }] } }, rpc) });
+    admin_staff_accounts:{data:{rows:staffRows,truncated:false}},admin_set_staff_role:{data:{ok:true}},admin_attendance_operators:{data:[]} }, rpc) });
   await open("portal/admin/roles/", roleScen());
   t = await txt();
   ok("R1 同工名单显示现有身份", t.includes("王教务") && t.includes("教务"));
-  ok("R2 自己那一行不给任何按钮", (await ev(`document.querySelectorAll('[data-u="u-super"]').length`)) === 0 && t.includes("（你自己）"));
-  ok("R3 已有教务身份的人给「撤销教务」", await ev(`!!document.querySelector('[data-u="u-reg"][data-r="registrar"][data-g="0"]')`));
-  ok("R4 不提供授予超级管理员或教授的按钮", (await ev(`document.querySelectorAll('[data-r="super_admin"],[data-r="teacher"]').length`)) === 0);
-  await setVal("#em", "not-an-email"); await click("#ff [type=submit]"); await sleep(300);
-  ok("R5 邮箱不完整不查询", (await rpcCalls("admin_find_user")).length === 0 && (await txt()).includes("请输入完整的邮箱地址"));
-  await setVal("#em", "n@example.invalid"); await click("#ff [type=submit]"); await sleep(500);
-  ok("R6 按邮箱查到人", (await rpcCalls("admin_find_user"))[0]?.args.p_email === "n@example.invalid" && (await txt()).includes("新同工"));
-  await armFn("ok", { ok: true });
-  await click('#hit [data-u="u-new"][data-r="mentor"]'); await sleep(200);
-  await click(".portal-modal [data-ok]"); await sleep(200);
-  ok("R7 不写原因不发出", (await fnCalls()).length === 0);
-  await setVal("#ask-reason", "新任导师"); await click(".portal-modal [data-ok]"); await sleep(700);
-  let f = await fnCalls();
-  ok("R8 授予导师：动作、对象、原因", f.length === 1 && f[0].body.action === "set_staff_role" && f[0].body.user_id === "u-new" &&
-     f[0].body.role === "mentor" && f[0].body.grant === true && f[0].body.reason === "新任导师", JSON.stringify(f));
-  await armFn("reject", { error: "cannot_change_self" });
-  await click('#staff [data-u="u-reg"][data-r="registrar"]'); await sleep(200);
-  await setVal("#ask-reason", "卸任"); await click(".portal-modal [data-ok]"); await sleep(700);
-  f = await fnCalls();
-  ok("R9 撤销请求 grant=false，服务端拒绝时照实说明", f[0]?.body.grant === false && (await txt()).includes("不能修改自己的身份"));
-  await open("portal/admin/roles/", Object.assign({}, ADMIN, { rpc: { my_roles: { data: [{ role: "registrar" }] } } }));
-  ok("R10 教务进不了角色管理", !(await txt()).includes("按邮箱查找账号"));
-  await open("portal/admin/roles/", roleScen({ admin_list_staff: { error: { message: "x" } } }));
-  ok("R11 名单读失败不说成没有同工", (await txt()).includes("这不表示没有同工"));
-  await shot("roles");
+  ok("R2 自己那一行不给任何按钮",await ev(`[...document.querySelectorAll('#staff .role-person')].some(row=>row.textContent.includes('不能在这里修改自己的权限')&&!row.querySelector('button'))`));
+  ok("R3 已有教务身份的人给「撤销教务」",await ev(`[...document.querySelectorAll('#staff button')].some(b=>b.textContent==='撤销教务')`));
+  ok("R4 不提供授予超级管理员或教授的按钮",(await ev(`document.querySelectorAll('button[data-role="super_admin"],button[data-role="teacher"]').length`))===0);
+  await setVal("#em", " "); await click("#ff [type=submit]"); await sleep(100);
+  ok("R5 空查找不发查询",(await rpcCalls('admin_staff_accounts')).length===1&&(await txt()).includes('请输入现有登录账号'));
+  await h.setScen({rpc:{admin_staff_accounts:{data:{rows:[newStaff],truncated:false}}}});
+  await setVal("#em", "n@example.invalid"); await click("#ff [type=submit]"); await sleep(200);
+  ok("R6 按邮箱查到人",(await rpcCalls('admin_staff_accounts')).some(c=>c.args.p_identifier==='n@example.invalid')&&(await txt()).includes('新同工'));
+  await click('#hit button[data-role="mentor"]');await sleep(100);
+  await click('.portal-modal [data-ok]');await sleep(100);
+  ok("R7 不写原因不发出",(await rpcCalls('admin_set_staff_role')).length===0&&await ev(`!!document.querySelector('.portal-modal')`));
+  await setVal('#ask-reason','新任导师');await click('.portal-modal [data-ok]');await sleep(250);
+  let f=await rpcCalls('admin_set_staff_role');
+  ok("R8 授予导师：动作、对象、原因与调用者身份RPC",f.length===1&&f[0].args.p_user==='u-new'&&f[0].args.p_role==='mentor'&&f[0].args.p_grant===true&&f[0].args.p_reason==='新任导师'&&!('p_actor' in f[0].args),JSON.stringify(f));
+  await open('portal/admin/roles/',roleScen({admin_set_staff_role:{data:{ok:false,error:'cannot_change_self'}}}));
+  await ev(`[...document.querySelectorAll('#staff button')].find(b=>b.textContent==='撤销教务').click();true`);await sleep(100);
+  await setVal('#ask-reason','卸任');await click('.portal-modal [data-ok]');await sleep(250);
+  f=await rpcCalls('admin_set_staff_role');
+  ok("R9 撤销请求 grant=false，服务端拒绝时照实说明",f[0]?.args.p_grant===false&&(await txt()).includes('不能修改自己的权限'));
+  await open('portal/admin/roles/',Object.assign({},ADMIN,{rpc:{my_roles:{data:[{role:'registrar'}]}}}));
+  ok("R10 教务进不了角色管理",!await ev(`!!document.querySelector('#ff')`));
+  await open('portal/admin/roles/',roleScen({admin_staff_accounts:{error:{message:'x'}}}));
+  ok("R11 名单读失败不说成没有同工",(await txt()).includes('这次没能读取账号')&&!(await txt()).includes('尚未指派其他工作人员'));
+  await shot('roles');
 
   // ═══ X 外校转入学分 ═══
   console.log("\n=== X 学业总览：外校转入 ===");
@@ -160,7 +160,9 @@ try {
   const hubLinks = await ev(`[...document.querySelectorAll(".hub a")].map(a => a.href)`);
   const hubOk = [];
   for (const u of hubLinks) hubOk.push((await fetch(u)).status === 200);
-  ok("W2 九个入口都指向真实存在的页面（含报名收件箱、公告与课堂、费用管理）", hubLinks.length === 9 && hubOk.every(Boolean), JSON.stringify(hubLinks));
+  ok("W2 教务七个业务入口均存在，不显示职分管理和教师认证",hubLinks.length===7&&hubOk.every(Boolean)&&!hubLinks.some(u=>/roles|teachers/.test(u)),JSON.stringify(hubLinks));
+  await open('portal/admin/',hubScen({my_roles:{data:[{role:'super_admin'}]}}));
+  ok('W2b 系统管理员保留全部九个工作入口',await ev(`document.querySelectorAll('.hub a').length===9`));
   await open("portal/admin/", hubScen({ admin_grade_queue: { error: { message: "x" } }, admissions_ready_for_enrollment: { error: { message: "x" } } }));
   t = await txt();
   ok("W3 读不到待办时不显示数字、不写 0", !/\d+ 个班待发布/.test(t) && !t.includes("待建档") && t.includes("发布成绩、审批更正"));
