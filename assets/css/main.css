@@ -84,7 +84,7 @@ img{display:block;max-width:100%}
 /* 语言切换：只显示当前语言的国旗，点击切换 */
 /* 四语言下拉切换器 */
 .lang-menu{position:relative;flex-shrink:0}
-.lang-btn{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:650}
+.lang-btn{min-width:44px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:650}
 .lang-caret{font-size:10px;color:var(--olive-dark)}
 .lang-list{position:absolute;top:calc(100% + 8px);right:0;min-width:132px;background:#fffdf9;border:1px solid var(--line);border-radius:10px;box-shadow:0 16px 44px rgba(40,32,12,.16);padding:6px;z-index:70}
 .lang-list[hidden]{display:none}
