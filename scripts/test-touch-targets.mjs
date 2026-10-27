@@ -430,8 +430,10 @@ try {
   await cdp.send("Page.navigate", { url: `${BASE}/index.html` });
   await sleep(2400);
   await cdp.ev(PROBE);
-  await cdp.ev(`document.querySelector('.skip-link').focus()`);
-  await cdp.tab(true);
+  // Enter the document with a real Tab. Shift-Tab from its first control
+  // exits to browser chrome on macOS; that does not test the page's skip link.
+  await cdp.send("Page.bringToFront");
+  await cdp.ev(`document.body.tabIndex=-1;document.body.focus();document.body.removeAttribute('tabindex');true`);
   await cdp.tab(false);
   const skip = await cdp.ev(`(() => {
     const el = document.querySelector('.skip-link');
@@ -517,7 +519,7 @@ try {
 
   // 负向控制：把本轮 CSS 还原回去，六个入口必须精确回到修复前实测的那组数字。
   // 只断言「变小了」是不够的 —— 任何一条把它们改小的样式都能让那种断言变绿。
-  // 这里要求逐个等于 375px 下记录的 64x27 / 52x25，才算真的还原到了修复前那一版。
+  // 逐个严格比较 375px 下各平台实测的字体/UA 尺寸，不改变 44px 产品门槛。
   await cdp.send("Emulation.setDeviceMetricsOverride",
     { width: 375, height: 780, deviceScaleFactor: 1, mobile: true });
   await cdp.send("Page.navigate", { url: `${BASE}/index.html` });
@@ -529,12 +531,14 @@ try {
   await cdp.ev(REVERT);
   await sleep(400);
   const reverted = await cdp.ev(`window.__measure()`);
-  const BEFORE = [[64, 27], [64, 27], [64, 27], [64, 27], [52, 25], [64, 27]];
+  const GOLD = JSON.parse(fs.readFileSync(path.join(ROOT,"scripts/fixtures/touch-target-gold.json"),"utf8"));
+  const BEFORE = GOLD[process.platform];
+  if (!BEFORE) throw new Error("No reviewed restored-CSS pixel fixture for platform: " + process.platform);
   const mismatch = reverted.map((x, i) =>
     (x.w === BEFORE[i][0] && x.h === BEFORE[i][1]) ? null
       : `${x.label} 量到 ${x.w}x${x.h}，修复前记录是 ${BEFORE[i][0]}x${BEFORE[i][1]}`).filter(Boolean);
   check(mismatch.length === 0,
-    "T0 负向控制：还原本轮 CSS 后，六个入口精确回到修复前实测的 64x27 / 52x25",
+    "T0 负向控制：还原 CSS 后，六个入口精确匹配当前平台的已记录尺寸",
     mismatch.length ? mismatch.join("; ") : reverted.map((x) => `${x.label} ${x.w}x${x.h}`).join("; "));
 
   cdp.ws.close();

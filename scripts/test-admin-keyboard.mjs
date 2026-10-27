@@ -107,6 +107,8 @@ let edgeCalls = [];
    于是走的是 Api.fn 的通用错误分支，页面只会说「操作未能完成」。 */
 let edgeReject = false;
 let edgeDelayMs = 0;      // 让这一次写入慢慢回来，用来看在途期间关掉/重开对话框会怎样
+let holdEdge = false; const heldResponses = [];
+const releaseHeld = async () => { const responses=heldResponses.splice(0); for(const response of responses) await response(); };
 let nativeDialogs = [];   // 浏览器原生 alert/confirm（阻塞式，键盘用户无处可去）
 const CORS = [
   { name: "Access-Control-Allow-Origin", value: "*" },
@@ -216,7 +218,7 @@ try {
               body: b64(JSON.stringify(payload)) });
           } catch (e) {}
         };
-        if (edgeDelayMs) setTimeout(send, edgeDelayMs); else await send();
+        if (holdEdge) heldResponses.push(send); else if (edgeDelayMs) setTimeout(send, edgeDelayMs); else await send();
         return;
       }
       if (u.indexOf("supabase.co") > -1 || u.indexOf("supabase.in") > -1) externalHits++;
@@ -857,7 +859,7 @@ try {
      旧那次回来时执行的是**上一个对话框**的 close() / focus() ——
      会不会把新框关掉、或者把焦点抢走。 */
   await openAdmin("/portal/admin/students/");
-  edgeDelayMs = 2500; edgeReject = false;
+  holdEdge = true; edgeDelayMs = 0; edgeReject = false;
   ok("Dl0 前提：第一个对话框开着", (await openCreate()) === true);
   const dn1 = await tabUntil(a => (a.attrs || "").indexOf("data-f") > -1, 10);
   if (dn1.hit) await typeText("B26-9001");
@@ -873,7 +875,7 @@ try {
   if (dn2.hit) await typeText("B26-9002");
   const beforeLate = await numVal();
   ok("Dl4 前提：新框里是新学号", beforeLate === "B26-9002", JSON.stringify(beforeLate));
-  await sleep(3000);                                   // 让旧回执回来
+  await releaseHeld(); await sleep(300);               // Release only after the new dialog is ready.
   ok("Dl5 旧回执没有把**新**对话框关掉", (await modalUp()) === true);
   ok("Dl6 新框里他打的还在（没被旧回执清掉）", (await numVal()) === "B26-9002",
      JSON.stringify(await numVal()));
@@ -881,7 +883,7 @@ try {
      JSON.stringify(await active()));
   /* 同一个 modal() 被两个**不同动作**共用：旧动作的回执会不会打扰新动作的框。 */
   await openAdmin("/portal/admin/students/");
-  edgeDelayMs = 2500;
+  holdEdge = true; edgeDelayMs = 0;
   ok("Dl8 前提：建档对话框开着", (await openCreate()) === true);
   const dn3 = await tabUntil(a => (a.attrs || "").indexOf("data-f") > -1, 10);
   if (dn3.hit) await typeText("B26-9003");
@@ -912,11 +914,11 @@ try {
     ok("Dl9 前提：换成了「记录总校确认」那个对话框", (await modalUp()) === true);
     const f2 = await tabUntil(a => (a.attrs || "").indexOf("data-f") > -1, 10);
     if (f2.hit) await typeText("HQ-9");
-    await sleep(3000);                                 // 让建档那次的旧回执回来
+    await releaseHeld(); await sleep(300);             // No wall-clock race with keyboard navigation.
     ok("Dl10 旧动作的回执没有把这个**新动作**的框关掉", (await modalUp()) === true);
     ok("Dl11 焦点也没被抢走", (await inModal()) === true, JSON.stringify(await active()));
   }
-  edgeDelayMs = 0;
+  holdEdge = false; await releaseHeld(); edgeDelayMs = 0;
   if (await modalUp()) await pressEsc();
 
   console.log("\n=== G 外发 ===");

@@ -327,13 +327,13 @@ try {
   // ════════ Ad 管理员侧：同一段说明，他自己读到的也该是分项的 ════════
   console.log("\n=== Ad 管理员侧的「已告知对方」：同一段说明，换行看不看得见 ===");
   const ADMIN = {
-    uid:"u-admin", aal:"aal2", roles:[{ role:"registrar" }],
+    uid:"u-admin", aal:"aal2", roles:[{ role:"academic_admin" }],
     tables: {
       teacher_verification_requests: { data:[{ id:"tvr-1", user_id:"u-t1", status:"needs_information",
         submitted_data:{ name:"教师甲", org:"某神学院", areas:"旧约", country:"马来西亚", phone:"0120000001" },
         submitted_at:"2026-09-10T00:00:00Z", reviewed_at:"2026-09-11T00:00:00Z",
         applicant_visible_message: MSG, created_at:"2026-09-01T00:00:00Z" }] },
-      user_roles: { data:[{ user_id:"u-admin", role:"registrar" }] },
+      user_roles: { data:[{ user_id:"u-admin", role:"academic_admin" }] },
       profiles: { data:[] },
     },
     rpc: {},

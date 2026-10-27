@@ -49,6 +49,9 @@ const MIRROR = fs.mkdtempSync(path.join(os.tmpdir(), "amas-mirror-"));
 for (const rel of ["assets", "portal", "login"]) {
   fs.cpSync(path.join(ROOT, rel), path.join(MIRROR, rel), { recursive: true });
 }
+// Test the actual loader in an explicit empty-config fixture, independent of deployment defaults.
+const PUBLIC_CFG = path.join(MIRROR,"assets","js","supabase-config.js");
+fs.writeFileSync(PUBLIC_CFG,fs.readFileSync(PUBLIC_CFG,"utf8").replace(/url:\s*"[^"]*"/, 'url: ""').replace(/anonKey:\s*"[^"]*"/,'anonKey: ""'));
 // 镜像里若跟着复制来了真实配置，立刻删掉 —— 夹具要从「没有」这个状态起步
 const LOCAL_CFG = path.join(MIRROR, "assets", "js", "supabase-config.local.js");
 if (fs.existsSync(LOCAL_CFG)) fs.unlinkSync(LOCAL_CFG);
@@ -132,7 +135,16 @@ try {
   cdp.on("Fetch.requestPaused", async (ev) => {
     try {
       const u = ev.request.url;
-      if (u.indexOf("supabase.co") > -1 || u.indexOf("supabase.in") > -1) externalHits++;
+      if (["https://abcdefghijklmnopqrst.supabase.co/rest/v1/rpc/site_public",
+        "https://abcdefghijklmnopqrst.supabase.co/rest/v1/rpc/my_profile"].includes(u)) {
+        await cdp.send("Fetch.fulfillRequest", { requestId:ev.requestId,responseCode:200,
+          responseHeaders:[{name:"Content-Type",value:"application/json"}],body:Buffer.from(u.endsWith("my_profile") ? "null" : "{}").toString("base64") });
+        return;
+      }
+      if (u.indexOf("supabase.co") > -1 || u.indexOf("supabase.in") > -1) {
+        externalHits++; console.log("BLOCKED unexpected Supabase endpoint: " + new URL(u).pathname);
+        await cdp.send("Fetch.failRequest", {requestId:ev.requestId,errorReason:"BlockedByClient"});return;
+      }
       await cdp.send("Fetch.continueRequest", { requestId: ev.requestId });
     } catch (e) {}
   });

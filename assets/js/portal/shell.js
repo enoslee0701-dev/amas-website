@@ -101,11 +101,7 @@
   /* 顶栏副标题：管理空间统一叫「神学院后台管理系统」（Enos 2026-10-26 的界面稿） */
   const SUBTITLE = { admin: "神学院后台管理系统" };
 
-  const ROLE_LABEL = {
-    applicant: "申请者", student: "学员", teacher: "教师", mentor: "导师",
-    registrar: "教务", finance: "财务", content_admin: "内容管理",
-    academic_admin: "学术管理", super_admin: "系统管理员",
-  };
+  const ROLE_LABEL = Object.fromEntries(A.ROLE_CATALOG.map(r=>[r.role,r.label]));
 
   /** 渲染门户外壳；返回 { ctx, main } */
   /* 顶栏上的名字与身份：上一页读到过就先拿来画（只是显示，不做任何权限判断），
@@ -124,7 +120,9 @@
     const here = location.pathname.replace(/\/index\.html$/, "/");
     const cached = readWho();
 
-    const nav = items.map((it) => {
+    // Do not flash every privileged link while an identity lookup is pending.
+    const nav = "";
+    const renderNav = (visible) => visible.map((it) => {
       const href = A.ROOT + it.href;
       const on = here.endsWith("/" + it.href) || here === href;
       return `<a href="${href}" class="nv${on ? " on" : ""}"${on ? ' aria-current="page"' : ""}>
@@ -165,10 +163,12 @@
     const ctx = requireAal2 ? await A.requireRoleAal2(allow) : await A.requireRole(allow);
     if (!ctx) { if (shell.isConnected) shell.remove(); return null; }
 
+    shell.querySelector(".pn-list").innerHTML = renderNav(items.filter(it=>A.canVisit(it.href,ctx.roles)));
     const profile = await profP;
+    if (A.sessionEnded()) { shell.remove(); return null; }
     const roles = ctx.roles || [];
     const primary = ["super_admin", "academic_admin", "registrar", "finance", "content_admin", "teacher", "mentor", "student", "applicant"].find((r) => roles.includes(r));
-    const who = { name: profile?.display_name || profile?.email || "", badge: primary ? (ROLE_LABEL[primary] || primary) : "", multi: roles.length > 1 };
+    const who = { name: profile?.display_name || profile?.email || "", badge: primary ? (ROLE_LABEL[primary] || primary) : "", multi: A.workspaceCount(roles) > 1 };
     shell.querySelector(".ph-who").innerHTML = whoHtml(who);
     shell.querySelector("#shellSwitch").hidden = !who.multi;
     saveWho(who);

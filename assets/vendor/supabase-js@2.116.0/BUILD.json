@@ -1,0 +1,8 @@
+{
+  "version": "2.116.0",
+  "source": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js",
+  "esbuild": "0.25.10",
+  "target": "es2020",
+  "source_sha256": "fbde52aab1700a3b308087ae78b41fb5192e7a952d81d5d08238763ce3245dd8",
+  "output_sha256": "7fcf15d1e9f621fa0a787538b67a079fa105372bd8ffbb6cdb6ac9855c7b760b"
+}

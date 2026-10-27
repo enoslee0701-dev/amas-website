@@ -39,7 +39,7 @@ window.supabase = { createClient: function(){
         var w = S().updateUser || { data: { user: {} }, error: null }; return reply({ data: w.data || null, error: w.error || null }); } },
     from: table,
     rpc: function(name, args){ window.__rpc = window.__rpc || []; window.__rpc.push({ name: name, args: args, t: performance.now() });
-      var r = S().rpc && S().rpc[name]; if (!r) r = { data: null, error: null };
+      var r = S().rpc && S().rpc[name]; if (r && Array.isArray(r.queue)) r = r.queue.shift(); if (!r) r = { data: null, error: null };
       var out = { data: r.data, error: r.error || null, status: r.error ? 500 : 200 };
       if (r.delay) return new Promise(function(ok){ setTimeout(function(){ ok(out); }, r.delay); });
       return reply(out); },

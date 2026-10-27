@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>公告与课堂 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610271250">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610271413">
 <style>
 .frm{display:grid;gap:10px}
 .frm label{display:grid;gap:4px;font-size:13px;color:#4b5567}
@@ -22,18 +22,18 @@
 </head>
 <body>
 <script src="../../../assets/vendor/supabase-js@2.116.0/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202610271250"></script>
-<script src="../../../assets/js/portal/auth.js?v=202610271250"></script>
-<script src="../../../assets/js/portal/api.js?v=202610271250"></script>
-<script src="../../../assets/js/portal/ui.js?v=202610271250"></script>
-<script src="../../../assets/js/portal/shell.js?v=202610271250"></script>
-<script src="../../../assets/js/portal/sis.js?v=202610271250"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610271413"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610271413"></script>
+<script src="../../../assets/js/portal/api.js?v=202610271413"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610271413"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610271413"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610271413"></script>
 <script>
 /* 公告与课堂（0041）：通知公告、线上课堂入口（Zoom，允许旁听）、开学导言视频、官网上各班状态。
    公开的内容官网经 site_public() 读，学员登录后经 portal_board() 读；这里只有教务能改。 */
 (async function(){
   const A = window.AmasAuth, UI = window.AmasUI, Api = window.AmasApi, Shell = window.AmasShell, I = Shell.icon;
-  const mounted = await Shell.mount({ space: "admin", title: "管理后台", allow: ["registrar", "academic_admin", "super_admin"], requireAal2: true });
+  const mounted = await Shell.mount({ space: "admin", title: "管理后台", allow: ["registrar", "academic_admin", "super_admin", "content_admin"], requireAal2: true });
   if (!mounted) return;
   const { main } = mounted;
   const PH = { enrolling: "招生中", in_session: "已开课", finished: "已结业" };
@@ -43,7 +43,7 @@
   const [ra, rs, rc] = await Promise.all([
     Api.select("site_announcements", { columns: "id,title,body,audience,pinned,published,created_at", order: [{ column: "pinned" }, { column: "created_at" }] }),
     Api.select("site_settings", { columns: "key,value" }),
-    Api.select("submission_cohorts", { columns: "name,phase,show_on_site,sort", order: [{ column: "sort", asc: true }, { column: "name", asc: true }] }),
+    Api.rpc("content_cohorts"),
   ]);
   if ([ra, rs, rc].some((r) => r.error || !Array.isArray(r.data))) {
     return UI.error(main, { message: "这一次没能读到公告与课堂设置，请稍后刷新。", onRetry: () => location.reload() });
@@ -134,8 +134,9 @@
   }
   function saveCohort(name, patch){
     return run(async () => {
-      const { data, error } = await Api.update("submission_cohorts", { name }, patch);
-      if (error || !Array.isArray(data) || !data.length) { render(); return say("这一次没有保存成功，请再试一次。"); }
+      const current = cohorts.find((c) => c.name === name);
+      const { data, error } = await Api.rpc("content_set_cohort", { p_name: name, p_phase: patch.phase || current.phase, p_show: patch.show_on_site === undefined ? current.show_on_site : patch.show_on_site });
+      if (error || !data || data.ok !== true) { render(); return say("这一次没能确认保存结果，请重新读取后核对。"); }
       Object.assign(cohorts.find((c) => c.name === name), patch);
       render(); say("已保存，官网首页已更新。", true);
     });

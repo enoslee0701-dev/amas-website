@@ -178,8 +178,8 @@ try {
   console.log("\n=== S 学员首页 ===");
   await open("portal/student/", { roles:["student"] });
   const s0 = await vis();
-  ok("S0 前提：正常时显示待办与课程数",
-     /补交受洗证明/.test(s0) && /共\s*<?b?>?2/.test(s0.replace(/\s/g,"").replace("共2","共 2")) || /共 2 门|共2门/.test(s0),
+  ok("S0 前提：正常时显示真实待办与学习入口，隐藏上线统计",
+     /补交受洗证明/.test(s0) && /我的学习/.test(s0) && !/正式课程共|已有线上学习内容/.test(s0),
      s0.slice(0, 220));
 
   await open("portal/student/", { roles:["student"], failRpc:["my_action_items"] });
@@ -192,8 +192,8 @@ try {
   const s2 = await vis();
   ok("S2 课程读失败时不写成「共 0 门」",
      !/共\s*0\s*门/.test(s2), s2.slice(0, 260));
-  ok("S2b 而是如实说这一次没读到课程目录",
-     /没能读到|暂时读不到/.test(s2), s2.slice(0, 260));
+  ok("S2b 首页已不展示上线统计或依赖其读取结果",
+     !/线上学习内容|没能读到课程目录|已有线上/.test(s2) && /我的学习/.test(s2), s2.slice(0, 260));
 
   // ════════ H 历史申请：错误原因不能被压成一句 ════════
   console.log("\n=== H 历史申请 ===");

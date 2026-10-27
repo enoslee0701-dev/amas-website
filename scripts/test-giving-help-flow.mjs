@@ -164,11 +164,11 @@ const WHO = `(() => { const el = document.activeElement;
 const NETGATE = `(() => {
   if (window.__gate) return true;
   const orig = window.fetch;
-  window.__gateHits = 0;
+  window.__gateHits = 0; window.__mailHits = 0;
   window.fetch = function(url){
     const u = String(url || '');
     if (u.indexOf('formsubmit.co') > -1 || u.indexOf('supabase') > -1) {
-      window.__gateHits++;
+      window.__gateHits++; if (u.indexOf("formsubmit.co") > -1) window.__mailHits++;
       return Promise.reject(new TypeError('blocked by local test gate'));
     }
     return orig.apply(this, arguments);
@@ -300,11 +300,11 @@ try {
     const st = document.getElementById('gvStatus');
     const r = st.getBoundingClientRect();
     return { text: (st.textContent || '').trim(), hits: window.__gateHits,
-             kept: document.querySelector('#gvForm [name=name]').value,
+             mailHits: window.__mailHits, kept: document.querySelector('#gvForm [name=name]').value,
              canRetry: !document.querySelector('#gvForm button[type=submit]').disabled,
              inView: r.top >= -0.5 && r.bottom <= document.documentElement.clientHeight + 0.5 };
   })()`);
-  check(failed.hits === 1 && failed.text.length > 0 && failed.kept === "测试访客" &&
+  check(failed.mailHits === 1 && failed.text.length > 0 && failed.kept === "测试访客" &&
         failed.canRetry && failed.inView,
     "G6 发送失败：给出可见文案、表单内容保留、可以重试、提示在视口内",
     `拦下=${failed.hits} 文案="${failed.text}" 内容保留="${failed.kept}" 可重试=${failed.canRetry} 可见=${failed.inView}`);

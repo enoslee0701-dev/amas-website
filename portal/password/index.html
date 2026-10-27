@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>设置你的密码 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202610271250">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202610271413">
 </head>
 <body>
 <div class="wrap">
@@ -17,7 +17,7 @@
   </div>
   <div class="card" id="card">
     <h2>第一次登录，请先改密码</h2>
-    <p class="sub">你现在用的是学校统一发的初始密码，别人也可能猜到。请设置一个只有你自己知道的新密码（至少 8 位），改好就能进入学习中心。</p>
+    <p class="sub">你现在用的是学校统一发的初始密码，别人也可能猜到。请设置一个只有你自己知道的新密码（至少 8 位），改好就能进入系统。</p>
     <form id="f" novalidate>
       <div class="field"><label for="p1">新密码</label><input id="p1" type="password" autocomplete="new-password" minlength="8" maxlength="72" required></div>
       <div class="field"><label for="p2">再输入一次</label><input id="p2" type="password" autocomplete="new-password" minlength="8" maxlength="72" required></div>
@@ -29,8 +29,8 @@
   <div class="foot"><button class="link" id="out" type="button">退出登录</button></div>
 </div>
 <script src="../../assets/vendor/supabase-js@2.116.0/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202610271250"></script>
-<script src="../../assets/js/portal/auth.js?v=202610271250"></script>
+<script src="../../assets/js/supabase-config.js?v=202610271413"></script>
+<script src="../../assets/js/portal/auth.js?v=202610271413"></script>
 <script>
 /* 强制改密码（Enos 2026-10-26）：学校统一开的学员账号初始密码有规律（拼音+123），
    账号上带 user_metadata.must_change_password=true；auth.js 的 requireRole 见到它就把人送到这里。

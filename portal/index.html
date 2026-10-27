@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>选择工作空间 | AMAS</title>
 <link rel="icon" href="../assets/img/favicon.png">
-<link rel="stylesheet" href="../assets/css/portal.css?v=202610271250">
+<link rel="stylesheet" href="../assets/css/portal.css?v=202610271413">
 </head>
 <body>
 <div class="wrap">
@@ -27,8 +27,8 @@
 </div>
 
 <script src="../assets/vendor/supabase-js@2.116.0/supabase.min.js"></script>
-<script src="../assets/js/supabase-config.js?v=202610271250"></script>
-<script src="../assets/js/portal/auth.js?v=202610271250"></script>
+<script src="../assets/js/supabase-config.js?v=202610271413"></script>
+<script src="../assets/js/portal/auth.js?v=202610271413"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
@@ -46,10 +46,12 @@
   document.getElementById("who").textContent = (p && (p.display_name || p.email)) || "";
   document.getElementById("btnOut").addEventListener("click", () => A.signOut());
 
+  const adminRoles=["super_admin","academic_admin","registrar","content_admin","finance"];
+  const adminMine=ctx.roles.filter(r=>adminRoles.includes(r));
   const DEFS = [
-    { roles:["super_admin","academic_admin","registrar","content_admin","finance"], href:"admin/",   ic:"🗂️", name:"管理后台",   sub:"招生 · 教师验证 · 学籍 · 课程 · 审计" },
+    { roles:adminRoles, href:A.homeForRoles(adminMine), ic:"🗂️", name:"管理工作台", sub:"按当前身份进入可使用的管理页面" },
     { roles:["teacher","mentor"],                                                  href:"teacher/", ic:"📖", name:"教师工作台", sub:"我的课程 · 出勤 · 作业与成绩 · 导师反馈" },
-    { roles:["student"],                                                           href:"student/", ic:"🎓", name:"学员中心",   sub:"学籍状态 · 学号 · 学习入口 · 成长探索" },
+    { roles:["student"],                                                           href:"student/", ic:"🎓", name:"学员中心",   sub:"我的课程 · 成绩与进度 · 个人资料" },
     { roles:["applicant"],                                                         href:"applicant/", ic:"✉️", name:"申请者中心", sub:"入学申请 · 进度与补件 · 通知" },
   ];
   const box = document.getElementById("spaces");

@@ -15,6 +15,13 @@
 export const LOCAL_CONFIG_RE = /(^|\/)supabase-config\.local\.js$/i;
 
 export function refuseLocalConfig(urlPath, res) {
+  // Public config can now be filled too. Default probes must never inherit it.
+  // Config-specific tests use isolated mirrors or explicit CDP fixtures.
+  if (/(^|\/)supabase-config\.js$/i.test(String(urlPath || ""))) {
+    res.writeHead(200, { "Content-Type":"application/javascript; charset=utf-8", "Cache-Control":"no-store" });
+    res.end('window.SUPA={url:"",anonKey:""};window.SUPA_IS_FILLED=function(){return false};');
+    return true;
+  }
   if (!LOCAL_CONFIG_RE.test(String(urlPath || ""))) return false;
   res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
   res.end("test servers never serve supabase-config.local.js");

@@ -517,7 +517,7 @@ function t(key, vars){
   return s;
 }
 
-function applyLanguage(lang){
+function applyLanguage(lang, preserveInFlight){
   currentLang = i18n[lang] ? lang : "zh";
   try{ localStorage.setItem("amas-lang", currentLang); }catch(e){}
   document.documentElement.lang = ({ zh:"zh-CN", en:"en", ko:"ko", th:"th" })[currentLang] || "zh-CN";
@@ -556,8 +556,8 @@ function applyLanguage(lang){
      会盖到新语言的行上，指向的还是上一个语言的文件。 */
   // 切语言同样要作废在途的聊天请求：用上一个语言问出去的回答，
   // 回来时插进已经换成新语言的会话里，只会让人莫名其妙。
-  if(typeof chatEpoch === "number"){ chatEpoch++; if(typeof setChatBusy === "function") setChatBusy(false); }
-  if(typeof resourceEpoch === "number"){
+  if(!preserveInFlight && typeof chatEpoch === "number"){ chatEpoch++; if(typeof setChatBusy === "function") setChatBusy(false); }
+  if(!preserveInFlight && typeof resourceEpoch === "number"){
     resourceEpoch++;
     $$(".resource-row").forEach(r => {
       clearResourceStatus(r);
@@ -1980,5 +1980,6 @@ function renderSiteBoard(d){
   }
   const board = $("#liveBoard");
   if(board) board.hidden = !$$(".live-card", board).some(x => !x.hidden);
-  applyLanguage(currentLang);
+  // Announcement refresh does not mean the user changed language.
+  applyLanguage(currentLang, true);
 }

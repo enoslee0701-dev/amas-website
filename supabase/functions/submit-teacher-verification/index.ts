@@ -3,7 +3,7 @@
 // 邀请邮箱与账号邮箱一致（一次性核销为原子操作）。成功后写入/更新验证申请为 submitted。
 // 部署：supabase functions deploy submit-teacher-verification
 
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.116.0";
 
 const URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -37,6 +37,7 @@ Deno.serve(async (req) => {
 
   let body: { token?: string; form?: Record<string, unknown> };
   try { body = await req.json(); } catch { return fail(400, "bad_request"); }
+  if (!body || typeof body !== "object" || Array.isArray(body)) return fail(400, "bad_request");
   const token = String(body.token ?? "").trim();
   if (!token || token.length > 200) return fail(400, "bad_request");
 

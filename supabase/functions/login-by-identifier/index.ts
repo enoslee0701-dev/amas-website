@@ -10,7 +10,7 @@
 //   * IP 说明：x-forwarded-for 由 Supabase 边缘网关注入，取第一跳；因客户端侧头部可伪造，
 //     IP 仅作宽阈值(20)辅助维度，主维度是标识(5)——伪造头无法绕过标识限流。
 
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.116.0";
 
 const URL = Deno.env.get("SUPABASE_URL")!;
 const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -41,6 +41,7 @@ Deno.serve(async (req) => {
   } catch {
     return fail(400, "bad_request");
   }
+  if (!body || typeof body !== "object" || Array.isArray(body)) return fail(400, "bad_request");
   const rawId = String(body.identifier ?? "");
   const password = String(body.password ?? "");
   if (!rawId || !password || rawId.length > 190 || password.length > 200) {

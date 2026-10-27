@@ -4,7 +4,7 @@
 // 本函数不含任何业务判断：角色与 aal 是入口门禁，真正的规则在 DB。
 // 部署：supabase functions deploy student-lifecycle
 
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.116.0";
 
 // 两步验证开关（0035_mfa_switch）：只有库里明确设为 false 才放行 aal1；读不到、出错一律按「要求」处理
 type RpcClient = { rpc: (fn: string) => PromiseLike<{ data: unknown; error: unknown }> };
@@ -50,9 +50,10 @@ Deno.serve(async (req) => {
     if (payload.aal !== "aal2" && await mfaRequired(admin)) return fail(403, "mfa_required");
   } catch { return fail(401, "unauthenticated"); }
 
-  const { data: roles } = await admin.from("user_roles").select("role")
+  const { data: roles } = await admin.from("user_roles").select("role,expires_at")
     .eq("user_id", userData.user.id).is("revoked_at", null);
-  const names = (roles ?? []).map((r: { role: string }) => r.role);
+  const names = (Array.isArray(roles) ? roles : []).filter((r: { role: string; expires_at?: string | null }) =>
+    r && (r.expires_at == null || Date.parse(r.expires_at) > Date.now())).map((r: { role: string }) => r.role);
   if (!names.some((n) => ADMIN_ROLES.includes(n))) return fail(403, "forbidden");
 
   let body: {
@@ -62,6 +63,7 @@ Deno.serve(async (req) => {
     request_id?: string; replacement_number?: string; evidence_reference?: string; note?: string;
   };
   try { body = await req.json(); } catch { return fail(400, "bad_request"); }
+  if (!body || typeof body !== "object" || Array.isArray(body)) return fail(400, "bad_request");
   if (!ACTIONS.includes(String(body.action))) return fail(400, "bad_request");
 
   const actor = userData.user.id;
@@ -147,6 +149,7 @@ Deno.serve(async (req) => {
 
   const { data, error } = await admin.rpc(rpc, args);
   if (error) {
+    if (error.code === "42501" || /lacks admin role/i.test(error.message)) return fail(403, "forbidden");
     if (/not_found/i.test(error.message)) return fail(404, "not_found");
     if (/lacks admin role/i.test(error.message)) return fail(403, "forbidden");
     if (/invalid_state|not accepted|invalid student transition/i.test(error.message)) return fail(409, "invalid_state");

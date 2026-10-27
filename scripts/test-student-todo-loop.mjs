@@ -387,7 +387,7 @@ const READONLY_RPC = new Set([
   "my_roles", "my_profile", "my_student_record", "my_student_timeline",
   "my_action_items", "my_student_capabilities", "my_learning", "my_student_profile",
   /* 学员首页的「我的课程 / 学分进度」（0030 my_courses、0032 my_progress，均为只读查询） */
-  "my_courses", "my_progress",
+  "my_courses", "my_progress", "portal_board",
 ]);
 const WRITE_RPC = new Set(["update_my_contact"]);     // 这一条是**有意**要发的写入
 
@@ -761,125 +761,21 @@ try {
   }
 
   if (RUN("Cp")) {
-    console.log("\n=== Cp 待办「建立你的信仰成长档案」：点进去之后回不回得来 ===");
-    /* 入口完整性三问：① 那个 target_url 真有页面吗？② 这个角色到得了吗？
-       ③ 做完之后有没有一条明确的出口？
-       前两问 discover.html 都过（它是公开页，没有守卫）；第三问是这一包要查的。 */
+    console.log("\n=== Cp 首页按要求移除成长档案入口与旧后端待办 ===");
     await goStudentHome();
-    ok("Cp0 前提：待办里确实有这一条", (await mainText()).indexOf("建立你的信仰成长档案") > -1,
-       JSON.stringify((await mainText()).slice(0, 140)));
-    const cp = await tabTo((w) => w.tag === "A" && /discover\.html/.test(w.href || "") &&
-      /去处理|去查看/.test(w.text || ""), 40);
-    ok("Cp1 Tab 走得到它的「去处理 →」", cp.hit === true, JSON.stringify(cp.at));
-    /* 入口文案不能承诺这一页做不到的事：那边只是 3 分钟快速探索，不建档案。 */
-    const cardLink = await cdp.ev(`(()=>{const a=[...document.querySelectorAll("a")]
-      .filter(x=>/discover\.html/.test(x.getAttribute("href")||"") && !/去处理|去查看/.test(x.textContent||""))[0];
-      return a ? (a.textContent||"").replace(/\s+/g," ").trim() : null;})()`);
-    ok("Cp1b 首页那条入口的文案说的是「快速探索」，不是「建立档案」",
-       !!cardLink && /快速探索/.test(cardLink) && !/建立你的信仰成长档案/.test(cardLink),
-       JSON.stringify(cardLink));
-    /* 待办那条动作链接也不该说「去处理」—— 那一页处理不了任何事。
-       （待办的**标题**来自 SQL，本地改不了，只能如实记，见报告。） */
-    ok("Cp1c 待办里那条站外动作链接不说「去处理」",
-       !/去处理/.test((cp.at || {}).text || ""), JSON.stringify((cp.at || {}).text));
-    await press("Enter");
-    ok("Cp2 ① 那个 target_url 真的有页面（走过去了，不是 404）",
-       await until(async () => /\/discover\.html$/.test(await path_()), 9000),
-       JSON.stringify(await path_()));
-    await sleep(1200);
-    ok("Cp3 ② 学员这个身份到得了（公开页，没有被守卫挡回去）",
-       (await cdp.ev(`(()=>document.querySelectorAll("h1").length > 0)()`)) === true);
-    /* ②b 这一页到底做不做「建立档案」这件事 —— 用它自己的代码说话。 */
-    /* 说得准一点：这一页**唯一**碰到的本地存储是 goApp() 里记「你从哪个按钮跳去 App」
-       的 amas_discover_src —— 那不是档案，也不是答题结果。
-       上一版我把断言写成「没有任何本地存储」，太宽了（实测 store=true）。
-       正则不用反斜杠转义：模板字面量会把 \( 吃成 (，正则会变成未闭合分组。 */
-    const persists = await cdp.ev(`(()=>{const t=document.documentElement.innerHTML;
-      const keys = (t.match(/(?:localStorage|sessionStorage)[.]setItem[(]\s*['"]([^'"]+)/g) || []);
-      return { storageCalls: keys.length,
-               onlySrcKey: /amas_discover_src/.test(t) && !/setItem[(]\s*['"](?!amas_discover_src)/.test(t),
-               net: /fetch[(]|supabase/.test(t),
-               saysQuick: /只是一次快速探索|不是完整的/.test(document.body.textContent||"") };})()`);
-    ok("Cp3b 这一页**不保存档案、也不往服务端写**（唯一的本地存储是跳 App 的来源标记）",
-       persists && persists.net === false && persists.onlySrcKey === true &&
-       persists.saysQuick === true, JSON.stringify(persists));
-    /* 真实路径要走完：开始 → 逐题作答 → 看到结果，再谈回程。
-       只开一页就返回证明不了「做完之后回得来」。 */
-    const startBtn = await tabTo((w) => /开始快速探索/.test(w.text || ""), 40);
-    ok("Cp3c 键盘走得到「开始快速探索」", startBtn.hit === true, JSON.stringify(startBtn.at));
-    await press("Enter");
-    ok("Cp3d 题目出来了", await until(async () => cdp.ev(`(()=>{const q=document.getElementById("quiz");
-      return !!(q && !q.classList.contains("hidden"));})()`), 8000));
-    /* 逐题作答：每次 Tab 到一个选项按下，直到结果出现（上限足够 10 题）。 */
-    let answered = 0;
-    for (let i = 0; i < 60; i++) {
-      const done = await cdp.ev(`(()=>{const r=document.getElementById("result");
-        return !!(r && !r.classList.contains("hidden"));})()`);
-      if (done) break;
-      await press("Tab");
-      const onOpt = await cdp.ev(`(()=>{const a=document.activeElement;
-        return !!(a && a.classList && a.classList.contains("opt"));})()`);
-      if (onOpt) { await press("Enter"); answered += 1; await sleep(160); }
-    }
-    ok("Cp3e 十道题用键盘答完了，结果页出来了（答了 " + answered + " 题）",
-       (await cdp.ev(`(()=>{const r=document.getElementById("result");
-         return !!(r && !r.classList.contains("hidden"));})()`)) === true &&
-       answered >= 10, "answered=" + answered);
-    ok("Cp3f 结果页自己也写明这**不是**完整档案",
-       /不代表完整信仰成长档案|不是完整的/.test(await cdp.ev(`(()=>document.body.textContent||"")()`)),
-       "");
-
-    /* ③ 出口：这一页有没有任何一条能回门户的路。 */
-    const outs = await cdp.ev(`(()=>[...document.querySelectorAll("a")]
-      .map(a=>({ href:a.getAttribute("href")||"", text:(a.textContent||"").replace(/\s+/g," ").trim().slice(0,14) }))
-      .filter(x=>/portal/.test(x.href)))()`);
-    ok("Cp4 ③ 做完之后回得到门户（页面上有一条通往 portal 的出口）",
-       Array.isArray(outs) && outs.length >= 1, JSON.stringify(outs));
-    if (Array.isArray(outs) && outs.length) {
-      const back = await tabTo((w) => w.tag === "A" && /portal\/student\/$/.test(w.href || ""), 40);
-      ok("Cp5 而且那条出口用键盘走得到、按下去真的回到了学员中心",
-         back.hit === true &&
-         (await (async () => { await press("Enter");
-           return until(async () => /\/portal\/student\/$/.test(await path_()), 9000); })()) === true,
-         JSON.stringify(await path_()));
-      await sleep(2200);
-      /* 回来之后**不许**谎称这件事做完了：这一页什么都没保存，
-         而 my_action_items 里 christian_profile 那条本来就是无条件出现的。 */
-      ok("Cp5b 回到学员中心之后，这条待办**还在**（没有被谎称已完成）",
-         (await mainText()).indexOf("建立你的信仰成长档案") > -1,
-         JSON.stringify((await mainText()).slice(0, 140)));
-      ok("Cp5c 而且首页没有冒出任何「已完成 / 已建立档案」的说法",
-         !/已建立档案|档案已完成|已完成信仰成长档案/.test(await mainText()),
-         JSON.stringify((await mainText()).slice(0, 140)));
-    }
-    /* 反控：**不是**从门户过来的普通访客，这一页不该多出门户入口。 */
-    await cdp.send("Page.navigate", { url: `${BASE}/discover.html` });
-    await sleep(1500);
-    const outsPlain = await cdp.ev(`(()=>[...document.querySelectorAll("a")]
-      .map(a=>a.getAttribute("href")||"").filter(h=>/portal/.test(h)))()`);
-    ok("Cp6 反控：普通访客直接打开这一页时，**不**多出任何门户入口",
-       Array.isArray(outsPlain) && outsPlain.length === 0, JSON.stringify(outsPlain));
+    ok("Cp0 后端仍给成长待办时，首页不再显示", !/建立你的信仰成长档案/.test(await mainText()));
+    ok("Cp1 首页不再有通往快速探索的键盘/鼠标入口",
+       await cdp.ev(`![...document.querySelectorAll("main a")].some(a=>/discover[.]html/.test(a.getAttribute("href")||""))`));
+    ok("Cp2 移除入口不谎称已完成档案", !/已建立档案|档案已完成|已完成信仰成长档案/.test(await mainText()));
+    ok("Cp3 完善联系方式的真实待办保留", /完善联系方式/.test(await mainText()));
   }
 
   if (RUN("Cn")) {
-    console.log("\n=== Cn 站外那条待办：动作旁边说不说得清「这一页做得到什么」 ===");
-    /* 服务端的标题与状态原样不动（my_action_items 的契约不改）；
-       只在**这一个已知的站外参考目标**旁边补一句说明。
-       门户内的待办不受影响 —— 不按「非 portal 就算参考」一刀切。 */
+    console.log("\n=== Cn 成长待办过滤不影响其他任务 ===");
     await goStudentHome();
     const cpCard = await cdp.ev(`(()=>{const d=[...document.querySelectorAll(".act")]
-      .find(x=>/建立你的信仰成长档案/.test(x.textContent||""));
-      return d ? (d.textContent||"").replace(/\s+/g," ").trim() : null;})()`);
-    ok("Cn0 前提：服务端给的标题**原样**还在（没有被前端改写）",
-       !!cpCard && cpCard.indexOf("建立你的信仰成长档案") > -1, JSON.stringify(cpCard));
-    ok("Cn1 这条待办旁边说清楚了「这一页只作快速探索、不会完成这条待办」",
-       !!cpCard && /仅作快速探索/.test(cpCard) && /不会建立档案或完成此待办/.test(cpCard),
-       JSON.stringify(cpCard));
-    ok("Cn2 也指明了正式评估在哪里做（不编造安装链接）",
-       !!cpCard && /App 中进行/.test(cpCard) &&
-       (await cdp.ev(`(()=>[...document.querySelectorAll("a")]
-          .some(a=>/apps\.apple|play\.google|download/i.test(a.getAttribute("href")||"")))()`)) === false,
-       JSON.stringify(cpCard));
+      .find(x=>/建立你的信仰成长档案/.test(x.textContent||""));return d?d.textContent:null;})()`);
+    ok("Cn0 旧后端成长待办不再渲染", cpCard === null, JSON.stringify(cpCard));
     const phCard = await cdp.ev(`(()=>{const d=[...document.querySelectorAll(".act")]
       .find(x=>/完善联系方式/.test(x.textContent||""));
       return d ? (d.textContent||"").replace(/\s+/g," ").trim() : null;})()`);
@@ -896,7 +792,7 @@ try {
          if (!window.__SCEN || !window.__SCEN.rpc) return;
          clearInterval(t);
          window.__SCEN.rpc.my_action_items = { data: [
-           { source_type:"christian_profile", source_id:"x", title:"未登记的站外目标",
+           { source_type:"student_record", source_id:"x", title:"未登记的站外目标",
              reason:"对照用", target_url:"constructor", status:"open", priority:10 },
            { source_type:"profile", source_id:"y", title:"另一个未登记目标",
              reason:"对照用", target_url:"help/", status:"open", priority:20 } ] };

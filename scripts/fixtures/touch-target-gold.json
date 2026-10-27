@@ -1,0 +1,9 @@
+{
+  "viewport": {"width":375,"height":780,"deviceScaleFactor":1},
+  "win32": [[64,27],[64,27],[64,27],[64,27],[52,25],[64,27]],
+  "darwin": [[66,25],[66,25],[66,25],[66,25],[54,23],[66,25]],
+  "evidence": {
+    "win32":"Original repository Windows measurements preserved unchanged.",
+    "darwin":"2026-10-27 Chrome 156: audit/full-test-touch-targets.log; all six restored controls measured repeatedly. Exact values, not a relaxed threshold."
+  }
+}

@@ -9,8 +9,6 @@
 
 import fs from "node:fs";
 
-const ENV = Object.fromEntries(fs.readFileSync(process.env.AMAS_ENV || "staging.env", "utf8")
-  .trim().split("\n").map(l => { const i = l.indexOf("="); return [l.slice(0, i).trim(), l.slice(i + 1).trim()]; }));
 
 const results = [];
 const rec = (id, name, ok, detail = "") => {
@@ -19,9 +17,18 @@ const rec = (id, name, ok, detail = "") => {
 };
 
 // ---- 1. 权威清单 ----
-const r = await fetch(`${ENV.URL}/rest/v1/program_catalog?select=code,name_zh,is_open_for_application,sort_order&order=sort_order`,
-  { headers: { apikey: ENV.ANON, Authorization: `Bearer ${ENV.ANON}` } });
-const catalog = await r.json();
+let catalog;
+if (process.env.AMAS_CATALOG_JSON) {
+  catalog=JSON.parse(fs.readFileSync(process.env.AMAS_CATALOG_JSON,"utf8"));
+} else {
+  const envPath=process.env.AMAS_ENV||"staging.env";
+  if(!fs.existsSync(envPath)){console.error("NOT_RUN: use AMAS_CATALOG_JSON for isolated DB output, or AMAS_ENV for an explicit read-only target.");process.exit(2);}
+  const ENV=Object.fromEntries(fs.readFileSync(envPath,"utf8").trim().split("\n").map(line=>{const i=line.indexOf("=");return [line.slice(0,i).trim(),line.slice(i+1).trim()];}));
+  const r=await fetch(`${ENV.URL}/rest/v1/program_catalog?select=code,name_zh,is_open_for_application,sort_order&order=sort_order`,{headers:{apikey:ENV.ANON,Authorization:`Bearer ${ENV.ANON}`}});
+  catalog=await r.json();
+}
+if(!Array.isArray(catalog)){console.error("FAIL: invalid catalog response");process.exit(1);}
+
 rec("D2-01", "program_catalog 可匿名读取", Array.isArray(catalog) && catalog.length > 0, `rows=${catalog.length}`);
 
 const active = catalog.filter(p => p.is_open_for_application !== false);

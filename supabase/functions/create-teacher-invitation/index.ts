@@ -3,7 +3,7 @@
 // 数据库只保存邀请码 sha256 哈希；明文一次性返回给管理员，由其经可信渠道转交教师。
 // 部署：supabase functions deploy create-teacher-invitation
 
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.116.0";
 
 // 两步验证开关（0035_mfa_switch）：只有库里明确设为 false 才放行 aal1；读不到、出错一律按「要求」处理
 type RpcClient = { rpc: (fn: string) => PromiseLike<{ data: unknown; error: unknown }> };
@@ -29,7 +29,7 @@ async function sha256b64url(s: string): Promise<string> {
 }
 
 /** 校验调用者：返回 {id} 或 null。要求管理员角色 + aal2（甲方审查 #8 第二层）。 */
-async function requireAdminAal2(req: Request, admin: ReturnType<typeof createClient>) {
+async function requireAdminAal2(req: Request, admin: SupabaseClient) {
   const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
   if (!jwt) return null;
   const { data, error } = await admin.auth.getUser(jwt);
@@ -39,9 +39,10 @@ async function requireAdminAal2(req: Request, admin: ReturnType<typeof createCli
     const payload = JSON.parse(atob(jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
     if (payload.aal !== "aal2" && await mfaRequired(admin)) return { id: data.user.id, aalFail: true } as const;
   } catch { return null; }
-  const { data: roles } = await admin.from("user_roles").select("role")
+  const { data: roles } = await admin.from("user_roles").select("role,expires_at")
     .eq("user_id", data.user.id).is("revoked_at", null);
-  const names = (roles ?? []).map((r: { role: string }) => r.role);
+  const names = (Array.isArray(roles) ? roles : []).filter((r: { role: string; expires_at?: string | null }) =>
+    r && (r.expires_at == null || Date.parse(r.expires_at) > Date.now())).map((r: { role: string }) => r.role);
   if (!names.includes("academic_admin") && !names.includes("super_admin")) return null;
   return { id: data.user.id } as const;
 }
@@ -57,30 +58,29 @@ Deno.serve(async (req) => {
 
   let body: { email?: string; expected_name?: string; staff_number?: string; expires_days?: number };
   try { body = await req.json(); } catch { return fail(400, "bad_request"); }
+  if (!body || typeof body !== "object" || Array.isArray(body)) return fail(400, "bad_request");
   const email = String(body.email ?? "").trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail(400, "bad_email");
-  const days = Math.min(Math.max(Number(body.expires_days ?? 14), 1), 60);
+  const requestedDays = Number(body.expires_days ?? 14);
+  if (!Number.isFinite(requestedDays)) return fail(400, "bad_request");
+  const days = Math.min(Math.max(Math.floor(requestedDays), 1), 60);
 
   // 明文邀请码：仅此响应返回一次
   const raw = crypto.getRandomValues(new Uint8Array(24));
   const token = btoa(String.fromCharCode(...raw)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   const tokenHash = await sha256b64url(token);
 
-  const { data: inv, error } = await admin.from("teacher_invitations").insert({
-    email_normalized: email,
-    expected_name: String(body.expected_name ?? "").slice(0, 80),
-    staff_number: body.staff_number ? String(body.staff_number).slice(0, 40) : null,
-    token_hash: tokenHash,
-    expires_at: new Date(Date.now() + days * 86400_000).toISOString(),
-    created_by: caller.id,
-  }).select("id, expires_at").single();
-  if (error) return fail(500, "server_error");
-
-  await admin.from("audit_logs").insert({
-    actor_id: caller.id, event_type: "teacher_invitation_created",
-    target_type: "teacher_invitations", target_id: inv.id, category: "academic",
-    new_value: { email, expires_at: inv.expires_at },
+  // The database sees the caller's JWT and rechecks roles/MFA atomically.
+  const callerClient = createClient(URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    global: { headers: { Authorization: req.headers.get("Authorization")! } },
+    auth: { persistSession: false },
   });
+  const { data: inv, error } = await callerClient.rpc("create_teacher_invitation", {
+    p_email: email, p_token_hash: tokenHash, p_expected_name: String(body.expected_name ?? "").slice(0,80),
+    p_staff_number: body.staff_number ? String(body.staff_number).slice(0,40) : null, p_days: days,
+  });
+  if (error) return fail(error.code === "42501" ? 403 : 500, error.code === "42501" ? "forbidden" : "server_error");
+  if (!inv || inv.ok !== true || !inv.id || !inv.expires_at) return fail(400, "bad_request");
 
   const origin = req.headers.get("origin") ?? "";
   return new Response(JSON.stringify({

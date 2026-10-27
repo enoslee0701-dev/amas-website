@@ -4,7 +4,7 @@
 // 教师档案、角色授予/撤销、学号别名与审计在同一事务内完成。
 // 部署：supabase functions deploy review-teacher-verification
 
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.116.0";
 
 // 两步验证开关（0035_mfa_switch）：只有库里明确设为 false 才放行 aal1；读不到、出错一律按「要求」处理
 type RpcClient = { rpc: (fn: string) => PromiseLike<{ data: unknown; error: unknown }> };
@@ -41,9 +41,10 @@ Deno.serve(async (req) => {
     if (payload.aal !== "aal2" && await mfaRequired(admin)) return fail(403, "mfa_required");
   } catch { return fail(401, "unauthenticated"); }
 
-  const { data: roles } = await admin.from("user_roles").select("role")
+  const { data: roles } = await admin.from("user_roles").select("role,expires_at")
     .eq("user_id", userData.user.id).is("revoked_at", null);
-  const names = (roles ?? []).map((r: { role: string }) => r.role);
+  const names = (Array.isArray(roles) ? roles : []).filter((r: { role: string; expires_at?: string | null }) =>
+    r && (r.expires_at == null || Date.parse(r.expires_at) > Date.now())).map((r: { role: string }) => r.role);
   if (!names.includes("academic_admin") && !names.includes("super_admin")) {
     return fail(403, "forbidden");
   }
@@ -53,6 +54,7 @@ Deno.serve(async (req) => {
     staff_number?: string; grant_mentor?: boolean; internal_note?: string;
   };
   try { body = await req.json(); } catch { return fail(400, "bad_request"); }
+  if (!body || typeof body !== "object" || Array.isArray(body)) return fail(400, "bad_request");
   if (!body.request_id || !ACTIONS.includes(String(body.action))) return fail(400, "bad_request");
 
   const { data, error } = await admin.rpc("review_teacher_verification", {
@@ -65,6 +67,7 @@ Deno.serve(async (req) => {
     p_internal_note: body.internal_note ?? null,
   });
   if (error) {
+    if (error.code === "42501" || /lacks admin role/i.test(error.message)) return fail(403, "forbidden");
     if (/invalid teacher verification transition/.test(error.message)) return fail(409, "invalid_state");
     return fail(500, "server_error");
   }
