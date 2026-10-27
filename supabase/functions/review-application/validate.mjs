@@ -8,12 +8,16 @@
 export const ACTIONS = ["start_review", "needs_information", "accept", "reject"];
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** @type {{ok:false,status:number,code:string}} */
 const bad = { ok: false, status: 400, code: "bad_request" };
 const isUuid = (v) => typeof v === "string" && UUID_RE.test(v);
 const isNullOrUuid = (v) => v === null || isUuid(v);
 const isNullOrString = (v) => v === null || typeof v === "string";
 
-/** @param body 已经 JSON.parse 过的东西（可能是 null / 数组 / 字符串 —— 都要挡住） */
+/**
+ * @param {any} body Parsed JSON; reject null, arrays and primitive values.
+ * @returns {{ok:false,status:number,code:string} | {ok:true,mode:"assign",application_id:string,reviewer_id:string|null,expected_reviewer:string|null,note:string|null} | {ok:true,mode:"action",application_id:string,action:string,message:string|null,requirements:any[]|null,internal_note:string|null}}
+ */
 export function validateBody(body) {
   /* req.json() 对 "null" 这个合法 JSON 会返回 null；对 "[]" 返回数组。
      不先挡住，后面 body.application_id 就是一次 TypeError ——
