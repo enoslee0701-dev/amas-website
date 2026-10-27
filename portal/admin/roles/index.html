@@ -6,16 +6,16 @@
 <meta name="robots" content="noindex">
 <title>角色管理 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610262114">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610271250">
 </head>
 <body>
 <script src="../../../assets/vendor/supabase-js@2.116.0/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202610262114"></script>
-<script src="../../../assets/js/portal/auth.js?v=202610262114"></script>
-<script src="../../../assets/js/portal/api.js?v=202610262114"></script>
-<script src="../../../assets/js/portal/ui.js?v=202610262114"></script>
-<script src="../../../assets/js/portal/shell.js?v=202610262114"></script>
-<script src="../../../assets/js/portal/sis.js?v=202610262114"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610271250"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610271250"></script>
+<script src="../../../assets/js/portal/api.js?v=202610271250"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610271250"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610271250"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610271250"></script>
 <script>
 /* 角色管理（0033）：只有超级管理员能用。只管教务 / 教学主管 / 导师三种；
    超级管理员仍只能由数据库手工授予，教授走认证流程，学员走招生与建档。
@@ -92,6 +92,39 @@
     bind(box);
   }
   loadStaff();
+  // Dedicated attendance setup remains on the super-admin page, never on the clerk screen.
+  const att=document.createElement("section");att.className="card";att.style.marginTop="16px";
+  att.innerHTML='<h2 style="font-size:18px">10月班专用考勤账号</h2><p class="who">可直接指派10月班现有学员账号负责考勤。保留正式学籍与原登录名，指派期间登录只进入考勤页，不提供其他工作空间。</p>'+
+    '<form id="attLookup"><label for="attEmail">负责人的账号邮箱</label><div class="bar"><input type="email" id="attEmail" required style="flex:1;min-width:180px"><button type="submit" class="sbtn">查找考勤账号</button></div></form><div id="attHit"></div><h3 style="font-size:15px">已配置的考勤账号</h3><div id="attList"></div>';
+  main.appendChild(att);
+  Object.assign(S.ERR,{privileged_account:"这个账号具有教务或其他管理身份，不能设为考勤专用入口。",outside_cohort:"这个学员没有分在10月班，请先核对分班。",invalid_account:"不能将自己的管理员账号改成考勤账号。"});
+  async function setAttendance(user,enabled){
+    const c=await S.ask({title:(enabled?"启用":"停用")+"「"+(user.display_name||user.email)+"」的考勤专用账号",
+      text:enabled?"仅负责10月班考勤，保留原学籍与登录账号；指派期间只显示考勤工作台。不授予教务、财务或其他班级管理权限。":"立即撤销考勤权限，不影响已经保存的考勤记录。",confirmLabel:enabled?"确认启用":"确认停用",danger:!enabled});
+    if(!c)return;
+    const result=await S.write({lock:"att-"+user.user_id,rpc:"admin_set_attendance_operator",args:{p_user:user.user_id,p_enabled:enabled},say});
+    if(result){UI.toast(enabled?"考勤账号已启用":"考勤账号已停用");main.querySelector("#attHit").innerHTML="";await loadAttendance();}
+  }
+  function attendancePerson(box,user,enabled){
+    const row=document.createElement("div");row.className="row";
+    const label=document.createElement("span");label.textContent=(user.display_name||"未登记姓名")+" · "+(user.email||"");row.appendChild(label);
+    const button=document.createElement("button");button.type="button";button.className="sbtn";button.textContent=enabled?"设为10月班考勤专用":"停用考勤权限";button.onclick=()=>setAttendance(user,enabled);row.appendChild(button);box.appendChild(row);
+  }
+  async function loadAttendance(){
+    const box=main.querySelector("#attList");box.textContent="正在读取…";
+    const r=await Api.rpc("admin_attendance_operators");box.textContent="";
+    if(r.error||!Array.isArray(r.data)){box.textContent="未能读取配置，请稍后刷新。";return;}
+    if(!r.data.length)box.textContent="尚未配置专用考勤账号。";
+    r.data.forEach(u=>attendancePerson(box,u,false));
+  }
+  main.querySelector("#attLookup").onsubmit=async e=>{
+    e.preventDefault();const box=main.querySelector("#attHit"),email=main.querySelector("#attEmail").value.trim();
+    box.textContent="正在查找…";const r=await Api.rpc("admin_find_user",{p_email:email});box.textContent="";
+    if(r.error||!Array.isArray(r.data)){say("查找失败，请重试。");return;}
+    if(!r.data.length)box.textContent="没有找到此账号，请核对现有账号的完整邮箱。";
+    r.data.forEach(u=>attendancePerson(box,u,true));
+  };
+  loadAttendance();
 })();
 </script>
 </body>
