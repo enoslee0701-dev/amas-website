@@ -6,15 +6,15 @@
 <meta name="robots" content="noindex">
 <title>教师工作台 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202610271250">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202610271413">
 </head>
 <body>
 <script src="../../assets/vendor/supabase-js@2.116.0/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202610271250"></script>
-<script src="../../assets/js/portal/auth.js?v=202610271250"></script>
-<script src="../../assets/js/portal/api.js?v=202610271250"></script>
-<script src="../../assets/js/portal/ui.js?v=202610271250"></script>
-<script src="../../assets/js/portal/shell.js?v=202610271250"></script>
+<script src="../../assets/js/supabase-config.js?v=202610271413"></script>
+<script src="../../assets/js/portal/auth.js?v=202610271413"></script>
+<script src="../../assets/js/portal/api.js?v=202610271413"></script>
+<script src="../../assets/js/portal/ui.js?v=202610271413"></script>
+<script src="../../assets/js/portal/shell.js?v=202610271413"></script>
 <script>
 /* 教师工作台。
 
@@ -33,15 +33,19 @@
   if (!mounted) return;
   const { main, ctx } = mounted;
 
+  const isTeacher = ctx.roles.includes("teacher");
+  const isMentor = ctx.roles.includes("mentor");
+  const heading = isTeacher ? (isMentor ? "教学与导师工作台" : "教师工作台") : "导师工作台";
+  document.title = heading + " | AMAS";
   const TS = { active: "在职", leave: "休假", suspended: "已暂停", departed: "已离任" };
   const d = (v) => v ? new Date(v).toLocaleDateString("zh-CN") : "—";
 
   UI.loading(main, 3);
-  const { data: tp, error } = await Api.select("teacher_profiles", {
+  const { data: tp, error } = isTeacher ? await Api.select("teacher_profiles", {
     columns: "staff_number,public_name,status,verified_at",
     eq: { user_id: ctx.session.user.id },
     single: true,
-  });
+  }) : { data: null, error: null };
 
   /* 三种情况分开说，不混为一谈：
        有档案      显示工号与状态
@@ -56,22 +60,17 @@
     : '<div class="msg info show">还没有教职档案记录。教师身份通过验证后，教务会建立这份档案。</div>';
 
   main.innerHTML =
-    '<h1>教师工作台</h1>' +
-    '<div class="msg info show">教师身份已激活（本页要求两步验证通过后才能进入）。' +
-      '教务排给你的课程班在下面的「我的课程」里，可以登记上课、点名、布置作业和录总评。</div>' +
-
-    '<h3 style="color:var(--navy);margin:20px 0 8px">我的教师档案</h3>' +
-    tpBox +
-    '<p class="note" style="font-size:12.5px;color:var(--muted);margin-top:8px">' +
-      '联系方式可以在<a class="link" href="' + A.ROOT + 'portal/teacher/profile/">我的资料</a>里自行维护；' +
-      '工号与在职状态由教务维护。</p>' +
+    '<h1>' + heading + '</h1>' +
+    '<p class="lead">' + (isTeacher ? '只处理教务排给你的课程班。课程总评提交后，由教务审核发布。' : '只查看教务分配给你的学员，记录学习陪伴与反馈。') + '</p>' +
+    (isTeacher ? '<h3 style="color:var(--navy);margin:20px 0 8px">我的教师档案</h3>' + tpBox : '') +
+    '<p class="note"><a class="link" href="' + A.ROOT + 'portal/teacher/profile/">维护我的联系方式</a></p>' +
 
     '<h3 style="color:var(--navy);margin:22px 0 8px">工作入口</h3>' +
     '<div class="spaces">' +
-      '<a href="' + A.ROOT + 'portal/teacher/classes/"><span class="ic">📚</span><span><b>我的课程</b>' +
-        '<span>上课登记、点名、作业评分、课程总评</span></span></a>' +
-      '<a href="' + A.ROOT + 'portal/teacher/mentees/"><span class="ic">🤝</span><span><b>我带的学员</b>' +
-        '<span>导师查看学员进度、写陪伴记录（需导师身份）</span></span></a>' +
+      (isTeacher ? '<a href="' + A.ROOT + 'portal/teacher/classes/"><span class="ic">📚</span><span><b>我的课程</b>' +
+        '<span>上课登记、点名、作业评分、课程总评</span></span></a>' : '') +
+      (isMentor ? '<a href="' + A.ROOT + 'portal/teacher/mentees/"><span class="ic">🤝</span><span><b>我带的学员</b>' +
+        '<span>查看已分配学员的进度、写陪伴记录</span></span></a>' : '') +
     '</div>';
 })();
 </script>
