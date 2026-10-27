@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>管理后台 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202610271250">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202610271413">
 <style>
 table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 .list th,.list td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top}
@@ -73,7 +73,7 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
     <div class="who" id="hubNote"></div>
   </div>
 
-  <div class="card">
+  <div class="card" id="teacherTools">
     <div class="pagehead">
       <div><h2 style="margin:0">教师验证管理 <span class="badge">Phase 2</span></h2><div class="who" id="who"></div></div>
       <span><a class="link" href="inbox/" style="margin-right:12px">报名收件箱</a><button class="link" id="btnOut">退出登录</button></span>
@@ -108,10 +108,10 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 </div>
 
 <script src="../../assets/vendor/supabase-js@2.116.0/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202610271250"></script>
-<script src="../../assets/js/portal/auth.js?v=202610271250"></script>
-<script src="../../assets/js/portal/ui.js?v=202610271250"></script>
-<script src="../../assets/js/portal/shell.js?v=202610271250"></script>
+<script src="../../assets/js/supabase-config.js?v=202610271413"></script>
+<script src="../../assets/js/portal/auth.js?v=202610271413"></script>
+<script src="../../assets/js/portal/ui.js?v=202610271413"></script>
+<script src="../../assets/js/portal/shell.js?v=202610271413"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
@@ -142,6 +142,12 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
   if (A.sessionEnded()) return;            // 晚返回的渲染让位，不拿死会话摆出管理界面
   document.getElementById("who").textContent = (p && (p.display_name || p.email)) || "";
   document.getElementById("btnOut").addEventListener("click", () => A.signOut());
+  document.querySelectorAll('.hub a').forEach(link => {
+    const path = 'portal/admin/' + link.getAttribute('href');
+    if (!A.canVisit(path, ctx.roles)) link.remove();
+  });
+  const canManageTeachers = ctx.roles.some(r => ['academic_admin','super_admin'].includes(r));
+  if (!canManageTeachers) document.getElementById('teacherTools')?.remove();
   /* 数据总览：每一项各读各的，哪项读不到那项就留「—」，不连累别的、也不挡下面的功能。 */
   (async () => { try {
     const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
@@ -206,6 +212,7 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
      这三种的共同含义是**请求可能已经生效**；服务端给了错误码才是确定没执行。 */
   const unclearResult = (r) => !r || r.status === 0 || r.status >= 500 || (r.status === 200 && !r.data);
 
+  if (canManageTeachers) {
   // ---- ① 邀请 ----
   document.getElementById("invForm").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -352,6 +359,7 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
     b.disabled = false;
     await loadQueue();
   });
+  }
 })();
 </script>
 </body>
