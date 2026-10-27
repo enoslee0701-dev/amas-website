@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>费用管理 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610271250">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610271413">
 <style>
 .kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
 .kpi div{background:#fff;border:1px solid #e6e2d8;border-radius:14px;padding:14px 16px;box-shadow:0 6px 18px rgba(16,40,72,.05)}
@@ -27,12 +27,12 @@ table.ft{width:100%;border-collapse:collapse;font-size:13.5px}
 </head>
 <body>
 <script src="../../../assets/vendor/supabase-js@2.116.0/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202610271250"></script>
-<script src="../../../assets/js/portal/auth.js?v=202610271250"></script>
-<script src="../../../assets/js/portal/api.js?v=202610271250"></script>
-<script src="../../../assets/js/portal/ui.js?v=202610271250"></script>
-<script src="../../../assets/js/portal/shell.js?v=202610271250"></script>
-<script src="../../../assets/js/portal/sis.js?v=202610271250"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610271413"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610271413"></script>
+<script src="../../../assets/js/portal/api.js?v=202610271413"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610271413"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610271413"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610271413"></script>
 <script>
 /* 费用管理（0042）：一笔一行的流水账。应收 / 已收 / 减免 / 退款，按币种算每人欠款。
    账目只增不删、不改金额：记错了点「作废」并写原因。可给整个班一次加一笔应收（例如学费）。
@@ -47,44 +47,90 @@ table.ft{width:100%;border-collapse:collapse;font-size:13.5px}
   const CUR = ["THB", "CNY", "USD"];
   const CATS = ["学费", "报名费", "教材费", "住宿费", "其他"];
   let people = [], entries = [], fCohort = "", fPerson = "", busy = false;
-
-  UI.loading(main, 4);
-  const [rp, re] = await Promise.all([
-    Api.select("submissions", { columns: "id,name,cohort,student_user_id,created_at", eq: { type: "application" }, order: [{ column: "created_at", asc: true }, { column: "id", asc: true }] }),
-    Api.select("finance_entries", { columns: "id,submission_id,kind,category,amount,currency,occurred_on,method,reference,note,batch_id,created_at,voided_at,void_reason",
-                                    order: [{ column: "occurred_on" }, { column: "created_at" }], limit: 5000 }),
-  ]);
-  if (rp.error || !Array.isArray(rp.data) || re.error || !Array.isArray(re.data)) {
-    return UI.error(main, { message: "这一次没能读到费用记录。这不表示没有记录，请稍后刷新。", onRetry: () => location.reload() });
+  let grandTotals = {}, nextPage = null, pageSnapshot = null, pending = null;
+  let notice = "", noticeOk = false;
+  const pendingKey = "amas.finance.pending:" + mounted.ctx.session.user.id;
+  try { pending = JSON.parse(sessionStorage.getItem(pendingKey) || "null"); } catch (e) {
+    return UI.error(main, { message: "无法读取本标签页保留的记账结果，请先检查浏览器存储设置。" });
   }
-  people = rp.data; entries = re.data;
-  const cohorts = [...new Set(people.map((p) => p.cohort).filter(Boolean))];
+  const validPending = (p) => p && /^[0-9a-f-]{36}$/i.test(p.request) &&
+    ((p.op === "record" && Array.isArray(p.entries) && p.entries.length > 0) ||
+     (p.op === "void" && typeof p.entry === "string" && typeof p.reason === "string"));
+  if (pending && !validPending(pending)) return UI.error(main, { message: "上一次记账的核对资料不完整，请联系管理员核对流水后再操作。" });
+  // getRandomValues is supported by the existing browser floor. No Math.random fallback.
+  const requestId = () => {
+    const b = new Uint8Array(16); crypto.getRandomValues(b); b[6] = (b[6] & 15) | 64; b[8] = (b[8] & 63) | 128;
+    const s = Array.from(b, (v) => v.toString(16).padStart(2, "0")).join("");
+    return s.slice(0,8)+"-"+s.slice(8,12)+"-"+s.slice(12,16)+"-"+s.slice(16,20)+"-"+s.slice(20);
+  };
+  async function rpc(name, args) {
+    let timer;
+    try { return await Promise.race([Api.rpc(name, args), new Promise((resolve) => {
+      timer = setTimeout(() => resolve({ data: null, error: { code: "network" } }), 20000);
+    })]); } catch (e) { return { data: null, error: { code: "network" } }; }
+    finally { clearTimeout(timer); }
+  }
+  const validTotals = (t) => t && typeof t === "object" && !Array.isArray(t) && Object.entries(t).every(([currency,x]) =>
+    CUR.includes(currency) && x && ["charge","payment","waiver","refund"].every(k =>
+      (typeof x[k] === "number" || typeof x[k] === "string") && x[k] !== "" && Number.isFinite(Number(x[k])) && Number(x[k]) >= 0));
+  async function getPeople() {
+    const rows = []; let after = 0;
+    for (;;) {
+      const r = await rpc("finance_people_page", { p_after: after, p_limit: 200 });
+      if (r.error || !r.data || !Array.isArray(r.data.rows)) throw new Error("people");
+      if (r.data.rows.some((p) => !Number.isSafeInteger(p.id) || p.id <= after || !validTotals(p.balances))) throw new Error("people shape");
+      rows.push(...r.data.rows);
+      const next = r.data.next_after;
+      if (next === null) break;
+      if (!Number.isSafeInteger(next) || next <= after || !r.data.rows.length || next !== r.data.rows[r.data.rows.length-1].id) throw new Error("people cursor");
+      after = next;
+    }
+    if (new Set(rows.map((p) => p.id)).size !== rows.length) throw new Error("duplicate people");
+    return rows;
+  }
+  async function getPage(cursor, snapshot, cohort, person) {
+    const r = await rpc("finance_entries_page", {
+      p_before_created: cursor ? cursor.created_at : null, p_before_id: cursor ? cursor.id : null,
+      p_snapshot: snapshot || null, p_cohort: cohort || null, p_submission: person ? Number(person) : null, p_limit: 100,
+    });
+    if (r.error || !r.data || !Array.isArray(r.data.rows) || typeof r.data.snapshot !== "string" ||
+        (r.data.next !== null && (!r.data.next || typeof r.data.next.id !== "string" || typeof r.data.next.created_at !== "string"))) throw new Error("entries");
+    return r.data;
+  }
+  async function loadScope(cohort, person, refreshPeople) {
+    const [rp, rt, re] = await Promise.all([
+      refreshPeople ? getPeople() : Promise.resolve(people),
+      rpc("finance_totals", { p_cohort: cohort || null }), getPage(null, null, cohort, person),
+    ]);
+    if (rt.error || !validTotals(rt.data)) throw new Error("totals");
+    people = rp; grandTotals = rt.data; entries = re.rows; nextPage = re.next; pageSnapshot = re.snapshot;
+    fCohort = cohort; fPerson = person;
+  }
+  UI.loading(main, 4);
+  try { await loadScope("", "", true); }
+  catch (e) { return UI.error(main, { message: "这一次没能完整读到费用记录。这不表示没有记录，请稍后刷新；若刚完成系统升级，请联系管理员检查费用服务。", onRetry: () => location.reload() }); }
+  const cohorts = () => [...new Set(people.map((p) => p.cohort).filter(Boolean))];
   const pname = (id) => (people.find((p) => p.id === id) || {}).name || "（报名 #" + id + "）";
   const money = (n, c) => (c === "THB" ? "฿" : c === "CNY" ? "¥" : "$") + Number(n).toLocaleString("zh-CN", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   const sign = (e) => (e.kind === "charge" || e.kind === "refund" ? 1 : -1) * Number(e.amount);
-  const live = () => entries.filter((e) => !e.voided_at);
-
-  function totals(list){
-    const t = {};
-    list.forEach((e) => { const c = (t[e.currency] = t[e.currency] || { charge: 0, payment: 0, waiver: 0, refund: 0 }); c[e.kind] += Number(e.amount); });
-    return t;
-  }
   const owe = (c) => c.charge - c.payment - c.waiver + c.refund;
 
   function render(){
+    const draft = {};
+    for (const id of ["who","kind","cat","amt","cur","day","met","ref","note"]) { const el = main.querySelector("#" + id); if (el) draft[id] = el.value; }
     const inScope = (pid) => !fCohort || (people.find((p) => p.id === pid) || {}).cohort === fCohort;
-    const scoped = live().filter((e) => inScope(e.submission_id));
-    const T = totals(scoped);
+    const T = grandTotals;
     const curs = Object.keys(T).length ? Object.keys(T) : ["THB"];
     const ppl = people.filter((p) => !fCohort || p.cohort === fCohort);
-    const rows = ppl.map((p) => ({ p, t: totals(live().filter((e) => e.submission_id === p.id)) }));
+    const rows = ppl.map((p) => ({ p, t: p.balances }));
     const list = entries.filter((e) => inScope(e.submission_id) && (!fPerson || String(e.submission_id) === fPerson));
 
     main.innerHTML =
       '<h1>费用管理</h1><p class="lead">一笔一行的流水账：应收、已收、减免、退款。记错了点「作废」并写原因，原记录保留可查。</p>' +
-      '<div class="msg" id="err" role="alert" tabindex="-1"></div>' +
+      '<div class="msg' + (notice ? ' show ' + (noticeOk ? 'ok' : 'err') : '') + '" id="err" role="alert" tabindex="-1">' + UI.esc(notice) + '</div>' +
+      (pending ? '<p class="msg show" role="status">有一笔操作需要核对，请先核实再新增记账。 <button class="sbtn" id="reconcile" type="button">核实上次操作</button></p>' : '') +
       '<div class="bar" style="margin-bottom:14px"><label for="fc" style="font-size:13px">班级</label><select id="fc" class="sbtn"><option value="">全部</option>' +
-        cohorts.map((c) => '<option' + (c === fCohort ? " selected" : "") + '>' + UI.esc(c) + '</option>').join("") + '</select>' +
+        cohorts().map((c) => '<option' + (c === fCohort ? " selected" : "") + '>' + UI.esc(c) + '</option>').join("") + '</select>' +
         '<button class="sbtn" type="button" id="csv">' + I("file", 16) + '导出表格（CSV）</button></div>' +
       curs.map((c) => { const x = T[c] || { charge: 0, payment: 0, waiver: 0, refund: 0 };
         return '<div class="kpi"><div><b>' + money(x.charge, c) + '</b><span>应收合计（' + c + '）</span></div><div><b>' + money(x.payment, c) + '</b><span>已收</span></div>' +
@@ -92,7 +138,7 @@ table.ft{width:100%;border-collapse:collapse;font-size:13.5px}
 
       '<h2 style="font-size:17px;color:var(--navy);margin:6px 0 10px">记一笔</h2>' +
       '<div class="of"><div class="frm">' +
-        '<label>对象<select id="who"><option value="">请选择学员…</option>' + cohorts.map((c) => '<option value="cohort:' + UI.esc(c) + '">【整个' + UI.esc(c) + '】每人一笔</option>').join("") +
+        '<label>对象<select id="who"><option value="">请选择学员…</option>' + cohorts().map((c) => '<option value="cohort:' + UI.esc(c) + '">【整个' + UI.esc(c) + '】每人一笔</option>').join("") +
           people.map((p) => '<option value="' + p.id + '">' + UI.esc(p.name || "未填姓名") + (p.cohort ? "（" + UI.esc(p.cohort) + "）" : "") + '</option>').join("") + '</select></label>' +
         '<label>类型<select id="kind">' + Object.entries(KIND).map(([k, t]) => '<option value="' + k + '">' + t + '</option>').join("") + '</select></label>' +
         '<label>项目<input id="cat" list="cats" value="学费" maxlength="30"><datalist id="cats">' + CATS.map((c) => '<option value="' + c + '">').join("") + '</datalist></label>' +
@@ -118,64 +164,113 @@ table.ft{width:100%;border-collapse:collapse;font-size:13.5px}
           '<td class="kind-' + e.kind + '">' + KIND[e.kind] + '</td><td>' + UI.esc(e.category) + '</td><td class="n">' + money(e.amount, e.currency) + '</td>' +
           '<td>' + (METHOD[e.method] || "—") + '</td><td>' + UI.esc(e.reference || "") + '</td><td>' + UI.esc(e.voided_at ? "已作废：" + (e.void_reason || "") : e.note || "") + '</td>' +
           '<td>' + (e.voided_at ? "" : '<button class="sbtn" type="button" data-void="' + e.id + '">作废</button>') + '</td></tr>').join("") + '</tbody></table></div>'
-        : UI.box("🧾", "还没有记账", "在上面「记一笔」开始。"));
+        : UI.box("🧾", "还没有记账", "在上面「记一笔」开始。")) +
+      (nextPage ? '<button class="sbtn" id="more" type="button">加载更多明细</button>' : "");
 
-    main.querySelector("#fc").addEventListener("change", (ev) => { fCohort = ev.target.value; fPerson = ""; render(); });
+    for (const id of Object.keys(draft)) { const el = main.querySelector("#" + id); if (el) el.value = draft[id]; }
+    main.querySelector("#fc").addEventListener("change", (ev) => changeScope(ev.target.value, ""));
     main.querySelector("#add").addEventListener("click", add);
     main.querySelector("#csv").addEventListener("click", csv);
-    main.querySelector("#allp")?.addEventListener("click", () => { fPerson = ""; render(); });
-    main.querySelectorAll("[data-only]").forEach((b) => b.addEventListener("click", () => { fPerson = b.dataset.only; render(); }));
+    main.querySelector("#allp")?.addEventListener("click", () => changeScope(fCohort, ""));
+    main.querySelector("#more")?.addEventListener("click", more);
+    main.querySelector("#reconcile")?.addEventListener("click", reconcile);
+    main.querySelectorAll("[data-only]").forEach((b) => b.addEventListener("click", () => changeScope(fCohort, b.dataset.only)));
     main.querySelectorAll("[data-void]").forEach((b) => b.addEventListener("click", () => voidIt(entries.find((e) => e.id === b.dataset.void))));
+    main.querySelectorAll("button,select#fc").forEach((b) => { if (busy || (pending && (b.id === "add" || b.hasAttribute("data-void")))) b.disabled = true; });
   }
 
-  const say = (m, ok) => { const e = main.querySelector("#err"); e.className = "msg " + (ok ? "ok" : "err") + " show"; e.textContent = m; if (!ok) e.focus(); };
+  function say(message, ok) { notice = message; noticeOk = !!ok; render(); if (!ok) main.querySelector("#err").focus(); }
   const v = (id) => main.querySelector("#" + id).value.trim();
-
-  async function add(){
-    if (busy) return;
+  async function changeScope(cohort, person) {
+    if (busy) return; busy = true; render();
+    try { await loadScope(cohort, person, false); notice = ""; }
+    catch (e) { notice = "这一次没能读到新的筛选结果，仍显示上一次完整读取的内容。"; noticeOk = false; }
+    finally { busy = false; render(); }
+  }
+  async function more() {
+    if (busy || !nextPage) return; busy = true; render();
+    try {
+      const old = nextPage, page = await getPage(old, pageSnapshot, fCohort, fPerson);
+      const ids = new Set(entries.map((e) => e.id));
+      if (page.rows.some((e) => ids.has(e.id)) || (page.next && page.next.id === old.id)) throw new Error("cursor");
+      entries.push(...page.rows); nextPage = page.next;
+    } catch (e) { notice = "这一次没能完整读到下一页，已读取的明细仍保留，请重试加载。"; noticeOk = false; }
+    finally { busy = false; render(); }
+  }
+  function savePending(p) {
+    try { sessionStorage.setItem(pendingKey, JSON.stringify(p)); pending = p; return true; }
+    catch (e) { say("无法保留本次核对资料，本次没有发出记账请求。请开启本标签页存储后再试。"); return false; }
+  }
+  function clearPending() { sessionStorage.removeItem(pendingKey); pending = null; }
+  async function reconcile() {
+    if (!pending || busy) return;
+    busy = true; render(); const operation = pending; let committed = false;
+    try {
+      const r = operation.op === "record"
+        ? await rpc("finance_record", { p_request: operation.request, p_entries: operation.entries })
+        : await rpc("finance_void", { p_request: operation.request, p_entry: operation.entry, p_reason: operation.reason });
+      if (r.error || !r.data || typeof r.data.ok !== "boolean" || r.data.error === "request_conflict" || (r.data.ok && r.data.count !== (operation.op === "record" ? operation.entries.length : 1))) {
+        notice = "暂时无法确认本次操作的结果。核对资料已保留，请点「核实上次操作」继续核对，避免另记一笔。"; noticeOk = false; return;
+      }
+      if (!r.data.ok) {
+        const messages = { validation_failed: "本次没有记账，请检查学员、金额、日期及其他栏位。", reason_required: "请填写作废原因。", already_voided: "这笔账已经作废，请刷新核对。", not_found: "没有找到这笔账，请刷新核对。" };
+        if (!messages[r.data.error]) { notice = "暂时无法确认操作结果，核对资料已保留。"; noticeOk = false; return; }
+        clearPending(); notice = messages[r.data.error]; noticeOk = false; return;
+      }
+      committed = true; clearPending();
+      if (operation.op === "record") for (const id of ["amt","ref","note"]) { const el = main.querySelector("#" + id); if (el) el.value = ""; }
+      notice = operation.op === "record" ? "已记账 " + r.data.count + " 笔。" : "已作废。"; noticeOk = true;
+      await loadScope(fCohort, fPerson, true);
+    } catch (e) {
+      notice = committed ? "操作已完成，但这一次没能重新读到列表，请刷新查看。" : "暂时无法确认操作结果，核对资料已保留，请先核实。";
+      noticeOk = committed;
+    } finally { busy = false; render(); }
+  }
+  async function add() {
+    if (busy || pending) return;
     const who = v("who"), amount = Number(v("amt"));
     if (!who) return say("请选择学员（或整个班）。");
-    if (!(amount > 0)) return say("请填写大于 0 的金额。");
+    if (!(amount > 0) || amount >= 10000000 || Math.abs(amount * 100 - Math.round(amount * 100)) > 0.000001) return say("请填写大于 0 的金额，最多两位小数且小于 10,000,000。");
     if (!v("day")) return say("请填写日期。");
     const targets = who.startsWith("cohort:") ? people.filter((p) => p.cohort === who.slice(7)).map((p) => p.id) : [Number(who)];
-    if (!targets.length) return say("这个班里还没有学员。");
-    if (targets.length > 1 && !(await UI.confirmDialog({ title: "给整个班记账", text: "给「" + who.slice(7) + "」" + targets.length + " 位学员每人记一笔" + KIND[v("kind")] + " " + money(amount, v("cur")) + "，确定吗？", confirmLabel: "确定" }))) return;
-    const batch = targets.length > 1 && window.crypto && crypto.randomUUID ? crypto.randomUUID() : null;
-    const me = mounted.ctx.session.user.id;
-    const rows = targets.map((sid) => ({ submission_id: sid, kind: v("kind"), category: v("cat") || "其他", amount, currency: v("cur"),
-      occurred_on: v("day"), method: v("met"), reference: v("ref"), note: v("note"), batch_id: batch, created_by: me }));
+    if (!targets.length || targets.length > 500) return say("每次可为 1 至 500 位学员记账，请分批选择。");
+    // Lock before confirmation so rapid repeated clicks cannot open two writes.
+    const entry = { kind: v("kind"), category: v("cat") || "其他", amount, currency: v("cur"), occurred_on: v("day"), method: v("met"), reference: v("ref"), note: v("note") };
     busy = true;
     try {
-      const { data, error } = await A.client.from("finance_entries").insert(rows).select();
-      if (error || !Array.isArray(data) || data.length !== rows.length) return say("这一次没有记上，请再试一次。");
-      entries = data.concat(entries).sort((a, b) => (a.occurred_on < b.occurred_on ? 1 : a.occurred_on > b.occurred_on ? -1 : (a.created_at < b.created_at ? 1 : -1)));
-      render(); say("已记账 " + data.length + " 笔。", true);
-    } finally { busy = false; }
+      if (targets.length > 1 && !(await UI.confirmDialog({ title: "给整个班记账", text: "给「" + who.slice(7) + "」" + targets.length + " 位学员每人记一笔" + KIND[entry.kind] + " " + money(amount, entry.currency) + "，确定吗？", confirmLabel: "确定" }))) return;
+      if (!savePending({ op: "record", request: requestId(), entries: targets.map((id) => Object.assign({ submission_id: id }, entry)) })) return;
+    } finally { busy = false; render(); }
+    return reconcile();
   }
-
-  async function voidIt(e){
-    if (!e || busy) return;
-    const r = await window.AmasSis.ask({ title: "作废这笔账", text: pname(e.submission_id) + " · " + KIND[e.kind] + " " + money(e.amount, e.currency) + "（" + e.occurred_on + "）。作废后不计入余额，记录保留可查。",
-      fields: [{ id: "reason", label: "作废原因（例如：重复录入、金额写错）", type: "textarea", required: true }], confirmLabel: "作废", danger: true });
-    if (!r) return;
-    busy = true;
+  async function voidIt(e) {
+    if (!e || busy || pending) return; busy = true;
     try {
-      const { data, error } = await Api.update("finance_entries", { id: e.id }, { voided_at: new Date().toISOString(), void_reason: r.reason });
-      if (error || !Array.isArray(data) || !data.length) return say("这一次没有作废成功，请再试一次。");
-      Object.assign(e, data[0]); render(); say("已作废。", true);
-    } finally { busy = false; }
+      const r = await window.AmasSis.ask({ title: "作废这笔账", text: pname(e.submission_id) + " · " + KIND[e.kind] + " " + money(e.amount, e.currency) + "（" + e.occurred_on + "）。作废后不计入余额，记录保留可查。",
+        fields: [{ id: "reason", label: "作废原因（例如：重复录入、金额写错）", type: "textarea", required: true }], confirmLabel: "作废", danger: true });
+      if (!r || !savePending({ op: "void", request: requestId(), entry: e.id, reason: r.reason })) return;
+    } finally { busy = false; render(); }
+    return reconcile();
   }
-
-  function csv(){
-    const q = (x) => '"' + String(x == null ? "" : x).replace(/"/g, '""') + '"';
-    const head = ["日期", "学员", "班级", "类型", "项目", "金额", "币种", "方式", "单号", "备注", "状态"];
-    const lines = entries.filter((e) => !fCohort || (people.find((p) => p.id === e.submission_id) || {}).cohort === fCohort).map((e) =>
-      [e.occurred_on, pname(e.submission_id), (people.find((p) => p.id === e.submission_id) || {}).cohort || "", KIND[e.kind], e.category, sign(e) < 0 ? -e.amount : e.amount,
-       e.currency, METHOD[e.method] || "", e.reference, e.note, e.voided_at ? "已作废：" + (e.void_reason || "") : ""].map(q).join(","));
-    const blob = new Blob(["﻿" + [head.map(q).join(",")].concat(lines).join("\r\n")], { type: "text/csv;charset=utf-8" });
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-    a.download = "AMAS费用明细" + (fCohort ? "-" + fCohort : "") + "-" + new Date().toISOString().slice(0, 10) + ".csv";
-    document.body.appendChild(a); a.click(); a.remove();
+  async function csv() {
+    if (busy) return; busy = true; render();
+    try {
+      const all = []; let cursor = null, snapshot = null; const ids = new Set();
+      do {
+        const page = await getPage(cursor, snapshot, fCohort, fPerson); snapshot = page.snapshot;
+        for (const e of page.rows) { if (ids.has(e.id)) throw new Error("duplicate"); ids.add(e.id); all.push(e); }
+        if (page.next && cursor && page.next.id === cursor.id) throw new Error("cursor");
+        cursor = page.next;
+      } while (cursor);
+      // Quote escaping alone does not prevent spreadsheet formula evaluation.
+      const q = (x) => { const text = String(x == null ? "" : x); return '"' + ((typeof x === "string" && /^[=+@\-\t\r]/.test(text)) ? "'" : "") + text.replace(/"/g, '""') + '"'; };
+      const head = ["日期","学员","班级","类型","项目","金额","币种","方式","单号","备注","状态"];
+      const lines = all.map((e) => [e.occurred_on,pname(e.submission_id),(people.find((p) => p.id === e.submission_id) || {}).cohort || "",KIND[e.kind],e.category,sign(e),e.currency,METHOD[e.method] || "",e.reference,e.note,e.voided_at ? "已作废：" + (e.void_reason || "") : ""].map(q).join(","));
+      const url = URL.createObjectURL(new Blob(["\ufeff" + [head.map(q).join(",")].concat(lines).join("\r\n")], { type: "text/csv;charset=utf-8" }));
+      const a = document.createElement("a"); a.href = url; a.download = "AMAS费用明细-" + new Date().toISOString().slice(0,10) + ".csv"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+      notice = "已导出 " + all.length + " 笔明细。"; noticeOk = true;
+    } catch (e) { notice = "导出未完成，没有下载不完整的文件，请稍后重试。"; noticeOk = false; }
+    finally { busy = false; render(); }
   }
 
   render();
