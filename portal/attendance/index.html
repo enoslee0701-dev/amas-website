@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>10月班考勤 | AMAS</title>
+<link rel="icon" href="../../assets/img/favicon.png">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202610271250">
+<style>
+body{background:#f5f6f3}.attendance{max-width:820px;margin:auto;padding:20px 16px 115px}.att-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.att-head h1{font-size:25px;margin:5px 0}.att-head small,.muted{color:#617080}.att-panel{background:#fff;border:1px solid #e0e5df;border-radius:16px;padding:18px;margin-top:18px}.att-fields{display:flex;flex-wrap:wrap;gap:12px}.att-fields label{display:grid;gap:6px;flex:1;min-width:150px}input,select,button{font:inherit;min-height:44px}input,select{width:100%;box-sizing:border-box;border:1px solid #c6cec9;border-radius:8px;padding:9px;background:#fff}.att-row{padding:16px 0;border-bottom:1px solid #e4e8e2}.att-row:last-child{border-bottom:0}.att-row strong{display:block;margin-bottom:10px}.att-options{display:flex;gap:6px;flex-wrap:wrap}.att-options button{font-size:14px;white-space:nowrap;border:1px solid #c7d0ca;background:#fff;color:#304a43;border-radius:9px;padding:7px 13px;min-width:48px}.att-options button[aria-pressed=true]{background:#204c40;color:#fff;border-color:#204c40}.att-options button[data-status=excused][aria-pressed=true]{background:#946218;border-color:#946218}.att-options button[data-status=absent][aria-pressed=true]{background:#a53c3c;border-color:#a53c3c}.att-note{margin-top:10px;font-size:14px}.att-savebar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #dce3dd;padding:12px 16px;z-index:5}.att-savebar>div{max-width:820px;margin:auto;display:flex;align-items:center;gap:16px;justify-content:space-between}.att-savebar .btn{width:auto;padding:0 30px}.att-empty{padding:20px 0;color:#617080}.att-summary{margin:14px 0 0;line-height:1.8}.sbtn{border:1px solid #bdd0c4;border-radius:8px;padding:9px 12px;background:#edf4ef;color:#244b3b}.att-note.muted{display:block}.att-panel h2{font-size:18px;margin-top:0}button:disabled{opacity:.6;cursor:wait}#status{scroll-margin-top:16px}#history{margin:14px 0}.att-row[hidden]{display:none}@media(max-width:460px){.att-options{gap:5px}.att-options button{flex:1;padding:7px 4px}.att-head h1{font-size:23px}}
+</style>
+</head>
+<body>
+<script src="../../assets/vendor/supabase-js@2.116.0/supabase.min.js"></script>
+<script src="../../assets/js/supabase-config.js?v=202610271250"></script>
+<script src="../../assets/js/portal/auth.js?v=202610271250"></script>
+<script src="../../assets/js/portal/api.js?v=202610271250"></script>
+<script src="../../assets/js/portal/ui.js?v=202610271250"></script>
+<script>
+(async function(){
+ const A=window.AmasAuth,Api=window.AmasApi,UI=window.AmasUI;
+ A.watchSession();const ctx=await A.requireRoleAal2(['attendance_clerk']);if(!ctx)return;
+ const main=document.createElement('main');main.className='attendance';document.body.appendChild(main);
+ main.innerHTML='<header class="att-head"><div><small id="attendanceWho">AMAS · 考勤负责人</small><h1>10月班考勤</h1></div><button id="out" type="button" class="link">退出登录</button></header>'+
+ '<p class="muted">选择上课日期，逐人登记后保存。未登记不算出席。</p><div id="status" class="msg" role="status" tabindex="-1"></div>'+
+ '<section class="att-panel"><div class="att-fields"><label for="day">上课日期<input type="date" id="day"></label><label for="session">课次<select id="session"></select></label></div><div id="newTitle"><label for="title">课程 / 主题（选填）</label><input id="title" maxlength="120" placeholder="例如：第3课"></div><button type="button" class="link" id="reload">重新读取这一天</button></section>'+
+ '<section class="att-panel"><h2>本班名单</h2><label for="search" class="muted">查找姓名</label><input id="search" type="search" placeholder="输入姓名"><p id="summary" class="att-summary" aria-live="polite"></p><button id="present" type="button" class="sbtn">将未登记者全部设为出席</button><div id="roster"></div></section>'+
+ '<footer class="att-savebar"><div><span id="saveState" role="status">正在读取…</span><button class="btn" id="save" type="button" disabled>保存考勤</button></div></footer>';
+ A.getProfile().then(p=>{if(p?.display_name&&!A.sessionEnded())main.querySelector('#attendanceWho').textContent=p.display_name+' · 考勤负责人';}).catch(()=>{});
+ const $=s=>main.querySelector(s);const STATES=[['','未登记'],['present','出席'],['late','迟到'],['excused','请假'],['absent','缺席']];
+ let data=null,selected=null,draft=new Map(),dirty=false,busy=false,uncertain=false,loadedDay='';
+ $('#day').value=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Bangkok',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+ $('#out').onclick=()=>{if(!dirty||confirm('还有未保存的考勤，确定退出吗？')){dirty=false;A.signOut();}};
+ function say(text,error=false){const el=$('#status');el.className='msg show '+(error?'err':'ok');el.textContent=text;}
+ function state(){ $('#save').disabled=busy||!dirty||uncertain||!data?.roster.length;$('#present').disabled=busy||uncertain;
+ $('#saveState').textContent=busy?'正在处理…':uncertain?'结果待核实，请重新读取':dirty?'有未保存的修改':'已与系统记录同步';
+ ['#day','#session','#reload','#title','#search'].forEach(id=>$(id).disabled=busy||(!data&&['#session','#title','#search'].includes(id))); 
+ }
+ function counts(){const c={};for(const v of draft.values())c[v.status]=(c[v.status]||0)+1;$('#summary').textContent=STATES.map(([s,t])=>t+' '+(c[s]||0)).join(' · ');state();}
+ function filter(){const q=$('#search').value.trim().toLowerCase();main.querySelectorAll('.att-row').forEach(el=>el.hidden=!el.dataset.name.includes(q));}
+ function renderRoster(){
+  $('#roster').innerHTML=data.roster.length?data.roster.map(p=>{const m=draft.get(p.id);return '<div class="att-row" data-id="'+p.id+'" data-name="'+UI.esc((p.name||'').toLowerCase())+'"><strong>'+UI.esc(p.name||'未填姓名')+'</strong><div class="att-options" role="group" aria-label="'+UI.esc((p.name||'')+'的考勤')+'">'+STATES.map(([v,t])=>'<button type="button" data-status="'+v+'" aria-pressed="'+(m.status===v)+'">'+t+'</button>').join('')+'</div><label class="muted att-note" for="note-'+p.id+'">考勤备注（选填，勿填病情等隐私）</label><input class="att-note" id="note-'+p.id+'" data-note="'+p.id+'" maxlength="500" value="'+UI.esc(m.note)+'" placeholder="例如：已提前请假"></div>';}).join(''):'<p class="att-empty">本班暂时没有名单，请联系教务核对分班。</p>';
+  main.querySelectorAll('[data-status]').forEach(b=>b.onclick=()=>{if(busy||uncertain)return;const el=b.closest('[data-id]'),m=draft.get(Number(el.dataset.id));m.status=b.dataset.status;dirty=true;el.querySelectorAll('[data-status]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));counts();});
+  main.querySelectorAll('[data-note]').forEach(el=>el.oninput=()=>{if(busy||uncertain)return;draft.get(Number(el.dataset.note)).note=el.value;dirty=true;counts();});filter();counts();
+ }
+ function selectSession(id){selected=data.sessions.find(s=>s.id===id)||null;draft=new Map(data.roster.map(p=>[p.id,{id:p.id,status:'',note:''}]));for(const m of selected?.marks||[])if(draft.has(m.id))draft.set(m.id,{id:m.id,status:m.status,note:m.note});dirty=false;uncertain=false;$('#newTitle').hidden=!!selected;$('#title').value='';renderRoster();}
+ function validate(d){return d&&d.cohort==='10月班'&&d.day===$('#day').value&&Array.isArray(d.roster)&&Array.isArray(d.sessions)&&new Set(d.roster.map(p=>p.id)).size===d.roster.length&&d.roster.every(p=>Number.isSafeInteger(p.id)&&typeof p.name==='string')&&d.sessions.every(s=>typeof s.id==='string'&&typeof s.title==='string'&&Number.isSafeInteger(s.version)&&Array.isArray(s.marks)&&s.marks.every(m=>Number.isSafeInteger(m.id)&&STATES.some(x=>x[0]===m.status)&&typeof m.note==='string'));}
+ async function call(name,args){let timer;try{return await Promise.race([Api.rpc(name,args),new Promise(resolve=>{timer=setTimeout(()=>resolve({error:true}),20000);})]);}catch(e){return {error:true};}finally{clearTimeout(timer);}}
+ async function load(){busy=true;state();const result=await call('attendance_day',{p_day:$('#day').value});busy=false;
+  if(result.error||!validate(result.data)){data=null;$('#roster').innerHTML='<p class="att-empty">未能读取名单，这不表示没有记录。</p>';say('读取失败，请重试。',true);state();return false;}
+  data=result.data;loadedDay=data.day;$('#session').innerHTML=data.sessions.length?data.sessions.map(s=>'<option value="'+UI.esc(s.id)+'">'+UI.esc(s.title||'当日考勤')+'</option>').join(''):'<option value="">新建当日考勤</option>';
+  selectSession(data.sessions.some(s=>s.id===selected?.id)?selected.id:data.sessions[0]?.id);return true;
+ }
+ $('#day').onchange=async()=>{if(dirty&&!confirm('这一天有未保存的修改，确定切换日期吗？')){$('#day').value=loadedDay;return;}dirty=false;uncertain=false;await load();};
+ $('#session').onchange=()=>{if(dirty&&!confirm('有未保存的修改，确定切换课次吗？')){$('#session').value=selected?.id||'';return;}selectSession($('#session').value);};
+ $('#reload').onclick=async()=>{if(dirty&&!confirm(uncertain?'重新读取以核实系统记录；未保存的修改会丢弃，继续吗？':'丢弃未保存修改并重新读取吗？'))return;if(await load())say('已重新读取，请核对考勤。');};
+ $('#search').oninput=filter;
+ $('#title').oninput=()=>{dirty=true;state();};
+ $('#present').onclick=()=>{if(!data||busy||uncertain||!confirm('将本班所有“未登记”学员设为出席？请假、迟到和缺席记录会保留。'))return;for(const m of draft.values())if(m.status==='')m.status='present';dirty=true;renderRoster();};
+ $('#save').onclick=async()=>{
+  if(busy||uncertain||!dirty||!data)return;busy=true;state();main.querySelectorAll('[data-status],[data-note]').forEach(el=>el.disabled=true);
+  const r=await call('attendance_save',{p_day:loadedDay,p_session:selected?.id||null,p_version:selected?.version||0,p_title:$('#title').value,p_entries:[...draft.values()]});busy=false;
+  if(r.error||!r.data||typeof r.data.ok!=='boolean'||(r.data.ok&&(!r.data.session||!Number.isSafeInteger(r.data.version)))){uncertain=true;say('没有收到可靠的保存结果。请重新读取这一天核实，暂时不要重复登记。',true);state();return;}
+  if(!r.data.ok){const msg={conflict:'记录已被其他人修改，请重新读取后核对。',reload_required:'这一天已有考勤，请重新读取核对，系统没有重复新建。',outside_roster:'班级名单已变化，请重新读取。',outside_cohort:'无权修改这次考勤。',validation_failed:'内容未通过检查，请核对状态和备注。'};uncertain=true;say(msg[r.data.error]||'保存未完成，请重新读取核对。',true);state();return;}
+  dirty=false;selected={id:r.data.session,version:r.data.version};if(await load())say('考勤已保存。');
+ };
+ window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
+ await load();
+})();
+</script>
+</body>
+</html>
