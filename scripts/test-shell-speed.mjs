@@ -20,9 +20,10 @@ const base = (rpc, aal = "aal1") => Object.assign({}, U, { aal, rpc: Object.assi
 try {
   console.log("\n=== 外壳先画 ===");
   await open("portal/admin/inbox/", base({ my_roles: Object.assign({ delay: 1500 }, ROLES) }), 500);
-  const early = await ev(`({ nav: !!document.querySelector(".portal-shell nav.pn a.nv"), sk: !!document.querySelector("#main .skeleton"),
+  const early = await ev(`({ nav: !!document.querySelector(".portal-shell nav.pn"), header: !!document.querySelector(".portal-shell .ph"), links: document.querySelectorAll(".pn a.nv").length, sk: !!document.querySelector("#main .skeleton"),
                             busy: document.querySelector("#main")?.getAttribute("aria-busy") })`);
-  ok("S1 身份还在确认时，顶栏与菜单已显示、主区是骨架", early.nav && early.sk && early.busy === "true", JSON.stringify(early));
+  ok("S1 身份还在确认时，顶栏与导航框架已显示、主区是骨架", early.header && early.nav && early.sk && early.busy === "true", JSON.stringify(early));
+  ok("S1c 身份确认前不闪现未经授权的菜单链接", early.links === 0, JSON.stringify(early));
   await sleep(1800);
   const late = await ev(`({ busy: document.querySelector("#main")?.hasAttribute("aria-busy"), h1: document.querySelector("#main h1")?.textContent })`);
   ok("S1b 确认完成后主区换成页面内容", !late.busy && late.h1 === "官网报名收件箱", JSON.stringify(late));
