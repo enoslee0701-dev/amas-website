@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>上课记录 | AMAS</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610262114">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610271250">
 <style>
 .sum{width:100%;border-collapse:collapse;font-size:13.5px;background:#fff;border-radius:14px;overflow:hidden}
 .sum th,.sum td{padding:9px 10px;border-bottom:1px solid #ece8de;text-align:left;white-space:nowrap}
@@ -33,12 +33,12 @@
 </head>
 <body>
 <script src="../../../assets/vendor/supabase-js@2.116.0/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202610262114"></script>
-<script src="../../../assets/js/portal/auth.js?v=202610262114"></script>
-<script src="../../../assets/js/portal/api.js?v=202610262114"></script>
-<script src="../../../assets/js/portal/ui.js?v=202610262114"></script>
-<script src="../../../assets/js/portal/shell.js?v=202610262114"></script>
-<script src="../../../assets/js/portal/sis.js?v=202610262114"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610271250"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610271250"></script>
+<script src="../../../assets/js/portal/api.js?v=202610271250"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610271250"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610271250"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610271250"></script>
 <script>
 /* 班级上课记录（0040）：每次上课记日期、第几课、在哪里（Zoom / WhatsApp / 线下），
    每位学员一行：出勤与作业。Enos 2026-10-26：作业在 Zoom、考勤在 WhatsApp，在这里汇总。
@@ -69,7 +69,7 @@
   const uids = roster.map((x) => x.student_user_id).filter(Boolean);
   const [r3, r4] = await Promise.all([
     uids.length ? Api.select("student_records", { columns: "user_id,student_number", in: { user_id: uids } }) : { data: [] },
-    sessions.length ? Api.select("cohort_marks", { columns: "session_id,submission_id,attendance,homework,note", in: { session_id: sessions.map((x) => x.id) } }) : { data: [] },
+    sessions.length ? Api.select("cohort_marks", { columns: "session_id,submission_id,attendance,homework,note,attendance_note", in: { session_id: sessions.map((x) => x.id) } }) : { data: [] },
   ]);
   (r3.data || []).forEach((x) => { numbers[x.user_id] = x.student_number; });
   if (r4.error) return UI.error(main, { message: "这一次没能读到考勤明细，请稍后刷新。", onRetry: () => location.reload() });
@@ -126,7 +126,7 @@
       '<label>在哪里<select id="src">' + Object.entries(SRC).filter(([k]) => k).map(([k, t]) => '<option value="' + k + '"' + ((s ? s.source : "zoom") === k ? " selected" : "") + '>' + t + '</option>').join("") + '</select></label></div>' +
       '<div class="bar" style="margin-bottom:10px"><button class="sbtn" type="button" id="allP">全部出席</button><button class="sbtn" type="button" id="allH">全部已交作业</button></div>' +
       '<div class="grid">' + roster.map((p) => { const m = s ? mark(s.id, p.id) : {};
-        return '<div class="gr"><span class="nm"><b>' + UI.esc(p.name || "未填姓名") + '</b><small>' + UI.esc(sno(p)) + '</small></span>' +
+        return '<div class="gr"><span class="nm"><b>' + UI.esc(p.name || "未填姓名") + '</b><small>' + UI.esc(sno(p)) + '</small>' + (m.attendance_note ? '<small style="display:block">考勤备注：' + UI.esc(m.attendance_note) + '</small>' : "") + '</span>' +
           '<span><span class="lab">出勤</span>' + seg("a", ATT, m.attendance || "", p.id) + '</span>' +
           '<span><span class="lab">作业</span>' + seg("h", HW, m.homework || "", p.id) + '</span></div>'; }).join("") + '</div>' +
       '<label style="display:grid;gap:4px;margin-top:12px;font-size:12.5px;color:#4b5567">备注（可不填）<textarea id="nt" rows="2" maxlength="1000">' + UI.esc(s ? s.note : "") + '</textarea></label>' +
