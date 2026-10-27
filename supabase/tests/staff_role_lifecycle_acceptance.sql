@@ -87,6 +87,15 @@ begin
  r:=public.admin_set_account_access(other,false,'保护管理员');
  if r->>'error'<>'protected_account' then raise exception 'R09 root account not protected';end if;
  execute 'reset role';
+ -- Auth-owned trigger chains must still synchronize verified identity data for the same UID.
+ perform set_config('amas.test.uid',admin::text,true);
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',admin,'aal','aal2')::text,true);
+ update auth.users set email='roles-root-updated@example.invalid' where id=admin;
+ if (select email from public.profiles where id=admin)<>'roles-root-updated@example.invalid' then raise exception 'R09 trusted auth email sync was blocked by self-protection';end if;
+ perform set_config('amas.test.uid',unverified::text,true);
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',unverified,'aal','aal1')::text,true);
+ update auth.users set email_confirmed_at=now() where id=unverified;
+ if (select account_status from public.profiles where id=unverified)<>'active' then raise exception 'R09 trusted auth verification sync was blocked';end if;
  -- Every ordinary role is denied even with aal2, while super-admin aal1 is denied with MFA on.
  foreach role_name in array array['applicant','student','teacher','mentor','registrar','finance','content_admin','academic_admin'] loop
   update public.user_roles set revoked_at=now() where user_id=other and revoked_at is null;
