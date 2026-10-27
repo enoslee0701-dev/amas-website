@@ -11,7 +11,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const src = fs.readFileSync(path.join(ROOT, "supabase/functions/sis-admin/index.ts"), "utf8");
-const IMPORT = 'import { createClient } from "npm:@supabase/supabase-js@2";';
+const IMPORT = 'import { createClient } from "npm:@supabase/supabase-js@2.116.0";';
 if (!src.includes(IMPORT)) { console.log("index.ts 的 import 行变了，测试需要同步"); process.exit(2); }
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "amas-edge-"));
 const file = path.join(tmp, "index.ts");

@@ -16,11 +16,14 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const MIGRATION = path.join(ROOT, "supabase", "migrations", "0028_bth_curriculum_v1.sql");
-const SEED = path.join(ROOT, "course_seed.sql");
+const temporary = fs.mkdtempSync(path.join(os.tmpdir(),"amas-course-check-"));
+const SEED = path.join(temporary,"course_seed.sql");
+process.once("exit",()=>fs.rmSync(temporary,{recursive:true,force:true}));
 
 let fail = 0;
 const check = (name, ok, detail = "") => {
@@ -36,7 +39,7 @@ if (!fs.existsSync(MIGRATION)) {
 /* 重跑生成器拿到「权威源现在的样子」。生成器自己会校验 68 门 / 27 门计学分。 */
 try {
   execFileSync(process.execPath, [path.join(ROOT, "scripts", "gen-course-catalog.mjs")], {
-    cwd: ROOT, stdio: "pipe", encoding: "utf8",
+    cwd: temporary, stdio: "pipe", encoding: "utf8",
   });
 } catch (e) {
   console.error("生成器跑不起来 —— 先按它的提示设好 AMAS_APP_DIR：");

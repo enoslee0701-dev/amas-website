@@ -95,18 +95,19 @@ ok("L2-3 自己 spawn Chrome 的脚本（" + direct.length + " 个）都自带 s
 
 console.log("\n=== L3 refuseLocalConfig 判定与实跑 ===");
 const fakeRes = () => { const r = { code: 0, body: "" }; r.writeHead = (c) => { r.code = c; }; r.end = (b) => { r.body = b; }; return r; };
-for (const [p, want] of [["/assets/js/supabase-config.local.js", true], ["/sub/dir/assets/js/supabase-config.local.js", true],
-  ["/assets/js/SUPABASE-CONFIG.LOCAL.JS", true], ["/assets/js/supabase-config.js", false], ["/assets/js/supabase-config.local.example.js", false], ["/", false]]) {
-  const r = fakeRes();
-  const got = refuseLocalConfig(p, r);
-  ok(`L3-1 ${p} → ${want ? "拒绝（404）" : "放行"}`, got === want && (want ? r.code === 404 : r.code === 0), JSON.stringify({ got, code: r.code }));
+for (const [p, status] of [["/assets/js/supabase-config.local.js",404],["/sub/dir/assets/js/supabase-config.local.js",404],
+ ["/assets/js/SUPABASE-CONFIG.LOCAL.JS",404],["/assets/js/supabase-config.js",200],["/assets/js/supabase-config.local.example.js",0],["/",0]]) {
+ const r=fakeRes();const got=refuseLocalConfig(p,r);
+ ok(`L3-1 ${p} → ${status===404?"拒绝本地旁路":status===200?"隔离公开配置":"放行"}`,got===(status!==0)&&r.code===status,JSON.stringify({got,code:r.code}));
+ if(status===200)ok("L3-1b 隔离配置为空且关闭动态后端",r.body.includes('url:""')&&r.body.includes('anonKey:""')&&r.body.includes('return false'));
 }
+
 {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "csc-guard-"));
   try {
     fs.mkdirSync(path.join(dir, "assets/js"), { recursive: true });
     fs.writeFileSync(path.join(dir, "assets/js/supabase-config.local.js"), 'window.SUPA={url:"https://abcdefghijklmnopqrst.supabase.co",anonKey:"local-test-not-a-credential"};');
-    fs.writeFileSync(path.join(dir, "assets/js/supabase-config.js"), "window.SUPA={url:'',anonKey:''};");
+    fs.writeFileSync(path.join(dir, "assets/js/supabase-config.js"), "window.SUPA={url:'DO_NOT_SERVE_THIS_DEPLOYMENT_CONFIG',anonKey:'public-fixture'};");
     const server = http.createServer((req, res) => {
       const p = decodeURIComponent(req.url.split("?")[0]);
       if (refuseLocalConfig(p, res)) return;
@@ -120,7 +121,7 @@ for (const [p, want] of [["/assets/js/supabase-config.local.js", true], ["/sub/d
     const b = await fetch(base + "/assets/js/supabase-config.js");
     server.close();
     ok("L3-2 实跑：磁盘上确实有 local 文件，请求它仍是 404、拿不到内容", a.status === 404 && !/abcdefghijklmnopqrst/.test(await a.text()), String(a.status));
-    ok("L3-3 对照：同一个服务器照常伺服 supabase-config.js（证明不是整台服务器都坏了）", b.status === 200, String(b.status));
+    ok("L3-3 对照：同一个服务器照常伺服 supabase-config.js（证明不是整台服务器都坏了）", b.status === 200 && !(await b.text()).includes("DO_NOT_SERVE_THIS_DEPLOYMENT_CONFIG"), String(b.status));
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

@@ -331,7 +331,7 @@ try {
 
   /* ── 本地合成夹具（admin + aal2，两条待审核申请）───────────────────── */
   const mkScen = () => ({
-    uid:"u-admin", aal:"aal2", roles:[{ role:"registrar" }],
+    uid:"u-admin", aal:"aal2", roles:[{ role:"academic_admin" }],
     tables: {
       teacher_verification_requests: { data:[
         { id:"tvr-1", user_id:"u-t1", status:"submitted",
@@ -342,7 +342,7 @@ try {
           submitted_data:{ name:"教师乙", org:"某教会", areas:"新约", country:"新加坡", phone:"0120000002" },
           submitted_at:"2026-09-09T00:00:00Z", reviewed_at:null,
           applicant_visible_message:null, created_at:"2026-09-02T00:00:00Z" } ] },
-      user_roles: { data:[{ user_id:"u-admin", role:"registrar" }] },
+      user_roles: { data:[{ user_id:"u-admin", role:"academic_admin" }] },
       profiles: { data:[] },
     },
     rpc: {},

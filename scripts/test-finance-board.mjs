@@ -13,7 +13,20 @@ const ENTRIES = [
   { id: "e2", submission_id: 11, kind: "payment", category: "学费", amount: 1000, currency: "THB", occurred_on: "2026-10-05", method: "bank", reference: "TX-1", note: "", created_at: "2026-10-05T00:00:00Z" },
   { id: "e3", submission_id: 12, kind: "payment", category: "学费", amount: 500, currency: "THB", occurred_on: "2026-10-06", method: "cash", reference: "", note: "", created_at: "2026-10-06T00:00:00Z",
     voided_at: "2026-10-07T00:00:00Z", void_reason: "重复录入" }];
-const fscen = (t = {}) => Object.assign({}, ADMIN, { tables: Object.assign({ submissions: { data: PEOPLE }, finance_entries: { data: JSON.parse(JSON.stringify(ENTRIES)) } }, t) });
+const financeData = (rows) => {
+  const totals = {}, balances = {};
+  for (const e of rows.filter(e => !e.voided_at)) {
+    const zero = () => ({ charge:0,payment:0,waiver:0,refund:0 });
+    (totals[e.currency] || (totals[e.currency]=zero()))[e.kind]+=e.amount;
+    const one = balances[e.submission_id] || (balances[e.submission_id]={});
+    (one[e.currency] || (one[e.currency]=zero()))[e.kind]+=e.amount;
+  }
+  return { finance_people_page:{data:{rows:PEOPLE.map(p=>({...p,balances:balances[p.id]||{}})),next_after:null}},
+    finance_totals:{data:totals},finance_entries_page:{data:{rows,snapshot:"2026-10-27T00:00:00Z",next:null}} };
+};
+const fscen = (t = {}) => Object.assign({}, ADMIN, { rpc:{...ADMIN.rpc,...financeData(JSON.parse(JSON.stringify(ENTRIES))),...t} });
+const setFinanceRows = rows => ev(`Object.assign(window.__SCEN.rpc,${JSON.stringify(financeData(rows))});true`);
+
 const upd = () => ev("JSON.stringify(window.__upd || [])").then(JSON.parse);
 
 try {
@@ -25,34 +38,34 @@ try {
   ok("F2 每位学员一行，欠款标出", /腓力\s*10月班\s*฿3,000\s*฿1,000\s*฿2,000/.test(t));
   ok("F3 作废的那笔在明细里划掉并写原因", (await ev(`!!document.querySelector("tr.void")`)) && t.includes("已作废：重复录入"));
   await setVal("#who", "11"); await setVal("#kind", "payment"); await setVal("#amt", "500"); await setVal("#ref", "TX-2"); await setVal("#met", "promptpay");
-  await ev(`window.__SCEN.tables["finance_entries:insert"] = { data: [{ id: "e4", submission_id: 11, kind: "payment", category: "学费", amount: 500, currency: "THB",
-            occurred_on: new Date().toISOString().slice(0,10), method: "promptpay", reference: "TX-2", note: "", created_at: new Date().toISOString() }] }; true`);
+  const E4 = { id:"e4",submission_id:11,kind:"payment",category:"学费",amount:500,currency:"THB",occurred_on:"2026-10-27",method:"promptpay",reference:"TX-2",note:"",created_at:"2026-10-27T00:00:00Z" };
+  await ev(`window.__SCEN.rpc.finance_record={data:{ok:true,count:1}};true`);
+  await setFinanceRows([...ENTRIES,E4]);
   await click("#add"); await sleep(400);
-  let u = await upd(); const ins = u.find((x) => x.table === "finance_entries" && x.insert);
-  ok("F4 记一笔：只写这一行，带上记账人", ins && ins.insert.length === 1 && ins.insert[0].amount === 500 && ins.insert[0].reference === "TX-2" && ins.insert[0].created_by === "u-a", JSON.stringify(ins));
+  let u = await h.rpcCalls("finance_record"); const ins = u[0]?.args;
+  ok("F4 记一笔：受控 RPC 带稳定请求号，actor 不由客户端填写", ins && ins.p_entries.length===1 && ins.p_entries[0].amount===500 && ins.p_entries[0].reference==="TX-2" && !('created_by' in ins.p_entries[0]) && /^[0-9a-f-]{36}$/i.test(ins.p_request));
   ok("F5 记完欠款跟着变成 1500", /腓力\s*10月班\s*฿3,000\s*฿1,500\s*฿1,500/.test(await txt()));
   await setVal("#who", "cohort:10月班"); await setVal("#kind", "charge"); await setVal("#amt", "200"); await setVal("#cat", "教材费");
-  await ev(`window.__SCEN.tables["finance_entries:insert"] = { data: [11,12].map((s,i) => ({ id: "b"+i, submission_id: s, kind: "charge", category: "教材费", amount: 200, currency: "THB",
-            occurred_on: new Date().toISOString().slice(0,10), method: "", reference: "", note: "", created_at: new Date().toISOString() })) }; true`);
+  await ev(`window.__SCEN.rpc.finance_record={data:{ok:true,count:2}};true`);
   await click("#add"); await sleep(200);
   ok("F6 整个班记账先确认人数", (await txt()).includes("2 位学员每人记一笔应收"));
   await click(".portal-modal [data-ok]"); await sleep(400);
-  u = await upd(); const bat = u.filter((x) => x.table === "finance_entries" && x.insert).pop();
-  ok("F7 整个班：每人一行、同一个批次号", bat.insert.length === 2 && bat.insert[0].batch_id && bat.insert[0].batch_id === bat.insert[1].batch_id);
+  u=await h.rpcCalls("finance_record");const bat=u.at(-1)?.args;
+  ok("F7 整个班：每人一行、同一次请求，批次与 actor 由服务端生成",bat&&bat.p_entries.length===2&&bat.p_request!==ins.p_request&&bat.p_entries.every(e=>!('created_by' in e)&&!('batch_id' in e)));
   await setVal("#who", "11"); await setVal("#amt", "0"); await click("#add"); await sleep(200);
   ok("F8 金额为 0 不让记", (await txt()).includes("大于 0 的金额"));
-  await ev(`window.__SCEN.tables["finance_entries:update"] = { data: [] }; true`);
+  await ev(`window.__SCEN.rpc.finance_void={data:null,error:{message:"Failed to fetch"}};true`);
   await click('[data-void="e1"]'); await sleep(200);
   await setVal("#ask-reason", "金额写错"); await click(".portal-modal [data-ok]"); await sleep(400);
-  u = await upd(); const vd = u.filter((x) => x.table === "finance_entries" && x.patch).pop();
-  ok("F9 作废只送作废时间与原因；没成功如实说", vd && Object.keys(vd.patch).sort().join() === "void_reason,voided_at" && vd.patch.void_reason === "金额写错" && (await txt()).includes("没有作废成功"));
+  const vd=(await h.rpcCalls("finance_void"))[0]?.args;
+  ok("F9 作废只送请求号、流水号与原因；未知结果保留核对入口",vd&&Object.keys(vd).sort().join()==="p_entry,p_reason,p_request"&&vd.p_reason==="金额写错"&&(await txt()).includes("无法确认")&&await ev(`!!document.querySelector('#reconcile')`));
   await shot("finance");
-  await open("portal/admin/finance/", fscen({ finance_entries: { data: null, error: { message: "x" } } }));
-  ok("F10 读失败如实说", (await txt()).includes("没能读到费用记录"));
+  await open("portal/admin/finance/", fscen({ finance_entries_page: { data: null, error: { message: "x" } } }));
+  ok("F10 读失败如实说", (await txt()).includes("没能完整读到费用记录"));
 
   console.log("\n=== G 公告与课堂 ===");
   const SET = [{ key: "live_class", value: { enabled: false, allow_guests: true } }, { key: "intro_video", value: { enabled: false } }];
-  const gscen = (t = {}) => Object.assign({}, ADMIN, { tables: Object.assign({ site_announcements: { data: [] }, site_settings: { data: SET },
+  const gscen = (t = {}) => Object.assign({}, ADMIN, { rpc:{...ADMIN.rpc,content_cohorts:{data:[{name:"10月班",phase:"in_session",show_on_site:true,sort:1},{name:"11月班",phase:"enrolling",show_on_site:true,sort:2}]},content_set_cohort:{data:{ok:true}}}, tables: Object.assign({ site_announcements: { data: [] }, site_settings: { data: SET },
     submission_cohorts: { data: [{ name: "10月班", phase: "in_session", show_on_site: true, sort: 1 }, { name: "11月班", phase: "enrolling", show_on_site: true, sort: 2 }] } }, t) });
   await open("portal/admin/board/", gscen());
   t = await txt();
@@ -68,7 +81,7 @@ try {
   ok("G4 保存课堂入口：链接、会议号、允许旁听", ls && ls.patch.value.url === "https://zoom.example/j/1" && ls.patch.value.meeting_id === "123 456" && ls.patch.value.allow_guests === true && ls.patch.value.enabled === true);
   await ev(`window.__SCEN.tables["submission_cohorts:update"] = { data: [{ name: "11月班" }] }; const s = document.querySelector('[data-ph="11月班"]'); s.value = "in_session"; s.dispatchEvent(new Event("change")); true`);
   await sleep(400);
-  ok("G5 改班级状态立即生效，预览跟着变", (await txt()).includes("10月班已开课 · 11月班已开课") && (await upd()).some((x) => x.table === "submission_cohorts" && x.patch.phase === "in_session"));
+  ok("G5 改班级状态立即生效，预览跟着变", (await txt()).includes("10月班已开课 · 11月班已开课") && (await h.rpcCalls("content_set_cohort")).some(x=>x.args.p_phase==="in_session"&&x.args.p_name==="11月班"));
   await setVal("#anTitle", "下周三停课"); await setVal("#anBody", "放假一次"); await setVal("#anAud", "public");
   await ev(`window.__SCEN.tables["site_announcements:insert"] = { data: { id: "a1", title: "下周三停课", body: "放假一次", audience: "public", pinned: false, published: true, created_at: new Date().toISOString() } }; true`);
   await click("#anSave"); await sleep(400);

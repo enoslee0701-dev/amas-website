@@ -21,6 +21,8 @@ import { launchOwnChrome } from "./lib/chrome-launcher.mjs";
 import { refuseLocalConfig } from "./lib/no-local-config.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const DL = fs.mkdtempSync(path.join(os.tmpdir(), "amas-resource-download-"));
+process.once("exit", () => fs.rmSync(DL,{recursive:true,force:true}));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const MIME = { ".html":"text/html; charset=utf-8", ".js":"text/javascript; charset=utf-8",
   ".css":"text/css; charset=utf-8", ".png":"image/png", ".jpg":"image/jpeg", ".svg":"image/svg+xml",
@@ -30,6 +32,7 @@ const MIME = { ".html":"text/html; charset=utf-8", ".js":"text/javascript; chars
 // 可调速：匹配 SLOW.match 的路径，HEAD 延迟 SLOW.ms 毫秒再回
 let SLOW = { match: null, ms: 0 };
 let headCount = 0;
+const heldHeads = new Set();
 
 const server = http.createServer(async (req, res) => {
   let p = decodeURIComponent(req.url.split("?")[0]);
@@ -38,7 +41,8 @@ const server = http.createServer(async (req, res) => {
   if (p.indexOf("..") > -1) { res.writeHead(400); res.end("no"); return; }
   if (req.method === "HEAD") headCount++;
   if (SLOW.match && p.indexOf(SLOW.match) > -1 && req.method === "HEAD") {
-    await sleep(SLOW.ms);
+    if (SLOW.hold) await new Promise(resolve => heldHeads.add(resolve));
+    else await sleep(SLOW.ms);
   }
   const abs = path.join(ROOT, p);
   if (!abs.startsWith(ROOT) || !fs.existsSync(abs) || fs.statSync(abs).isDirectory()) {
@@ -234,14 +238,15 @@ try {
   // ════ F 四语言状态文案 ════
   console.log("\n=== F 四语言等待与超时文案 ===");
   for (const lang of ["zh", "en", "ko", "th"]) {
-    SLOW = { match: "student-handbook", ms: 2500 };
-    await load(lang);
-    await cdp.clickReal(HANDBOOK);
-    await sleep(800);
-    const s = await st();
-    ok(`${lang} 等待提示非空`, !!s && s.kind === "checking" && s.文案.length > 0, JSON.stringify(s));
-    if (s) console.log(`     ${lang}: ${s.文案.slice(0, 40)}`);
-    await sleep(2200);
+    // Hold the response until the observed condition, rather than racing a
+    // fixed 800ms sample against Chrome's scheduling and font/layout work.
+    SLOW = { match: "student-handbook", ms: 0, hold: true };
+    await load(lang); await cdp.clickReal(HANDBOOK);
+    let state=null; const until=Date.now()+4000;
+    while(Date.now()<until){ state=await st();if(state && state.kind==="checking")break;await sleep(100); }
+    ok(`${lang} 等待提示非空`,heldHeads.size===1&&!!state&&state.kind==="checking"&&state.文案.length>0,JSON.stringify(state));
+    if(state)console.log(`     ${lang}: ${state.文案.slice(0,40)}`);
+    heldHeads.forEach(resolve=>resolve());heldHeads.clear();await sleep(400);
   }
 
   // ════ G 负向控制 ════
@@ -273,7 +278,7 @@ try {
   cdp.ws.close();
 } catch (e) {
   fail++; console.log("  FAIL  套件异常: " + e.message);
-} finally { chrome.kill(); server.close(); try { fs.rmSync(DL, { recursive: true, force: true }); } catch {} }
+} finally { heldHeads.forEach(resolve=>resolve());heldHeads.clear(); chrome.kill(); server.close(); try { fs.rmSync(DL, { recursive: true, force: true }); } catch {} }
 
 console.log(`\n${pass}/${pass + fail} 通过`);
 console.log("本套件只访问 127.0.0.1 上的本地静态服务器，未发起任何外网请求。");

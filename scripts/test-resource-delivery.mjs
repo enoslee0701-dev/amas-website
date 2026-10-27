@@ -22,6 +22,8 @@ import { launchOwnChrome } from "./lib/chrome-launcher.mjs";
 import { refuseLocalConfig } from "./lib/no-local-config.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const DL = fs.mkdtempSync(path.join(os.tmpdir(), "amas-resource-download-"));
+process.once("exit", () => fs.rmSync(DL,{recursive:true,force:true}));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const MIME = { ".html":"text/html; charset=utf-8", ".js":"text/javascript; charset=utf-8",
   ".css":"text/css; charset=utf-8", ".png":"image/png", ".jpg":"image/jpeg", ".svg":"image/svg+xml",

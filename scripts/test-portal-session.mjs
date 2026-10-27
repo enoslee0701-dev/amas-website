@@ -461,8 +461,8 @@ try {
     }
     return out;
   })()`);
-  ok("N2 这三页确实都不加载 shell.js —— 外壳里的监听它们一行都拿不到",
-     Object.values(n2).every((v) => v.shell === false), JSON.stringify(n2));
+  ok("N2 只有管理总览加载外壳；入口和 MFA 页仍独立监听",
+     n2["portal/index.html"].shell===false && n2["portal/mfa/index.html"].shell===false && n2["portal/admin/index.html"].shell===true, JSON.stringify(n2));
   ok("N2 所以它们必须各自挂监听（这是本轮的改法）",
      Object.values(n2).every((v) => v.watch === true), JSON.stringify(n2));
 

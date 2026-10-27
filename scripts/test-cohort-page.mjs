@@ -11,7 +11,7 @@ const ROSTER = [{ id: 11, name: "腓力", student_user_id: "s1", created_at: "20
                 { id: 13, name: "未建档者", student_user_id: null, created_at: "2026-09-06T08:00:00Z" }];
 const SESS = [{ id: "c1", held_on: "2026-10-20", title: "第 4 课", source: "zoom", note: "" }];
 const MARKS = [{ session_id: "c1", submission_id: 11, attendance: "present", homework: "done" },
-               { session_id: "c1", submission_id: 12, attendance: "absent", homework: "missing" }];
+               { session_id: "c1", submission_id: 12, attendance: "absent", homework: "missing", attendance_note: "已提前请假 <b>考勤备注</b>" }];
 const scen = (t = {}) => Object.assign({}, ADMIN, { tables: Object.assign({
   submissions: { data: ROSTER }, cohort_sessions: { data: SESS }, cohort_marks: { data: MARKS },
   student_records: { data: [{ user_id: "s1", student_number: "B26-017" }, { user_id: "s2", student_number: "B26-014" }] } }, t) });
@@ -54,6 +54,8 @@ try {
   await click("#save"); await sleep(400);
   ok("C9 出勤没存全时说清楚，让再保存一次", (await txt()).includes("没存全"));
   ok("C9b 修改时带出原来的勾选", (await ev(`document.querySelector('.seg button[data-k="a"][data-p="12"][data-v="absent"]')?.getAttribute("aria-pressed")`)) === "true");
+
+  ok("C9c 教务能看到考勤专用备注且 HTML 不执行", (await txt()).includes("已提前请假 <b>考勤备注</b>") && !(await ev(`!!document.querySelector(".gr .nm b b")`)));
 
   // 删除：权限不够（删了 0 行）要说没删成
   await ev(`document.querySelector("#cancel").click(); window.__SCEN.tables["cohort_sessions:delete"] = { data: [] }; true`);

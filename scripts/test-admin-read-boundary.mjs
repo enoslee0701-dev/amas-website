@@ -89,13 +89,13 @@ async function runAdminQueue(result) {
       body: mkEl("body"), addEventListener() {}, removeEventListener() {} } };
   ctx.window.AmasAuth = { ROOT: "/", client: { from: () => q }, sessionEnded: () => false,
     watchSession: () => () => {}, signOut: async () => {}, getProfile: async () => ({ data: { display_name: "教务" }, error: null }),
-    requireRoleAal: async () => ({ session: { user: { id: "me" } }, roles: ["registrar"] }),
-    requireRoleAal2: async () => ({ session: { user: { id: "me" } }, roles: ["registrar"] }),
-    requireRole: async () => ({ session: { user: { id: "me" } }, roles: ["registrar"] }),
-    getAal: async () => ({ current: "aal2", next: "aal2" }), getRoles: async () => ["registrar"], fetchRoles: async () => ({ failed: false, roles: ["registrar"] }),
+    requireRoleAal: async () => ({ session: { user: { id: "me" } }, roles: ["academic_admin"] }),
+    requireRoleAal2: async () => ({ session: { user: { id: "me" } }, roles: ["academic_admin"] }),
+    requireRole: async () => ({ session: { user: { id: "me" } }, roles: ["academic_admin"] }),
+    getAal: async () => ({ current: "aal2", next: "aal2" }), getRoles: async () => ["academic_admin"], fetchRoles: async () => ({ failed: false, roles: ["academic_admin"] }),
     callFn: async () => ({ status: 200, data: { ok: true } }),
     fetchSession: async () => ({ failed: false, session: { user: { id: "me" } } }) };
-  ctx.window.AmasShell = { mount: async () => ({ main, ctx: { session: { user: { id: "me" } } } }) };
+  ctx.window.AmasShell = { mount: async () => ({ main, ctx: { session: { user: { id: "me" } }, roles: ["academic_admin"] } }) };
   ctx.window.AmasApi = { select: async () => ({ data: [], error: null }), rpc: async () => ({ data: null, error: null }),
     fn: async () => ({ data: null, error: null }), msg: (c) => "msg:" + c };
   ctx.window.AmasUI = { loading() {}, esc: (s) => String(s == null ? "" : s), toast() {}, confirmDialog: async () => false,
