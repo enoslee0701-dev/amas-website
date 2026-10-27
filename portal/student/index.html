@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>学员中心 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202610262114">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202610271250">
 <style>
 .idcard{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);color:#fff;border-radius:16px;padding:20px 22px;margin-bottom:18px}
 .idcard h2{margin:0;font-size:19px;color:#fff}
@@ -31,11 +31,11 @@
 </head>
 <body>
 <script src="../../assets/vendor/supabase-js@2.116.0/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202610262114"></script>
-<script src="../../assets/js/portal/auth.js?v=202610262114"></script>
-<script src="../../assets/js/portal/api.js?v=202610262114"></script>
-<script src="../../assets/js/portal/ui.js?v=202610262114"></script>
-<script src="../../assets/js/portal/shell.js?v=202610262114"></script>
+<script src="../../assets/js/supabase-config.js?v=202610271250"></script>
+<script src="../../assets/js/portal/auth.js?v=202610271250"></script>
+<script src="../../assets/js/portal/api.js?v=202610271250"></script>
+<script src="../../assets/js/portal/ui.js?v=202610271250"></script>
+<script src="../../assets/js/portal/shell.js?v=202610271250"></script>
 <script>
 /* PORTAL-2 学员中心（V1）
    原则：状态机与 DB 是权威源，UI 不模拟业务状态；没有真实数据就显示真实空态，绝不填充假数据。
@@ -59,18 +59,16 @@
   UI.loading(main, 4);
   /* 这几路读取原来只解构 data，把各自的 error 丢掉 —— 读不到就当成「没有」。
      后果很具体：my_action_items 挂掉时页面写「目前没有需要你处理的事项。」，
-     一个正被教务要求补件的学员会以为没事要做；my_learning 挂掉时写
-     「AMAS 正式课程共 0 门」，而学校有 68 门。 */
+     一个正被教务要求补件的学员会以为没事要做。
+     首页不再读取课程内容上线统计或成长能力数据。 */
   const [{ data: recRows, error }, { data: tl, error: tlErr }, { data: pc, error: pcErr }, { data: acts, error: actsErr },
-         { data: cap }, { data: learn, error: learnErr }, { data: myc, error: mycErr }, { data: myProg, error: progErr },
+         { data: myc, error: mycErr }, { data: myProg, error: progErr },
          { data: board }] =
     await Promise.all([
       Api.rpc("my_student_record"),
       Api.rpc("my_student_timeline"),
       Api.select("program_catalog", { columns: "code,name_zh,short_label" }),
       Api.rpc("my_action_items"),
-      Api.rpc("my_student_capabilities"),
-      Api.rpc("my_learning"),
       Api.rpc("my_courses"),
       Api.rpc("my_progress"),
       Api.rpc("portal_board"),          // 公告、线上课堂、开学导言（0041）；读不到就不显示这一块
@@ -126,17 +124,15 @@
   }
 
   const s = ST[rec.status] || { t: rec.status, d: "" };
-  const isActive = rec.status === "active";
-  const learnUnknown = !!learnErr || !Array.isArray(learn);
-  const learnCount = (learn || []).length;
-  const learnOpen = (learn || []).filter(c => c.availability === "available").length;
 
   // 当前行动（2B-6）：后台可以有很多推荐，首页最多 1 个学习 + 1 个实践 + 1 个反馈。
   // 每条都来自 my_action_items() 的真实派生结果，带 source_type / reason / target_url，
   // 不存在"你有 3 个任务"这种点进去什么都没有的假通知。
   const SLOT = { christian_profile: "learning", student_record: "practice", profile: "feedback" };
   const picked = {};
-  for (const a of (acts || [])) {
+  for (const a of (Array.isArray(acts) ? acts : [])) {
+    // 成长档案已从学员首页移除；旧后端派生的成长待办也不再呈现。
+    if (a.source_type === "christian_profile" || /^discover\.html(?:[?#]|$)/.test(String(a.target_url || ""))) continue;
     const slot = SLOT[a.source_type] || "feedback";
     if (!picked[slot]) picked[slot] = a;
   }
@@ -186,7 +182,7 @@
     '<div class="idcard">' +
       '<h2>' + UI.esc(name) + '</h2>' +
       '<div class="sub">AMAS 亚洲宣教神学院 · 学员</div>' +
-      '<div class="badge">' + UI.esc(s.t) + '</div>' +
+      '<div class="badge" aria-label="当前学籍状态">' + UI.esc(rec.status === 'active' ? '正式学员 · 在读' : s.t) + '</div>' +
       '<div class="idrow">' +
         '<div><span>学号</span><b>' + (rec.student_number ? UI.esc(rec.student_number) : "待教务录入") + '</b></div>' +
         '<div><span>修读项目</span><b>' +
@@ -199,21 +195,11 @@
 
     boardHtml(board) +
 
-    '<div class="card" style="margin-bottom:14px"><h3 style="font-size:15px;color:var(--navy);margin:0 0 6px">学籍状态</h3>' +
-      '<p class="none">' + UI.esc(s.d) + '</p></div>' +
-
     // ---------- 模块区 ----------
     '<div class="mods">' +
       '<div class="card mod"><h3>当前行动</h3>' + todo + '</div>' +
 
       '<div class="card mod"><h3>我的学习</h3>' +
-        // 「正在学习」「已完成」只有存在真实数据源时才出现——当前门户读不到学习进度，
-        // 因此如实说明它在哪里，而不是渲染一个空的进度条。
-        (learnUnknown
-          ? '<p class="none">这一次没能读到课程目录（可能是网络不稳或服务端暂时不可用），' +
-            '所以这里暂时不显示课程数。请稍后刷新再看。</p>'
-          : '<p class="none">AMAS 正式课程共 <b>' + learnCount + '</b> 门，其中 <b>' + learnOpen +
-            '</b> 门已有线上学习内容。</p>') +
         /* 编班来自 my_courses（0030）。读不到就说读不到，不说成「还没有编班」。 */
         (mycErr || !Array.isArray(myc)
           ? '<p class="none">这一次没能读到你的课程班，请稍后刷新。</p>'
@@ -236,14 +222,6 @@
         '<a class="link" href="' + A.ROOT + 'portal/student/records/">成绩与进度 →</a><br>' +
         '<a class="link" href="' + A.ROOT + 'portal/student/transcript/">打印成绩单 →</a></div>' +
 
-      '<div class="card mod"><h3>信仰成长档案</h3>' +
-        // 门户当前读不到 CP 数据（两套身份未打通），因此不显示 Top 3 / 倾向指数 /
-        // 证据强度——没有数据就不假装有，只给真实入口。
-        '<p class="none">你还没有建立信仰成长档案。完成评估后可以看到自己的成长画像与学习建议；' +
-        '评估在「AMAS 神学院」App 中进行。</p>' +
-        '<p class="none">也可以先做 3 分钟快速探索，初步了解学习起点（结果仅作参考，不构成评定）。</p>' +
-        /* 这一页只是快速探索：不建立、也不保存档案。文案不得承诺建档。 */
-        '<a class="link" href="' + A.ROOT + 'discover.html?from=portal">开始 3 分钟快速探索 →</a></div>' +
     '</div>' +
 
     // ---------- 最近活动：真实的学籍状态历史 ----------
@@ -256,8 +234,10 @@
     box.innerHTML = UI.box("🔄", "这一次没能读到最近活动",
       "可能是网络不稳或服务端暂时不可用。这不表示没有记录，刷新页面可以再试一次。");
   } else {
+  // 历史事件用完成动作的名称，避免把建档时的旧状态误认为当前状态。
+  const EVENT = { pre_enrolled: "学籍已建立", active: "完成正式注册", on_leave: "办理休学", withdrawn: "办理退学", graduated: "完成毕业登记" };
   const items = (tl || []).slice().reverse().map(h => ({
-    title: (ST[h.to_status] && ST[h.to_status].t) || h.to_status,
+    title: h.to_status === "active" && h.from_status === "on_leave" ? "办理复学" : (EVENT[h.to_status] || h.to_status),
     text: h.student_visible_message || "",
     time: new Date(h.created_at).toLocaleString("zh-CN"),
   }));
