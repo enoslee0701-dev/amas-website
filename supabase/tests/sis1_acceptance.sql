@@ -19,10 +19,10 @@ declare
   v_course text; v_off uuid; v_off2 uuid; r jsonb; n bigint; e2 uuid; v_txt text;
 begin
   -- ---------- 种子 ----------
-  insert into auth.users (id, email) values
-    (v_admin, 'sis-admin@amas-test.dev'), (v_t1, 'sis-t1@amas-test.dev'), (v_t2, 'sis-t2@amas-test.dev'),
-    (v_u1, 'sis-s1@amas-test.dev'), (v_u2, 'sis-s2@amas-test.dev'), (v_u3, 'sis-s3@amas-test.dev'),
-    (v_fin, 'sis-fin@amas-test.dev');
+  insert into auth.users (id, email,email_confirmed_at) values
+    (v_admin, 'sis-admin@amas-test.dev', now()), (v_t1, 'sis-t1@amas-test.dev', now()), (v_t2, 'sis-t2@amas-test.dev', now()),
+    (v_u1, 'sis-s1@amas-test.dev', now()), (v_u2, 'sis-s2@amas-test.dev', now()), (v_u3, 'sis-s3@amas-test.dev', now()),
+    (v_fin, 'sis-fin@amas-test.dev', now());
   update public.profiles set display_name = '学员一' where id = v_u1;
   update public.profiles set display_name = '学员二' where id = v_u2;
   update public.profiles set display_name = '教授一' where id = v_t1;

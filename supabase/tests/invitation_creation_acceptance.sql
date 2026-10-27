@@ -1,0 +1,31 @@
+begin;
+do $$
+declare actor uuid:=gen_random_uuid(); ordinary uuid:=gen_random_uuid(); r jsonb; n int;
+begin
+ insert into auth.users(id,email,email_confirmed_at) values(actor, 'invite-admin@example.invalid', now()),(ordinary, 'invite-ordinary@example.invalid', now());
+ insert into public.user_roles(user_id,role) values(actor,'academic_admin');
+ perform set_config('amas.test.uid',actor::text,true);perform set_config('request.jwt.claims',jsonb_build_object('sub',actor,'aal','aal2')::text,true);
+ execute 'set role authenticated';
+ r:=public.create_teacher_invitation('invite-test@example.invalid',repeat('A',43));
+ if r->>'ok'<>'true' then raise exception 'FAIL I01 legitimate invitation rejected %',r;end if;
+ execute 'reset role';
+ select count(*) into n from public.teacher_invitations where id=(r->>'id')::uuid and created_by=actor;
+ if n<>1 then raise exception 'FAIL I02 caller identity mismatch';end if;
+ select count(*) into n from public.audit_logs where target_id=r->>'id' and event_type='teacher_invitation_created';
+ if n<>1 then raise exception 'FAIL I03 missing atomic audit';end if;
+ update public.user_roles set expires_at=now()-interval '1 day' where user_id=actor and role='academic_admin';
+ execute 'set role authenticated';
+ begin perform public.create_teacher_invitation('expired@example.invalid',repeat('B',43));raise exception 'FAIL I04 expired actor allowed';exception when insufficient_privilege then null;end;
+ execute 'reset role';
+ update public.user_roles set expires_at=null where user_id=actor and role='academic_admin';
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',actor,'aal','aal1')::text,true);
+ execute 'set role authenticated';
+ begin perform public.create_teacher_invitation('aal1@example.invalid',repeat('C',43));raise exception 'FAIL I05 aal1 bypasses MFA';exception when insufficient_privilege then null;end;
+ execute 'reset role';
+ perform set_config('amas.test.uid',ordinary::text,true);perform set_config('request.jwt.claims',jsonb_build_object('sub',ordinary,'aal','aal2')::text,true);
+ execute 'set role authenticated';
+ begin perform public.create_teacher_invitation('ordinary@example.invalid',repeat('D',43));raise exception 'FAIL I06 ordinary actor allowed';exception when insufficient_privilege then null;end;
+ execute 'reset role';
+ raise notice 'PASS I01-I06 invitation actor, atomic audit, expired role, MFA and ordinary-user denial';
+end $$;
+rollback;

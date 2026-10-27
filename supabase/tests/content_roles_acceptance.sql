@@ -1,0 +1,38 @@
+begin;
+do $$
+declare editor uuid:=gen_random_uuid(); fin uuid:=gen_random_uuid(); admin uuid:=gen_random_uuid(); sid bigint; r jsonb; n int; names text[];
+begin
+ insert into auth.users(id,email,email_confirmed_at) values(editor, 'editor@example.invalid', now()),(fin, 'content-finance@example.invalid', now()),(admin, 'content-admin@example.invalid', now());
+ insert into public.user_roles(user_id,role) values(editor,'content_admin'),(fin,'finance'),(admin,'registrar');
+ insert into public.submissions(type,name,data) values('application','Secret Applicant','{"private":"secret"}') returning id into sid;
+ insert into public.submission_cohorts(name,progress) values('Content Test','private academic progress');
+ select array_agg(code order by sort_order) into names from public.program_catalog where is_open_for_application;
+ if names is distinct from array['bth','pastor','preaching','dip','gdip','mdiv','dmin','missionary'] then raise exception 'FAIL C01 HQ programs/order mismatch %',names;end if;
+ perform set_config('amas.test.uid',editor::text,true);perform set_config('request.jwt.claims',jsonb_build_object('sub',editor,'aal','aal2')::text,true);
+ execute 'set role authenticated';
+ select count(*) into n from public.submissions where id=sid;if n<>0 then raise exception 'FAIL C02 content role reads admission';end if;
+ select count(*) into n from public.finance_entries;if n<>0 then raise exception 'FAIL C02 content role reads finance';end if;
+ r:=public.content_cohorts();if r::text like '%private academic%' then raise exception 'FAIL C03 cohort projection leaks progress';end if;
+ r:=public.content_set_cohort('Content Test','in_session',true);if r->>'ok'<>'true' then raise exception 'FAIL C04 content cannot set public phase';end if;
+ insert into public.site_announcements(title,body,audience) values('Content Test Announcement','hello','public');
+ update public.site_settings set value='{"enabled":false}' where key='intro_video';
+ execute 'reset role';
+ if (select progress from public.submission_cohorts where name='Content Test')<>'private academic progress' then raise exception 'FAIL C04 unrelated academic data changed';end if;
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',editor,'aal','aal1')::text,true);
+ execute 'set role authenticated';
+ begin insert into public.site_announcements(title) values('must reject');raise exception 'FAIL C05 aal1 publishes with MFA on';exception when insufficient_privilege then null;end;
+ begin perform public.content_set_cohort('Content Test','finished',false);raise exception 'FAIL C05 aal1 changes phase';exception when insufficient_privilege then null;end;
+ execute 'reset role';
+ perform set_config('amas.test.uid',fin::text,true);perform set_config('request.jwt.claims',jsonb_build_object('sub',fin,'aal','aal2')::text,true);
+ execute 'set role authenticated';
+ begin perform public.content_cohorts();raise exception 'FAIL C06 finance reads content admin API';exception when insufficient_privilege then null;end;
+ begin insert into public.site_announcements(title) values('finance denied');raise exception 'FAIL C06 finance publishes';exception when insufficient_privilege then null;end;
+ execute 'reset role';
+ update public.user_roles set expires_at=now()-interval '1 day' where user_id=editor and role='content_admin';
+ perform set_config('amas.test.uid',editor::text,true);perform set_config('request.jwt.claims',jsonb_build_object('sub',editor,'aal','aal2')::text,true);
+ execute 'set role authenticated';
+ begin perform public.content_cohorts();raise exception 'FAIL C07 expired content role allowed';exception when insufficient_privilege then null;end;
+ execute 'reset role';
+ raise notice 'PASS C01-C07 later HQ program decision, minimal content scope, MFA, cross-role denial and expiry';
+end $$;
+rollback;

@@ -83,13 +83,13 @@ begin
   if (select count(*) from public.course_catalog where category='nt') <> 27
      or (select count(*) from public.course_catalog where category='ot') <> 2
      or (select count(*) from public.course_catalog where category='bible_basics') <> 3
-     or (select count(*) from public.course_catalog where category='theology') <> 11
+     or (select count(*) from public.course_catalog where category='theology') <> 12
      or (select count(*) from public.course_catalog where category='practical') <> 18
      or (select count(*) from public.course_catalog where category='history') <> 3
      or (select count(*) from public.course_catalog where category='language') <> 3 then
     raise exception 'FAIL B03 分类计数与 OFFICIAL_CATALOG 不一致';
   end if;
-  raise notice 'PASS B03 七大类计数 27/2/3/11/18/3/3 与权威目录一致';
+  raise notice 'PASS B03 七大类计数 27/2/3/12/18/3/3 与权威目录一致';
 
   ------------------------------------------------------------
   -- B04 客户端不可写课程目录
@@ -112,7 +112,7 @@ begin
    where learning_state not in ('catalogued','content_pending');
   if v_cnt <> 0 then raise exception 'FAIL B05 出现了没有数据源的学习状态（% 行）', v_cnt; end if;
   select count(*) into v_cnt from public.my_learning() where learning_state = 'content_pending';
-  if v_cnt <> 21 then raise exception 'FAIL B05 内容筹备中应为 21 门，实为 %', v_cnt; end if;
+  if v_cnt <> 23 then raise exception 'FAIL B05 内容筹备中应为 23 门，实为 %', v_cnt; end if;
   select count(*) into v_cnt from public.my_learning() where credits is not null;
   if v_cnt <> 27 then raise exception 'FAIL B05 学习读模型返回的有学分课程为 % 门，应为 27', v_cnt; end if;
   raise notice 'PASS B05 学习读模型只产生有数据源的状态，学分只来自已批准的学士 27 门';

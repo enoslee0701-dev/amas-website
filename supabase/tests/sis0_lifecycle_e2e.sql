@@ -25,9 +25,9 @@ declare
     'church_type', '家庭教会', 'family', jsonb_build_array(jsonb_build_object('relation', '父')), 'health', '良好');
 begin
   -- ---------- E01 注册与填表 ----------
-  insert into auth.users (id, email) values
-    (v_app_user, 'e2e-s@amas-test.dev'), (v_admin, 'e2e-a@amas-test.dev'), (v_admin2, 'e2e-b@amas-test.dev'),
-    (v_teacher, 'e2e-t@amas-test.dev'), (v_mentor, 'e2e-m@amas-test.dev');
+  insert into auth.users (id, email,email_confirmed_at) values
+    (v_app_user, 'e2e-s@amas-test.dev', now()), (v_admin, 'e2e-a@amas-test.dev', now()), (v_admin2, 'e2e-b@amas-test.dev', now()),
+    (v_teacher, 'e2e-t@amas-test.dev', now()), (v_mentor, 'e2e-m@amas-test.dev', now());
   update public.profiles set display_name = '闭环学员' where id = v_app_user;
   insert into public.user_roles (user_id, role) values
     (v_admin, 'registrar'), (v_admin2, 'academic_admin'), (v_teacher, 'teacher'), (v_mentor, 'mentor');

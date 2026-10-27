@@ -18,9 +18,9 @@ declare
   v_sess uuid; v_asg uuid; r jsonb; v_txt text; n bigint; v_corr uuid; c record; v_o uuid; v_e uuid;
 begin
   -- ---------- 种子 ----------
-  insert into auth.users (id, email) values
-    (v_a, 'g-a@amas-test.dev'), (v_b, 'g-b@amas-test.dev'), (v_t1, 'g-t1@amas-test.dev'), (v_t2, 'g-t2@amas-test.dev'),
-    (v_m, 'g-m@amas-test.dev'), (v_u1, 'g-s1@amas-test.dev'), (v_u2, 'g-s2@amas-test.dev'), (v_fin, 'g-f@amas-test.dev');
+  insert into auth.users (id, email,email_confirmed_at) values
+    (v_a, 'g-a@amas-test.dev', now()), (v_b, 'g-b@amas-test.dev', now()), (v_t1, 'g-t1@amas-test.dev', now()), (v_t2, 'g-t2@amas-test.dev', now()),
+    (v_m, 'g-m@amas-test.dev', now()), (v_u1, 'g-s1@amas-test.dev', now()), (v_u2, 'g-s2@amas-test.dev', now()), (v_fin, 'g-f@amas-test.dev', now());
   update public.profiles set display_name = '学员一' where id = v_u1;
   update public.profiles set display_name = '学员二' where id = v_u2;
   insert into public.user_roles (user_id, role) values

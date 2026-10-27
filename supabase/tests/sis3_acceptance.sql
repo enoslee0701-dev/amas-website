@@ -12,11 +12,11 @@ declare
   v_u2  uuid := '00000000-0000-4000-c000-000000000005';   -- 学员二（将退学）
   v_x   uuid := '00000000-0000-4000-c000-000000000006';   -- 普通账号（将被授予导师）
   v_fin uuid := '00000000-0000-4000-c000-000000000007';
-  s1 uuid; s2 uuid; v_c1 text; v_c1cr numeric; v_c2 text; r jsonb; n bigint; v_gen bigint; v_off uuid; v_e uuid;
+  v_fee_entry uuid; s1 uuid; s2 uuid; v_c1 text; v_c1cr numeric; v_c2 text; r jsonb; n bigint; v_gen bigint; v_off uuid; v_e uuid;
 begin
-  insert into auth.users (id, email) values
-    (v_a, 't-a@amas-test.dev'), (v_sa, 't-sa@amas-test.dev'), (v_t, 't-t@amas-test.dev'),
-    (v_u1, 't-s1@amas-test.dev'), (v_u2, 't-s2@amas-test.dev'), (v_x, 'T-X@amas-test.dev'), (v_fin, 't-f@amas-test.dev');
+  insert into auth.users (id, email,email_confirmed_at) values
+    (v_a, 't-a@amas-test.dev', now()), (v_sa, 't-sa@amas-test.dev', now()), (v_t, 't-t@amas-test.dev', now()),
+    (v_u1, 't-s1@amas-test.dev', now()), (v_u2, 't-s2@amas-test.dev', now()), (v_x, 'T-X@amas-test.dev', now()), (v_fin, 't-f@amas-test.dev', now());
   update public.profiles set display_name = '学员一', legal_name = '张学一' where id = v_u1;
   update public.profiles set display_name = '新同工' where id = v_x;
   insert into public.user_roles (user_id, role) values
@@ -324,6 +324,7 @@ begin
   raise notice 'PASS X13 班级考勤与作业：教务记、学员只看自己、外人看不到';
 
   -- ---------- X14 公告、线上课堂、开学导言、首页班级状态（0041） ----------
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_a,'aal','aal2')::text,true);
   perform set_config('amas.test.uid', v_a::text, true);
   execute 'set role authenticated';
   insert into public.site_announcements (title, body, audience) values ('公开公告甲', '大家好', 'public'), ('学员公告乙', '作业提醒', 'students');
@@ -371,36 +372,32 @@ begin
   execute 'reset role';
   raise notice 'PASS X14 公告 / 线上课堂 / 开学导言 / 班级状态：官网只见公开的，学员见全部，只有教务能改';
 
-  -- ---------- X15 费用管理（0042） ----------
-  perform set_config('amas.test.uid', v_fin::text, true);
+  -- ---------- X15 费用管理（受控 RPC；直接写表已撤销） ----------
+  select id into v_gen from public.submissions where name='访客甲';
+  perform set_config('amas.test.uid',v_fin::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_fin,'aal','aal2')::text,true);
   execute 'set role authenticated';
-  insert into public.finance_entries (submission_id, kind, category, amount, currency, created_by)
-    select id, 'charge', '学费', 3000, 'THB', v_fin from public.submissions where name = '访客甲';
-  insert into public.finance_entries (submission_id, kind, amount, currency, method, reference, created_by)
-    select id, 'payment', 1000, 'THB', 'bank', 'TX-001', v_fin from public.submissions where name = '访客甲';
-  insert into public.finance_entries (submission_id, kind, amount, currency, created_by)
-    select id, 'payment', 999, 'THB', v_fin from public.submissions where name = '访客甲';
+  r:=public.finance_record(gen_random_uuid(),jsonb_build_array(jsonb_build_object('submission_id',v_gen,'kind','charge','amount',3000,'currency','THB','occurred_on','2026-10-27')));
+  if r->>'ok'<>'true' then raise exception 'FAIL X15 charge %',r;end if;
+  r:=public.finance_record(gen_random_uuid(),jsonb_build_array(jsonb_build_object('submission_id',v_gen,'kind','payment','amount',1000,'currency','THB','occurred_on','2026-10-27','method','bank','reference','TX-001')));
+  if r->>'ok'<>'true' then raise exception 'FAIL X15 payment %',r;end if;
+  r:=public.finance_record(gen_random_uuid(),jsonb_build_array(jsonb_build_object('submission_id',v_gen,'kind','payment','amount',999,'currency','THB','occurred_on','2026-10-27')));
+  if r->>'ok'<>'true' then raise exception 'FAIL X15 duplicate fixture %',r;end if;
+  v_fee_entry:=(r->'ids'->>0)::uuid;
   begin
-    update public.finance_entries set amount = 1 where amount = 999;
+    update public.finance_entries set amount=1 where id=v_fee_entry;
     raise exception 'FAIL X15a 能改金额';
-  exception when raise_exception then
-    if sqlerrm like 'FAIL%' then raise; end if;
-  end;
+  exception when insufficient_privilege then null;end;
+  r:=public.finance_void(gen_random_uuid(),v_fee_entry,'');
+  if r->>'error'<>'reason_required' then raise exception 'FAIL X15b 作废不写原因也行';end if;
+  r:=public.finance_void(gen_random_uuid(),v_fee_entry,'重复录入');
+  if r->>'ok'<>'true' then raise exception 'FAIL X15c 作废失败 %',r;end if;
+  select count(*) into n from public.finance_entries where id=v_fee_entry and voided_at is not null and voided_by=v_fin;
+  if n<>1 then raise exception 'FAIL X15c 作废没留下谁作废的';end if;
   begin
-    update public.finance_entries set voided_at = now() where amount = 999;
-    raise exception 'FAIL X15b 作废不写原因也行';
-  exception when raise_exception then
-    if sqlerrm like 'FAIL%' then raise; end if;
-  end;
-  update public.finance_entries set voided_at = now(), void_reason = '重复录入' where amount = 999;
-  select count(*) into n from public.finance_entries where amount = 999 and voided_at is not null and voided_by = v_fin;
-  if n <> 1 then raise exception 'FAIL X15c 作废没留下谁作废的'; end if;
-  begin
-    delete from public.finance_entries where amount = 999;
-    select count(*) into n from public.finance_entries where amount = 999;
-    if n <> 1 then raise exception 'FAIL X15d 账目被删掉了'; end if;
-  exception when insufficient_privilege then null;
-  end;
+    delete from public.finance_entries where id=v_fee_entry;
+    raise exception 'FAIL X15d 账目被删掉了';
+  exception when insufficient_privilege then null;end;
   execute 'reset role';
   perform set_config('amas.test.uid', v_u1::text, true);
   execute 'set role authenticated';
