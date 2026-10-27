@@ -34,13 +34,18 @@ end $$;
 
 -- 造一份各状态的申请。直接插表，绕开客户端路径。
 do $$
-declare v_appl uuid := '00000000-0000-4000-8000-000000000001'; st text;
+declare v_appl uuid := '00000000-0000-4000-8000-000000000001'; st text; fixture_user uuid;
 begin
   foreach st in array array['draft','submitted','under_review','needs_information','accepted','rejected','withdrawn'] loop
+    -- One active application per applicant. Keep submitted owned by v_appl for D/E.
+    fixture_user := case when st='submitted' then v_appl else gen_random_uuid() end;
+    if fixture_user<>v_appl then
+      insert into auth.users(id,email,email_confirmed_at) values(fixture_user,fixture_user::text||'@example.invalid',now());
+    end if;
     insert into public.applications(id, applicant_id, pathway, status, form_data, form_version)
     values (('00000000-0000-4000-9000-0000000000' ||
              lpad((array_position(array['draft','submitted','under_review','needs_information','accepted','rejected','withdrawn'], st))::text, 2, '0'))::uuid,
-            v_appl, 'degree', st::public.application_status, '{"name_zh":"测试"}'::jsonb, 'v1');
+            fixture_user, 'bth', st::public.application_status, '{"name_zh":"测试"}'::jsonb, 'v1');
   end loop;
 end $$;
 
@@ -104,16 +109,16 @@ declare r jsonb;
   v_exp uuid := '00000000-0000-4000-8000-000000000005';
   cur uuid;
 begin
-  r := public.assign_application_reviewer(app, v_r1, v_rev, null, null);
+  r := public.assign_application_reviewer(app, v_r1, v_rev, v_r1, null);
   if (r ->> 'ok') <> 'false' or (r ->> 'error') <> 'not_a_reviewer' then
     raise exception 'C: 已撤销的角色应当被拒，却是 %', r;
   end if;
-  r := public.assign_application_reviewer(app, v_r1, v_exp, null, null);
+  r := public.assign_application_reviewer(app, v_r1, v_exp, v_r1, null);
   if (r ->> 'ok') <> 'false' or (r ->> 'error') <> 'not_a_reviewer' then
     raise exception 'C: 已过期的角色应当被拒，却是 %', r;
   end if;
   select assigned_reviewer into cur from public.applications where id = app;
-  if cur is not null then raise exception 'C: 被拒之后不该写入，却成了 %', cur; end if;
+  if cur is distinct from v_r1 then raise exception 'C: 被拒之后不该写入，却成了 %', cur; end if;
 end $$;
 
 \echo '--- D 审计：成功写一条，被拒一条都不写；history 与 timeline 不动 ---'
@@ -125,6 +130,9 @@ declare
   v_appl uuid := '00000000-0000-4000-8000-000000000001';
   a0 int; a1 int; h0 int; h1 int; t0 int; t1 int; r jsonb; ev text;
 begin
+  select applicant_id into v_appl from public.applications where id=app;
+  r:=public.assign_application_reviewer(app,v_r1,null,v_r1,null);
+  if r->>'ok'<>'true' then raise exception 'D: failed to reset A fixture %',r;end if;
   select count(*) into a0 from public.audit_logs where target_id = app::text;
   select count(*) into h0 from public.application_status_history where application_id = app;
   perform set_config('amas.test.uid', v_appl::text, true);
