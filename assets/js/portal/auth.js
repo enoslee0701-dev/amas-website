@@ -38,14 +38,49 @@
     super_admin: "portal/admin/",
     academic_admin: "portal/admin/",
     registrar: "portal/admin/",
-    content_admin: "portal/admin/",
-    finance: "portal/admin/",
+    content_admin: "portal/admin/board/",
+    finance: "portal/admin/finance/",
     teacher: "portal/teacher/",
     mentor: "portal/teacher/",
     student: "portal/student/",
     applicant: "portal/applicant/",
   };
   const ROLE_RANK = ["attendance_clerk","super_admin","academic_admin","registrar","content_admin","finance","teacher","mentor","student","applicant"];
+  // UI contract only. Database policies/RPCs remain the authority for every request.
+  const ROLE_CATALOG = Object.freeze([
+    {role:"super_admin",label:"系统管理员",space:"admin",scope:"全校系统管理",features:"账号职分、授权与撤销、教务和系统设置",issuance:"受控维护，不在日常页面授予"},
+    {role:"academic_admin",label:"教学主管",space:"admin",scope:"全校教学业务",features:"教师认证、开课编班、成绩审核、教务管理",issuance:"系统管理员指派",managed:true},
+    {role:"registrar",label:"教务",space:"admin",scope:"招生与学籍业务",features:"报名审核、学籍建档、编班、成绩流程、费用管理",issuance:"系统管理员指派",managed:true},
+    {role:"finance",label:"财务",space:"admin",scope:"费用与对账",features:"应收、收款、减免、退款、费用导出；仅提供必要人员信息",issuance:"系统管理员指派",managed:true},
+    {role:"content_admin",label:"内容管理员",space:"admin",scope:"官网公开内容",features:"公告、线上课堂入口、开学导言、班级公开状态",issuance:"系统管理员指派",managed:true},
+    {role:"teacher",label:"教师",space:"teacher",scope:"被指派的课程班",features:"上课点名、作业评分、总评提交；不能自行发布成绩",issuance:"教师邀请与资格审核"},
+    {role:"mentor",label:"导师",space:"teacher",scope:"被指派的学员",features:"学员学习进度、导师陪伴记录；不开放其他学员",issuance:"系统管理员指派，教务分配学员",managed:true},
+    {role:"attendance_clerk",label:"考勤负责人",space:"attendance",scope:"仅10月班",features:"按日期登记出席、迟到、请假、缺席和考勤备注",issuance:"系统管理员专门指派；保留原学籍"},
+    {role:"student",label:"学员",space:"student",scope:"本人学籍与所选课程",features:"课程学习、作业、个人成绩、个人资料",issuance:"招生审核、正式建档与注册流程"},
+    {role:"applicant",label:"申请者",space:"applicant",scope:"本人申请",features:"填写申请、补件、查看进度、个人资料",issuance:"本人注册"},
+  ].map(Object.freeze));
+  const ADMIN_ROLES = ["registrar","academic_admin","super_admin"];
+  const PAGE_ROLES = {
+    "portal/admin/":ADMIN_ROLES,
+    "portal/admin/roles/":["super_admin"],
+    "portal/admin/teachers/":["academic_admin","super_admin"],
+    "portal/admin/board/":[...ADMIN_ROLES,"content_admin"],
+    "portal/admin/finance/":[...ADMIN_ROLES,"finance"],
+    "portal/teacher/":["teacher","mentor"],
+    "portal/teacher/profile/":["teacher","mentor"],
+    "portal/teacher/classes/":["teacher"],
+    "portal/teacher/class/":["teacher"],
+    "portal/teacher/mentees/":["mentor"],
+  };
+  function workspaceCount(roles) {
+    if (roles.includes("attendance_clerk")) return 1;
+    return new Set(ROLE_CATALOG.filter(r=>roles.includes(r.role)).map(r=>r.space)).size;
+  }
+  function canVisit(path, roles) {
+    if (roles.includes("attendance_clerk")) return path==="portal/attendance/";
+    const allow=PAGE_ROLES[path] || (path.startsWith("portal/admin/") ? ADMIN_ROLES : null);
+    return !allow || allow.some(r=>roles.includes(r));
+  }
 
   let client = null;
   if (CONFIGURED) client = window.supabase.createClient(SUPA.url, SUPA.anonKey);
@@ -99,7 +134,8 @@
     const distinct = ROLE_RANK.filter((r) => roles.includes(r));
     if (distinct.length === 0) return ROOT + "portal/applicant/";
     // 多“工作空间”角色 → 选择页；否则直达
-    const spaces = new Set(distinct.map((r) => ROLE_HOME[r]));
+    const adminRoles = ["super_admin","academic_admin","registrar","content_admin","finance"];
+    const spaces = new Set(distinct.map((r) => adminRoles.includes(r) ? "admin" : ["teacher","mentor"].includes(r) ? "teacher" : r));
     if (spaces.size > 1) return ROOT + "portal/";
     return ROOT + ROLE_HOME[distinct[0]];
   }
@@ -527,7 +563,13 @@
     if (failed) { renderBlocked("roles-unavailable"); return null; }
 
     // 读到了，确实一个角色都没有：如实说，给出口，**不跳转**。
-    if (roles.length === 0) { renderBlocked("no-roles"); return null; }
+    if (roles.length === 0) {
+      const profile = await getProfile().catch(() => null);
+      if (sessionEnded()) return null;
+      const state = profile && profile.account_status;
+      renderBlocked(["locked","suspended","disabled"].includes(state) ? "account-inactive" : state === "pending_email" ? "email-unverified" : "no-roles");
+      return null;
+    }
 
     // Attendance assignment takes precedence even when an old client retains student roles.
     const attendanceOnly = roles.includes("attendance_clerk") && !allowedRoles.includes("attendance_clerk");
@@ -578,6 +620,16 @@
         head: "这个账号还没有门户权限",
         body: "你的登录是有效的，但学校还没有为它开通任何门户身份。" +
               "<br>正式学员与教师身份须经学校审核开通（规范 §5.2）；如有疑问，请通过官网联系招生同工。",
+        retry: "重新检查",
+      },
+      "account-inactive": {
+        icon: "🔒", head: "这个账号暂不可使用",
+        body: "学校当前已锁定、暂停或停用这个账号的业务权限。<br>请联系教务核对账号状态；重复登录不会恢复权限。",
+        retry: "重新检查",
+      },
+      "email-unverified": {
+        icon: "✉️", head: "请先完成邮箱验证",
+        body: "账号尚未完成邮箱验证。请查收注册邮件并完成验证，再重新登录。",
         retry: "重新检查",
       },
       "session-unavailable": {
@@ -798,7 +850,7 @@
   }
 
   window.AmasAuth = {
-    CONFIGURED, CONFIG_STATE, ROOT, client,
+    CONFIGURED, CONFIG_STATE, ROOT, client, ROLE_CATALOG, workspaceCount, canVisit,
     getSession, getRoles, fetchRoles, getProfile, homeForRoles, isSigningOut,
     watchSession, sessionEnded, withNext, nextFromQuery, currentNext,
     // 错误分类是**共享判据**：登录、注册、两步验证对「连不上 ≠ 被拒绝」
