@@ -30,13 +30,13 @@ jobs:
       - name: Unit and static checks
         run: TEST_OUT=logs/evidence/ci-fast node scripts/test-all.mjs --group fast
       - name: Database and roles
-        if: always()
+        if: ${{ !cancelled() }}
         run: TEST_OUT=logs/evidence/ci-sql node scripts/test-all.mjs --group sql
       - name: Edge types and HTTP contracts
-        if: always()
+        if: ${{ !cancelled() }}
         run: TEST_OUT=logs/evidence/ci-types node scripts/test-all.mjs --group types
       - name: Critical browser journeys
-        if: always()
+        if: ${{ !cancelled() }}
         run: |
           google-chrome --version
           TEST_OUT=logs/evidence/ci-browser node scripts/test-all.mjs --group critical
