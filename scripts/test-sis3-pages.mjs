@@ -160,9 +160,9 @@ try {
   const hubLinks = await ev(`[...document.querySelectorAll(".hub a")].map(a => a.href)`);
   const hubOk = [];
   for (const u of hubLinks) hubOk.push((await fetch(u)).status === 200);
-  ok("W2 教务七个业务入口均存在，不显示职分管理和教师认证",hubLinks.length===7&&hubOk.every(Boolean)&&!hubLinks.some(u=>/roles|teachers/.test(u)),JSON.stringify(hubLinks));
+  ok("W2 教务八个业务入口均存在（含考勤核查），不显示职分管理和教师认证",hubLinks.length===8&&hubOk.every(Boolean)&&!hubLinks.some(u=>/roles|teachers/.test(u)),JSON.stringify(hubLinks));
   await open('portal/admin/',hubScen({my_roles:{data:[{role:'super_admin'}]}}));
-  ok('W2b 系统管理员保留全部九个工作入口',await ev(`document.querySelectorAll('.hub a').length===9`));
+  ok('W2b 系统管理员保留全部十个工作入口',await ev(`document.querySelectorAll('.hub a').length===10`));
   await open("portal/admin/", hubScen({ admin_grade_queue: { error: { message: "x" } }, admissions_ready_for_enrollment: { error: { message: "x" } } }));
   t = await txt();
   ok("W3 读不到待办时不显示数字、不写 0", !/\d+ 个班待发布/.test(t) && !t.includes("待建档") && t.includes("发布成绩、审批更正"));

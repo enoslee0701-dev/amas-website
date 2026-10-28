@@ -27,7 +27,7 @@ window.supabase = { createClient: function(){
     upsert:function(p, o){ window.__upd = window.__upd || []; window.__upd.push({ table: name, upsert: p, opts: o }); q._u = ":upsert"; return q; },
     delete:function(){ window.__upd = window.__upd || []; window.__upd.push({ table: name, del: true }); q._u = ":delete"; return q; },
     then:function(res, rej){ var t = (S().tables && S().tables[q._u ? name + q._u : name]) || { data: [], error: null };
-      return Promise.resolve({ data: t.data, error: t.error || null, status: t.error ? 500 : 200 }).then(res, rej); } };
+      return Promise.resolve({ data: t.data, error: t.error || null, count: t.count, status: t.error ? 500 : 200 }).then(res, rej); } };
     return q; }
   return {
     auth: { getSession:function(){ return reply({ data: { session: S().session || null } }); },

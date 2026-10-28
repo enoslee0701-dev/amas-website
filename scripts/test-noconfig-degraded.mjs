@@ -151,6 +151,7 @@ const PORTAL_WHOLE_PAGE = [
   "portal/admin/offerings/", "portal/admin/grades/", "portal/admin/student/", "portal/admin/roles/", "portal/admin/transcript/", "portal/admin/inbox/", "portal/admin/inbox/form/", "portal/admin/inbox/forms/", "portal/admin/cohort/", "portal/admin/board/", "portal/admin/finance/", "portal/password/",
   "portal/teacher/classes/", "portal/teacher/class/", "portal/teacher/mentees/",
   "portal/student/classes/", "portal/student/records/", "portal/student/transcript/",
+  "portal/admin/attendance/", "portal/attendance/",
 ];
 const INLINE_NOTICE = { "login/": "btnLogin", "register/": "btnReg", "forgot-password/": "btnGo", "faculty/verify/": "btnCode" };
 const RECOVERY = "auth/recovery/";

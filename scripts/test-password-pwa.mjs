@@ -58,6 +58,31 @@ try {
   ok("D4 读不到的项留「—」不写 0", (await ev(`document.getElementById("dStu").textContent`)) === "—" || /^\d+$/.test(await ev(`document.getElementById("dStu").textContent`)));
   ok("D5 总览有公告与课堂、费用管理入口", (await ev(`!!document.querySelector('.hub a[href="board/"]') && !!document.querySelector('.hub a[href="finance/"]')`)));
 
+
+  console.log("\n=== T 待办提醒 ===");
+  const TODO = { ...ADMIN, rpc: { ...ADMIN.rpc, admin_initial_password_list: { data: [{ name: "张培", cohort: "10月班" }, { name: "姜莹", cohort: "10月班" }] } },
+    tables: { ...ADMIN.tables, submissions: { data: [{ cohort: "10月班" }], count: 1 }, submission_cohorts: { data: [{ name: "10月班", phase: "in_session" }, { name: "11月班", phase: "enrolling" }] },
+      cohort_sessions: { data: [] }, finance_entries: { data: [], count: 0 }, site_announcements: { data: [], count: 0 }, site_settings: { data: { value: { enabled: false } } } } };
+  await open("portal/admin/", TODO, 2500);
+  const todo = await ev(`document.getElementById("todo").hidden ? "" : document.getElementById("todoList").innerText`);
+  ok("T1 新报名待处理、已录取未分班", todo.includes("1 份报名 / 留言待处理") && todo.includes("1 名已录取学员还没分班"));
+  ok("T2 开课的班没有上课记录要提醒，招生中的班不提", todo.includes("10月班已开课，但还没有任何上课记录") && !todo.includes("11月班"));
+  ok("T3 学费、公告、课堂入口都没做时各提一句", todo.includes("还没有登记学费应收") && todo.includes("还没有发布过公告") && todo.includes("线上课堂入口没有打开"));
+  ok("T4 列出还没改初始密码的人", todo.includes("2 名学员还没改初始密码") && todo.includes("张培、姜莹"));
+  ok("T5 上课记录提醒点进去是那个班", (await ev(`[...document.querySelectorAll("#todoList a")].some(a => a.getAttribute("href") === "cohort/?name=10%E6%9C%88%E7%8F%AD")`)));
+  const recent = new Date(Date.now() - 864e5 * 5).toISOString().slice(0, 10);
+  const DONE = { ...TODO, rpc: { ...ADMIN.rpc, admin_initial_password_list: { data: [] } },
+    tables: { ...TODO.tables, submissions: { data: [], count: 0 }, cohort_sessions: { data: [{ cohort: "10月班", held_on: new Date().toISOString().slice(0, 10) }] },
+      finance_entries: { data: [], count: 3 }, site_announcements: { data: [], count: 1 }, site_settings: { data: { value: { enabled: true } } } } };
+  await open("portal/admin/", DONE, 2500);
+  ok("T6 都做了就显示「暂无待办」", (await ev(`document.getElementById("todo").hidden ? "" : document.getElementById("todo").innerText`)).includes("暂无待办"));
+  await open("portal/admin/", { ...DONE, tables: { ...DONE.tables, cohort_sessions: { data: [{ cohort: "10月班", held_on: recent }] } } }, 2500);
+  ok("T7 最近上课记录是 5 天前要提醒", (await ev(`document.getElementById("todoList").innerText`)).includes("最近一次上课记录是 5 天前"));
+  const FAIL = { ...ADMIN, rpc: { ...ADMIN.rpc, admin_initial_password_list: { error: { message: "x" } } },
+    tables: Object.fromEntries(["submissions", "submission_cohorts", "cohort_sessions", "finance_entries", "site_announcements", "site_settings"].map((k) => [k, { error: { message: "x" } }])) };
+  await open("portal/admin/", FAIL, 2500);
+  ok("T8 全都读不到就整块不出现，下面的入口照常", (await ev(`document.getElementById("todo").hidden`)) && (await ev(`!!document.querySelector('.hub a[href="inbox/"]')`)));
+
   ok("O1 全程没有请求离开本机", h.external() === 0);
 } catch (e) {
   h.fail("测试过程抛错：" + e.message);
