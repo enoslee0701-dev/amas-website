@@ -20,6 +20,7 @@ try{
   await wait(`location.pathname.endsWith(${JSON.stringify('/'+home)})||!!document.querySelector('#spaces a')`);
   if(await ev(`!!document.querySelector('#spaces a')`))await ev(`(()=>{const a=[...document.querySelectorAll('#spaces a')].find(a=>new URL(a.href).pathname.endsWith(${JSON.stringify('/'+home)}));if(a)a.click();return !!a})()`);
   check('real browser login lands '+role,await wait(`location.pathname.endsWith(${JSON.stringify('/'+home)})&&!!document.querySelector('main')`));
+  if(role==='super_admin'){await ev(`document.querySelector('a[href="attendance/"]').click();true`);check('real monthly page reads cohort schema and RPCs',await wait(`!!document.querySelector('.calendar')&&document.querySelector('#reviewStatus')?.textContent.includes('已读取')`));}
   if(role==='attendance_clerk')check('real clerk screen remains exclusive',await ev(`!document.querySelector('.portal-shell')&&document.body.textContent.includes('10月班考勤')&&!document.body.textContent.includes('费用管理')`));
   await ev(`window.AmasAuth.signOut();true`);check('real browser logout '+role,await wait(`location.pathname.includes('/login/')&&!!document.querySelector('#loginForm')`));
  }
