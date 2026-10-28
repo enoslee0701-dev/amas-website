@@ -7,6 +7,9 @@
 <title>登录 | AMAS 亚洲宣教神学院</title>
 <link rel="icon" href="../assets/img/favicon.png">
 <link rel="stylesheet" href="../assets/css/portal.css?v=202610271413">
+<style>
+.password-wrap{position:relative}.password-wrap input{padding-right:54px}.password-eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:8px;background:transparent;color:#234a70;cursor:pointer}.password-eye:hover{background:#edf3f8}.password-eye:focus-visible{outline:2px solid #234a70;outline-offset:-2px}.password-eye svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.password-eye[aria-pressed=false] .eye-slash{display:none}
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -37,7 +40,12 @@
       </div>
       <div class="field">
         <label for="fPw">密码</label>
-        <input id="fPw" name="password" type="password" autocomplete="current-password" placeholder="请输入密码" required>
+        <div class="password-wrap">
+          <input id="fPw" name="password" type="password" autocomplete="current-password" placeholder="请输入密码" required>
+          <button id="togglePassword" class="password-eye" type="button" aria-label="显示密码" aria-controls="fPw" aria-pressed="false" title="显示密码">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="eye-slash" d="m3 3 18 18"/></svg>
+          </button>
+        </div>
       </div>
       <div class="row">
         <span></span>
@@ -65,6 +73,15 @@
 <script src="../assets/js/portal/auth.js?v=202610271413"></script>
 <script>
 (function(){
+  const password = document.getElementById("fPw");
+  const passwordToggle = document.getElementById("togglePassword");
+  passwordToggle.addEventListener("click", () => {
+    const show = password.type === "password";
+    password.type = show ? "text" : "password";
+    passwordToggle.setAttribute("aria-pressed", String(show));
+    passwordToggle.setAttribute("aria-label", show ? "隐藏密码" : "显示密码");
+    passwordToggle.title = show ? "隐藏密码" : "显示密码";
+  });
   const A = window.AmasAuth;
   const err = document.getElementById("err");
   const ERR = {
