@@ -18,7 +18,7 @@ async function run(label,command,args=[],extra={}){
  const row={label,command:[command,...args],code,seconds:Number(((Date.now()-started)/1000).toFixed(2)),log:path.relative(ROOT,logfile)};results.push(row);
  fs.writeFileSync(path.join(out,'results.json'),JSON.stringify(results,null,2));console.log(`${code===0?'PASS':code===2?'NOT_RUN':'FAIL'} ${label} (${row.seconds}s)`);return code;
 }
-const critical=new Set(['test-attendance-operator','test-role-workspaces','test-finance-security','test-finance-board','test-site-board-inflight','test-role-guard','test-pages-touch','test-register-signup','test-login-errors']);
+const critical=new Set(['test-attendance-operator','test-attendance-review','test-role-workspaces','test-finance-security','test-finance-board','test-site-board-inflight','test-role-guard','test-pages-touch','test-register-signup','test-login-errors']);
 const jobs=[];
 for(const file of fs.readdirSync('scripts').filter(f=>/^test-.*\.(mjs|py)$/.test(f)).sort()){
  if(file==='test-all.mjs')continue;
@@ -35,7 +35,7 @@ let index=0;
 await Promise.all(Array.from({length:Math.min(Math.max(workers,1),4)},async()=>{for(;;){const i=index++;if(i>=jobs.length)return;await run(...jobs[i]);}}));
 if(['all','sql'].includes(group)){
  const catalog=path.join(out,'program-catalog.json');
- const sql=['acceptance_tests','portal1_acceptance','portal2_acceptance','portal2_number_void','portal2b_acceptance','db3_schema_contract','sis0_lifecycle_e2e','sis1_acceptance','sis2_acceptance','sis3_acceptance','attendance_operator_acceptance','staff_role_lifecycle_acceptance','finance_acceptance','content_roles_acceptance','invitation_creation_acceptance','portal2b_irreversible_guard'].map(n=>'supabase/tests/'+n+'.sql');
+ const sql=['acceptance_tests','portal1_acceptance','portal2_acceptance','portal2_number_void','portal2b_acceptance','db3_schema_contract','sis0_lifecycle_e2e','sis1_acceptance','sis2_acceptance','sis3_acceptance','attendance_operator_acceptance','attendance_review_acceptance','staff_role_lifecycle_acceptance','finance_acceptance','content_roles_acceptance','invitation_creation_acceptance','portal2b_irreversible_guard'].map(n=>'supabase/tests/'+n+'.sql');
  await run('sql-isolated',process.execPath,['scripts/run-sql-local.mjs','--catalog-out',catalog,...sql,'scripts/verify-g1/checks.sql']);
  if(fs.existsSync(catalog))await run('program-catalog',process.execPath,['supabase/tests/program_catalog_consistency.mjs'],{AMAS_CATALOG_JSON:catalog});
  else await run('program-catalog',process.execPath,['-e','console.error("NOT_RUN: no catalog export after SQL failure");process.exit(2)']);

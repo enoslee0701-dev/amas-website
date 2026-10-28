@@ -91,7 +91,9 @@ try{
  await h.shot('whole-class-mobile');
  await h.click('#closeBoard');await sleep(50);
  h.ok('B11 returning restores search, draft and normal save controls',await h.ev(`!document.querySelector('#board').hasAttribute('open')&&document.querySelector('#search').value==='点名同学01'&&!document.querySelector('#save').closest('[role=dialog]')&&document.activeElement.id==='openBoard'`)&&await marked(102,'absent'));
- await h.click('#openBoard');await sleep(30);await h.ev(`window.__SCEN.rpc.attendance_save={data:null,error:{message:'network'}};true`);await h.click('#save');await sleep(100);
+ await h.click('#openBoard');await sleep(30);await h.ev(`window.__SCEN.rpc.attendance_save={data:null,error:{message:'network'}};true`);await h.click('#save');
+ h.ok('B17 incomplete roster requires explicit choice before save',(await h.rpcCalls('attendance_save')).length===0&&await h.ev(`!document.querySelector('#incomplete').hidden&&document.querySelector('#incompleteText').textContent.includes('1 人未登记')`));
+ await h.click('#saveIncomplete');await sleep(100);
  h.ok('B12 fullscreen save sends the complete roster and note',(await h.rpcCalls('attendance_save'))[0]?.args.p_entries.length===19&&(await h.rpcCalls('attendance_save'))[0]?.args.p_entries.find(e=>e.id===105).note==='已提前通知');
  h.ok('B13 unknown save result disables every name and bulk action',await h.ev(`document.querySelector('#save').disabled&&document.querySelector('#present').disabled&&[...document.querySelectorAll('.att-person')].every(b=>b.disabled)&&!!document.querySelector('#status').closest('#board')&&document.querySelector('#status').getBoundingClientRect().height>0`));
  await h.click('#closeBoard');await sleep(30);
