@@ -39,6 +39,6 @@
  }
  async function load(){const q=args();if(!/^\d{4}-(0[1-9]|1[0-2])-01$/.test(q.p_month)||!q.p_cohort)return say('请选择班级和有效月份。',true);const gen=++generation;report=null;historyCursor=null;historyBusy=false;dayFilter='';$('#reviewContent').innerHTML='';say('正在读取本月考勤…');const r=await rpc('admin_attendance_month',q);if(gen!==generation||A.sessionEnded())return;if(r.error||!reportValid(r.data,q))return say('本月考勤读取失败，请重试。这不表示没有记录。',true);report=r.data;render();say('已读取 '+report.cohort+' '+report.month.slice(0,7)+' 的考勤。');await loadHistory(gen);}
  $('#refresh').onclick=load;$('#cohort').onchange=load;$('#month').onchange=load;
- const c=await Api.select('submission_cohorts',{columns:'name',order:[{column:'sort_order',asc:true}]});if(c.error||!Array.isArray(c.data))return say('班级列表读取失败，请刷新重试。',true);$('#cohort').innerHTML=c.data.map(x=>'<option value="'+esc(x.name)+'">'+esc(x.name)+'</option>').join('');const wanted=new URLSearchParams(location.search).get('name')||'10月班';if(c.data.some(x=>x.name===wanted))$('#cohort').value=wanted;await load();
+ const c=await Api.select('submission_cohorts',{columns:'name',order:[{column:'sort',asc:true}]});if(c.error||!Array.isArray(c.data))return say('班级列表读取失败，请刷新重试。',true);$('#cohort').innerHTML=c.data.map(x=>'<option value="'+esc(x.name)+'">'+esc(x.name)+'</option>').join('');const wanted=new URLSearchParams(location.search).get('name')||'10月班';if(c.data.some(x=>x.name===wanted))$('#cohort').value=wanted;await load();
 })();
 </script></body></html>
