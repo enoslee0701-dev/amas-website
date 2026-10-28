@@ -5,8 +5,8 @@
 <plist version="1.0"><dict>
   <key>Label</key><string>org.amas.db-backup</string>
   <key>ProgramArguments</key><array>
-    <string>/usr/bin/python3</string>
-    <string>/Users/macpro/Projects/amas-migration/restored-package-20260912-192006/amas-web/main/scripts/backup-db.py</string>
+    <string>/Users/macpro/.local/share/amas-backup-venv/bin/python3</string>
+    <string>/Users/macpro/.local/share/amas-backup/backup-db.py</string>
   </array>
   <key>StartCalendarInterval</key><dict><key>Hour</key><integer>3</integer><key>Minute</key><integer>15</integer></dict>
   <key>StandardOutPath</key><string>/Users/macpro/Documents/AMAS数据备份/_备份日志.txt</string>
