@@ -6,7 +6,7 @@ sessions, recovery tokens, MFA factors, Storage file bytes, hosted service confi
 Keep the key separately: losing it makes the archive unrecoverable.
 Install scripts/requirements-backup.txt into a dedicated venv before running.
 """
-import argparse, datetime, hashlib, io, json, os, pathlib, re, secrets, ssl, sys, urllib.request, zipfile
+import argparse, datetime, hashlib, io, json, os, pathlib, re, secrets, ssl, sys, urllib.error, urllib.request, zipfile
 
 REF = 'sdrwyebizfdwldlfjyim'
 HEADER = b'AMAS-BACKUP-2\x00'
@@ -15,6 +15,9 @@ TOKEN_FILE = pathlib.Path.home()/'.config/amas/supabase-token'
 KEY_FILE = pathlib.Path.home()/'.config/amas/backup-v2.key'
 OUT_ROOT = pathlib.Path.home()/'Documents/AMAS数据备份'
 EXCLUDED_USER_COLUMNS = {'confirmation_token','recovery_token','email_change_token_new','email_change_token_current','phone_change_token','reauthentication_token'}
+TOKEN_EXPIRES_FILE = pathlib.Path.home()/'.config/amas/supabase-token-expires'   # 一行 YYYY-MM-DD；换新令牌时一起改
+ALERT_DIR = pathlib.Path.home()/'Desktop'
+FAIL_NOTE, EXPIRY_NOTE = 'AMAS备份失败-请看.txt', 'AMAS数据库钥匙快到期-请看.txt'
 CTX = ssl.create_default_context(cafile='/etc/ssl/cert.pem') if os.path.exists('/etc/ssl/cert.pem') else ssl.create_default_context()
 
 def sql(token, query):
@@ -89,6 +92,37 @@ def save_archive(snapshot,key,out):
         if temp.exists():temp.unlink()
     return out
 
+# 提醒 Enos（2026-10-28）：备份每天凌晨在后台跑，失败了没人看得到。
+# 失败或令牌快到期时：弹系统通知（通知中心会留着）+ 桌面放一个说明文件；恢复正常后自动删掉。
+def notify(title,text):
+    if sys.platform!='darwin':return
+    try:
+        import subprocess
+        subprocess.run(['osascript','-e','display notification '+json.dumps(text,ensure_ascii=False)+' with title '+json.dumps(title,ensure_ascii=False)+' sound name "Glass"'],timeout=10,capture_output=True)
+    except Exception:pass
+def desk_note(name,text):
+    try:
+        if text is None:(ALERT_DIR/name).unlink(missing_ok=True)
+        elif ALERT_DIR.is_dir():(ALERT_DIR/name).write_text(text,encoding='utf-8')
+    except OSError:pass
+def failure_text(exc):
+    code=getattr(exc,'code',None)
+    if code in (401,403):
+        return ('数据库钥匙（Supabase 令牌）过期或失效了。','到 supabase.com → 头像 → Access Tokens 生成一个新令牌（只给 amas-staging），发给 Claude，让它换上即可。')
+    if isinstance(exc,(urllib.error.URLError,TimeoutError,ConnectionError)) and code is None:
+        return ('连不上网络或数据库。','一般是当时没联网或电脑在睡眠，明天会自动再试；连续几天都失败再告诉 Claude。')
+    return ('备份出错（'+type(exc).__name__+'）。','把这个文件的内容发给 Claude 处理。旧的备份都还在，没有丢。')
+def token_days_left(today=None):
+    try:d=datetime.date.fromisoformat(TOKEN_EXPIRES_FILE.read_text().strip()[:10])
+    except (OSError,ValueError):return None
+    return (d-(today or datetime.date.today())).days
+def check_token_expiry(today=None):
+    left=token_days_left(today)
+    if left is None or left>7:return desk_note(EXPIRY_NOTE,None)
+    msg=('数据库钥匙（Supabase 令牌）还有 '+str(left)+' 天到期' if left>=0 else '数据库钥匙（Supabase 令牌）已经过期')+'，到期后每天的自动备份会停。'
+    notify('AMAS 备份提醒',msg)
+    desk_note(EXPIRY_NOTE,msg+'\n\n怎么办：到 supabase.com → 头像 → Access Tokens 生成一个新令牌（只给 amas-staging，可选更长有效期），发给 Claude，让它换上。\n换好后这个文件会自动消失。\n')
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--source-json',type=pathlib.Path,help='Use an isolated fixture snapshot; no network');parser.add_argument('--output-dir',type=pathlib.Path,default=OUT_ROOT);parser.add_argument('--key-file',type=pathlib.Path,default=KEY_FILE);a=parser.parse_args()
     # Fail before reading account hashes if the encryption runtime is unavailable.
@@ -100,11 +134,16 @@ def main():
         status={'ok':True,'archive':out.name,'created_at':snapshot['created_at'],'tables':len(snapshot['tables']),'rows':sum(map(len,snapshot['tables'].values())),'exclusions':snapshot.get('exclusions',[])}
         a.output_dir.mkdir(parents=True,exist_ok=True,mode=0o700);status_path=a.output_dir/'_backup-status.json';fd=os.open(status_path,os.O_WRONLY|os.O_CREAT|os.O_TRUNC,0o600)
         with os.fdopen(fd,'w') as f:json.dump(status,f,ensure_ascii=False,indent=2)
+        if not a.source_json:desk_note(FAIL_NOTE,None);check_token_expiry()
         print('Encrypted backup verified: '+str(out)+'; tables='+str(status['tables'])+'; rows='+str(status['rows']))
     except Exception as exc:
         # No SQL, payloads, credentials or provider response bodies in logs.
         a.output_dir.mkdir(parents=True,exist_ok=True,mode=0o700);fd=os.open(a.output_dir/'_backup-status.json',os.O_WRONLY|os.O_CREAT|os.O_TRUNC,0o600)
         with os.fdopen(fd,'w') as f:json.dump({'ok':False,'error_type':type(exc).__name__,'checked_at':datetime.datetime.now(datetime.timezone.utc).isoformat()},f)
+        if not a.source_json:
+            why,fix=failure_text(exc);now=datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+            notify('AMAS 备份失败',why)
+            desk_note(FAIL_NOTE,'AMAS 数据库每日备份没有成功（'+now+'）。\n\n原因：'+why+'\n怎么办：'+fix+'\n\n下次备份成功后，这个文件会自动消失。\n')
         print('Backup failed; previous archives kept. Check runtime, token and local backup status.',file=sys.stderr);return 2
     return 0
 

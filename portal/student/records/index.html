@@ -6,21 +6,21 @@
 <meta name="robots" content="noindex">
 <title>成绩与进度 | AMAS 学员中心</title>
 <link rel="icon" href="../../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610281144">
+<link rel="stylesheet" href="../../../assets/css/portal.css?v=202610282255">
 </head>
 <body>
 <script src="../../../assets/vendor/supabase-js@2.116.0/supabase.min.js"></script>
-<script src="../../../assets/js/supabase-config.js?v=202610281144"></script>
-<script src="../../../assets/js/portal/auth.js?v=202610281144"></script>
-<script src="../../../assets/js/portal/api.js?v=202610281144"></script>
-<script src="../../../assets/js/portal/ui.js?v=202610281144"></script>
-<script src="../../../assets/js/portal/shell.js?v=202610281144"></script>
-<script src="../../../assets/js/portal/sis.js?v=202610281144"></script>
+<script src="../../../assets/js/supabase-config.js?v=202610282255"></script>
+<script src="../../../assets/js/portal/auth.js?v=202610282255"></script>
+<script src="../../../assets/js/portal/api.js?v=202610282255"></script>
+<script src="../../../assets/js/portal/ui.js?v=202610282255"></script>
+<script src="../../../assets/js/portal/shell.js?v=202610282255"></script>
+<script src="../../../assets/js/portal/sis.js?v=202610282255"></script>
 <script>
 /* 学员管理系统第三期：学员的成绩与毕业进度。
    my_progress()：已得学分（课程 + 实践训练）/ 毕业要求、GPA、未修课程、实践训练；my_grades()：已发布总评。
    实践训练由学员自行填报完成（Enos 2026-10-23 决定），填报即计学分，可撤回。
-   正式成绩单由 AMAS 神学院·清迈教学中心出具（Enos 2026-10-23），打印页见 portal/student/transcript/。 */
+   正式成绩单由 AMAS神学院-清迈分院出具（Enos 2026-10-23），打印页见 portal/student/transcript/。 */
 (async function(){
   const A = window.AmasAuth, UI = window.AmasUI, Api = window.AmasApi, Shell = window.AmasShell, S = window.AmasSis;
   const mounted = await Shell.mount({ space: "student", title: "成绩与进度", allow: ["student"] });
@@ -73,7 +73,7 @@
     const missing = pr.missing_courses || [];
 
     main.innerHTML = '<h1>成绩与进度</h1>' +
-      '<p class="lead">成绩以教务发布为准。正式成绩单由 AMAS 神学院·清迈教学中心出具。 <a class="link" href="' + A.ROOT + 'portal/student/transcript/">打印成绩单</a></p>' +
+      '<p class="lead">成绩以教务发布为准。正式成绩单由 AMAS神学院-清迈分院出具。 <a class="link" href="' + A.ROOT + 'portal/student/transcript/">打印成绩单</a></p>' +
       '<div class="msg err" id="err" role="alert" tabindex="-1"></div>' +
       '<div class="stat"><div><b>' + got + (req ? ' / ' + req : "") + '</b><span>已得学分</span></div>' +
         '<div><b>' + (pr.gpa == null ? "—" : Number(pr.gpa).toFixed(2)) + '</b><span>平均绩点 GPA</span></div>' +

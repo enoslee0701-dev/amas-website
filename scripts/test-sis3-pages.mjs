@@ -26,7 +26,7 @@ try {
   ok("P1 身份、课程、转入、实践训练齐全", t.includes("张学一") && t.includes("B26-001") && t.includes("马太福音") && t.includes("A-") &&
      t.includes("四福音概论") && t.includes("原校成绩单") && t.includes("祷告训练") && !t.includes("读经训练"));
   ok("P2 合计与 GPA", t.includes("11 / 77") && t.includes("3.15"));
-  ok("P3 出具单位为清迈教学中心，留签章栏、不印电子章", t.includes("AMAS 神学院 · 清迈教学中心") && t.includes("教务签章") && t.includes("加盖教务章后为正式成绩单"));
+  ok("P3 出具单位为 AMAS神学院-清迈分院（Enos 2026-10-28 定名），留签章栏、不印电子章", t.includes("出具单位：AMAS神学院-清迈分院") && t.includes("教务签章") && t.includes("加盖教务章后为正式成绩单"));
   await ev(`window.__printed = 0; window.print = function(){ window.__printed++; }; true`);
   await click("#print");
   ok("P4 打印按钮调用浏览器打印", (await ev("window.__printed")) === 1);

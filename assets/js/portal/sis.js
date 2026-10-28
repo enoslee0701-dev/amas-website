@@ -164,14 +164,14 @@
   document.head.appendChild(style);
 
   /* 成绩单（my_transcript / admin_transcript 的结果）。
-     Enos 2026-10-23：学士班成绩单由 AMAS 神学院·清迈教学中心出具（分校对学士班有出具权）。
+     Enos 2026-10-23：学士班成绩单由 AMAS神学院-清迈分院出具（分校对学士班有出具权）。
      系统只排版、留签章栏，不印电子章：加盖教务章后为正式成绩单。 */
   function transcriptHtml(t) {
     const e = UI.esc;
     const courses = t.courses || [], transfers = t.transfers || [], prac = (t.practicum || []).filter((p) => p.done);
     const num = (v) => (v == null ? "—" : Number(v).toFixed(2));
     return '<div class="tr">' +
-      '<div class="tr-head"><b>AMAS 神学院 · 清迈教学中心　成绩单</b><span>打印日期 ' + today() + '</span></div>' +
+      '<div class="tr-head"><b>AMAS神学院-清迈分院　成绩单</b><span>打印日期 ' + today() + '</span></div>' +
       '<table class="tr-id"><tr><th>姓名</th><td>' + e(t.name || "—") + '</td><th>学号</th><td>' + e(t.student_number || "—") + '</td></tr>' +
       '<tr><th>项目</th><td>' + e(t.program_name || t.program_code || "—") + '</td><th>学籍状态</th><td>' + e(SST[t.status] || t.status || "—") + '</td></tr>' +
       '<tr><th>入学（正式注册）</th><td>' + d(t.activated_at) + '</td><th>毕业</th><td>' + (t.graduation ? d(t.graduation.graduated_on) : "—") + '</td></tr></table>' +
@@ -189,8 +189,8 @@
       '<tr><th>转入学分</th><td>' + (t.transfer_credits || 0) + '</td><th>合计 / 毕业要求</th><td><b>' + (t.credits_earned || 0) +
         (t.credits_required ? ' / ' + t.credits_required : "") + '</b></td></tr>' +
       '<tr><th>平均绩点 GPA</th><td><b>' + num(t.gpa) + '</b></td><th>计分方式</th><td>A+ 至 F，4.0 制；转入学分不计 GPA</td></tr></table>' +
-      '<div class="tr-sign"><span>出具单位：AMAS 神学院 · 清迈教学中心</span><span>教务签章：＿＿＿＿＿＿＿＿</span><span>日期：＿＿＿＿＿＿</span></div>' +
-      '<p class="tr-note">本成绩单由 AMAS 神学院·清迈教学中心出具，加盖教务章后为正式成绩单。</p></div>';
+      '<div class="tr-sign"><span>出具单位：AMAS神学院-清迈分院</span><span>教务签章：＿＿＿＿＿＿＿＿</span><span>日期：＿＿＿＿＿＿</span></div>' +
+      '<p class="tr-note">本成绩单由 AMAS神学院-清迈分院出具，加盖教务章后为正式成绩单。</p></div>';
   }
 
   window.AmasSis = { MODE, OST, ATT, GST, SST, ERR, UNKNOWN_TEXT, d, span, today, write, ask, gradeScale, transcriptHtml };

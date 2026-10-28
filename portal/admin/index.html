@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>管理后台 | AMAS</title>
 <link rel="icon" href="../../assets/img/favicon.png">
-<link rel="stylesheet" href="../../assets/css/portal.css?v=202610281144">
+<link rel="stylesheet" href="../../assets/css/portal.css?v=202610282255">
 <style>
 table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 .list th,.list td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top}
@@ -45,6 +45,12 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 .todo li.hi i{background:#c0392b}
 .todo li small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
 .todo .none{color:var(--muted);margin:0}
+.live{margin:0 0 14px}
+.live-head{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.live-head span{font-size:13px;color:var(--muted)}.live-head span.on{color:#1e7d4f;font-weight:600}
+.live-row{display:flex;gap:8px;flex-wrap:wrap}
+.live-row input{flex:1 1 260px;min-width:0;padding:9px 12px;border:1px solid var(--line);border-radius:10px;font:inherit}
+.live-row select{padding:9px 10px;border:1px solid var(--line);border-radius:10px;font:inherit;background:#fff}
 </style>
 </head>
 <body>
@@ -61,6 +67,17 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
   <div class="card todo" id="todo" hidden>
     <h2 style="margin:0 0 6px">待办提醒</h2>
     <ul id="todoList"></ul>
+  </div>
+  <!-- 线上课堂（2026-10-28 Enos：Zoom 链接每次上课自己贴）：贴链接 → 开课堂；到点自动关（close_at） -->
+  <div class="card live" id="live" hidden>
+    <div class="live-head"><h2 style="margin:0">线上课堂</h2><span id="lvState"></span></div>
+    <div class="live-row">
+      <input id="lvQuickUrl" type="url" placeholder="把这次的 Zoom 邀请链接粘贴到这里（https://…）" aria-label="Zoom 会议链接">
+      <select id="lvHours" aria-label="开多久"><option value="2">开 2 小时</option><option value="3" selected>开 3 小时</option><option value="4">开 4 小时</option></select>
+      <button class="sbtn pri" type="button" id="lvOpen">开课堂</button>
+      <button class="sbtn" type="button" id="lvClose" hidden>现在关闭</button>
+    </div>
+    <div class="who" id="lvMsg" role="status"></div>
   </div>
   <!-- 数据总览（2026-10-26）：读到才显示数字，读不到写「—」，不写 0 -->
   <div class="dash" id="dash" aria-label="数据总览">
@@ -123,10 +140,10 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
 </div>
 
 <script src="../../assets/vendor/supabase-js@2.116.0/supabase.min.js"></script>
-<script src="../../assets/js/supabase-config.js?v=202610281144"></script>
-<script src="../../assets/js/portal/auth.js?v=202610281144"></script>
-<script src="../../assets/js/portal/ui.js?v=202610281144"></script>
-<script src="../../assets/js/portal/shell.js?v=202610281144"></script>
+<script src="../../assets/js/supabase-config.js?v=202610282255"></script>
+<script src="../../assets/js/portal/auth.js?v=202610282255"></script>
+<script src="../../assets/js/portal/ui.js?v=202610282255"></script>
+<script src="../../assets/js/portal/shell.js?v=202610282255"></script>
 <script>
 (async function(){
   const A = window.AmasAuth;
@@ -202,14 +219,12 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
      全部读到且都没事才说「暂无待办」；一项都没读到就整块不出现。 */
   (async () => { try {
     const safe = (f) => Promise.resolve().then(f).catch(() => ({ error: true }));
-    const [pend, unass, coh, sess, chg, ann, live, pw] = await Promise.all([
+    const [pend, unass, coh, sess, ann, pw] = await Promise.all([
       safe(() => A.client.from("submissions").select("id", { count: "exact", head: true }).eq("status", "待处理")),
       safe(() => A.client.from("submissions").select("id", { count: "exact", head: true }).eq("type", "application").eq("status", "已录取").eq("cohort", "")),
       safe(() => A.client.from("submission_cohorts").select("name,phase").order("sort", { ascending: true })),
       safe(() => A.client.from("cohort_sessions").select("cohort,held_on").order("held_on", { ascending: false }).limit(500)),
-      safe(() => A.client.from("finance_entries").select("id", { count: "exact", head: true }).eq("kind", "charge").is("voided_at", null)),
       safe(() => A.client.from("site_announcements").select("id", { count: "exact", head: true })),
-      safe(() => A.client.from("site_settings").select("value").eq("key", "live_class").maybeSingle()),
       safe(() => A.client.rpc("admin_initial_password_list")),
     ]);
     if (A.sessionEnded()) return;
@@ -229,9 +244,8 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
         if (d >= 3) add(href, false, c.name + "最近一次上课记录是 " + d + " 天前（" + last[c.name].slice(5) + "）", "之后上的课还没登记");
       });
     }
-    const n3 = num(chg); if (n3 === 0) add("finance/", false, "还没有登记学费应收", "在费用管理里给全班一次记上");
+    /* 学费标准未定、课堂入口每次上课才开（Enos 2026-10-28），这两样不当待办 */
     const n4 = num(ann); if (n4 === 0) add("board/", false, "还没有发布过公告", "学员首页和官网会显示公告");
-    if (!live.error) { read++; if (!(live.data && live.data.value && live.data.value.enabled)) add("board/", false, "线上课堂入口没有打开", "填上 Zoom 链接后，官网和学员首页会出现「进入课堂」"); }
     if (!pw.error && Array.isArray(pw.data)) {
       read++;
       if (pw.data.length) {
@@ -247,6 +261,49 @@ table.list{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
     if (!items.length) list.insertAdjacentHTML("afterend", '<p class="none">暂无待办，一切正常。</p>');
     box.hidden = false;
   } catch (e) { /* 提醒只是参考，出错就不显示，不影响下面的功能 */ } })();
+
+  /* 线上课堂：贴链接 → 开课堂（到点自动关，见迁移 20261028130000）→ 也可以提前关。
+     只改 live_class 里的 enabled / url / close_at，标题、时间说明、允许旁听等其余设置原样保留。
+     链接换了，旧的会议号 / 密码就对不上了，一起清掉（Zoom 邀请链接本身带密码）。 */
+  (async () => {
+    /* 放在异步块里：这一块出任何错都只是不显示，不连累下面的教师审核 */
+    if (!A.canVisit("portal/admin/board/", ctx.roles)) return;
+    const box = document.getElementById("live"), $ = (id) => document.getElementById(id);
+    let cur = null;
+    const hhmm = (iso) => { const d = new Date(iso); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
+    const isOpen = (v) => !!(v && v.enabled && v.url && (!v.close_at || new Date(v.close_at) > new Date()));
+    const paint = () => {
+      const on = isOpen(cur), st = $("lvState");
+      st.className = on ? "on" : "";
+      st.textContent = on ? "● 开着" + (cur.close_at ? "，" + hhmm(cur.close_at) + " 自动关闭" : "（不会自动关闭）") +
+        (cur.allow_guests !== false ? " · 官网旁听也看得到" : " · 只有登录的学员看得到") : "没有开";
+      $("lvOpen").textContent = on ? "更新链接 / 延长" : "开课堂";
+      $("lvClose").hidden = !on;
+      if (cur && cur.url && !$("lvQuickUrl").value) $("lvQuickUrl").value = cur.url;
+    };
+    const r = await Promise.resolve().then(() => A.client.from("site_settings").select("value").eq("key", "live_class").maybeSingle()).catch(() => ({ error: true }));
+    if (A.sessionEnded() || r.error) return;
+    cur = (r.data && r.data.value) || {};
+    paint(); box.hidden = false;
+    let busy = false;
+    const save = async (next, okMsg) => {
+      if (busy) return; busy = true; $("lvOpen").disabled = $("lvClose").disabled = true;
+      try {
+        const w = await Promise.resolve().then(() => A.client.from("site_settings").update({ value: next }).eq("key", "live_class").select("value")).catch(() => ({ error: true }));
+        if (w.error || !Array.isArray(w.data) || !w.data.length) { $("lvMsg").textContent = "这一次没能确认保存结果，请刷新页面看看是否已经生效。"; return; }
+        cur = w.data[0].value || next; paint(); $("lvMsg").textContent = okMsg;
+      } finally { busy = false; $("lvOpen").disabled = $("lvClose").disabled = false; }
+    };
+    $("lvOpen").addEventListener("click", () => {
+      const url = $("lvQuickUrl").value.trim();
+      if (!/^https:\/\/[^\s]+$/i.test(url)) { $("lvMsg").textContent = "请先粘贴 Zoom 邀请链接（以 https:// 开头）。"; $("lvQuickUrl").focus(); return; }
+      const hours = Number($("lvHours").value) || 3, close = new Date(Date.now() + hours * 36e5).toISOString();
+      const next = Object.assign({}, cur, { enabled: true, url, close_at: close });
+      if (cur.url && cur.url !== url) { delete next.meeting_id; delete next.passcode; }
+      save(next, "课堂已打开，学员首页" + (next.allow_guests !== false ? "和官网" : "") + "马上看得到「进入课堂」；" + hhmm(close) + " 自动关闭。");
+    });
+    $("lvClose").addEventListener("click", () => save(Object.assign({}, cur, { enabled: false }), "课堂入口已关闭。"));
+  })().catch(() => {});
 
   /* 待办数量：读到才显示数字；读不到就保持原说明，不写「0」。 */
   (async () => {
