@@ -14,6 +14,7 @@ for (const l of ["zh", "en", "ko", "th"]) {
   const h = catalogHtml(l, I[l], C);
   const titles = C.every(x => h.includes(I[l][x.key + ".title"].replace(/&/g, "&amp;")));
   ok(`D4 ${l} 目录含全部 68 个课名`, titles);
+  ok(`D8 ${l} 每门课都有简介`, C.every(x => I[l][x.key + ".body"]), C.filter(x => !I[l][x.key + ".body"]).map(x => x.code).join(" "));
   ok(`D5 ${l} 目录含 5 项实践训练`, [0, 1, 2, 3, 4].every(i => h.includes(I[l]["training." + i])) && !I[l]["training.5"]);
 }
 const stale = /67 ?(门|courses|과목|วิชา)|11 ?(项|practical trainings|개 실천|รายการ)|学习中心|Learning Centre|학습 센터|ศูนย์การเรียนเชียงใหม่/;
