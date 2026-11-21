@@ -98,7 +98,7 @@
     ".v{min-height:22px;outline:none;white-space:pre-wrap}.v:focus{background:#fff8e1}.v.big{min-height:120px}" +
     ".ck{display:inline-flex;align-items:center;gap:3px;margin:2px 10px 2px 0;border:0;background:none;font:inherit;font-size:13px;cursor:pointer;padding:2px 0;color:#111}" +
     ".ck::before{content:'☐';font-size:15px}.ck[aria-pressed=true]::before{content:'☑'}" +
-    "@media print{@page{size:A4;margin:12mm}.af-wrap{border:0;padding:0;overflow:visible}table.af{min-width:0;font-size:11.5px}" +
+    "@media print{@page{size:A4;margin:12mm}body::before{display:none}.af-wrap{border:0;padding:0;overflow:visible}table.af{min-width:0;width:calc(100% - 2px);font-size:11.5px}" +
     ".v:focus{background:none}.v:empty::after{content:'\\00a0'}.af-page{break-after:page}.af-page:last-child{break-after:auto}}";
   const style = document.createElement("style");
   style.textContent = CSS;
