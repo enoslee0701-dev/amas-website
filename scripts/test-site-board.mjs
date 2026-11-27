@@ -87,7 +87,7 @@ try {
   reply = FIX; await load("zh");
   ok("B2 开课状态跟着后台：三个班各一行", (await ev(`document.querySelector('[data-i18n="herometa.startVal"]').innerText`)) === "10月班已开课\n11月班招生中\n12月班招生中");
   ok("B3 招生区与项目卡同步，项目卡后半段保留", (await txt('[data-i18n="admissions.facts.startValue"]')) === "10月班已开课 · 11月班招生中 · 12月班招生中" &&
-     (await txt('[data-i18n="programs.items.bth.desc"]')).startsWith("10月班已开课 · 11月班招生中 · 12月班招生中 · 77 学分"));
+     (await txt('[data-i18n="programs.items.bth.desc"]')).startsWith("10月班已开课 · 11月班招生中 · 12月班招生中 · 100 学分"));
   ok("B4 线上课堂：标题、时间、会议号与密码、入口链接、欢迎旁听", (await txt("#liveTitle")) === "周三晚上神学课" && (await txt("#liveIds")).includes("会议号: 123 456 789") &&
      (await txt("#liveIds")).includes("密码: amas") && (await ev(`document.getElementById("liveJoin").href`)) === "https://zoom.example/j/123" &&
      (await ev(`document.getElementById("liveJoin").target`)) === "_blank" && (await ev(`!document.getElementById("liveGuest").hidden`)));

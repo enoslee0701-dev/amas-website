@@ -1,0 +1,1011 @@
+{
+ "source": "桌面 mdiv课程设置.docx（亚洲宣教神学校 硕士班 2024 年课程表），Enos 2026-11-27 定为官网学士班 B.Th 课程；电脑应用 → 人工智能与教牧实践；明显错字已改（使工→事工、属灵战争→属灵争战、Leadship→领导力）",
+ "graduation_credits": 100,
+ "required": [
+  {
+   "cat": "practical",
+   "credits": 2,
+   "year": "1-1",
+   "thumb": "pt01",
+   "title": {
+    "zh": "新信徒事工",
+    "en": "New Believer Ministry",
+    "ko": "새신자 사역",
+    "th": "พันธกิจผู้เชื่อใหม่"
+   },
+   "body": {
+    "zh": "以系统方式陪伴初信者扎根信仰、融入教会。",
+    "en": "Systematically grounding new believers and integrating them into church.",
+    "ko": "체계적으로 새신자를 신앙에 뿌리내리고 교회에 정착시킵니다.",
+    "th": "ช่วยผู้เชื่อใหม่หยั่งรากและเข้าร่วมคริสตจักรอย่างเป็นระบบ"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 2,
+   "year": "1-1",
+   "thumb": "min204",
+   "title": {
+    "zh": "新信徒教育教材",
+    "en": "New Believer Education Materials",
+    "ko": "새신자 교육 교재",
+    "th": "สื่อการสอนผู้เชื่อใหม่"
+   },
+   "body": {
+    "zh": "编写与使用初信栽培教材的实务。",
+    "en": "Writing and using discipleship materials for new believers.",
+    "ko": "새신자 양육 교재의 작성과 활용 실무입니다.",
+    "th": "การเขียนและใช้สื่อเลี้ยงดูผู้เชื่อใหม่"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 3,
+   "year": "1-1",
+   "thumb": "min302",
+   "title": {
+    "zh": "礼拜学",
+    "en": "Liturgics",
+    "ko": "예배학",
+    "th": "พิธีนมัสการ"
+   },
+   "body": {
+    "zh": "认识崇拜的圣经意义与礼拜程序的安排。",
+    "en": "The biblical meaning of worship and ordering a service.",
+    "ko": "예배의 성경적 의미와 예배 순서 구성을 배웁니다.",
+    "th": "ความหมายตามพระคัมภีร์ของการนมัสการและการจัดลำดับพิธี"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 2,
+   "year": "1-1",
+   "thumb": "min310",
+   "title": {
+    "zh": "神的话语医治",
+    "en": "Healing through God's Word",
+    "ko": "말씀 치유",
+    "th": "การรักษาด้วยพระวจนะ"
+   },
+   "body": {
+    "zh": "学习以神的话语宣告、代祷并牧养病痛中的人。",
+    "en": "Declaring Scripture, interceding and caring for the sick.",
+    "ko": "말씀 선포와 중보, 병든 자 돌봄을 배웁니다.",
+    "th": "ประกาศพระวจนะ วิงวอน และดูแลผู้เจ็บป่วย"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 3,
+   "year": "1-2",
+   "thumb": "for103",
+   "title": {
+    "zh": "平信徒养育（确信）",
+    "en": "Lay Nurture (Assurance)",
+    "ko": "평신도 양육(확신)",
+    "th": "การเลี้ยงดูฆราวาส (ความมั่นใจ)"
+   },
+   "body": {
+    "zh": "建立救恩确据，活出稳固而有盼望的信仰根基。",
+    "en": "Assurance of salvation and a stable, hope-filled faith.",
+    "ko": "구원의 확신을 세우고 견고하고 소망 있는 신앙을 삽니다.",
+    "th": "ความมั่นใจในความรอดและความเชื่อที่มั่นคงมีความหวัง"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 3,
+   "year": "1-2",
+   "thumb": "for102",
+   "title": {
+    "zh": "平信徒养育（门徒）",
+    "en": "Lay Nurture (Discipleship)",
+    "ko": "평신도 양육(제자)",
+    "th": "การเลี้ยงดูฆราวาส (สาวก)"
+   },
+   "body": {
+    "zh": "以门徒的身份跟随基督，建立稳定的生命节奏。",
+    "en": "Following Christ as a disciple with a steady rhythm of life.",
+    "ko": "제자로서 그리스도를 따르며 안정된 삶의 리듬을 세웁니다.",
+    "th": "ติดตามพระคริสต์ในฐานะสาวกด้วยจังหวะชีวิตที่มั่นคง"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 3,
+   "year": "1-2",
+   "thumb": "min304",
+   "title": {
+    "zh": "讲道学",
+    "en": "Homiletics",
+    "ko": "설교학",
+    "th": "เทศนศาสตร์"
+   },
+   "body": {
+    "zh": "从释经到信息构成，学习忠实清晰的讲道。",
+    "en": "From exegesis to sermon form: faithful, clear preaching.",
+    "ko": "해석에서 메시지 구성까지 충실하고 명료한 설교를 배웁니다.",
+    "th": "จากการตีความสู่การเรียบเรียง เทศนาอย่างซื่อสัตย์และชัดเจน"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 3,
+   "year": "1-3",
+   "thumb": "pt09",
+   "title": {
+    "zh": "传道",
+    "en": "Evangelism",
+    "ko": "전도",
+    "th": "การประกาศข่าวประเสริฐ"
+   },
+   "body": {
+    "zh": "掌握传福音的信息、方法与陪谈跟进之道。",
+    "en": "The message, methods and follow-up of sharing the gospel.",
+    "ko": "복음의 메시지와 방법, 상담과 후속 양육을 익힙니다.",
+    "th": "ข่าวสาร วิธีการ และการติดตามผลในการประกาศ"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 3,
+   "year": "1-3",
+   "thumb": "min202",
+   "title": {
+    "zh": "小组",
+    "en": "Small Groups",
+    "ko": "소그룹",
+    "th": "กลุ่มย่อย"
+   },
+   "body": {
+    "zh": "建立、带领与倍增健康的小组群体。",
+    "en": "Building, leading and multiplying healthy small groups.",
+    "ko": "건강한 소그룹을 세우고 인도하며 배가합니다.",
+    "th": "สร้าง นำ และทวีคูณกลุ่มย่อยที่แข็งแรง"
+   }
+  },
+  {
+   "cat": "biblical",
+   "credits": 4,
+   "year": "1-3",
+   "thumb": "bf01",
+   "title": {
+    "zh": "圣经综合概观",
+    "en": "Bible Survey",
+    "ko": "성경 종합 개관",
+    "th": "ภาพรวมพระคัมภีร์"
+   },
+   "body": {
+    "zh": "纵览全本圣经的结构、脉络与救赎主线。",
+    "en": "The structure, storyline and redemptive thread of the whole Bible.",
+    "ko": "성경 전체의 구조와 흐름, 구속의 주선을 개관합니다.",
+    "th": "โครงสร้าง เส้นเรื่อง และแนวการไถ่ของพระคัมภีร์ทั้งเล่ม"
+   }
+  },
+  {
+   "cat": "biblical",
+   "credits": 3,
+   "year": "1-4",
+   "thumb": "nt06",
+   "title": {
+    "zh": "罗马书",
+    "en": "Romans",
+    "ko": "로마서",
+    "th": "โรม"
+   },
+   "body": {
+    "zh": "系统研读因信称义的福音大纲与新生命之道。",
+    "en": "A systematic study of justification by faith and the new life.",
+    "ko": "이신칭의의 복음 개요와 새 생명의 길을 체계적으로 연구합니다.",
+    "th": "ศึกษาอย่างเป็นระบบเรื่องการชอบธรรมโดยความเชื่อและชีวิตใหม่"
+   }
+  },
+  {
+   "cat": "systematic",
+   "credits": 3,
+   "year": "1-4",
+   "thumb": "the202",
+   "title": {
+    "zh": "系统神学 1",
+    "en": "Systematic Theology 1",
+    "ko": "조직신학 1",
+    "th": "ศาสนศาสตร์ระบบ 1"
+   },
+   "body": {
+    "zh": "系统神学第一部分：建立整全的教义框架，打好信仰根基。",
+    "en": "Systematic theology, part one: a whole framework of doctrine and a firm foundation of faith.",
+    "ko": "조직신학 첫째 부분: 전체 교리의 틀을 세우고 신앙의 기초를 다집니다.",
+    "th": "ศาสนศาสตร์ระบบ ภาคที่หนึ่ง: วางกรอบหลักคำสอนทั้งหมดและรากฐานความเชื่อที่มั่นคง"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 2,
+   "year": "1-4",
+   "thumb": "min311",
+   "title": {
+    "zh": "1 日内在医治",
+    "en": "One-Day Inner Healing",
+    "ko": "1일 내적 치유",
+    "th": "การเยียวยาภายใน 1 วัน"
+   },
+   "body": {
+    "zh": "一日密集课程：在真理与圣灵里认识并经历内在医治。",
+    "en": "A one-day intensive: understanding and experiencing inner healing in truth and the Spirit.",
+    "ko": "하루 집중 과정: 진리와 성령 안에서 내적 치유를 이해하고 경험합니다.",
+    "th": "หลักสูตรเข้มข้นหนึ่งวัน: เข้าใจและประสบการเยียวยาภายในในความจริงและพระวิญญาณ"
+   }
+  },
+  {
+   "cat": "biblical",
+   "credits": 3,
+   "year": "2-1",
+   "thumb": "nt05",
+   "title": {
+    "zh": "使徒行传",
+    "en": "Acts",
+    "ko": "사도행전",
+    "th": "กิจการ"
+   },
+   "body": {
+    "zh": "跟随初代教会的脚踪，看福音从耶路撒冷直到地极。",
+    "en": "The gospel from Jerusalem to the ends of the earth through the early church.",
+    "ko": "초대교회를 따라 예루살렘에서 땅끝까지 복음의 확장을 봅니다.",
+    "th": "ติดตามคริสตจักรยุคแรก ข่าวประเสริฐจากเยรูซาเล็มถึงสุดปลายแผ่นดินโลก"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 2,
+   "year": "2-1",
+   "thumb": "min305",
+   "title": {
+    "zh": "讲道实习 1",
+    "en": "Preaching Practicum 1",
+    "ko": "설교 실습 1",
+    "th": "ฝึกเทศนา 1"
+   },
+   "body": {
+    "zh": "在实际讲台操练中打磨讲道能力。",
+    "en": "Sharpening preaching through real pulpit practice.",
+    "ko": "실제 강단 훈련으로 설교 역량을 다듬습니다.",
+    "th": "ฝึกฝนการเทศนาบนธรรมาสน์จริง"
+   }
+  },
+  {
+   "cat": "systematic",
+   "credits": 3,
+   "year": "2-1",
+   "thumb": "the203",
+   "title": {
+    "zh": "系统神学 2",
+    "en": "Systematic Theology 2",
+    "ko": "조직신학 2",
+    "th": "ศาสนศาสตร์ระบบ 2"
+   },
+   "body": {
+    "zh": "系统神学第二部分：在第一部分的基础上深入主要教义。",
+    "en": "Systematic theology, part two: going deeper into the major doctrines.",
+    "ko": "조직신학 둘째 부분: 첫째 부분을 바탕으로 주요 교리를 더 깊이 다룹니다.",
+    "th": "ศาสนศาสตร์ระบบ ภาคที่สอง: ศึกษาหลักคำสอนสำคัญให้ลึกซึ้งยิ่งขึ้น"
+   }
+  },
+  {
+   "cat": "biblical",
+   "credits": 3,
+   "year": "2-2",
+   "thumb": "bib201",
+   "title": {
+    "zh": "马太福音",
+    "en": "Matthew",
+    "ko": "마태복음",
+    "th": "มัทธิว"
+   },
+   "body": {
+    "zh": "研读天国的信息，认识君王基督与门徒之道。",
+    "en": "The message of the Kingdom: Christ the King and the way of discipleship.",
+    "ko": "천국의 메시지와 왕 되신 그리스도, 제자의 길을 연구합니다.",
+    "th": "ศึกษาข่าวสารแห่งอาณาจักร กษัตริย์พระคริสต์และวิถีสาวก"
+   }
+  },
+  {
+   "cat": "historical",
+   "credits": 2,
+   "year": "2-2",
+   "thumb": "his201",
+   "title": {
+    "zh": "以色列的文化",
+    "en": "Culture of Israel",
+    "ko": "이스라엘 문화",
+    "th": "วัฒนธรรมอิสราเอล"
+   },
+   "body": {
+    "zh": "认识圣经背景中的以色列历史与文化。",
+    "en": "The history and culture of Israel behind the biblical text.",
+    "ko": "성경 배경이 되는 이스라엘의 역사와 문화를 배웁니다.",
+    "th": "ประวัติศาสตร์และวัฒนธรรมอิสราเอลเบื้องหลังพระคัมภีร์"
+   }
+  },
+  {
+   "cat": "language",
+   "credits": 3,
+   "year": "2-2",
+   "thumb": "lan201",
+   "title": {
+    "zh": "希腊文",
+    "en": "Greek",
+    "ko": "헬라어",
+    "th": "ภาษากรีก"
+   },
+   "body": {
+    "zh": "学习新约希腊文基础，直读原文经文。",
+    "en": "New Testament Greek basics for reading the original text.",
+    "ko": "신약 헬라어 기초를 배워 원문을 읽습니다.",
+    "th": "พื้นฐานภาษากรีกพันธสัญญาใหม่เพื่ออ่านต้นฉบับ"
+   }
+  },
+  {
+   "cat": "biblical",
+   "credits": 3,
+   "year": "2-3",
+   "thumb": "bib202",
+   "title": {
+    "zh": "约翰福音",
+    "en": "John",
+    "ko": "요한복음",
+    "th": "ยอห์น"
+   },
+   "body": {
+    "zh": "认识耶稣的身份与工作，因信祂的名得生命。",
+    "en": "Who Jesus is and what he did, that you may have life in his name.",
+    "ko": "예수의 정체와 사역을 알고 그 이름을 믿어 생명을 얻습니다.",
+    "th": "รู้จักพระเยซูและพระราชกิจ เพื่อได้ชีวิตโดยเชื่อในพระนาม"
+   }
+  },
+  {
+   "cat": "historical",
+   "credits": 3,
+   "year": "2-3",
+   "thumb": "his301",
+   "title": {
+    "zh": "世界教会史",
+    "en": "World Church History",
+    "ko": "세계 교회사",
+    "th": "ประวัติศาสตร์คริสตจักรโลก"
+   },
+   "body": {
+    "zh": "纵览两千年教会的历程与属灵传承。",
+    "en": "Two thousand years of the church and its spiritual heritage.",
+    "ko": "2천 년 교회의 여정과 영적 유산을 개관합니다.",
+    "th": "สองพันปีของคริสตจักรและมรดกฝ่ายวิญญาณ"
+   }
+  },
+  {
+   "cat": "biblical",
+   "credits": 2,
+   "year": "2-3",
+   "thumb": "min307",
+   "title": {
+    "zh": "带领赞美的方法",
+    "en": "Leading Praise",
+    "ko": "찬양 인도법",
+    "th": "วิธีนำนมัสการสรรเสริญ"
+   },
+   "body": {
+    "zh": "学习带领会众敬拜赞美的原则与技巧。",
+    "en": "Principles and skills for leading congregational worship.",
+    "ko": "회중 찬양과 예배 인도의 원리와 기술을 배웁니다.",
+    "th": "หลักและทักษะการนำนมัสการที่ประชุม"
+   }
+  },
+  {
+   "cat": "historical",
+   "credits": 3,
+   "year": "2-4",
+   "thumb": "bib302",
+   "title": {
+    "zh": "哥林多前书",
+    "en": "1 Corinthians",
+    "ko": "고린도전서",
+    "th": "1 โครินธ์"
+   },
+   "body": {
+    "zh": "围绕教会秩序、十字架神学与群体建造研读书信。",
+    "en": "Church order, the theology of the cross and building community.",
+    "ko": "교회 질서, 십자가 신학, 공동체 세움을 연구합니다.",
+    "th": "ระเบียบคริสตจักร ศาสนศาสตร์กางเขน และการสร้างชุมชน"
+   }
+  },
+  {
+   "cat": "biblical",
+   "credits": 3,
+   "year": "2-4",
+   "thumb": "min306",
+   "title": {
+    "zh": "讲道实习 2",
+    "en": "Preaching Practicum 2",
+    "ko": "설교 실습 2",
+    "th": "ฝึกเทศนา 2"
+   },
+   "body": {
+    "zh": "在讲道实习 1 的基础上继续讲台操练，打磨讲道能力。",
+    "en": "Further pulpit practice building on Practicum 1.",
+    "ko": "설교 실습 1에 이어 강단 훈련을 계속하며 설교 역량을 다듬습니다.",
+    "th": "ฝึกเทศนาบนธรรมาสน์ต่อจากภาค 1 เพื่อพัฒนาการเทศนา"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 3,
+   "year": "2-4",
+   "thumb": "min312",
+   "title": {
+    "zh": "内在医治",
+    "en": "Inner Healing",
+    "ko": "내적 치유",
+    "th": "การเยียวยาภายใน"
+   },
+   "body": {
+    "zh": "在真理与圣灵里经历内心创伤的医治与释放。",
+    "en": "Healing and freedom from inner wounds in truth and the Spirit.",
+    "ko": "진리와 성령 안에서 내면의 상처를 치유하고 자유를 얻습니다.",
+    "th": "การรักษาและปลดปล่อยจากบาดแผลภายในในความจริงและพระวิญญาณ"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 3,
+   "year": "3-1",
+   "thumb": "bib305",
+   "title": {
+    "zh": "希伯来书",
+    "en": "Hebrews",
+    "ko": "히브리서",
+    "th": "ฮีบรู"
+   },
+   "body": {
+    "zh": "仰望更美的大祭司基督，持定所承认的指望。",
+    "en": "Christ the greater High Priest; hold fast the hope we confess.",
+    "ko": "더 나은 대제사장 그리스도를 바라보며 소망을 굳게 잡습니다.",
+    "th": "พระคริสต์มหาปุโรหิตผู้ประเสริฐกว่า ยึดความหวังที่เราสารภาพ"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 3,
+   "year": "3-1",
+   "thumb": "min201",
+   "title": {
+    "zh": "牧会相谈",
+    "en": "Pastoral Counselling",
+    "ko": "목회 상담",
+    "th": "การให้คำปรึกษาอภิบาล"
+   },
+   "body": {
+    "zh": "学习倾听、辅导与属灵陪伴的基本功。",
+    "en": "Listening, counselling and spiritual accompaniment.",
+    "ko": "경청과 상담, 영적 동행의 기본을 배웁니다.",
+    "th": "การฟัง การให้คำปรึกษา และการเดินเคียงข้างฝ่ายวิญญาณ"
+   }
+  },
+  {
+   "cat": "biblical",
+   "credits": 2,
+   "year": "3-1",
+   "thumb": "his302",
+   "title": {
+    "zh": "中国教会史",
+    "en": "Chinese Church History",
+    "ko": "중국 교회사",
+    "th": "ประวัติศาสตร์คริสตจักรจีน"
+   },
+   "body": {
+    "zh": "回顾福音入华与中国教会的成长之路。",
+    "en": "The gospel's arrival in China and the growth of the Chinese church.",
+    "ko": "복음의 중국 전래와 중국 교회의 성장 과정을 돌아봅니다.",
+    "th": "การมาถึงของข่าวประเสริฐในจีนและการเติบโตของคริสตจักรจีน"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 3,
+   "year": "3-2",
+   "thumb": "nt10",
+   "title": {
+    "zh": "以弗所书",
+    "en": "Ephesians",
+    "ko": "에베소서",
+    "th": "เอเฟซัส"
+   },
+   "body": {
+    "zh": "认识教会作为基督身体的奥秘与在基督里的新生活。",
+    "en": "The mystery of the church as Christ's body and the new life in him.",
+    "ko": "그리스도의 몸인 교회의 비밀과 그 안의 새 삶을 배웁니다.",
+    "th": "ความล้ำลึกของคริสตจักรในฐานะพระกายพระคริสต์และชีวิตใหม่"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 4,
+   "year": "3-2",
+   "thumb": "min301",
+   "title": {
+    "zh": "教会运营",
+    "en": "Church Administration",
+    "ko": "교회 운영",
+    "th": "การบริหารคริสตจักร"
+   },
+   "body": {
+    "zh": "从治理、同工配搭到事工规划的教会运营实务。",
+    "en": "Governance, team work and ministry planning in practice.",
+    "ko": "치리와 동역, 사역 기획까지 교회 운영 실무입니다.",
+    "th": "การปกครอง การทำงานเป็นทีม และการวางแผนพันธกิจ"
+   }
+  },
+  {
+   "cat": "systematic",
+   "credits": 3,
+   "year": "3-2",
+   "thumb": "the201",
+   "title": {
+    "zh": "系统神学 3",
+    "en": "Systematic Theology 3",
+    "ko": "조직신학 3",
+    "th": "ศาสนศาสตร์ระบบ 3"
+   },
+   "body": {
+    "zh": "系统神学第三部分：完成主要教义的系统学习，并应用于事奉。",
+    "en": "Systematic theology, part three: completing the major doctrines and applying them in ministry.",
+    "ko": "조직신학 셋째 부분: 주요 교리 학습을 마무리하고 사역에 적용합니다.",
+    "th": "ศาสนศาสตร์ระบบ ภาคที่สาม: ศึกษาหลักคำสอนสำคัญให้ครบและนำไปใช้ในการรับใช้"
+   }
+  },
+  {
+   "cat": "language",
+   "credits": 2,
+   "year": "3-3",
+   "thumb": "lan301",
+   "title": {
+    "zh": "希伯来语基础",
+    "en": "Basic Hebrew",
+    "ko": "히브리어 기초",
+    "th": "ภาษาฮีบรูพื้นฐาน"
+   },
+   "body": {
+    "zh": "掌握旧约希伯来文的入门要素。",
+    "en": "Essentials of Old Testament Hebrew.",
+    "ko": "구약 히브리어 입문 요소를 익힙니다.",
+    "th": "พื้นฐานภาษาฮีบรูพันธสัญญาเดิม"
+   }
+  },
+  {
+   "cat": "other",
+   "credits": 2,
+   "year": "3-3",
+   "thumb": "gen101",
+   "title": {
+    "zh": "人工智能与教牧实践",
+    "en": "AI & Pastoral Practice",
+    "ko": "인공지능과 목회 실천",
+    "th": "ปัญญาประดิษฐ์กับการอภิบาล"
+   },
+   "body": {
+    "zh": "善用 AI 工具辅助讲章预备、牧养与事工管理。",
+    "en": "Using AI tools wisely for sermon prep, care and ministry management.",
+    "ko": "AI 도구를 설교 준비, 목양, 사역 관리에 지혜롭게 활용합니다.",
+    "th": "ใช้เครื่องมือ AI อย่างชาญฉลาดในการเตรียมเทศนา การดูแล และการบริหารพันธกิจ"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 3,
+   "year": "3-3",
+   "thumb": "bib401",
+   "title": {
+    "zh": "启示录",
+    "en": "Revelation",
+    "ko": "요한계시록",
+    "th": "วิวรณ์"
+   },
+   "body": {
+    "zh": "从启示文学认识终末盼望与教会的得胜。",
+    "en": "Apocalyptic literature, final hope and the victory of the church.",
+    "ko": "묵시문학을 통해 종말의 소망과 교회의 승리를 배웁니다.",
+    "th": "วรรณกรรมวิวรณ์ ความหวังสุดท้าย และชัยชนะของคริสตจักร"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 2,
+   "year": "3-4",
+   "thumb": "min313",
+   "title": {
+    "zh": "属灵争战",
+    "en": "Spiritual Warfare",
+    "ko": "영적 전쟁",
+    "th": "สงครามฝ่ายวิญญาณ"
+   },
+   "body": {
+    "zh": "认识属灵争战的圣经原则，穿戴神所赐的全副军装。",
+    "en": "Biblical principles of spiritual warfare and the armour of God.",
+    "ko": "영적 전쟁의 성경 원리와 하나님의 전신갑주를 배웁니다.",
+    "th": "หลักพระคัมภีร์เรื่องสงครามฝ่ายวิญญาณและยุทธภัณฑ์ของพระเจ้า"
+   }
+  }
+ ],
+ "electives": [
+  {
+   "cat": "biblical",
+   "credits": 3,
+   "year": "",
+   "thumb": "ele101",
+   "title": {
+    "zh": "创世记",
+    "en": "Genesis",
+    "ko": "창세기",
+    "th": "ปฐมกาล"
+   },
+   "body": {
+    "zh": "从起初认识创造、堕落与救赎的开端。",
+    "en": "Creation, fall and the beginnings of redemption.",
+    "ko": "창조와 타락, 구속의 시작을 배웁니다.",
+    "th": "การทรงสร้าง การล้มลง และจุดเริ่มต้นแห่งการไถ่"
+   }
+  },
+  {
+   "cat": "biblical",
+   "credits": 3,
+   "year": "",
+   "thumb": "bib101",
+   "title": {
+    "zh": "利未记",
+    "en": "Leviticus",
+    "ko": "레위기",
+    "th": "เลวีนิติ"
+   },
+   "body": {
+    "zh": "认识圣洁的神、献祭与赎罪，以及蒙召过圣洁的生活。",
+    "en": "The holy God, sacrifice and atonement, and the call to a holy life.",
+    "ko": "거룩하신 하나님, 제사와 속죄, 거룩한 삶으로의 부르심을 배웁니다.",
+    "th": "พระเจ้าผู้บริสุทธิ์ การถวายบูชาและการลบมลทิน และการทรงเรียกสู่ชีวิตบริสุทธิ์"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 3,
+   "year": "",
+   "thumb": "ele103",
+   "title": {
+    "zh": "基督教伦理",
+    "en": "Christian Ethics",
+    "ko": "기독교 윤리",
+    "th": "จริยศาสตร์คริสเตียน"
+   },
+   "body": {
+    "zh": "以圣经原则回应当代伦理议题。",
+    "en": "Responding to contemporary ethical issues with biblical principles.",
+    "ko": "성경 원리로 현대 윤리 문제에 응답합니다.",
+    "th": "ตอบประเด็นจริยธรรมร่วมสมัยด้วยหลักพระคัมภีร์"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 3,
+   "year": "",
+   "thumb": "ele104",
+   "title": {
+    "zh": "儿童教育",
+    "en": "Children's Education",
+    "ko": "어린이 교육",
+    "th": "การศึกษาสำหรับเด็ก"
+   },
+   "body": {
+    "zh": "儿童信仰教育的理念与实务。",
+    "en": "Philosophy and practice of faith education for children.",
+    "ko": "어린이 신앙 교육의 이념과 실무입니다.",
+    "th": "แนวคิดและการปฏิบัติการศึกษาความเชื่อสำหรับเด็ก"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 2,
+   "year": "",
+   "thumb": "ele105",
+   "title": {
+    "zh": "宗教比较",
+    "en": "Comparative Religion",
+    "ko": "종교 비교",
+    "th": "ศาสนาเปรียบเทียบ"
+   },
+   "body": {
+    "zh": "认识主要宗教，持定福音的独特。",
+    "en": "Understanding major religions and the uniqueness of the gospel.",
+    "ko": "주요 종교를 이해하고 복음의 독특성을 붙듭니다.",
+    "th": "เข้าใจศาสนาหลักและความเป็นเอกลักษณ์ของข่าวประเสริฐ"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 2,
+   "year": "",
+   "thumb": "ele106",
+   "title": {
+    "zh": "对伊斯兰的理解",
+    "en": "Understanding Islam",
+    "ko": "이슬람 이해",
+    "th": "ความเข้าใจอิสลาม"
+   },
+   "body": {
+    "zh": "认识伊斯兰信仰与向穆斯林传福音。",
+    "en": "Islamic belief and sharing the gospel with Muslims.",
+    "ko": "이슬람 신앙을 이해하고 무슬림에게 복음을 전합니다.",
+    "th": "ความเชื่ออิสลามและการประกาศข่าวประเสริฐแก่มุสลิม"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 2,
+   "year": "",
+   "thumb": "ele110",
+   "title": {
+    "zh": "三人教会",
+    "en": "The Church of Three",
+    "ko": "3인 교회",
+    "th": "คริสตจักรสามคน"
+   },
+   "body": {
+    "zh": "以三人为单位彼此牧养、建立门徒的小型教会模式。",
+    "en": "A small-church model of mutual care and disciple-making in groups of three.",
+    "ko": "세 사람을 단위로 서로 돌보며 제자를 세우는 작은 교회 모델입니다.",
+    "th": "รูปแบบคริสตจักรเล็กที่ดูแลกันและสร้างสาวกเป็นกลุ่มละสามคน"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 2,
+   "year": "",
+   "thumb": "ele108",
+   "title": {
+    "zh": "圣经地理",
+    "en": "Bible Geography",
+    "ko": "성경 지리",
+    "th": "ภูมิศาสตร์พระคัมภีร์"
+   },
+   "body": {
+    "zh": "借地理场景读懂圣经叙事。",
+    "en": "Reading the biblical narrative through its lands and places.",
+    "ko": "지리적 배경을 통해 성경 이야기를 읽습니다.",
+    "th": "อ่านเรื่องราวพระคัมภีร์ผ่านภูมิประเทศและสถานที่"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 2,
+   "year": "",
+   "thumb": "ele109",
+   "title": {
+    "zh": "世界观理解",
+    "en": "Understanding Worldviews",
+    "ko": "세계관 이해",
+    "th": "ความเข้าใจโลกทัศน์"
+   },
+   "body": {
+    "zh": "辨析各样世界观，建立圣经的眼光。",
+    "en": "Discerning worldviews and building a biblical perspective.",
+    "ko": "다양한 세계관을 분별하고 성경적 안목을 세웁니다.",
+    "th": "แยกแยะโลกทัศน์ต่าง ๆ และสร้างมุมมองตามพระคัมภีร์"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 2,
+   "year": "",
+   "thumb": "min314",
+   "title": {
+    "zh": "牧会成功与失败事例",
+    "en": "Pastoral Case Studies: Success and Failure",
+    "ko": "목회 성공과 실패 사례",
+    "th": "กรณีศึกษาการอภิบาล: ความสำเร็จและความล้มเหลว"
+   },
+   "body": {
+    "zh": "从真实的牧会案例中学习成功的经验与失败的教训。",
+    "en": "Lessons from real pastoral cases, both successes and failures.",
+    "ko": "실제 목회 사례에서 성공의 경험과 실패의 교훈을 배웁니다.",
+    "th": "เรียนรู้จากกรณีการอภิบาลจริง ทั้งความสำเร็จและบทเรียนจากความล้มเหลว"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 2,
+   "year": "",
+   "thumb": "mis201",
+   "title": {
+    "zh": "领导力（Leadership）",
+    "en": "Leadership",
+    "ko": "리더십",
+    "th": "ภาวะผู้นำ"
+   },
+   "body": {
+    "zh": "属灵领袖的品格、异象与带领团队的能力。",
+    "en": "The character, vision and team leadership of a spiritual leader.",
+    "ko": "영적 지도자의 품성과 비전, 팀을 이끄는 능력을 배웁니다.",
+    "th": "อุปนิสัย นิมิต และความสามารถนำทีมของผู้นำฝ่ายวิญญาณ"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 2,
+   "year": "",
+   "thumb": "ele112",
+   "title": {
+    "zh": "中国的异端",
+    "en": "Cults in China",
+    "ko": "중국의 이단",
+    "th": "ลัทธินอกรีตในจีน"
+   },
+   "body": {
+    "zh": "辨识异端邪说，持守纯正信仰。",
+    "en": "Recognising heresies and holding to sound faith.",
+    "ko": "이단을 분별하고 순수한 신앙을 지킵니다.",
+    "th": "แยกแยะคำสอนนอกรีตและรักษาความเชื่อที่บริสุทธิ์"
+   }
+  },
+  {
+   "cat": "practical",
+   "credits": 2,
+   "year": "",
+   "thumb": "ele113",
+   "title": {
+    "zh": "能力祷告",
+    "en": "Power Prayer",
+    "ko": "능력 기도",
+    "th": "การอธิษฐานด้วยฤทธิ์เดช"
+   },
+   "body": {
+    "zh": "学习凭信心、倚靠圣灵大能的祷告与代祷。",
+    "en": "Prayer and intercession in faith, relying on the power of the Holy Spirit.",
+    "ko": "믿음으로 성령의 능력을 의지하는 기도와 중보를 배웁니다.",
+    "th": "การอธิษฐานและวิงวอนด้วยความเชื่อ พึ่งฤทธิ์เดชของพระวิญญาณบริสุทธิ์"
+   }
+  }
+ ],
+ "training": [
+  {
+   "credits": "1",
+   "name": {
+    "zh": "通读圣经训练（3 次）",
+    "en": "Bible read-through training (3 times)",
+    "ko": "성경 통독 훈련(3회)",
+    "th": "ฝึกอ่านพระคัมภีร์ตลอดเล่ม (3 รอบ)"
+   }
+  },
+  {
+   "credits": "1",
+   "name": {
+    "zh": "背诵圣经训练",
+    "en": "Scripture memorization training",
+    "ko": "성경 암송 훈련",
+    "th": "ฝึกท่องจำพระคัมภีร์"
+   }
+  },
+  {
+   "credits": "1",
+   "name": {
+    "zh": "家庭礼拜训练",
+    "en": "Family worship training",
+    "ko": "가정 예배 훈련",
+    "th": "ฝึกนมัสการในครอบครัว"
+   }
+  },
+  {
+   "credits": "1",
+   "name": {
+    "zh": "人际关系训练",
+    "en": "Interpersonal relationship training",
+    "ko": "인간관계 훈련",
+    "th": "ฝึกความสัมพันธ์ระหว่างบุคคล"
+   }
+  },
+  {
+   "credits": "1",
+   "name": {
+    "zh": "奉献训练",
+    "en": "Giving training",
+    "ko": "드림(헌금) 훈련",
+    "th": "ฝึกการถวาย"
+   }
+  },
+  {
+   "credits": "3",
+   "name": {
+    "zh": "讲道作成训练（100 篇 / 600 页以上）",
+    "en": "Sermon writing training (100 sermons / 600+ pages)",
+    "ko": "설교 작성 훈련(100편 / 600쪽 이상)",
+    "th": "ฝึกเขียนคำเทศนา (100 เรื่อง / 600 หน้าขึ้นไป)"
+   }
+  },
+  {
+   "credits": "1–3",
+   "name": {
+    "zh": "祷告训练（每天 1 小时，100 天 1 学分）",
+    "en": "Prayer training (1 hour a day; 100 days = 1 credit)",
+    "ko": "기도 훈련(매일 1시간, 100일 1학점)",
+    "th": "ฝึกอธิษฐาน (วันละ 1 ชั่วโมง 100 วัน = 1 หน่วยกิต)"
+   }
+  },
+  {
+   "credits": "1–3",
+   "name": {
+    "zh": "传道训练（传道 5 人 1 学分）",
+    "en": "Evangelism training (5 people reached = 1 credit)",
+    "ko": "전도 훈련(5명 전도 1학점)",
+    "th": "ฝึกประกาศ (ประกาศ 5 คน = 1 หน่วยกิต)"
+   }
+  },
+  {
+   "credits": "1–3",
+   "name": {
+    "zh": "Q.T 训练（100 天 1 学分）",
+    "en": "Quiet Time (Q.T) training (100 days = 1 credit)",
+    "ko": "Q.T 훈련(100일 1학점)",
+    "th": "ฝึกเฝ้าเดี่ยว (Q.T) (100 วัน = 1 หน่วยกิต)"
+   }
+  },
+  {
+   "credits": "1–3",
+   "name": {
+    "zh": "晨祷训练（100 天 1 学分）",
+    "en": "Morning prayer training (100 days = 1 credit)",
+    "ko": "새벽기도 훈련(100일 1학점)",
+    "th": "ฝึกอธิษฐานเช้า (100 วัน = 1 หน่วยกิต)"
+   }
+  },
+  {
+   "credits": "3",
+   "name": {
+    "zh": "开辟教会训练",
+    "en": "Church planting training",
+    "ko": "교회 개척 훈련",
+    "th": "ฝึกบุกเบิกคริสตจักร"
+   }
+  }
+ ],
+ "categories": {
+  "practical": {
+   "zh": "实践神学",
+   "en": "Practical Theology",
+   "ko": "실천신학",
+   "th": "ศาสนศาสตร์ภาคปฏิบัติ"
+  },
+  "biblical": {
+   "zh": "圣经神学",
+   "en": "Biblical Theology",
+   "ko": "성경신학",
+   "th": "ศาสนศาสตร์พระคัมภีร์"
+  },
+  "systematic": {
+   "zh": "系统神学",
+   "en": "Systematic Theology",
+   "ko": "조직신학",
+   "th": "ศาสนศาสตร์ระบบ"
+  },
+  "historical": {
+   "zh": "历史神学",
+   "en": "Historical Theology",
+   "ko": "역사신학",
+   "th": "ศาสนศาสตร์ประวัติศาสตร์"
+  },
+  "language": {
+   "zh": "语言",
+   "en": "Languages",
+   "ko": "언어",
+   "th": "ภาษา"
+  },
+  "other": {
+   "zh": "其他",
+   "en": "Other",
+   "ko": "기타",
+   "th": "อื่น ๆ"
+  }
+ }
+}

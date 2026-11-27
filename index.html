@@ -35,14 +35,14 @@
   "inLanguage": ["zh-CN", "en"],
   "hasOfferCatalog": {
     "@type": "OfferCatalog",
-    "name": "AMAS 官方课程（68 门）",
+    "name": "AMAS 神学学士 B.Th 课程（必修 35 门 · 选修 13 门）",
     "itemListElement": [
-      { "@type": "Course", "name": "马太福音", "courseCode": "NT 02", "description": "研读天国的信息，认识君王基督与门徒之道。" },
-      { "@type": "Course", "name": "约翰福音", "courseCode": "NT 05", "description": "认识耶稣的身份与工作，因信祂的名得生命。" },
-      { "@type": "Course", "name": "罗马书", "courseCode": "NT 07", "description": "系统研读因信称义的福音大纲与新生命之道。" },
-      { "@type": "Course", "name": "圣经综合概观", "courseCode": "BF 01", "description": "纵览全本圣经的结构、脉络与救赎主线。" },
-      { "@type": "Course", "name": "平信徒系统神学", "courseCode": "TH 03", "description": "面向平信徒的教义总览，建立信仰框架。" },
-      { "@type": "Course", "name": "讲道学", "courseCode": "PT 13", "description": "从释经到信息构成，学习忠实清晰的讲道。" }
+      { "@type": "Course", "name": "马太福音", "courseCode": "17", "description": "研读天国的信息，认识君王基督与门徒之道。" },
+      { "@type": "Course", "name": "约翰福音", "courseCode": "20", "description": "认识耶稣的身份与工作，因信祂的名得生命。" },
+      { "@type": "Course", "name": "罗马书", "courseCode": "11", "description": "系统研读因信称义的福音大纲与新生命之道。" },
+      { "@type": "Course", "name": "圣经综合概观", "courseCode": "10", "description": "纵览全本圣经的结构、脉络与救赎主线。" },
+      { "@type": "Course", "name": "系统神学 1", "courseCode": "12", "description": "系统神学第一部分：建立整全的教义框架，打好信仰根基。" },
+      { "@type": "Course", "name": "讲道学", "courseCode": "07", "description": "从释经到信息构成，学习忠实清晰的讲道。" }
     ]
   }
 }
@@ -83,9 +83,9 @@
 })();
 </script>
 <script>(function(){var l=document.createElement("link");l.rel="preload";l.as="image";l.href="assets/img/hero-"+(document.documentElement.dataset.theme==="night"?"night":"day")+".webp";document.head.appendChild(l);})();</script>
-<script src="assets/js/supabase-config.js?v=202611210843"></script>
+<script src="assets/js/supabase-config.js?v=202611270900"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><!-- 字体表不阻塞首屏：大陆连不上 Google 时页面照常用系统宋体立即显示，连上了再换字体 --><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&display=swap" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&display=swap"></noscript>
-<link rel="stylesheet" href="assets/css/main.css?v=202611210843">
+<link rel="stylesheet" href="assets/css/main.css?v=202611270900">
 </head>
 <body>
 <a class="skip-link" href="#main" data-i18n="actions.skip">跳到主要内容</a>
@@ -303,7 +303,7 @@
       </div>
 
       <div class="stats-bar reveal">
-        <div class="stat"><b>68</b><span data-i18n="stats.courses">官方课程 · 7 大类</span></div>
+        <div class="stat"><b>48</b><span data-i18n="stats.courses">学士班课程 · 必修 35 + 选修 13</span></div>
         <div class="stat"><b data-i18n="stats.flex.title">灵活学习</b><span data-i18n="stats.flex.body">线上线下同步学习</span></div>
         <div class="stat"><b data-i18n="stats.global.title">全球视野</b><span data-i18n="stats.global.body">跨文化学习与宣教网络</span></div>
         <div class="stat"><b data-i18n="stats.team.title">牧者团队</b><span data-i18n="stats.team.body">资深牧者与教师同行</span></div>
@@ -369,15 +369,12 @@
           <div class="eyebrow">OFFICIAL CURRICULUM</div>
           <h2 data-i18n="courses.title">课程设置</h2>
         </div>
-        <p data-i18n="courses.desc">按学院官方课程体系开设必修、选修与属灵训练，涵盖圣经、系统、历史、实践神学与圣经语言。</p>
+        <p data-i18n="courses.desc">神学学士 B.Th 课程：必修 35 门、选修 13 门，另有 11 项实践训练；学分制、按科修读，毕业 100 学分。</p>
         <p class="sec-verse"><span data-i18n="verse.courses">“你当竭力在神面前得蒙喜悦，作无愧的工人，按着正意分解真理的道。”</span><small data-i18n="verse.coursesRef">— 提摩太后书 2:15</small></p>
       </div>
 
-      <!-- 学位层级筛选。68 门是学士 / 硕士 / 博士混编的：B.Th 27 门、M.Div 6 门、
-           D.Min 18 门，另有 17 门尚未分配层级。不分层的话，一个申请学士的人
-           会把 18 门博士课也当成自己要修的。层级取自《课程总表 V1.0》落库迁移
-           0028_bth_curriculum_v1.sql 的 level 字段，与该表一一对应。 -->
-      <div class="filter-row level-row" role="group" aria-label="按学位层级筛选" data-i18n-aria="courses.levelGroup">
+      <!-- 学位层级筛选：2026-11-27 Enos 要求硕士 / 博士暂时隐藏，官网只展示学士班课程，整行先 hidden；恢复时去掉 hidden 并把旧课程从 #courseArchive 放回。 -->
+      <div class="filter-row level-row" hidden role="group" aria-label="按学位层级筛选" data-i18n-aria="courses.levelGroup">
         <span class="filter-label" data-i18n="courses.byLevel">学位层级</span>
         <button class="filter active" type="button" data-level-filter="all" aria-pressed="true" data-i18n="courses.levels.all">全部层级</button>
         <button class="filter" type="button" data-level-filter="bth" aria-pressed="false" data-i18n="courses.levels.bth">神学学士 B.Th</button>
@@ -385,12 +382,209 @@
         <button class="filter" type="button" data-level-filter="dmin" aria-pressed="false" data-i18n="courses.levels.dmin">教牧学博士 D.Min</button>
         <button class="filter" type="button" data-level-filter="none" aria-pressed="false" data-i18n="courses.levels.none">其他课程</button>
       </div>
-      <p class="level-note" data-i18n="courses.note.all">神学学士 B.Th 共 27 门 · 70 学分，加 5 项实践训练 7 学分，毕业合计 77 学分。硕士与博士方案仍在制定中。</p>
+      <p class="level-note" data-i18n="courses.note.all">神学学士 B.Th：必修 35 门 · 96 学分，另有选修 13 门与 11 项实践训练，毕业学分 100。</p>
 
       <p class="visually-hidden" id="courseCount" aria-live="polite"></p>
 
 
       <div class="course-grid" id="courseGrid">
+        <!-- 学士班 B.Th 课程：必修 35 门 + 选修 13 门，按桌面《mdiv课程设置.docx》照搬（Enos 2026-11-27）。
+             数据源 scripts/data/bth-curriculum.json；配图版权见 assets/img/courses/CREDITS.json -->
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="required" data-credits="2">
+          <div class="course-thumb thumb-c-pt01" role="presentation"></div>
+          <div class="course-content"><span class="course-code">01</span><h3 data-i18n="bthCourse.0.title">新信徒事工</h3><p data-i18n="bthCourse.0.body">以系统方式陪伴初信者扎根信仰、融入教会。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="2">2 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="required" data-credits="2">
+          <div class="course-thumb thumb-c-min204" role="presentation"></div>
+          <div class="course-content"><span class="course-code">02</span><h3 data-i18n="bthCourse.1.title">新信徒教育教材</h3><p data-i18n="bthCourse.1.body">编写与使用初信栽培教材的实务。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="2">2 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="required" data-credits="3">
+          <div class="course-thumb thumb-c-min302" role="presentation"></div>
+          <div class="course-content"><span class="course-code">03</span><h3 data-i18n="bthCourse.2.title">礼拜学</h3><p data-i18n="bthCourse.2.body">认识崇拜的圣经意义与礼拜程序的安排。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="required" data-credits="2">
+          <div class="course-thumb thumb-c-min310" role="presentation"></div>
+          <div class="course-content"><span class="course-code">04</span><h3 data-i18n="bthCourse.3.title">神的话语医治</h3><p data-i18n="bthCourse.3.body">学习以神的话语宣告、代祷并牧养病痛中的人。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="2">2 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="required" data-credits="3">
+          <div class="course-thumb thumb-c-for103" role="presentation"></div>
+          <div class="course-content"><span class="course-code">05</span><h3 data-i18n="bthCourse.4.title">平信徒养育（确信）</h3><p data-i18n="bthCourse.4.body">建立救恩确据，活出稳固而有盼望的信仰根基。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="required" data-credits="3">
+          <div class="course-thumb thumb-c-for102" role="presentation"></div>
+          <div class="course-content"><span class="course-code">06</span><h3 data-i18n="bthCourse.5.title">平信徒养育（门徒）</h3><p data-i18n="bthCourse.5.body">以门徒的身份跟随基督，建立稳定的生命节奏。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="required" data-credits="3">
+          <div class="course-thumb thumb-c-min304" role="presentation"></div>
+          <div class="course-content"><span class="course-code">07</span><h3 data-i18n="bthCourse.6.title">讲道学</h3><p data-i18n="bthCourse.6.body">从释经到信息构成，学习忠实清晰的讲道。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="required" data-credits="3">
+          <div class="course-thumb thumb-c-pt09" role="presentation"></div>
+          <div class="course-content"><span class="course-code">08</span><h3 data-i18n="bthCourse.7.title">传道</h3><p data-i18n="bthCourse.7.body">掌握传福音的信息、方法与陪谈跟进之道。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="required" data-credits="3">
+          <div class="course-thumb thumb-c-min202" role="presentation"></div>
+          <div class="course-content"><span class="course-code">09</span><h3 data-i18n="bthCourse.8.title">小组</h3><p data-i18n="bthCourse.8.body">建立、带领与倍增健康的小组群体。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="biblical" data-level="bth" data-kind="required" data-credits="4">
+          <div class="course-thumb thumb-c-bf01" role="presentation"></div>
+          <div class="course-content"><span class="course-code">10</span><h3 data-i18n="bthCourse.9.title">圣经综合概观</h3><p data-i18n="bthCourse.9.body">纵览全本圣经的结构、脉络与救赎主线。</p><div class="course-meta"><span data-i18n="courses.cat.biblical">圣经神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="4">4 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="biblical" data-level="bth" data-kind="required" data-credits="3">
+          <div class="course-thumb thumb-c-nt06" role="presentation"></div>
+          <div class="course-content"><span class="course-code">11</span><h3 data-i18n="bthCourse.10.title">罗马书</h3><p data-i18n="bthCourse.10.body">系统研读因信称义的福音大纲与新生命之道。</p><div class="course-meta"><span data-i18n="courses.cat.biblical">圣经神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="systematic" data-level="bth" data-kind="required" data-credits="3">
+          <div class="course-thumb thumb-c-the202" role="presentation"></div>
+          <div class="course-content"><span class="course-code">12</span><h3 data-i18n="bthCourse.11.title">系统神学 1</h3><p data-i18n="bthCourse.11.body">系统神学第一部分：建立整全的教义框架，打好信仰根基。</p><div class="course-meta"><span data-i18n="courses.cat.systematic">系统神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="required" data-credits="2">
+          <div class="course-thumb thumb-c-min311" role="presentation"></div>
+          <div class="course-content"><span class="course-code">13</span><h3 data-i18n="bthCourse.12.title">1 日内在医治</h3><p data-i18n="bthCourse.12.body">一日密集课程：在真理与圣灵里认识并经历内在医治。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="2">2 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="biblical" data-level="bth" data-kind="required" data-credits="3">
+          <div class="course-thumb thumb-c-nt05" role="presentation"></div>
+          <div class="course-content"><span class="course-code">14</span><h3 data-i18n="bthCourse.13.title">使徒行传</h3><p data-i18n="bthCourse.13.body">跟随初代教会的脚踪，看福音从耶路撒冷直到地极。</p><div class="course-meta"><span data-i18n="courses.cat.biblical">圣经神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="required" data-credits="2">
+          <div class="course-thumb thumb-c-min305" role="presentation"></div>
+          <div class="course-content"><span class="course-code">15</span><h3 data-i18n="bthCourse.14.title">讲道实习 1</h3><p data-i18n="bthCourse.14.body">在实际讲台操练中打磨讲道能力。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="2">2 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="systematic" data-level="bth" data-kind="required" data-credits="3">
+          <div class="course-thumb thumb-c-the203" role="presentation"></div>
+          <div class="course-content"><span class="course-code">16</span><h3 data-i18n="bthCourse.15.title">系统神学 2</h3><p data-i18n="bthCourse.15.body">系统神学第二部分：在第一部分的基础上深入主要教义。</p><div class="course-meta"><span data-i18n="courses.cat.systematic">系统神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="biblical" data-level="bth" data-kind="required" data-credits="3">
+          <div class="course-thumb thumb-c-bib201" role="presentation"></div>
+          <div class="course-content"><span class="course-code">17</span><h3 data-i18n="bthCourse.16.title">马太福音</h3><p data-i18n="bthCourse.16.body">研读天国的信息，认识君王基督与门徒之道。</p><div class="course-meta"><span data-i18n="courses.cat.biblical">圣经神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="historical" data-level="bth" data-kind="required" data-credits="2">
+          <div class="course-thumb thumb-c-his201" role="presentation"></div>
+          <div class="course-content"><span class="course-code">18</span><h3 data-i18n="bthCourse.17.title">以色列的文化</h3><p data-i18n="bthCourse.17.body">认识圣经背景中的以色列历史与文化。</p><div class="course-meta"><span data-i18n="courses.cat.historical">历史神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="2">2 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="language" data-level="bth" data-kind="required" data-credits="3">
+          <div class="course-thumb thumb-c-lan201" role="presentation"></div>
+          <div class="course-content"><span class="course-code">19</span><h3 data-i18n="bthCourse.18.title">希腊文</h3><p data-i18n="bthCourse.18.body">学习新约希腊文基础，直读原文经文。</p><div class="course-meta"><span data-i18n="courses.cat.language">语言</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="biblical" data-level="bth" data-kind="required" data-credits="3">
+          <div class="course-thumb thumb-c-bib202" role="presentation"></div>
+          <div class="course-content"><span class="course-code">20</span><h3 data-i18n="bthCourse.19.title">约翰福音</h3><p data-i18n="bthCourse.19.body">认识耶稣的身份与工作，因信祂的名得生命。</p><div class="course-meta"><span data-i18n="courses.cat.biblical">圣经神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="historical" data-level="bth" data-kind="required" data-credits="3">
+          <div class="course-thumb thumb-c-his301" role="presentation"></div>
+          <div class="course-content"><span class="course-code">21</span><h3 data-i18n="bthCourse.20.title">世界教会史</h3><p data-i18n="bthCourse.20.body">纵览两千年教会的历程与属灵传承。</p><div class="course-meta"><span data-i18n="courses.cat.historical">历史神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="biblical" data-level="bth" data-kind="required" data-credits="2">
+          <div class="course-thumb thumb-c-min307" role="presentation"></div>
+          <div class="course-content"><span class="course-code">22</span><h3 data-i18n="bthCourse.21.title">带领赞美的方法</h3><p data-i18n="bthCourse.21.body">学习带领会众敬拜赞美的原则与技巧。</p><div class="course-meta"><span data-i18n="courses.cat.biblical">圣经神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="2">2 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="historical" data-level="bth" data-kind="required" data-credits="3">
+          <div class="course-thumb thumb-c-bib302" role="presentation"></div>
+          <div class="course-content"><span class="course-code">23</span><h3 data-i18n="bthCourse.22.title">哥林多前书</h3><p data-i18n="bthCourse.22.body">围绕教会秩序、十字架神学与群体建造研读书信。</p><div class="course-meta"><span data-i18n="courses.cat.historical">历史神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="biblical" data-level="bth" data-kind="required" data-credits="3">
+          <div class="course-thumb thumb-c-min306" role="presentation"></div>
+          <div class="course-content"><span class="course-code">24</span><h3 data-i18n="bthCourse.23.title">讲道实习 2</h3><p data-i18n="bthCourse.23.body">在讲道实习 1 的基础上继续讲台操练，打磨讲道能力。</p><div class="course-meta"><span data-i18n="courses.cat.biblical">圣经神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="required" data-credits="3">
+          <div class="course-thumb thumb-c-min312" role="presentation"></div>
+          <div class="course-content"><span class="course-code">25</span><h3 data-i18n="bthCourse.24.title">内在医治</h3><p data-i18n="bthCourse.24.body">在真理与圣灵里经历内心创伤的医治与释放。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="required" data-credits="3">
+          <div class="course-thumb thumb-c-bib305" role="presentation"></div>
+          <div class="course-content"><span class="course-code">26</span><h3 data-i18n="bthCourse.25.title">希伯来书</h3><p data-i18n="bthCourse.25.body">仰望更美的大祭司基督，持定所承认的指望。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="required" data-credits="3">
+          <div class="course-thumb thumb-c-min201" role="presentation"></div>
+          <div class="course-content"><span class="course-code">27</span><h3 data-i18n="bthCourse.26.title">牧会相谈</h3><p data-i18n="bthCourse.26.body">学习倾听、辅导与属灵陪伴的基本功。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="biblical" data-level="bth" data-kind="required" data-credits="2">
+          <div class="course-thumb thumb-c-his302" role="presentation"></div>
+          <div class="course-content"><span class="course-code">28</span><h3 data-i18n="bthCourse.27.title">中国教会史</h3><p data-i18n="bthCourse.27.body">回顾福音入华与中国教会的成长之路。</p><div class="course-meta"><span data-i18n="courses.cat.biblical">圣经神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="2">2 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="required" data-credits="3">
+          <div class="course-thumb thumb-c-nt10" role="presentation"></div>
+          <div class="course-content"><span class="course-code">29</span><h3 data-i18n="bthCourse.28.title">以弗所书</h3><p data-i18n="bthCourse.28.body">认识教会作为基督身体的奥秘与在基督里的新生活。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="required" data-credits="4">
+          <div class="course-thumb thumb-c-min301" role="presentation"></div>
+          <div class="course-content"><span class="course-code">30</span><h3 data-i18n="bthCourse.29.title">教会运营</h3><p data-i18n="bthCourse.29.body">从治理、同工配搭到事工规划的教会运营实务。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="4">4 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="systematic" data-level="bth" data-kind="required" data-credits="3">
+          <div class="course-thumb thumb-c-the201" role="presentation"></div>
+          <div class="course-content"><span class="course-code">31</span><h3 data-i18n="bthCourse.30.title">系统神学 3</h3><p data-i18n="bthCourse.30.body">系统神学第三部分：完成主要教义的系统学习，并应用于事奉。</p><div class="course-meta"><span data-i18n="courses.cat.systematic">系统神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="language" data-level="bth" data-kind="required" data-credits="2">
+          <div class="course-thumb thumb-c-lan301" role="presentation"></div>
+          <div class="course-content"><span class="course-code">32</span><h3 data-i18n="bthCourse.31.title">希伯来语基础</h3><p data-i18n="bthCourse.31.body">掌握旧约希伯来文的入门要素。</p><div class="course-meta"><span data-i18n="courses.cat.language">语言</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="2">2 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="other" data-level="bth" data-kind="required" data-credits="2">
+          <div class="course-thumb thumb-c-gen101" role="presentation"></div>
+          <div class="course-content"><span class="course-code">33</span><h3 data-i18n="bthCourse.32.title">人工智能与教牧实践</h3><p data-i18n="bthCourse.32.body">善用 AI 工具辅助讲章预备、牧养与事工管理。</p><div class="course-meta"><span data-i18n="courses.cat.other">其他</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="2">2 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="required" data-credits="3">
+          <div class="course-thumb thumb-c-bib401" role="presentation"></div>
+          <div class="course-content"><span class="course-code">34</span><h3 data-i18n="bthCourse.33.title">启示录</h3><p data-i18n="bthCourse.33.body">从启示文学认识终末盼望与教会的得胜。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="required" data-credits="2">
+          <div class="course-thumb thumb-c-min313" role="presentation"></div>
+          <div class="course-content"><span class="course-code">35</span><h3 data-i18n="bthCourse.34.title">属灵争战</h3><p data-i18n="bthCourse.34.body">认识属灵争战的圣经原则，穿戴神所赐的全副军装。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-bth" data-i18n="courses.kind.required">必修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="2">2 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="biblical" data-level="bth" data-kind="elective" data-credits="3">
+          <div class="course-thumb thumb-c-ele101" role="presentation"></div>
+          <div class="course-content"><span class="course-code">E01</span><h3 data-i18n="bthCourse.35.title">创世记</h3><p data-i18n="bthCourse.35.body">从起初认识创造、堕落与救赎的开端。</p><div class="course-meta"><span data-i18n="courses.cat.biblical">圣经神学</span><span class="lvl lvl-mdiv" data-i18n="courses.kind.elective">选修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="biblical" data-level="bth" data-kind="elective" data-credits="3">
+          <div class="course-thumb thumb-c-bib101" role="presentation"></div>
+          <div class="course-content"><span class="course-code">E02</span><h3 data-i18n="bthCourse.36.title">利未记</h3><p data-i18n="bthCourse.36.body">认识圣洁的神、献祭与赎罪，以及蒙召过圣洁的生活。</p><div class="course-meta"><span data-i18n="courses.cat.biblical">圣经神学</span><span class="lvl lvl-mdiv" data-i18n="courses.kind.elective">选修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="elective" data-credits="3">
+          <div class="course-thumb thumb-c-ele103" role="presentation"></div>
+          <div class="course-content"><span class="course-code">E03</span><h3 data-i18n="bthCourse.37.title">基督教伦理</h3><p data-i18n="bthCourse.37.body">以圣经原则回应当代伦理议题。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-mdiv" data-i18n="courses.kind.elective">选修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="elective" data-credits="3">
+          <div class="course-thumb thumb-c-ele104" role="presentation"></div>
+          <div class="course-content"><span class="course-code">E04</span><h3 data-i18n="bthCourse.38.title">儿童教育</h3><p data-i18n="bthCourse.38.body">儿童信仰教育的理念与实务。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-mdiv" data-i18n="courses.kind.elective">选修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="3">3 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="elective" data-credits="2">
+          <div class="course-thumb thumb-c-ele105" role="presentation"></div>
+          <div class="course-content"><span class="course-code">E05</span><h3 data-i18n="bthCourse.39.title">宗教比较</h3><p data-i18n="bthCourse.39.body">认识主要宗教，持定福音的独特。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-mdiv" data-i18n="courses.kind.elective">选修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="2">2 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="elective" data-credits="2">
+          <div class="course-thumb thumb-c-ele106" role="presentation"></div>
+          <div class="course-content"><span class="course-code">E06</span><h3 data-i18n="bthCourse.40.title">对伊斯兰的理解</h3><p data-i18n="bthCourse.40.body">认识伊斯兰信仰与向穆斯林传福音。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-mdiv" data-i18n="courses.kind.elective">选修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="2">2 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="elective" data-credits="2">
+          <div class="course-thumb thumb-c-ele110" role="presentation"></div>
+          <div class="course-content"><span class="course-code">E07</span><h3 data-i18n="bthCourse.41.title">三人教会</h3><p data-i18n="bthCourse.41.body">以三人为单位彼此牧养、建立门徒的小型教会模式。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-mdiv" data-i18n="courses.kind.elective">选修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="2">2 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="elective" data-credits="2">
+          <div class="course-thumb thumb-c-ele108" role="presentation"></div>
+          <div class="course-content"><span class="course-code">E08</span><h3 data-i18n="bthCourse.42.title">圣经地理</h3><p data-i18n="bthCourse.42.body">借地理场景读懂圣经叙事。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-mdiv" data-i18n="courses.kind.elective">选修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="2">2 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="elective" data-credits="2">
+          <div class="course-thumb thumb-c-ele109" role="presentation"></div>
+          <div class="course-content"><span class="course-code">E09</span><h3 data-i18n="bthCourse.43.title">世界观理解</h3><p data-i18n="bthCourse.43.body">辨析各样世界观，建立圣经的眼光。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-mdiv" data-i18n="courses.kind.elective">选修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="2">2 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="elective" data-credits="2">
+          <div class="course-thumb thumb-c-min314" role="presentation"></div>
+          <div class="course-content"><span class="course-code">E10</span><h3 data-i18n="bthCourse.44.title">牧会成功与失败事例</h3><p data-i18n="bthCourse.44.body">从真实的牧会案例中学习成功的经验与失败的教训。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-mdiv" data-i18n="courses.kind.elective">选修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="2">2 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="elective" data-credits="2">
+          <div class="course-thumb thumb-c-mis201" role="presentation"></div>
+          <div class="course-content"><span class="course-code">E11</span><h3 data-i18n="bthCourse.45.title">领导力（Leadership）</h3><p data-i18n="bthCourse.45.body">属灵领袖的品格、异象与带领团队的能力。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-mdiv" data-i18n="courses.kind.elective">选修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="2">2 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="elective" data-credits="2">
+          <div class="course-thumb thumb-c-ele112" role="presentation"></div>
+          <div class="course-content"><span class="course-code">E12</span><h3 data-i18n="bthCourse.46.title">中国的异端</h3><p data-i18n="bthCourse.46.body">辨识异端邪说，持守纯正信仰。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-mdiv" data-i18n="courses.kind.elective">选修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="2">2 学分</span></div></div>
+        </article>
+        <article class="course-card reveal" data-category="practical" data-level="bth" data-kind="elective" data-credits="2">
+          <div class="course-thumb thumb-c-ele113" role="presentation"></div>
+          <div class="course-content"><span class="course-code">E13</span><h3 data-i18n="bthCourse.47.title">能力祷告</h3><p data-i18n="bthCourse.47.body">学习凭信心、倚靠圣灵大能的祷告与代祷。</p><div class="course-meta"><span data-i18n="courses.cat.practical">实践神学</span><span class="lvl lvl-mdiv" data-i18n="courses.kind.elective">选修</span><span class="cr" data-i18n="courses.credits" data-i18n-n="2">2 学分</span></div></div>
+        </article>
+      </div>
+      <!-- 原 68 门课程：Enos 2026-11-27 要求暂时隐藏，后期确定后恢复。<template> 内容不渲染、不计数。 -->
+      <template id="courseArchive">
         <!-- 课程数据来源：学院最终课程表（68 门 · 7 类）；配图版权见 assets/img/courses/CREDITS.json -->
         <article class="course-card reveal" data-category="nt" data-level="bth" data-credits="4">
           <div class="course-thumb thumb-c-gospels-intro" role="presentation"></div>
@@ -664,7 +858,7 @@
           <div class="course-thumb thumb-c-gen101" role="presentation"></div>
           <div class="course-content"><span class="course-code">LT 03</span><h3 data-i18n="courseCards.67.title">人工智能与教牧实践</h3><p data-i18n="courseCards.67.body">善用 AI 工具辅助讲章预备、牧养与事工管理。</p><div class="course-meta"><span data-i18n="courses.filters.tools">语言与工具</span><span class="lvl lvl-bth" data-i18n="courses.levels.bth">神学学士 B.Th</span><span class="cr" data-i18n="courses.credits" data-i18n-n="2">2 学分</span></div></div>
         </article>
-      </div>
+      </template>
       <div class="course-more-wrap">
         <button class="btn secondary course-more" id="courseMoreBtn" type="button" hidden><span></span></button>
       </div>
@@ -672,15 +866,21 @@
       <div class="training-panel reveal">
         <div class="training-head">
           <div class="eyebrow">PRACTICAL TRAINING</div>
-          <h3 data-i18n="training.title">实践训练（5 项 · 7 学分）</h3>
-          <p data-i18n="training.note">以下 5 项实践训练由学校检查认定；按《课程总表 V1.0》合计 7 学分，计入毕业学分。</p>
+          <h3 data-i18n="training.title">实践训练（11 项）</h3>
+          <p data-i18n="training.note">以下 11 项实践训练由学校检查认定，学分计入毕业学分。</p>
         </div>
         <ul class="training-list">
-          <li><span data-i18n="training.0">读经训练 · 1 学分</span></li>
-          <li><span data-i18n="training.1">灵修训练 · 1 学分</span></li>
-          <li><span data-i18n="training.2">祷告训练 · 2 学分</span></li>
-          <li><span data-i18n="training.3">传道训练 · 2 学分</span></li>
+          <li><span data-i18n="training.0">通读圣经训练（3 次） · 1 学分</span></li>
+          <li><span data-i18n="training.1">背诵圣经训练 · 1 学分</span></li>
+          <li><span data-i18n="training.2">家庭礼拜训练 · 1 学分</span></li>
+          <li><span data-i18n="training.3">人际关系训练 · 1 学分</span></li>
           <li><span data-i18n="training.4">奉献训练 · 1 学分</span></li>
+          <li><span data-i18n="training.5">讲道作成训练（100 篇 / 600 页以上） · 3 学分</span></li>
+          <li><span data-i18n="training.6">祷告训练（每天 1 小时，100 天 1 学分） · 1–3 学分</span></li>
+          <li><span data-i18n="training.7">传道训练（传道 5 人 1 学分） · 1–3 学分</span></li>
+          <li><span data-i18n="training.8">Q.T 训练（100 天 1 学分） · 1–3 学分</span></li>
+          <li><span data-i18n="training.9">晨祷训练（100 天 1 学分） · 1–3 学分</span></li>
+          <li><span data-i18n="training.10">开辟教会训练 · 3 学分</span></li>
         </ul>
       </div>
 
@@ -717,10 +917,10 @@
             <p data-i18n="programs.degree.sub">学分制逐科修读，修满规定学分即毕业；学籍由 AMAS 总校审核建立</p>
           </header>
           <ul class="program-list">
-            <li class="program-featured"><span class="program-badge">B.Th</span><div><b data-i18n="programs.items.bth.name">神学学士</b><span data-i18n="programs.items.bth.desc">10月班已开课 · 11月班招生中 · 77 学分 · 按科修读、线上 + 线下</span></div></li>
-            <li><span class="program-badge">G.DIP</span><div><b data-i18n="programs.items.gdip.name">教牧学研究硕士</b><span data-i18n="programs.items.gdip.desc">90 学分 · 按科修读 · 补修学分可衔接 M.Div</span></div></li>
-            <li><span class="program-badge">M.DIV</span><div><b data-i18n="programs.items.mdiv.name">道学硕士</b><span data-i18n="programs.items.mdiv.desc">90 学分 · 按科修读 · 面向全职事奉的完整神学与教牧装备</span></div></li>
-            <li><span class="program-badge">D.MIN</span><div><b data-i18n="programs.items.dmin.name">教牧学博士</b><span data-i18n="programs.items.dmin.desc">D.Min / D.Miss · 48 学分（含论文）· 按学分完成研究与实践</span></div></li>
+            <li class="program-featured"><span class="program-badge">B.Th</span><div><b data-i18n="programs.items.bth.name">神学学士</b><span data-i18n="programs.items.bth.desc">10月班已开课 · 11月班招生中 · 100 学分 · 按科修读、线上 + 线下</span></div></li>
+            <li><span class="program-badge">G.DIP</span><div><b data-i18n="programs.items.gdip.name">教牧学研究硕士</b><span data-i18n="programs.items.gdip.desc">按科修读 · 可衔接 M.Div</span></div></li>
+            <li><span class="program-badge">M.DIV</span><div><b data-i18n="programs.items.mdiv.name">道学硕士</b><span data-i18n="programs.items.mdiv.desc">按科修读 · 面向全职事奉的完整神学与教牧装备</span></div></li>
+            <li><span class="program-badge">D.MIN</span><div><b data-i18n="programs.items.dmin.name">教牧学博士</b><span data-i18n="programs.items.dmin.desc">D.Min · 研究与实践（含论文）</span></div></li>
           </ul>
         </div>
         <!-- 证书与装备课程：2026-09-04 暂不对外展示，权威开关为 program_catalog.is_open_for_application（见 0022 迁移）。
@@ -1282,6 +1482,6 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="assets/js/main.js?v=202611210843"></script>
+<script src="assets/js/main.js?v=202611270900"></script>
 </body>
 </html>
